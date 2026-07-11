@@ -1,0 +1,1360 @@
+﻿@page "/finance-dashboard";
+@inject NavigationManager Nav
+
+<!-- Charts -->
+<!-- ApexChart JS -->
+<script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
+<script src="assets/js/chart-data.js"></script>
+
+<!-- Chart JS -->
+<script src="assets/js/chart.min.js"></script>
+<script src="assets/js/chart-data_1.js"></script>
+
+
+<div class="content">
+
+    <div class="d-flex align-items-center justify-content-between flex-wrap gap-3 mb-2">
+        <div class="mb-3">
+            <h1 class="mb-1">Welcome, Admin</h1>
+            @* <p class="fw-medium">You have <span class="text-primary fw-bold">200+</span> Orders, Today</p> *@
+        </div>
+    </div>
+
+    <div class="row g-4">
+
+        <!-- TOP ROW – 4 MINI CARDS -->
+        <div class="col-xxl-8 col-xl-8">
+            <div class="row g-4">
+                <div class="col-xl-3 col-md-3 d-block">
+                    <div class="stat-card">
+                        <div class="stat-icon" style="background:#2563eb"><i class="bi bi-box-arrow-in-right"></i></div>
+                        <div class="stat-value">@CurrencySymbol @OpeningBalance</div>
+                        <div class="stat-label">Opening Balance</div>
+                    </div>
+                </div>
+
+                <div class="col-xl-3 col-md-3 d-block">
+                    <div class="stat-card">
+                        <div class="stat-icon" style="background:#16a34a"><i class="bi bi-box-arrow-left"></i></div>
+                        <div class="stat-value">@CurrencySymbol @ClosingBalance</div>
+                        <div class="stat-label">Closing Balance</div>
+                    </div>
+                </div>
+
+                <div class="col-xl-3 col-md-3 d-none d-md-block d-lg-block d-xl-block">
+                    <div class="stat-card">
+                        <div class="stat-icon" style="background:#f59e0b"><i class="bi bi-journal-text"></i></div>
+                        <div class="stat-value">@PendingJournals</div>
+                        <div class="stat-label">Pending Journals</div>
+                    </div>
+                </div>
+
+                <div class="col-xl-3 col-md-3 d-none d-md-block d-lg-block d-xl-block">
+                    <div class="stat-card">
+                        <div class="stat-icon" style="background:#7c3aed"><i class="bi bi-calendar-range"></i></div>
+                        <div class="stat-value">@CurrentPeriod</div>
+                        <div class="stat-label">Current Period</div>
+                    </div>
+                </div>
+            </div>
+            <div class="row g-2 mt-2">
+                <!-- RECEIVABLES -->
+                <div class="col-6">
+                    <div class="stat-card">
+                        <div class="d-flex justify-content-between">
+                            <h6 class="fw-bold">Total Receivables</h6>
+                            <span class="text-primary"></span>
+                        </div>
+                        <h4>@CurrencySymbol @FormatAmountInternational(CustomerAccountStats.TotalOutstanding) </h4>
+                        <div class="progress mb-2" style="height:8px">
+                            <div class="progress-bar bg-primary" style="width:100%"></div>
+                        </div>
+                        <small>Total Accounts @CustomerAccountStats.TotalAccounts | Active Accounts @CustomerAccountStats.ActiveAccounts</small>
+                    </div>
+                </div>
+
+                <!-- PAYABLES -->
+                <div class="col-6">
+                    <div class="stat-card">
+                        <div class="d-flex justify-content-between">
+                            <h6 class="fw-bold">Total Payables</h6>
+                            <span class="text-primary"></span>
+                        </div>
+                        <h4>@CurrencySymbol @FormatAmountInternational(VendorAccountStats.TotalOutstandingPayable)</h4>
+                        <div class="progress mb-2" style="height:8px">
+                            <div class="progress-bar bg-warning" style="width:100%"></div>
+                        </div>
+                        <small>Total Accounts @VendorAccountStats.TotalAccounts | Active Accounts @VendorAccountStats.ActiveAccounts</small>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+        <div class="col-xxl-4 col-xl-4 d-none d-md-block d-xl-block">
+            <div class="stat-card w-100 p-3">
+
+                <!-- Header -->
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                    <h6 class="fw-semibold mb-0">Highlights</h6>
+                    <i class="bi bi-three-dots-vertical text-muted"></i>
+                </div>
+
+                <!-- Main KPI -->
+                <div class="mb-2">
+                    <div class="text-muted small">Working Capital</div>
+                    <div class="fs-4 fw-bold">
+                        @CurrencySymbol @FormatAmountInternational(WorkingCapital)
+                    </div>
+                </div>
+
+                <!-- Progress -->
+                <div class="progress mb-3" style="height:6px;">
+                    <div class="progress-bar bg-primary"
+                         style="width:@ReceivablePercent%"></div>
+                    <div class="progress-bar bg-warning"
+                         style="width:@PayablePercent%"></div>
+                </div>
+
+                <!-- Compact Breakdown -->
+                <div class="d-flex justify-content-between align-items-center small">
+                    <div>
+                        <div class="text-muted">Receivables</div>
+                        <div class="fw-semibold text-primary">
+                            @CurrencySymbol @FormatAmountInternational(CustomerAccountStats.TotalOutstanding)
+                        </div>
+                    </div>
+
+                    <div class="text-end">
+                        <div class="text-muted">Payables</div>
+                        <div class="fw-semibold text-warning">
+                            @CurrencySymbol @FormatAmountInternational(VendorAccountStats.TotalOutstandingPayable)
+                        </div>
+                    </div>
+                </div>
+                <hr>
+                <!-- Breakdown -->
+                <div class="d-flex justify-content-between mb-2">
+                    <span><i class="bi bi-bank"></i> Bank Balance</span>
+                    <span>
+                        ₹36.8M
+                        <span class="text-success ms-2">↑ 3.9%</span>
+                </span> 
+                </div>
+
+                <div class="d-flex justify-content-between mb-2"> 
+                    <span><i class="bi bi-wallet2"></i> Cash in Hand</span> 
+                    <span>
+                        ₹2.1M 
+                        <span class="text-success ms-2">↑ 8.2%</span>
+                </span> 
+                </div>
+
+            </div>
+        </div>
+
+
+
+    </div>
+    <div class="row" style="margin-top:1.5rem">
+        <div class="col-xxl-8 col-xl-6 col-sm-12 col-12 d-flex">
+            <div class="card flex-fill">
+
+                <!-- Header -->
+                <div class="card-header d-flex align-items-center justify-content-between flex-wrap gap-3">
+                    <div class="d-inline-flex align-items-center">
+                        <span class="title-icon bg-soft-orange fs-16 me-2">
+                            <i class="ti ti-book"></i>
+                        </span>
+                        <h5 class="card-title mb-0">Recent Journal Entries</h5>
+                    </div>
+                    <a href="/journal-entries" class="fs-13 fw-medium text-decoration-underline">
+                        View All
+                    </a>
+                </div>
+
+                <!-- Body -->
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-borderless custom-table mb-0">
+                            <thead class="thead-light">
+                                <tr>
+                                    <th>Date</th>
+                                    <th>Journal ID</th>
+                                    <th>Debit</th>
+                                    <th>Credit</th>
+                                    <th>Status</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @if (TopUnpostedJournalEntries != null && TopUnpostedJournalEntries.Any())
+                                {
+                                    @foreach (var j in TopUnpostedJournalEntries)
+                                    {
+                                        <tr>
+                                            <td>@j.EntryDate.ToString("dd MMM yyyy")</td>
+
+                                            <td class="fw-semibold">
+                                                @j.JournalEntryNumber
+                                            </td>
+
+                                            <td>@j.TotalDebit</td>
+
+                                            <td>
+                                                @j.TotalCredit
+                                            </td>
+
+                                            <td>
+                                                <span class="badge badge-xs d-inline-flex align-items-center @GetStatusBadge(j.Status)">
+                                                    @j.Status
+                                                </span>
+                                            </td>
+                                        </tr>
+                                    }
+                                }
+                                else
+                                {
+                                    <tr>
+                                        <td colspan="5" class="text-center py-4 text-muted">
+                                            No journal entries found
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+
+                        </table>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+
+        <div class="col-xxl-4 col-md-6 d-flex d-none d-md-none d-xl-block d-lg-none d-xl-block d-xxl-block">
+            <div class="card flex-fill">
+                <div class="card-header d-flex justify-content-between align-items-center flex-wrap gap-3">
+                    <div class="d-inline-flex align-items-center">
+                        <span class="title-icon bg-soft-orange fs-16 me-2">
+                            <i class="ti ti-cash"></i>
+                        </span>
+                        <h5 class="card-title mb-0">Top Expenses</h5>
+
+                    </div>
+                    @* <div class="dropdown">
+                        <a href="javascript:void(0);" class="dropdown-toggle btn btn-sm btn-white d-flex align-items-center" data-bs-toggle="dropdown" aria-expanded="false">
+                            <i class="ti ti-calendar me-1"></i>Weekly
+                        </a>
+                        <ul class="dropdown-menu p-3">
+                            <li>
+                                <a href="javascript:void(0);" class="dropdown-item">Today</a>
+                            </li>
+                            <li>
+                                <a href="javascript:void(0);" class="dropdown-item">Weekly</a>
+                            </li>
+                            <li>
+                                <a href="javascript:void(0);" class="dropdown-item">Monthly</a>
+                            </li>
+                        </ul>
+                    </div> *@
+                </div>
+                <div class="card-body">
+                    <div class="d-flex align-items-center justify-content-between flex-wrap gap-4 mb-4">
+                        <div>
+                            <canvas id="top-category" height="230" width="200"></canvas>
+                        </div>
+                        <div>
+                            @if (TopExpenseTypes.Any())
+                            {
+                                @foreach (var item in TopExpenseTypes.Select((value, index) => new { value, index }))
+                                {
+                                    var css = item.index switch
+                                    {
+                                        0 => "category-primary",
+                                        1 => "category-orange",
+                                        2 => "category-secondary",
+                                        _ => "category-primary"
+                                    };
+
+                                    <div class="category-item @css">
+                                        <p class="fs-13 mb-1">@item.value.Type</p>
+
+                                        <h2 class="d-flex align-items-center">
+                                            @CurrencySymbol @FormatAmountInternational(item.value.Amount)
+                                        </h2>
+                                    </div>
+                                }
+                            }
+                            else
+                            {
+                                <p class="text-muted mb-0">No expenses found</p>
+                            }
+                        </div>
+
+                    </div>
+                    @* <h6 class="mb-2">Category Statistics</h6>
+					<div class="border br-8">
+						<div class="d-flex align-items-center justify-content-between border-bottom p-2">
+							<p class="d-inline-flex align-items-center mb-0"><i class="ti ti-square-rounded-filled text-indigo fs-8 me-2"></i>Total Number Of Categories</p>
+							<h5>698</h5>
+						</div>
+						<div class="d-flex align-items-center justify-content-between p-2">
+							<p class="d-inline-flex align-items-center mb-0"><i class="ti ti-square-rounded-filled text-orange fs-8 me-2"></i>Total Number Of Products</p>
+							<h5>7899</h5>
+						</div>
+					</div> *@
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <div class="row g-4">
+
+        <div class="col-xxl-5 col-xl-5 col-lg-12 col-md-12">
+            <div class="card">
+
+                <!-- Header -->
+                <div class="card-header d-flex justify-content-between align-items-center flex-wrap gap-3 mb-3">
+                    <div class="d-inline-flex align-items-center">
+                        <span class="title-icon bg-soft-warning fs-16 me-2">
+                            <i class="ti ti-activity"></i>
+                        </span>
+                        <h5 class="card-title mb-0">Live Financial Pulse</h5>
+                    </div>
+                    <span class="badge bg-soft-success">System Live</span>
+                </div>
+
+                <!-- Tiles -->
+                <div class="finance-actions-grid card-body">
+
+                    <!-- Today's Transactions -->
+                    <div class="finance-tile"
+                         data-bs-toggle="modal"
+                         data-bs-target="#todaysTransactionsModal"
+                         @onclick="LoadTodaysTransactions"
+                         style="cursor:pointer">
+                        <div class="finance-tile-icon bg-soft-primary">
+                            <i class="ti ti-arrows-exchange"></i>
+                        </div>
+                        <div class="finance-tile-content">
+                            <div class="finance-tile-value">@TodaysTransactionCount</div>
+                            <div class="finance-tile-label">Today's Transactions</div>
+                        </div>
+                    </div>
+
+                    <!-- Active COA -->
+                    <div class="finance-tile">
+                        <div class="finance-tile-icon bg-soft-warning">
+                            <i class="ti ti-sitemap"></i>
+                        </div>
+                        <div class="finance-tile-content">
+                            <div class="finance-tile-value">@ActiveCOA</div>
+                            <div class="finance-tile-label">Active COA</div>
+                        </div>
+                    </div>
+
+                    <!-- Pending Reconciliation -->
+                    <div class="finance-tile"
+                         data-bs-toggle="modal"
+                         data-bs-target="#pendingReconModal"
+                         style="cursor:pointer">
+                        <div class="finance-tile-icon bg-soft-info">
+                            <i class="ti ti-refresh"></i>
+                        </div>
+                        <div class="finance-tile-content">
+                            <div class="finance-tile-value">@PendingReconciliations</div>
+                            <div class="finance-tile-label">Reconciliation Pending</div>
+                        </div>
+                    </div>
+
+                    <!-- Active Account Groups -->
+                    <div class="finance-tile">
+                        <div class="finance-tile-icon bg-net">
+                            <i class="ti ti-folders"></i>
+                        </div>
+                        <div class="finance-tile-content">
+                            <div class="finance-tile-value">@ActiveAccountGroups</div>
+                            <div class="finance-tile-label">Active Account Groups</div>
+                        </div>
+                    </div>
+
+                    <!-- Active GL Accounts -->
+                    <div class="finance-tile xl-show">
+                        <div class="finance-tile-icon bg-soft-danger">
+                            <i class="ti ti-chart-arcs"></i>
+                        </div>
+                        <div class="finance-tile-content">
+                            <div class="finance-tile-value">@ActiveGLAccounts</div>
+                            <div class="finance-tile-label">Active GL Accounts</div>
+                        </div>
+                    </div>
+
+                    <!-- Active Ledgers -->
+                    <div class="finance-tile xl-show">
+                        <div class="finance-tile-icon bg-soft-success">
+                            <i class="ti ti-address-book"></i>
+                        </div>
+                        <div class="finance-tile-content">
+                            <div class="finance-tile-value">@ActiveLedgers</div>
+                            <div class="finance-tile-label">Active Ledgers</div>
+                        </div>
+                    </div>
+
+                    <!-- Today's GL Entries -->
+                    <div class="finance-tile xxxxl-show">
+                        <div class="finance-tile-icon bg-soft-warning">
+                            <i class="ti ti-book-2"></i>
+                        </div>
+                        <div class="finance-tile-content">
+                            <div class="finance-tile-value">@TodaysGLEntries</div>
+                            <div class="finance-tile-label">Today's GL Entries</div>
+                        </div>
+                    </div>
+
+
+                </div>
+            </div>
+        </div>
+
+
+
+
+        <!-- CASH & BANK ACCOUNTS -->
+        <div class="col-xxl-4 col-xl-4 col-lg-6 col-md-6">
+            <div class="card">
+
+                <!-- Header -->
+                <div class="card-header d-flex justify-content-between align-items-center flex-wrap gap-3 mb-3">
+                    <div class="d-inline-flex align-items-center">
+                        <span class="title-icon bg-soft-primary fs-16 me-2">
+                            <i class="ti ti-building-bank"></i>
+                        </span>
+                        <h5 class="card-title mb-0">Cash & Bank Accounts</h5>
+                    </div>
+                </div>
+
+                <!-- Accounts -->
+                <div class="finance-account card-body">
+
+                    <!-- Cash -->
+                    <div class="finance-account-row">
+                        <div class="finance-account-left">
+                            <span class="finance-account-icon bg-soft-success">
+                                <i class="ti ti-wallet"></i>
+                            </span>
+                            <div>
+                                <div class="finance-account-name">@CashAccounts.Name</div>
+                                <div class="finance-account-sub">@CashAccounts.CustodianName</div>
+                            </div>
+                        </div>
+
+                        <div class="finance-account-right">
+                            <div class="finance-account-value">Limit @CurrencySymbol @FormatAmountInternational(CashAccounts.MaxCashLimit)</div>
+                            @* <div class="mini-bar">
+                                <div class="mini-bar-fill" style="width:25%"></div>
+                            </div> *@
+                        </div>
+                    </div>
+
+                    <!-- Bank Accounts -->
+                    @if (BankAccounts.Any())
+                    {
+                        @foreach (var acc in BankAccounts)
+                        {
+                            <div class="finance-account-row"
+                                 style="cursor:pointer"
+                                 data-bs-toggle="modal"
+                                 data-bs-target="#bankAccountModal"
+                                 @onclick="() => OpenAccountModal(acc)">
+
+                                <div class="finance-account-left">
+                                    <span class="finance-account-icon bg-soft-primary">
+                                        <i class="ti ti-building-bank"></i>
+                                    </span>
+
+                                    <div>
+                                        <div class="finance-account-name">
+                                            @acc.BankName
+                                        </div>
+                                        <div class="finance-account-sub">
+                                            @acc.BankAccountType
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="finance-account-right">
+                                    <div class="finance-account-value">
+                                        @acc.BankGLAccountCode
+                                    </div>
+                                </div>
+                            </div>
+                        }
+                    }
+                    else
+                    {
+                        <!-- Filler content when no banks -->
+                        <div class="flex-grow-1 d-flex align-items-center justify-content-center text-muted small">
+                            No bank accounts configured
+                        </div>
+                    }
+
+
+                </div>
+
+            </div>
+        </div>
+
+
+
+        <!-- BANK RECONCILIATION -->
+        <div class="col-xxl-3 col-xl-3 col-lg-6 col-md-6 d-none d-md-block d-lg-block d-xl-block d-xxl-block">
+
+            <div class="card">
+
+                <!-- Header -->
+                <div class="card-header d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
+                    <div class="d-inline-flex align-items-center">
+                        <span class="title-icon bg-soft-warning fs-16 me-2">
+                            <i class="ti ti-refresh"></i>
+                        </span>
+                        <h5 class="card-title mb-0">Bank Reconciliation</h5>
+                    </div>
+
+                    <span class="badge bg-soft-success text-success">Healthy</span>
+                </div>
+
+                <div class="card-body">
+
+
+                    <!-- KPI -->
+                    <div class="text-center">
+                        <div class="fs-28 fw-bold text-dark">82%</div>
+                        <div class="text-muted fs-13">Matching Accuracy</div>
+                    </div>
+
+                    <!-- Segmented Progress -->
+                    <div class="progress mb-3" style="height:8px;">
+                        <div class="progress-bar bg-success" style="width:60%"></div>
+                        <div class="progress-bar bg-warning" style="width:15%"></div>
+                        <div class="progress-bar bg-danger" style="width:7%"></div>
+                    </div>
+
+                    <!-- Status Chips -->
+                    <div class="d-flex justify-content-between gap-2 mb-2">
+                        <span class="badge bg-soft-primary">Matched 60</span>
+                        <span class="badge bg-soft-warning">Pending @PendingReconciliations</span>
+                    </div>
+
+                    <!-- Quick Stats -->
+                    <div class="finance-row mt-3">
+                        <span><i class="ti ti-clock me-1 text-warning"></i> Oldest Pending</span>
+                        <strong>3 Days</strong>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+
+    </div>
+
+
+
+    <div class="row g-4">
+
+
+        <!-- Customer MONITOR -->
+        <div class="col-xxl-3 col-xl-3 col-lg-6 col-md-12">
+
+            <div class="card" @onclick='() => ViewAll("customer-accounts")'>
+
+                <!-- Header -->
+                <div class="card-header d-flex justify-content-between align-items-center flex-wrap gap-3 mb-3">
+                    <div class="d-inline-flex align-items-center">
+                        <span class="title-icon bg-soft-primary fs-16 me-2">
+                            <i class="ti ti-users"></i>
+                        </span>
+                        <h5 class="card-title mb-0">Customer Accounts</h5>
+                    </div>
+
+                </div>
+
+                <!-- KPI -->
+                <div class="text-center mb-3">
+                    <div class="fs-28 fw-bold text-dark">@CurrencySymbol @FormatAmountInternational(CustomerAccountStats.TotalOutstanding)</div>
+                    <div class="text-muted fs-13">Total Outstanding</div>
+                </div>
+                <!-- Metrics -->
+                <div class="gl-metric card-body">
+
+                    <div class="gl-metric-row">
+                        <div class="gl-metric-left">
+                            <span class="gl-icon bg-soft-success">
+                                <i class="ti ti-users"></i>
+                            </span>
+                            <span class="gl-label">Total Customers</span>
+                        </div>
+                        <span class="gl-value text-success">@TotalCustomers</span>
+                    </div>
+
+                    <div class="gl-metric-row">
+                        <div class="gl-metric-left">
+                            <span class="gl-icon bg-soft-success">
+                                <i class="ti ti-lock"></i>
+                            </span>
+                            <span class="gl-label">Frozen Accounts</span>
+                        </div>
+                        <span class="gl-value text-success">@CustomerAccountStats.FrozenAccounts</span>
+                    </div>
+
+                    <div class="gl-metric-row">
+                        <div class="gl-metric-left">
+                            <span class="gl-icon bg-soft-warning">
+                                <i class="ti ti-alert-circle"></i>
+                            </span>
+                            <span class="gl-label">Over Credit Limit</span>
+                        </div>
+                        <span class="gl-value text-warning">@CustomerAccountStats.AccountsOverCreditLimit</span>
+                    </div>
+
+                    @* <div class="gl-metric-row">
+                        <div class="gl-metric-left">
+                            <span class="gl-icon bg-soft-info">
+                                <i class="ti ti-trending-up"></i>
+                            </span>
+                            <span class="gl-label">High Movement GLs</span>
+                        </div>
+                        <span class="gl-value text-primary">5</span>
+                    </div> *@
+
+                    <div class="gl-metric-row">
+                        <div class="gl-metric-left">
+                            <span class="gl-icon bg-soft-danger">
+                                <i class="ti ti-ban"></i>
+                            </span>
+                            <span class="gl-label">Blocked</span>
+                        </div>
+                        <span class="gl-value text-danger">@CustomerAccountStats.PostingBlockedAccounts</span>
+                    </div>
+
+                </div>
+
+            </div>
+
+        </div>
+
+        <!-- Vendor PAYABLES DASHBOARD -->
+        <div class="col-xxl-3 col-xl-3 col-lg-6 col-md-12">
+
+            <div class="card vendor-card" @onclick='() => ViewAll("vendor-accounts")'>
+
+                <!-- Header -->
+                <div class="card-header d-flex justify-content-between align-items-center flex-wrap gap-3 mb-3">
+                    <div class="d-inline-flex align-items-center">
+                        <span class="title-icon bg-soft-warning fs-16 me-2">
+                            <i class="ti ti-truck-delivery"></i>
+                        </span>
+                        <h5 class="card-title mb-0">Vendor Payables</h5>
+                    </div>
+
+                </div>
+
+                <!-- KPI -->
+                <div class="text-center mb-3">
+                    <div class="fs-28 fw-bold text-dark">@CurrencySymbol @FormatAmountInternational(VendorAccountStats.TotalOutstandingPayable)</div>
+                    <div class="text-muted fs-13">Total Payable</div>
+                </div>
+
+                <!-- PAYABLES PIPELINE -->
+                <div class="vendor-pipeline card-body">
+
+                    <!-- QUICK STATS -->
+                    <div class="vendor-stats-grid">
+
+                        <div class="vendor-stat">
+                            <span class="vendor-stat-icon bg-soft-primary">
+                                <i class="ti ti-building"></i>
+                            </span>
+                            <div class="vendor-stat-value">@TotalVendors</div>
+                            <div class="vendor-stat-label">Total Vendors</div>
+                        </div>
+
+                        <div class="vendor-stat">
+                            <span class="vendor-stat-icon bg-soft-success">
+                                <i class="ti ti-wallet"></i>
+                            </span>
+                            <div class="vendor-stat-value">@CurrencySymbol @FormatAmountInternational(VendorAccountStats.TotalAdvancePaid)</div>
+                            <div class="vendor-stat-label">Total Advances</div>
+                        </div>
+
+                        <div class="vendor-stat">
+                            <span class="vendor-stat-icon bg-soft-info">
+                                <i class="ti ti-lock"></i>
+                            </span>
+                            <div class="vendor-stat-value">@VendorAccountStats.FrozenAccounts</div>
+                            <div class="vendor-stat-label">Frozen</div>
+                        </div>
+
+                        <div class="vendor-stat">
+                            <span class="vendor-stat-icon bg-soft-danger">
+                                <i class="ti ti-ban"></i>
+                            </span>
+                            <div class="vendor-stat-value">@VendorAccountStats.PaymentBlockedAccounts</div>
+                            <div class="vendor-stat-label">Blocked</div>
+                        </div>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+        </div>
+
+        <!-- CUSTOMER AGING MONITOR -->
+        <div class="col-xxl-3 col-xl-3 col-lg-6 col-md-12 d-none d-md-none d-lg-block d-xl-block d-xxl-block d-flex">
+
+            <div class="card" @onclick='() => ViewAll("customer-aging")'>
+
+                <!-- Header -->
+                <div class="card-header d-flex justify-content-between align-items-center flex-wrap gap-3 mb-3">
+                    <div class="d-inline-flex align-items-center">
+                        <span class="title-icon bg-soft-info fs-16 me-2">
+                            <i class="ti ti-calendar-stats"></i>
+                        </span>
+                        <h5 class="card-title mb-0">Customer Aging</h5>
+                    </div>
+
+                </div>
+
+                <!-- KPI -->
+                <div class="text-center">
+                    <div class="fs-28 fw-bold text-dark">@CurrencySymbol @FormatAmountInternational(CustomerAgingStatistics.TotalOutstanding)</div>
+                    <div class="text-muted fs-13">Total Outstanding</div>
+                </div>
+
+                <!-- Aging Metrics -->
+                <div class="gl-metric card-body">
+
+                    <!-- Current -->
+                    @* <div class="gl-metric-row">
+                        <div class="gl-metric-left">
+                            <span class="gl-icon bg-soft-success">
+                                <i class="ti ti-circle-check"></i>
+                            </span>
+                            <span class="gl-label">Current</span>
+                        </div>
+                        <div class="text-end">
+                            <div class="gl-value text-success">₹3.1M</div>
+                            <div class="fs-11 text-muted">2 Invoices</div>
+                        </div>
+                    </div> *@
+
+                    <!-- 1–30 -->
+                    <div class="gl-metric-row">
+                        <div class="gl-metric-left">
+                            <span class="gl-icon bg-soft-primary">
+                                <i class="ti ti-clock"></i>
+                            </span>
+                            <span class="gl-label">1–30 Days</span>
+                        </div>
+                        <div class="text-end">
+                            <div class="gl-value text-primary">@CurrencySymbol @FormatAmountInternational(BucketSummaryViewModel.Days1To30Amount)</div>
+                            <div class="fs-11 text-muted">@BucketSummaryViewModel.Days1To30Count Invoices</div>
+                        </div>
+                    </div>
+
+                    <!-- 31–60 -->
+                    <div class="gl-metric-row">
+                        <div class="gl-metric-left">
+                            <span class="gl-icon bg-soft-warning">
+                                <i class="ti ti-alert-triangle"></i>
+                            </span>
+                            <span class="gl-label">31–60 Days</span>
+                        </div>
+                        <div class="text-end">
+                            <div class="gl-value text-warning">@CurrencySymbol @FormatAmountInternational(BucketSummaryViewModel.Days31To60Amount)</div>
+                            <div class="fs-11 text-muted">@BucketSummaryViewModel.Days31To60Count Invoices</div>
+                        </div>
+                    </div>
+
+                    <!-- 61–90 -->
+                    <div class="gl-metric-row">
+                        <div class="gl-metric-left">
+                            <span class="gl-icon bg-soft-warning">
+                                <i class="ti ti-alert-circle"></i>
+                            </span>
+                            <span class="gl-label">61–90 Days</span>
+                        </div>
+                        <div class="text-end">
+                            <div class="gl-value text-warning">@CurrencySymbol @FormatAmountInternational(BucketSummaryViewModel.Days61To90Amount)</div>
+                            <div class="fs-11 text-muted">@BucketSummaryViewModel.Days61To90Count Invoices</div>
+                        </div>
+                    </div>
+
+                    <!-- 90+ -->
+                    <div class="gl-metric-row">
+                        <div class="gl-metric-left">
+                            <span class="gl-icon bg-soft-danger">
+                                <i class="ti ti-ban"></i>
+                            </span>
+                            <span class="gl-label">90+ Days</span>
+                        </div>
+                        <div class="text-end">
+                            <div class="gl-value text-danger">@CurrencySymbol @FormatAmountInternational(BucketSummaryViewModel.Days90PlusAmount)</div>
+                            <div class="fs-11 text-muted">@BucketSummaryViewModel.Days90PlusCount Invoices</div>
+                        </div>
+                    </div>
+
+                </div>
+
+            </div>
+
+        </div>
+
+                    @if (Branches != null && Branches.Count > 1)
+            {
+        <div class="col-xxl-3 col-xl-3 col-lg-6 col-md-12 d-none d-md-none d-lg-block d-xl-block d-xxl-block d-flex">
+
+             <div class="card flex-fill">
+                <div class="card-header d-flex justify-content-between align-items-center flex-wrap gap-3">
+                    <div class="d-inline-flex align-items-center">
+                        <span class="title-icon bg-soft-primary fs-16 me-2">
+                            <i class="ti ti-cash"></i>
+                        </span>
+                        <h5 class="card-title mb-0">Branch Performance</h5>
+
+                    </div>
+                </div>
+                <div class="card-body">
+                        <ul class="list-unstyled mb-0 branch-list">
+                            @if (BranchPerformance.Any())
+                            {
+                                @foreach (var b in BranchPerformance)
+                                {
+                                    <li>
+                                        <span>
+                                            <i class="ti ti-building"></i> @b.BranchName
+                                        </span>
+                                        <strong>@CurrencySymbol@FormatAmountInternational(b.Amount)</strong>
+                                    </li>
+                                }
+                            }
+                            else
+                            {
+                                <li class="text-muted">No branch data</li>
+                            }
+                        </ul>
+                </div>
+
+            </div>
+ 
+
+            <div class="card flex-fill">
+                <div class="card-header d-flex justify-content-between align-items-center flex-wrap gap-3">
+                    <div class="d-inline-flex align-items-center">
+                        <span class="title-icon bg-soft-primary fs-16 me-2">
+                            <i class="ti ti-cash"></i>
+                        </span>
+                        <h5 class="card-title mb-0">Fiscal Progress</h5>
+
+                    </div>
+                </div>
+                <div class="card-body">
+                        <h5 class="fw-bold mb-2">
+                            Period @CurrentPeriodNumber / @TotalPeriods
+                        </h5>
+
+                        <div class="progress fiscal-progress mb-2">
+                            <div class="progress-bar" style="width:@FiscalProgressPercent%"></div>
+                        </div>
+
+                        <p class="text-muted fs-13 mb-0">
+                            @FiscalProgressPercent% of year completed
+                        </p>
+                </div>
+            </div>
+
+        </div>
+                   }else{
+                        <div class="col-xxl-3 col-xl-3 col-lg-6 col-md-12 d-none d-md-none d-lg-block d-xl-block d-xxl-block d-flex">
+<div class="card-body p-0">
+
+    @if (TopOverdueInvoices.Any())
+    {
+        @foreach (var inv in TopOverdueInvoices.Select((value, index) => new { value, index }))
+        {
+            var daysOverdue = (DateTime.Today - inv.value.DueDate).Days;
+
+            var colorClass = daysOverdue switch
+            {
+                > 40 => "text-danger",
+                > 20 => "text-warning",
+                _ => "text-primary"
+            };
+
+            var bgClass = daysOverdue switch
+            {
+                > 40 => "bg-soft-danger",
+                > 20 => "bg-soft-warning",
+                _ => "bg-soft-info"
+            };
+
+            var responsiveClass = inv.index == 4 ? "xxxxl-show" : "";
+
+            <div class="overdue-item @responsiveClass">
+                <div class="overdue-left">
+                    <span class="overdue-icon @bgClass">
+                        <i class="ti ti-user"></i>
+                    </span>
+
+                    <div>
+                        <div class="overdue-title">@inv.value.CustomerName</div>
+                        <div class="overdue-meta">
+                            @inv.value.InvoiceNumber • @daysOverdue Days Overdue
+                        </div>
+                    </div>
+                </div>
+
+                <div class="overdue-amount @colorClass">
+                                    @CurrencySymbol@FormatAmountInternational(inv.value.AmountOutstanding)
+                </div>
+            </div>
+        }
+    }
+    else
+    {
+                        <div class="card flex-fill">
+                            <div class="card-header d-flex justify-content-between align-items-center flex-wrap gap-3">
+                                <div class="d-inline-flex align-items-center">
+                                    <span class="title-icon bg-soft-primary fs-16 me-2">
+                                        <i class="ti ti-cash"></i>
+                                    </span>
+                                    <h5 class="card-title mb-0">Fiscal Progress</h5>
+
+                                </div>
+                            </div>
+                            <div class="card-body">
+                                <h5 class="fw-bold mb-2">
+                                    Period @CurrentPeriodNumber / @TotalPeriods
+                                </h5>
+
+                                <div class="progress fiscal-progress mb-2">
+                                    <div class="progress-bar" style="width:@FiscalProgressPercent%"></div>
+                                </div>
+
+                                <p class="text-muted fs-13 mb-0">
+                                    @FiscalProgressPercent% of year completed
+                                </p>
+                            </div>
+                        </div>
+    }
+
+</div>
+
+        </div>
+                   }
+       
+
+    </div>
+
+
+
+</div>
+
+
+<!-- Top 5 Overdue Invoices Modal -->
+<div class="modal fade" id="overdueInvoicesModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
+        <div class="modal-content">
+
+            <!-- Header -->
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="ti ti-file-invoice me-2 text-primary"></i>Top 5 Overdue Invoices
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"
+                        style="padding: 0; right: 20px; top: 20px; position: absolute;">
+                </button>
+            </div>
+
+            <!-- Body -->
+            <div class="modal-body p-0">
+
+                <div class="overdue-item">
+                    <div class="overdue-left">
+                        <span class="overdue-icon bg-soft-danger">
+                            <i class="ti ti-user"></i>
+                        </span>
+                        <div>
+                            <div class="overdue-title">ABC Traders Pvt Ltd</div>
+                            <div class="overdue-meta">INV-9021 • 45 Days Overdue</div>
+                        </div>
+                    </div>
+                    <div class="overdue-amount text-danger">₹96,450</div>
+                </div>
+
+                <div class="overdue-item">
+                    <div class="overdue-left">
+                        <span class="overdue-icon bg-soft-warning">
+                            <i class="ti ti-user"></i>
+                        </span>
+                        <div>
+                            <div class="overdue-title">State Government Education Dept</div>
+                            <div class="overdue-meta">INV-8893 • 32 Days Overdue</div>
+                        </div>
+                    </div>
+                    <div class="overdue-amount text-warning">₹16,985</div>
+                </div>
+
+                <div class="overdue-item">
+                    <div class="overdue-left">
+                        <span class="overdue-icon bg-soft-warning">
+                            <i class="ti ti-user"></i>
+                        </span>
+                        <div>
+                            <div class="overdue-title">XYZ Electronics Hub</div>
+                            <div class="overdue-meta">INV-7712 • 28 Days Overdue</div>
+                        </div>
+                    </div>
+                    <div class="overdue-amount text-warning">₹5,366</div>
+                </div>
+
+                <div class="overdue-item">
+                    <div class="overdue-left">
+                        <span class="overdue-icon bg-soft-info">
+                            <i class="ti ti-user"></i>
+                        </span>
+                        <div>
+                            <div class="overdue-title">Ramesh Kumar</div>
+                            <div class="overdue-meta">INV-6544 • 14 Days Overdue</div>
+                        </div>
+                    </div>
+                    <div class="overdue-amount text-primary">₹4,569</div>
+                </div>
+
+                <div class="overdue-item">
+                    <div class="overdue-left">
+                        <span class="overdue-icon bg-soft-info">
+                            <i class="ti ti-user"></i>
+                        </span>
+                        <div>
+                            <div class="overdue-title">TechPark SEZ Solutions Pvt Ltd</div>
+                            <div class="overdue-meta">INV-6120 • 7 Days Overdue</div>
+                        </div>
+                    </div>
+                    <div class="overdue-amount text-primary">₹3,698</div>
+                </div>
+
+            </div>
+
+            <!-- Footer -->
+            <div class="modal-footer justify-content-between">
+                <span class="text-muted fs-13">
+                    Showing highest overdue invoices
+                </span>
+                <a href="/customer-invoices"
+                   class="btn btn-sm btn-primary" data-bs-dismiss="modal" @onclick='() => ViewAll("customer-invoices")'>
+                    View Full Report
+                </a>
+            </div>
+
+        </div>
+    </div>
+</div>
+
+
+<div class="modal fade" id="unpostedJournalsModal" tabindex="-1">
+    <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
+        <div class="modal-content">
+
+            <!-- Header -->
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="ti ti-book me-2 text-warning"></i>
+                    Top 5 Unposted Journal Entries
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"
+                        style="padding: 0; right: 20px; top: 20px; position: absolute;">
+                </button>
+            </div>
+
+            <!-- Body -->
+            <div class="modal-body p-0">
+
+                @if (!TopUnpostedJournalEntries.Any())
+                {
+                    <div class="p-4 text-center text-muted">
+                        <i class="ti ti-check fs-3 text-success"></i>
+                        <div>All journals are posted 🎉</div>
+                    </div>
+                }
+                else
+                {
+                    @foreach (var j in TopUnpostedJournalEntries)
+                    {
+                        <div class="overdue-item">
+                            <div class="overdue-left">
+                                @* <span class="overdue-icon bg-soft-warning">
+                                    <i class="ti ti-book"></i>
+                                </span> *@
+                                <div>
+                                    <div class="overdue-title">
+                                        @j.JournalEntryNumber
+                                    </div>
+                                    <div class="overdue-meta">
+                                       @j.EntryDate.ToString("dd MMM yyyy")
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="overdue-amount text-danger">
+                                ₹@j.TotalDebit.ToString("N2")
+                            </div>
+                            <div class="overdue-amount text-Success">
+                                ₹@j.TotalCredit.ToString("N2")
+                            </div>
+                            <div>
+                                <span class="badge @GetStatusBadge(j.Status)">
+                                    @j.Status
+                                </span>
+                            </div>
+                        </div>
+                    }
+                }
+            </div>
+
+                        <!-- Footer -->
+            <div class="modal-footer justify-content-between">
+                <span class="text-muted fs-13">
+                    Showing draft & unposted journals
+                </span>
+                <a href="/journal-entries"
+                   class="btn btn-sm btn-primary"
+                   data-bs-dismiss="modal"
+                   @onclick='() => ViewAll("journal-entries")'>
+                    View Full Journal Entries
+                </a>
+            </div>
+
+        </div>
+    </div>
+</div>
+
+
+<!-- Today's Transactions Modal -->
+<div class="modal fade"
+     id="todaysTransactionsModal"
+     tabindex="-1"
+     aria-hidden="true">
+
+    <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
+        <div class="modal-content">
+
+            <!-- Header -->
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="ti ti-arrows-exchange me-2 text-primary"></i>
+                    Today's Transactions
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"
+                        style="padding: 0; right: 20px; top: 20px; position: absolute;">
+                </button>
+            </div>
+
+            <!-- Body -->
+            <div class="modal-body p-0">
+
+                @if (!TodaysTransactions.Any())
+                {
+                    <div class="text-center text-muted p-4">
+                        <i class="ti ti-database-off fs-32 d-block mb-2"></i>
+                        No transactions recorded today
+                    </div>
+                }
+                else
+                {
+                    @foreach (var t in TodaysTransactions)
+                    {
+                        <div class="overdue-item">
+
+                            <div class="overdue-left">
+
+
+                                <div>
+                                    <div class="overdue-title">
+                                        @t.DocumentNo
+                                    </div>
+
+                                    <div class="overdue-meta">
+                                        @t.TransactionTypeName •
+                                        @t.TransactionDate •
+                                        @t.Status
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="overdue-amount">
+                                ₹@t.BaseAmount.ToString("N2")
+                            </div>
+                        </div>
+                    }
+                }
+
+            </div>
+
+            <!-- Footer -->
+            <div class="modal-footer justify-content-between">
+                <span class="text-muted fs-13">
+                    Showing latest 5 transactions for today
+                </span>
+
+                <a href="/financial-transactions"
+                   class="btn btn-sm btn-primary"
+                   data-bs-dismiss="modal"
+                   @onclick='() => ViewAll("financial-transactions")'>
+                    View Full Transactions
+                </a>
+            </div>
+
+        </div>
+    </div>
+</div>
+
+
+<!-- Pending Reconciliation Modal -->
+<div class="modal fade"
+     id="pendingReconModal"
+     tabindex="-1"
+     aria-hidden="true">
+
+    <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
+        <div class="modal-content">
+
+            <!-- Header -->
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="ti ti-refresh me-2 text-info"></i>
+                    Pending Bank Reconciliations
+                </h5>
+
+                <button type="button" class="btn-close" data-bs-dismiss="modal"
+                        style="padding: 0; right: 20px; top: 20px; position: absolute;">
+                </button>
+            </div>
+
+            <!-- Body -->
+            <div class="modal-body p-0">
+
+                @if (!PendingRecons.Any())
+                {
+                    <div class="text-center text-muted p-4">
+                        <i class="ti ti-circle-check fs-32 d-block mb-2"></i>
+                        No pending reconciliations 🎉
+                    </div>
+                }
+                else
+                {
+                    @foreach (var r in PendingRecons)
+                    {
+                        <div class="overdue-item">
+
+                            <div class="overdue-left">
+                                <span class="overdue-icon bg-soft-info">
+                                    <i class="ti ti-building-bank"></i>
+                                </span>
+
+                                <div>
+                                    <div class="overdue-title">
+                                        @r.ReconciliationNumber
+                                    </div>
+
+                                    <div class="overdue-meta">
+                                        @r.ScopeType •
+                                        @r.PreparedBy •
+                                        @r.PreparedOn.ToString("dd MMM yyyy")
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="overdue-amount">
+                                    <span class="badge @GetStatusBadge(r.ReconciliationStatus)">
+                                        @r.ReconciliationStatus
+                                    </span>
+                            </div>
+                        </div>
+                    }
+                }
+
+            </div>
+
+            <!-- Footer -->
+            <div class="modal-footer justify-content-between">
+                <span class="text-muted fs-13">
+                    Showing top 5 pending reconciliation runs
+                </span>
+
+                <a href="/bank-reconciliation"
+                   class="btn btn-sm btn-info"
+                   data-bs-dismiss="modal"
+                   @onclick='() => ViewAll("bank-reconciliation")'>
+                    View All Reconciliations
+                </a>
+            </div>
+
+        </div>
+    </div>
+</div>
+
+
+<!-- Bank Account Info Modal -->
+<div class="modal fade"
+     id="bankAccountModal"
+     tabindex="-1"
+     aria-hidden="true">
+
+    <div class="modal-dialog modal-sm modal-dialog-centered">
+        <div class="modal-content">
+
+            <!-- Header -->
+            <div class="modal-header">
+                <h6 class="modal-title">
+                    <i class="ti ti-building-bank me-2 text-primary"></i>
+                    Bank Account Info
+                </h6>
+
+                <button type="button" class="btn-close" data-bs-dismiss="modal"
+                        style="padding: 0; right: 20px; top: 20px; position: absolute;">
+                </button>
+            </div>
+
+            @if (SelectedBankAccount!=null)
+            {
+            <!-- Body -->
+            <div class="modal-body">
+
+                <div class="account-info-row">
+                    <span class="label">Bank</span>
+                    <span class="value">@SelectedBankAccount.BankName</span>
+                </div>
+
+                <div class="account-info-row">
+                    <span class="label">IFSC</span>
+                    <span class="value">@SelectedBankAccount.IFSCCode</span>
+                </div>
+
+                <div class="account-info-row">
+                    <span class="label">Account Holder</span>
+                    <span class="value">@SelectedBankAccount.AccountHolderName</span>
+                </div>
+
+                <div class="account-info-row">
+                    <span class="label">Status</span>
+                    <span class="badge @GetAccStatusBadge(SelectedBankAccount.BankAccountStatus)">
+                        @SelectedBankAccount.BankAccountStatus
+                    </span>
+                </div>
+
+            </div>
+            }
+
+
+        </div>
+    </div>
+</div>

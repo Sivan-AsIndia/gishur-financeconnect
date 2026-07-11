@@ -1,0 +1,637 @@
+@page "/customers/create"
+@page "/customers/{Id:guid}"
+
+<style>
+    .form-select option:checked {
+        color: #fff;
+        background: var(--primary);
+    }
+
+    .form-select:focus {
+        border-color: var(--primary);
+        box-shadow: none;
+    }
+
+    .validation-message {
+        color: #dc3545;
+        font-size: 12px;
+    }
+
+    /* Fixed Checkbox Styling */
+    .form-wizard .form-check-input[type="checkbox"] {
+        width: 14px !important;
+        height: 14px !important;
+        min-width: 14px;
+        border: 2px solid #dee2e6;
+        border-radius: 4px;
+        cursor: pointer;
+        margin-top: 0.1rem;
+        flex-shrink: 0;
+    }
+
+    .form-wizard .form-check-input[type="checkbox"]:checked {
+            background-color: var(--primary);
+            border-color: var(--primary);
+    }
+
+    .form-wizard .form-check-input[type="checkbox"]:focus {
+            border-color: var(--primary);
+        box-shadow: 0 0 0 0.2rem rgba(254, 159, 67, 0.25);
+    }
+
+    .form-wizard .form-check {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding-left: 0;
+    }
+
+    .form-wizard .form-check-label {
+        margin-bottom: 0;
+        cursor: pointer;
+    }
+</style>
+
+@if (!isInitialized)
+{
+    <div class="page-loading-overlay">
+        <div class="whirly-loader"></div>
+    </div>
+}
+else
+{
+    <div class="content form-wizard">
+        <div class="page-header">
+            <div class="add-item d-flex">
+                <div class="page-title">
+                    <h4 class="fw-bold">@PageTitle</h4>
+                    <h6>@PageSubTitle</h6>
+                </div>
+            </div>
+
+            <div class="d-flex page-btn mt-0 gap-2">
+                @if (IsEdit)
+                {
+                    <button type="button" class="btn btn-primary" @onclick="Save">
+                        <i class="ti ti-device-floppy me-1"></i> Update
+                    </button>
+                }
+
+                <a href="/customers" class="btn btn-outline-secondary">
+                    <i class="ti ti-arrow-left me-1"></i> Back
+                </a>
+            </div>
+        </div>
+
+        <div class="wizard-overlay d-flex mb-4">
+            <EditForm EditContext="editContext" OnSubmit="Save" style="width: 100%;">
+               <DataAnnotationsValidator />
+                <div class="wizard-overlay">
+                    <div class="wizard-modal">
+
+                        <!-- LEFT STEPPER -->
+                        <div class="wizard-steps">
+                            <div class="timeline-line"></div>
+                            <div class="timeline-indicator @(IsCurrentStepValid() ? "success" : "error")"
+                                 style="top:@IndicatorToppx"></div>
+
+                            @for (int i = 1; i <= Steps.Count; i++)
+                            {
+                                <div class="wizard-step @StepClass(i)">
+                                    <div class="dot">
+                                        @if (i < CurrentStep)
+                                        {
+                                            <i class="ti ti-check" style="color: white; font-size: 22px;"></i>
+                                        }
+                                        else
+                                        {
+                                            <i class="@Steps[i - 1].Icon"></i>
+                                        }
+                                    </div>
+                                    <div class="label">
+                                        <b>@Steps[i - 1].Title</b>
+                                    </div>
+                                </div>
+                            }
+                        </div>
+
+                        <!-- RIGHT CONTENT -->
+                        <div class="wizard-content">
+                            <h2 style="font-size: 17px; margin-bottom: 10px;">
+                                @Steps[CurrentStep - 1].Title
+                            </h2>
+
+                            @* Step 1: Customer Identity *@
+                            @if (CurrentStep == 1)
+                            {
+                                <div id="customerIdentity" class="accordion-collapse collapse show">
+                                    <div class="accordion-body border-top pt-3 p-0">
+                                        <div class="row">
+                                            <div class="col-md-6 mb-3">
+                                                <label class="form-label">Customer Code <span class="text-danger ms-1">*</span></label>
+                                                <InputText class="@($"form-control text-uppercase {(ShowFieldError(1, "CustomerCode") ? "is-invalid" : "")}")"
+                                                           @bind-Value="Customer.CustomerCode" @bind-Value:after ="OnCustomerCodeChanged"
+                                                           disabled="@IsEdit" placeholder="e.g., CUST-001" maxlength="30" />
+                                                @if (ShowFieldError(1, "CustomerCode"))
+                                                {
+                                                    <div class="text-danger small mt-1">Customer Code is required</div>
+                                                }
+                                                @if (ShowFieldError(1, "CustomerCodeFormat"))
+                                                {
+                                                    <div class="text-danger small mt-1">Only letters, numbers, underscore (_) and hyphen (-) are allowed</div>
+                                                }
+                                            </div>
+
+                                            <div class="col-md-6 mb-3">
+                                                <label class="form-label">Customer Name <span class="text-danger ms-1">*</span></label>
+                                                <InputText class="@($"form-control {(ShowFieldError(1, "CustomerName") ? "is-invalid" : "")}")"
+                                                           @bind-Value="Customer.CustomerName" @bind-Value:after ="OnCustomerNameChanged"
+                                                           placeholder="e.g., ABC Traders Private Limited" maxlength="200" />
+                                                @if (ShowFieldError(1, "CustomerName"))
+                                                {
+                                                    <div class="text-danger small mt-1">Customer Name is required</div>
+                                                }
+                                            </div>
+
+                                            <div class="col-md-6 mb-3">
+                                                <label class="form-label">Display Name</label>
+                                                <InputText class="form-control" @bind-Value="Customer.CustomerDisplayName"
+                                                           placeholder="e.g., ABC Traders" maxlength="100" />
+                                            </div>
+
+                                            <div class="col-md-6 mb-3">
+                                                <label class="form-label">Customer Type <span class="text-danger ms-1">*</span></label>
+                                                <InputSelect class="@($"form-select {(ShowFieldError(1, "CustomerType") ? "is-invalid" : "")}")" @bind-Value="Customer.CustomerType">
+                                                    <option value="">--Select Customer Type--</option>
+                                                    @foreach (var type in CustomerTypes.All)
+                                                    {
+                                                        <option value="@type">@type</option>
+                                                    }
+                                                </InputSelect>
+                                                @if (ShowFieldError(1, "CustomerType"))
+                                                {
+                                                    <div class="text-danger small mt-1">Customer Type is required</div>
+                                                }
+                                            </div>
+
+                                            <div class="col-md-6 mb-3">
+                                                <label class="form-label">Status <span class="text-danger ms-1">*</span></label>
+                                                <InputSelect class="@($"form-select {(ShowFieldError(1, "CustomerStatus") ? "is-invalid" : "")}")" @bind-Value="Customer.CustomerStatus">
+                                                    <option value="">--Select Status--</option>
+                                                    @foreach (var status in CustomerStatuses.All)
+                                                    {
+                                                        <option value="@status">@status</option>
+                                                    }
+                                                </InputSelect>
+                                                @if (ShowFieldError(1, "CustomerStatus"))
+                                                {
+                                                    <div class="text-danger small mt-1">Status is required</div>
+                                                }
+                                            </div>
+
+                                            <div class="col-md-6 mb-3">
+                                                <label class="form-label">Primary Email</label>
+                                                <InputText class="form-control" @bind-Value="Customer.PrimaryEmail"
+                                                           type="email" placeholder="e.g., accounts@company.com" maxlength="254" />
+                                                @if (ShowFieldError(1, "PrimaryEmail"))
+                                                {
+                                                    <div class="text-danger small mt-1">Invalid email format</div>
+                                                }
+                                            </div>
+
+                                            <div class="col-md-6 mb-3">
+                                                <label class="form-label">Primary Phone</label>
+                                                <InputText class="form-control" @bind-Value="Customer.PrimaryPhone"
+                                                           placeholder="e.g., +91-9876543210" maxlength="20" />
+                                                @if (ShowFieldError(1, "PrimaryPhone"))
+                                                {
+                                                    <div class="text-danger small mt-1">Invalid Phone format</div>
+                                                }
+                                            </div>
+
+                                            <div class="col-md-6 mb-3">
+                                                <label class="form-label">Website</label>
+                                                <InputText class="form-control" @bind-Value="Customer.Website"
+                                                           placeholder="e.g., https://www.company.com" maxlength="200" />
+                                                @if (ShowFieldError(1, "Website"))
+                                                {
+                                                    <div class="text-danger small mt-1">Invalid email format</div>
+                                                }
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            }
+
+                            @* Step 2: Tax & Compliance *@
+                            @if (CurrentStep == 2)
+                            {
+                                <div id="taxCompliance" class="accordion-collapse">
+                                    <div class="accordion-body border-top pt-3 p-0">
+                                        <div class="row">
+                                            <div class="col-md-6 mb-3">
+                                                <label class="form-label">Tax Registration Type <span class="text-danger ms-1">*</span></label>
+                                                <InputSelect class="@($"form-select {(ShowFieldError(2, "TaxRegistrationType") ? "is-invalid" : "")}")"
+                                                             @bind-Value="Customer.TaxRegistrationType"
+                                                             @oninput="OnTaxRegistrationTypeChange">
+                                                    <option value="">--Select Tax Registration Type--</option>
+                                                    @foreach (var type in TaxRegistrationTypes.All)
+                                                    {
+                                                        <option value="@type">@type</option>
+                                                    }
+                                                </InputSelect>
+                                                @if (ShowFieldError(2, "TaxRegistrationType"))
+                                                {
+                                                    <div class="text-danger small mt-1">Tax Registration Type is required</div>
+                                                }
+                                            </div>
+
+                                            <div class="col-md-6 mb-3">
+                                                <label class="form-label">GSTIN @if (IsGSTINRequired) { <span class="text-danger ms-1">*</span> }</label>
+                                                <InputText class="@($"form-control text-uppercase {(ShowFieldError(2, "GSTIN") ? "is-invalid" : "")}")"
+                                                           @bind-Value="Customer.GSTIN"
+                                                           placeholder="e.g., 33AAAAA9999A1Z5" maxlength="15" />
+                                                @if (ShowFieldError(2, "GSTIN"))
+                                                {
+                                                    <div class="text-danger small mt-1">GSTIN is required for registered customers</div>
+                                                }
+                                            </div>
+
+                                            <div class="col-md-6 mb-3">
+                                                <label class="form-label">PAN Number</label>
+                                                <InputText class="form-control text-uppercase" @bind-Value="Customer.PAN"
+                                                           placeholder="e.g., AAAAA9999A" maxlength="10" />
+                                            </div>
+
+                                            <div class="col-md-6 mb-3">
+                                                <label class="form-label">TAN Number</label>
+                                                <InputText class="form-control text-uppercase" @bind-Value="Customer.TAN"
+                                                           placeholder="e.g., CHEM12345D" maxlength="10" />
+                                            </div>
+
+                                            <div class="col-md-6 mb-3">
+                                                <label class="form-label">Tax Profile <span class="text-danger ms-1">*</span></label>
+                                                <InputSelect class="@($"form-select {(ShowFieldError(2, "TaxProfileId") ? "is-invalid" : "")}")"
+                                                             @bind-Value="Customer.TaxProfileId">
+                                                    <option value="">--Select Tax Profile--</option>
+                                                    @foreach (var profile in TaxProfiles)
+                                                    {
+                                                        <option value="@profile.Id">@profile.Name</option>
+                                                    }
+                                                </InputSelect>
+                                                @if (ShowFieldError(2, "TaxProfileId"))
+                                                {
+                                                    <div class="text-danger small mt-1">Tax Profile is required</div>
+                                                }
+                                            </div>
+
+                                            <div class="col-md-6 mb-3">
+                                                <div class="form-check mt-4">
+                                                    <InputCheckbox class="form-check-input ms-0" @bind-Value="Customer.IsTDSApplicable" id="tdsApplicable" />
+                                                    <label class="form-check-label" for="tdsApplicable">TDS Applicable</label>
+                                                </div>
+                                            </div>
+
+                                            @if (Customer.IsTDSApplicable)
+                                            {
+                                                <div class="col-md-6 mb-3">
+                                                    <label class="form-label">TDS Section Code</label>
+                                                    <InputText class="form-control" @bind-Value="Customer.TDSSectionCode"
+                                                               placeholder="e.g., 194C" maxlength="20" />
+                                                </div>
+                                            }
+                                        </div>
+                                    </div>
+                                </div>
+                            }
+
+                            @* Step 3: Credit & Terms *@
+                            @if (CurrentStep == 3)
+                            {
+                                <div id="creditTerms" class="accordion-collapse">
+                                    <div class="accordion-body border-top pt-3 p-0">
+                                        <div class="row">
+                                            <div class="col-md-12 mb-3">
+                                                <label class="form-label">Credit Limit <span class="text-danger ms-1">*</span></label>
+                                                <InputNumber class="form-control" @bind-Value="Customer.CreditLimitAmount"
+                                                             placeholder="e.g., 500000" min="0" />
+                                                <small class="text-muted">0 = No credit allowed (cash before delivery)</small>
+                                            </div>
+
+                                            <div class="col-md-12 mb-3">
+                                                <div class="form-check mt-4">
+                                                    <InputCheckbox class="form-check-input ms-0" @bind-Value="Customer.CreditLimitEnforced" id="enforceCreditLimit" />
+                                                    <label class="form-check-label" for="enforceCreditLimit">Enforce Credit Limit</label>
+                                                </div>
+                                            </div>
+
+                                            <div class="col-md-6 mb-3">
+                                                <label class="form-label">Credit Hold Status <span class="text-danger ms-1">*</span></label>
+                                                <InputSelect class="@($"form-select {(ShowFieldError(3, "CreditHoldStatus") ? "is-invalid" : "")}")" @bind-Value="Customer.CreditHoldStatus"
+                                                             @oninput="OnCreditHoldStatusChange">
+                                                    <option value="">--Select Credit Hold Status--</option>
+                                                    @foreach (var status in CreditHoldStatuses.All)
+                                                    {
+                                                        <option value="@status">@status</option>
+                                                    }
+                                                </InputSelect>
+                                                @if (ShowFieldError(3, "CreditHoldStatus"))
+                                                {
+                                                    <div class="text-danger small mt-1">Credit Hold Status is required</div>
+                                                }
+                                            </div>
+
+                                            @if (!string.IsNullOrWhiteSpace(Customer.CreditHoldStatus) && Customer.CreditHoldStatus != CreditHoldStatuses.None)
+                                            {
+                                                <div class="col-md-6 mb-3">
+                                                    <label class="form-label">Hold Reason <span class="text-danger ms-1">*</span></label>
+                                                    <RichTextEditor @ref="holdReasonEditor"
+                                                                    Value="@Customer.CreditHoldReason"
+                                                                    Placeholder="Enter reason for hold..."
+                                                                    MinHeight="80"
+                                                                    MaxHeight="150" />
+                                                    @if (ShowFieldError(3, "CreditHoldReason"))
+                                                    {
+                                                        <div class="text-danger small mt-1">Hold Reason is required when customer is on hold</div>
+                                                    }
+                                                </div>
+                                            }
+
+                                            <div class="col-md-6 mb-3">
+                                                <label class="form-label">Payment Terms <span class="text-danger ms-1">*</span></label>
+                                                <InputSelect class="@($"form-select {(ShowFieldError(3, "PaymentTermId") ? "is-invalid" : "")}")"
+                                                             @bind-Value="Customer.PaymentTermId">
+                                                    <option value="">--Select Payment Terms--</option>
+                                                    @foreach (var term in PaymentTerms)
+                                                    {
+                                                        <option value="@term.Id">@term.Name (@term.Days days)</option>
+                                                    }
+                                                </InputSelect>
+                                                @if (ShowFieldError(3, "PaymentTermId"))
+                                                {
+                                                    <div class="text-danger small mt-1">Payment Terms is required</div>
+                                                }
+                                            </div>
+
+                                            <div class="col-md-6 mb-3">
+                                                <label class="form-label">Currency <span class="text-danger ms-1">*</span></label>
+                                                <InputSelect class="@($"form-select {(ShowFieldError(3, "DefaultCurrencyId") ? "is-invalid" : "")}")"
+                                                             @bind-Value="Customer.DefaultCurrencyId">
+                                                    <option value="">--Select Currency--</option>
+                                                    @foreach (var currency in Currencies)
+                                                    {
+                                                        <option value="@currency.Id">@currency.CurrencyName (@currency.CurrencyCode)</option>
+                                                    }
+                                                </InputSelect>
+                                                @if (ShowFieldError(3, "DefaultCurrencyId"))
+                                                {
+                                                    <div class="text-danger small mt-1">Currency is required</div>
+                                                }
+                                            </div>
+
+                                            <div class="col-md-6 mb-3">
+                                                <label class="form-label">Default Payment Method <span class="text-danger ms-1">*</span></label>
+                                                <InputSelect class="@($"form-select {(ShowFieldError(3, "DefaultPaymentMethod") ? "is-invalid" : "")}")" @bind-Value="Customer.DefaultPaymentMethod">
+                                                    <option value="">--Select Payment Method--</option>
+                                                    @foreach (var method in PaymentMethods.All)
+                                                    {
+                                                        <option value="@method">@PaymentMethods.GetDisplayName(method)</option>
+                                                    }
+                                                </InputSelect>
+                                                @if (ShowFieldError(3, "DefaultPaymentMethod"))
+                                                {
+                                                    <div class="text-danger small mt-1">Default Payment Method is required</div>
+                                                }
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            }
+
+                            @* Step 4: Accounting Defaults *@
+                            @if (CurrentStep == 4)
+                            {
+                                <div id="accountingDefaults" class="accordion-collapse">
+                                    <div class="accordion-body border-top pt-3 p-0">
+                                        <div class="row">
+                                            <div class="col-md-6 mb-3">
+                                                <label class="form-label">AR Receivable Account <span class="text-danger ms-1">*</span></label>
+                                                <InputSelect class="@($"form-select {(ShowFieldError(4, "ReceivableAccountId") ? "is-invalid" : "")}")"
+                                                             @bind-Value="Customer.ReceivableAccountId">
+                                                    <option value="">--Select AR Receivable Account--</option>
+                                                    @foreach (var account in GLAccounts)
+                                                    {
+                                                        <option value="@account.Id">@account.Code - @account.Name</option>
+                                                    }
+                                                </InputSelect>
+                                                @if (ShowFieldError(4, "ReceivableAccountId"))
+                                                {
+                                                    <div class="text-danger small mt-1">Receivable Account is required</div>
+                                                }
+                                            </div>
+
+                                            <div class="col-md-6 mb-3">
+                                                <label class="form-label">Customer Advances Account</label>
+                                                <InputSelect class="form-select" @bind-Value="Customer.AdvanceFromCustomerAccountId">
+                                                    <option value="">-- Select Advances Account --</option>
+                                                    @foreach (var account in GLAccounts)
+                                                    {
+                                                        <option value="@account.Id">@account.Code - @account.Name</option>
+                                                    }
+                                                </InputSelect>
+                                            </div>
+
+                                            <div class="col-md-6 mb-3">
+                                                <label class="form-label">Write-Off Account</label>
+                                                <InputSelect class="form-select" @bind-Value="Customer.WriteOffAccountId">
+                                                    <option value="">-- Select Write-Off Account --</option>
+                                                    @foreach (var account in GLAccounts)
+                                                    {
+                                                        <option value="@account.Id">@account.Code - @account.Name</option>
+                                                    }
+                                                </InputSelect>
+                                            </div>
+
+                                            <div class="col-md-6 mb-3">
+                                                <div class="form-check mt-4">
+                                                    <InputCheckbox class="form-check-input ms-1" @bind-Value="Customer.AllowAutoAdvanceCreation" id="autoAdvance" />
+                                                    <label class="form-check-label" for="autoAdvance">Convert Overpayment to Advance</label>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            }
+
+                            @* Step 5: Preferences *@
+                            @if (CurrentStep == 5)
+                            {
+                                <div id="preferences" class="accordion-collapse">
+                                    <div class="accordion-body border-top pt-3 p-0">
+                                        <div class="row">
+                                            <div class="col-md-6 mb-3">
+                                                <div class="form-check mt-4">
+                                                    <InputCheckbox class="form-check-input ms-1" @bind-Value="Customer.SendInvoiceEmail" id="sendEmail" />
+                                                    <label class="form-check-label" for="sendEmail">Email Invoices</label>
+                                                </div>
+                                            </div>
+
+                                            <div class="col-md-6 mb-3">
+                                                <label class="form-label">Statement Cycle</label>
+                                                <InputSelect class="form-select" @bind-Value="Customer.CustomerStatementCycle">
+                                                    <option value="">--Select Statement Cycle--</option>
+                                                    @foreach (var cycle in StatementCycles.All)
+                                                    {
+                                                        <option value="@cycle">@cycle</option>
+                                                    }
+                                                </InputSelect>
+                                            </div>
+
+                                            <div class="col-md-6 mb-3">
+                                                <label class="form-label">Preferred Language</label>
+                                                <InputSelect class="form-select" @bind-Value="Customer.PreferredLanguage">
+                                                    <option value="">--Select Language--</option>
+                                                    <option value="EN">English</option>
+                                                    <option value="TA">Tamil</option>
+                                                    <option value="HI">Hindi</option>
+                                                </InputSelect>
+                                            </div>
+
+                                          
+                                            <div class="col-md-6 mb-3">
+                                                <label class="form-label">Contact Person Name</label>
+                                                <InputText class="form-control" @bind-Value="Customer.ContactPersonName"
+                                                           placeholder="e.g., John Smith" maxlength="100" />
+                                            </div>
+
+                                            <div class="col-md-6 mb-3">
+                                                <div class="form-check mt-4">
+                                                    <InputCheckbox class="form-check-input ms-1" @bind-Value="Customer.AllowOverPayment" id="overPayment" />
+                                                    <label class="form-check-label" for="overPayment">Allow Over Payment</label>
+                                                </div>
+                                            </div>
+
+                                            <div class="col-md-6 mb-3">
+                                                <div class="form-check mt-4">
+                                                    <InputCheckbox class="form-check-input ms-1" @bind-Value="Customer.AllowPartialPayment" id="partialPayment" />
+                                                    <label class="form-check-label" for="partialPayment">Allow Partial Payment</label>
+                                                </div>
+                                            </div>
+
+                                            <div class="col-md-6 mb-3">
+                                                <label class="form-label">Billing Email</label>
+                                                <InputText class="form-control" @bind-Value="Customer.BillingEmail"
+                                                           type="email" placeholder="e.g., billing@company.com" maxlength="254" />
+                                            @if (ShowFieldError(5, "BillingEmail"))
+                                            {
+                                                <div class="text-danger small mt-1">Invalid Email format</div>
+                                            }
+                                            </div>
+
+                                            <div class="col-md-6 mb-3">
+                                                <label class="form-label">Secondary Phone</label>
+                                                <InputText class="form-control" @bind-Value="Customer.SecondaryPhone"
+                                                           placeholder="e.g., +91-4412345678" maxlength="20" />
+                                            @if (ShowFieldError(5, "SecondaryPhone"))
+                                            {
+                                                <div class="text-danger small mt-1">Invalid Phone format</div>
+                                            }
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            }
+
+                            <!-- WIZARD FOOTER -->
+                            <div class="d-flex gap-2 wizard-footer mb-4" style="justify-content: end;">
+                                @if (CurrentStep != 1)
+                                {
+                                    <button type="button" class="btn Back" @onclick="Back" disabled="@(CurrentStep == 1)"><i class="ti ti-chevron-left"></i> Previous</button>
+                                }
+                                @if (CurrentStep < Steps.Count)
+                                {
+                                <button type="button" class="btn btn-primary" @onclick="Next">Next <i class="ti ti-chevron-right"></i></button>
+                                }
+                                else
+                                {
+                                    <button type="button" class="btn btn-primary" @onclick="Save"><i class="ti ti-device-floppy"></i> @(IsEdit ? "Update" : "Save")</button>
+                                }
+                            </div>
+                        </div>
+
+                        <!-- LIVE SUMMARY PANEL -->
+                        <aside class="summary p-3 rounded d-none d-xl-flex" style="height: auto; background: white; border: none; display: flex; padding-left: 32px !important; padding-top: 42px !important;">
+                            <div class="timeline-line1"></div>
+                            <div class="timeline-indicator1"></div>
+                            <div style="padding-left: 15px; width: 262px;">
+                                <h3 class="text-warning mb-3" style="font-size: 17px;">Live Summary</h3>
+
+                                <div class="row">
+                                    @if (CurrentStep == 1)
+                                    {
+                                        <div class="col-md-12 mb-4"><span>Customer Code: </span><b>@Customer.CustomerCode</b></div>
+                                        <div class="col-md-12 mb-4"><span>Customer Name: </span><b>@Customer.CustomerName</b></div>
+                                        <div class="col-md-12 mb-4"><span>Display Name: </span><b>@Customer.CustomerDisplayName</b></div>
+                                        <div class="col-md-12 mb-4"><span>Type: </span><b>@Customer.CustomerType</b></div>
+                                        <div class="col-md-12 mb-4"><span>Status: </span><b>@Customer.CustomerStatus</b></div>
+                                        <div class="col-md-12 mb-4"><span>Email: </span><b>@Customer.PrimaryEmail</b></div>
+                                        <div class="col-md-12 mb-4"><span>Phone: </span><b>@Customer.PrimaryPhone</b></div>
+                                    }
+
+                                    @if (CurrentStep == 2)
+                                    {
+                                        <div class="col-md-12 mb-4"><span>Tax Registration: </span><b>@Customer.TaxRegistrationType</b></div>
+                                        <div class="col-md-12 mb-4"><span>GSTIN: </span><b>@Customer.GSTIN</b></div>
+                                        <div class="col-md-12 mb-4"><span>PAN: </span><b>@Customer.PAN</b></div>
+                                        <div class="col-md-12 mb-4">
+                                            <span>Tax Profile: </span>
+                                            <b>@TaxProfiles.FirstOrDefault(t => t.Id == Customer.TaxProfileId)?.Name</b>
+                                        </div>
+                                        <div class="col-md-12 mb-4"><span>TDS Applicable: </span><b>@(Customer.IsTDSApplicable ? "Yes" : "No")</b></div>
+                                    }
+
+                                    @if (CurrentStep == 3)
+                                    {
+                                        <div class="col-md-12 mb-4"><span>Credit Limit: </span><b>@Customer.CreditLimitAmount.ToString("N2")</b></div>
+                                        <div class="col-md-12 mb-4"><span>Enforce Limit: </span><b>@(Customer.CreditLimitEnforced ? "Yes" : "No")</b></div>
+                                        <div class="col-md-12 mb-4"><span>Credit Hold: </span><b>@Customer.CreditHoldStatus</b></div>
+                                        <div class="col-md-12 mb-4">
+                                            <span>Payment Terms: </span>
+                                            <b>@PaymentTerms.FirstOrDefault(p => p.Id == Customer.PaymentTermId)?.Name</b>
+                                        </div>
+                                        <div class="col-md-12 mb-4">
+                                            <span>Currency: </span>
+                                            <b>@Currencies.FirstOrDefault(c => c.Id == Customer.DefaultCurrencyId)?.CurrencyCode</b>
+                                        </div>
+                                    }
+
+                                    @if (CurrentStep == 4)
+                                    {
+                                        <div class="col-md-12 mb-4">
+                                            <span>AR Account: </span>
+                                            <b>@GLAccounts.FirstOrDefault(a => a.Id == Customer.ReceivableAccountId)?.Code</b>
+                                        </div>
+                                        <div class="col-md-12 mb-4">
+                                            <span>Advances Account: </span>
+                                            <b>@GLAccounts.FirstOrDefault(a => a.Id == Customer.AdvanceFromCustomerAccountId)?.Code</b>
+                                        </div>
+                                        <div class="col-md-12 mb-4"><span>Auto Advance: </span><b>@(Customer.AllowAutoAdvanceCreation ? "Yes" : "No")</b></div>
+                                    }
+
+                                    @if (CurrentStep == 5)
+                                    {
+                                        <div class="col-md-12 mb-4"><span>Email Invoices: </span><b>@(Customer.SendInvoiceEmail ? "Yes" : "No")</b></div>
+                                        <div class="col-md-12 mb-4"><span>Statement Cycle: </span><b>@Customer.CustomerStatementCycle</b></div>
+                                        <div class="col-md-12 mb-4"><span>Allow Partial Pay: </span><b>@(Customer.AllowPartialPayment ? "Yes" : "No")</b></div>
+                                        <div class="col-md-12 mb-4"><span>Contact Person: </span><b>@Customer.ContactPersonName</b></div>
+                                    }
+                                </div>
+                            </div>
+                        </aside>
+                    </div>
+                </div>
+            </EditForm>
+        </div>
+    </div>
+
+}

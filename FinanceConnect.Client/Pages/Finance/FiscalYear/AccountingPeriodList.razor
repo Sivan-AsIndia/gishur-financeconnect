@@ -1,0 +1,561 @@
+﻿@page "/fiscalyears/{FiscalYearId:guid}/periods"
+@using FinanceConnect.Client.Services
+@using FinanceConnect.Client.ViewModels
+@inject AccountingPeriodService PeriodService
+@inject FiscalYearService FiscalYearService
+@inject NavigationManager Nav
+@inject ToastService ToastService
+@inject IJSRuntime JS
+
+<style>
+    .form-select option:checked {
+        color: #fff;
+        background: var(--primary);
+    }
+
+    .form-select:focus {
+        border-color: var(--primary);
+        box-shadow: none;
+    }
+
+    .validation-message {
+        color: #dc3545;
+        font-size: 12px;
+    }
+</style>
+
+@if (!isInitialized)
+{
+    <div class="page-loading-overlay">
+        <div class="whirly-loader"></div>
+    </div>
+}
+else
+{
+
+    @if (isLoading)
+    {
+        <div class="page-loading-overlay">
+            <div class="whirly-loader"></div>
+        </div>
+    }
+    <div class="content  List-view">
+
+        <div class="page-header">
+
+            <div class="add-item d-flex">
+                <div class="page-title">
+
+                    <h4 class="fw-bold">Accounting Periods</h4>
+
+
+                    <div class="d-flex align-items-center gap-3 text-muted small mb-2 mt-2 ">
+                        @if (!string.IsNullOrWhiteSpace(CompanyName))
+                        {
+                            <div class="d-flex align-items-center gap-1">
+                                <i class="ti ti-building" style="color: #ff00a7;font-size: 17px;"></i>
+                                <span class="fw-medium" style="color: #000fff;">@CompanyName</span>
+                            </div>
+
+                            <span>•</span>
+                        }
+                        @if (!string.IsNullOrWhiteSpace(FiscalYear?.FiscalYearCode))
+                        {
+                            <div class="d-flex align-items-center gap-1">
+                                <i class="ti ti-calendar" style="color: #ff00a7;font-size: 17px;"></i>
+                                <span class="fw-medium" style="color: #000fff;">@FiscalYear?.FiscalYearCode</span>
+                                <span class="text-muted" style="color: #000fff !important;">
+                                    (@FiscalYear?.StartDate?.ToString("dd MMM yyyy")
+                                    –
+                                    @FiscalYear?.EndDate?.ToString("dd MMM yyyy"))
+                                </span>
+                            </div>
+                        }
+                    </div>
+
+                    <h6 class="mt-1">Manage accounting periods for the selected fiscal year</h6>
+
+                </div>
+            </div>
+
+            <ul class="table-top-head">
+                <li>
+                    <a href="javascript:void(0);" title="Refresh" @onclick="OnRefreshAsync">
+                        <i class="ti ti-refresh"></i>
+                    </a>
+                </li>
+            </ul>
+
+            <div class="page-btn">
+                @if (FiscalYear?.AutoGeneratePeriods == false)
+                {
+                    <a class="btn btn-primary"
+                    @onclick="CreateManualPeriod">
+                        <i class="ti ti-plus me-1"></i>
+                        Manual Period
+                    </a>
+                }
+            </div>
+
+            <div class="page-btn">
+                <a href="/fiscalyears" class="btn btn-outline-secondary">
+                    <i class="ti ti-arrow-left me-1"></i>
+                    Back
+                </a>
+            </div>
+
+        </div>
+
+
+        <!-- Period List -->
+        <div class="card">
+            <div class="card-header d-flex align-items-center justify-content-between flex-wrap row-gap-3">
+
+                <!-- Search -->
+                <div class="search-set">
+                    <div class="search-input">
+                        <span class="btn-searchset">
+                            <i class="ti ti-search fs-14"></i>
+                        </span>
+                        <input type="search"
+                        class="form-control form-control-sm"
+                        placeholder="Search period"
+                        @bind="searchText"
+                        @oninput="OnSearch" />
+                    </div>
+                </div>
+
+                <!-- Status Filter -->
+                <div class="ms-3">
+                    <select class="form-select form-select-sm"
+                    style="min-width: 160px"
+                    @bind="SelectedStatus">
+                        <option value="">All Status</option>
+                        <option value="@AccountingPeriodStatus.Draft">Draft</option>
+                        <option value="@AccountingPeriodStatus.Open">Open</option>
+                        <option value="@AccountingPeriodStatus.SoftClosed">Soft Closed</option>
+                        <option value="@AccountingPeriodStatus.Closed">Closed</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="card-body p-0">
+                <div class="">
+                    <div>
+                        <table class="table align-middle w-100 table-fixed">
+                            <thead class="thead-light">
+                                <tr>
+                                    <th class="d-xl-none" style="width:40px"></th>
+                                    <th style="width:220px">Code</th>
+                                    <th style="width:250px" class="d-none d-md-table-cell">Period</th>
+                                    <th class="d-none d-md-table-cell">Start Date</th>
+                                    <th class="d-none d-lg-table-cell">End Date</th>
+                                    <th class="d-none d-xl-table-cell">Status</th>
+                                    <th class="d-none d-xxl-table-cell">Locks</th>
+                                    <th class="no-sort">Action</th>
+                                </tr>
+                            </thead>
+
+                            <tbody>
+                                @if (PagedPeriods.Any())
+                                {
+                                    @foreach (var p in PagedPeriods)
+                                    {
+                                        <tr @key="p.Id">
+                                            <!-- PLUS ICON -->
+                                            <td class="d-xl-none text-center" style="padding: 0;padding-left: 15px;">
+                                                <a href="javascript:void(0);" class="TablePlus"
+                                                data-bs-toggle="modal"
+                                                data-bs-target="#rowDetailsModal"
+                                                @onclick="() => OpenRowDetails(p)">
+                                                    <i class="ti ti-plus"></i>
+                                                </a>
+                                            </td>
+                                            <td>
+                                                <span class="fw-medium"
+                                                data-bs-toggle="tooltip"
+                                                data-bs-placement="top"
+                                                title="@p.PeriodCode Details">
+                                                    <span class="PopupIcon me-1">⧉</span>
+                                                    <a @onclick="() => ViewPeriod(p)"
+                                                    class="text-decoration-none link-View"
+                                                    data-bs-toggle="modal"
+                                                    data-bs-target="#ViewPeriodModel">
+                                                        @p.PeriodCode
+                                                    </a>
+
+                                                </span>
+                                            </td>
+                                            <td class="d-none d-md-table-cell">
+                                                @p.PeriodName
+                                            </td>
+                                            <td class="d-none d-md-table-cell">
+                                                @p.StartDate?.ToString("dd-MMM-yyyy")
+                                            </td>
+                                            <td class="d-none d-lg-table-cell">
+                                                @p.EndDate?.ToString("dd-MMM-yyyy")
+                                            </td>
+                                            @* <td class="d-none d-xl-table-cell">
+                                            <span class="badge @GetStatusBadge(p.Status)">
+                                                @p.Status
+                                            </span>
+                                        </td> *@
+
+                                            <td class="d-none d-xl-table-cell">
+                                                <div class="d-flex align-items-center gap-2">
+                                                    <div class="ActiveDot @GetStatusDotBadge(p.Status)">
+                                                    </div>
+                                                    <span>@p.Status</span>
+                                                </div>
+                                            </td>
+
+                                            <td class="small text-muted d-none d-xxl-table-cell">
+                                                @(p.IsARLocked ? "AR " : "-")
+                                                @(p.IsAPLocked ? "AP " : "")
+                                                @(p.IsBankLocked ? "Bank " : "")
+                                                @(p.IsGLLocked ? "GL" : "")
+                                            </td>
+
+
+                                            <td class="action-table-data">
+                                                <div class="edit-delete-action d-inline-flex align-items-center">
+                                                    <a class="me-2 view-icon p-1"
+                                                    title="View Period" data-bs-toggle="modal" data-bs-target="#ViewPeriodModel"
+                                                    @onclick="() => ViewPeriod(p)">
+                                                        <i data-feather="eye"></i>
+                                                    </a>
+
+                                                    @* OPEN *@
+                                                    @if (p.Status == AccountingPeriodStatus.Draft)
+                                                    {
+                                                        <a class="me-2 p-1 play-icon"
+                                                        title="Open Period"
+                                                        @onclick="() => OpenPeriod(p)">
+                                                            <i data-feather="play"></i>
+                                                        </a>
+                                                    }
+
+                                                    @* SOFT CLOSE *@
+                                                    @if (p.Status == AccountingPeriodStatus.Open)
+                                                    {
+                                                        <a class="me-2 p-1 pause"
+                                                        title="Soft Close Period"
+                                                        @onclick="() => SoftClosePeriod(p)">
+                                                            <i data-feather="pause"></i>
+                                                        </a>
+
+                                                        <a class="me-2 p-1 delete-icon" data-bs-toggle="modal" data-bs-target="#ShowReasonModal"
+                                                        title="Close Period"
+                                                        @onclick="() => AskLock(p)">
+                                                            <i data-feather="lock"></i>
+                                                        </a>
+                                                    }
+
+                                                    @* REOPEN *@
+                                                    @if (p.Status == AccountingPeriodStatus.Closed)
+                                                    {
+                                                        <a class="me-2 p-1 lock" data-bs-toggle="modal" data-bs-target="#ShowReasonModal"
+                                                        title="Reopen Period"
+                                                        @onclick="() => AskReopen(p)">
+                                                            <i data-feather="unlock"></i>
+                                                        </a>
+                                                    }
+
+                                                </div>
+                                            </td>
+
+
+                                        </tr>
+                                    }
+                                }
+                                else if (!PagedPeriods.Any())
+                                {
+                                    <tr>
+                                        <td colspan="7" class="text-center py-4">
+                                            <div class="text-muted">
+                                                <i class="ti ti-database-off fs-32 d-block mb-2"></i>
+                                                No accounting periods found
+                                            </div>
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+
+                    @if (PagedPeriods.Any())
+                    {
+                        <!-- Pagination -->
+                        <div class="d-flex justify-content-between align-items-center p-3">
+
+                            <div class="d-flex align-items-center fs-13">
+                                <span class="me-2">Rows Per Page</span>
+                                <select class="form-select form-select-sm w-auto"
+                                @onchange="OnPageSizeChange">
+                                    <option value="5">5</option>
+                                    <option value="10" selected>10</option>
+                                    <option value="25">25</option>
+                                </select>
+                                <span class="ms-2">Entries</span>
+                            </div>
+
+                            <nav>
+                                <ul class="pagination pagination-sm mb-0">
+
+                                    <li class="page-item @(CurrentPage == 1 ? "disabled" : "")">
+                                        <a class="page-link" href="#"
+                                        @onclick="PreviousPage"
+                                        @onclick:preventDefault="true">
+                                            <i class="ti ti-chevron-left"></i>
+                                        </a>
+                                    </li>
+
+                                    @for (int i = 1; i <= TotalPages; i++)
+                                    {
+                                        var pageNumber = i;
+
+                                        <li class="page-item @(pageNumber == CurrentPage ? "active" : "")">
+                                            <button type="button"
+                                            class="page-link"
+                                            @onclick="() => GoToPage(pageNumber)"
+                                            @onclick:stopPropagation="true">
+                                                @pageNumber
+                                            </button>
+                                        </li>
+                                    }
+
+
+                                    <li class="page-item @(CurrentPage == TotalPages ? "disabled" : "")">
+                                        <a class="page-link" href="#"
+                                        @onclick="NextPage"
+                                        @onclick:preventDefault="true">
+                                            <i class="ti ti-chevron-right"></i>
+                                        </a>
+                                    </li>
+
+                                </ul>
+                            </nav>
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+
+}
+<div class="modal fade" id="ViewPeriodModel" 
+         
+         data-bs-backdrop="static"
+         data-bs-keyboard="false">
+
+        <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
+            <div class="modal-content">
+
+                <!-- Header -->
+                <div class="modal-header">
+                    <h5 class="modal-title">
+                        <i class="ti ti-calendar-time me-2 text-primary"></i>
+                        Accounting Period Details
+                    </h5>
+                    <button class="btn-close" data-bs-dismiss="modal"
+                            @onclick="CloseViewModal"
+                            style="padding:0; right:20px; top:20px; position:absolute;">
+                    </button>
+                </div>
+
+                <div class="modal-body">
+                    @if (ViewPeriodModel != null)
+                    {
+                        <div class="row g-3">
+
+                            <!-- ================= Identity ================= -->
+                            <div class="col-12">
+                                <h6 class="text-primary">
+                                    <i class="ti ti-id me-2"></i>Period Identity
+                                </h6>
+                            </div>
+
+                            <div class="col-md-4">
+                                <label class="text-muted small">Period Code</label>
+                                <div class="fw-medium">@ViewPeriodModel.PeriodCode</div>
+                            </div>
+
+                            <div class="col-md-6">
+                                <label class="text-muted small">Period Name</label>
+                                <div class="fw-medium text-truncate">@ViewPeriodModel.PeriodName</div>
+                            </div>
+
+                            <div class="col-md-2">
+                                <label class="text-muted small">Status</label>
+                                <div>
+                                    <span class="badge @GetStatusBadge(ViewPeriodModel.Status)">
+                                        @ViewPeriodModel.Status
+                                    </span>
+                                </div>
+                            </div>
+
+                            <!-- ================= Date Range ================= -->
+                            <div class="col-12 mt-4">
+                                <h6 class="text-primary">
+                                    <i class="ti ti-calendar-event me-2"></i>Date Range
+                                </h6>
+                            </div>
+
+                            <div class="col-md-6">
+                                <label class="text-muted small">Start Date</label>
+                                <div>
+                                    @ViewPeriodModel.StartDate?.ToString("dd MMM yyyy")
+                                </div>
+                            </div>
+
+                            <div class="col-md-6">
+                                <label class="text-muted small">End Date</label>
+                                <div>
+                                    @ViewPeriodModel.EndDate?.ToString("dd MMM yyyy")
+                                </div>
+                            </div>
+
+                            <!-- ================= Module Locks ================= -->
+                            <div class="col-12 mt-4">
+                                <h6 class="text-primary">
+                                    <i class="ti ti-lock me-2"></i>Module Locks
+                                </h6>
+                            </div>
+
+                            <div class="col-md-3 form-check form-switch">
+                                <input class="form-check-input"
+                                       type="checkbox" id="IsARLocked"
+                                       @bind="ViewPeriodModel.IsARLocked"
+                                       disabled="@(!CanEditLocks)" />
+                                <label class="form-check-label" for="IsARLocked">AR</label>
+                            </div>
+
+                            <div class="col-md-3 form-check form-switch">
+                                <input class="form-check-input"
+                                       type="checkbox" id="IsAPLocked"
+                                       @bind="ViewPeriodModel.IsAPLocked"
+                                       disabled="@(!CanEditLocks)" />
+                                <label class="form-check-label" for="IsAPLocked">AP</label>
+                            </div>
+
+                            <div class="col-md-3 form-check form-switch">
+                                <input class="form-check-input"
+                                       type="checkbox" id="IsBankLocked"
+                                       @bind="ViewPeriodModel.IsBankLocked"
+                                       disabled="@(!CanEditLocks)" />
+                                <label class="form-check-label" for="IsBankLocked">Bank</label>
+                            </div>
+
+                            <div class="col-md-3 form-check form-switch">
+                                <input class="form-check-input"
+                                       type="checkbox" id="IsGLLocked"
+                                       @bind="ViewPeriodModel.IsGLLocked"
+                                       disabled="@(!CanEditLocks)" />
+                                <label class="form-check-label" for="IsGLLocked">General Ledger</label>
+                            </div>
+
+                            <!-- ================= Info Banner ================= -->
+                            @if (!CanEditLocks)
+                            {
+                                <div class="col-12 mt-3">
+                                    <div class="alert alert-info d-flex align-items-center">
+                                        <i class="ti ti-info-circle me-2"></i>
+                                        Locks can be modified only when the period is <b>Open</b>.
+                                    </div>
+                                </div>
+                            }
+
+                        </div>
+                    }
+                </div>
+
+            </div>
+        </div>
+    </div>
+
+
+
+    <div class="modal fade " id="ShowReasonModal"
+         data-bs-backdrop="static"
+         data-bs-keyboard="false" tabindex="-1">
+        <div class="modal-dialog modal-sm modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">@ModalTitle</h5>
+                </div>
+
+                <div class="modal-body">
+                    <textarea class="form-control"
+                              rows="3"
+                              placeholder="Enter reason"
+                              @bind="Reason"></textarea>
+                </div>
+
+                <div class="modal-footer" style="column-gap: 10px;">
+                <button class="btn btn-outline-secondary" data-bs-dismiss="modal"
+                            @onclick="CloseModal">
+                        <i class="ti ti-x me-1"></i>Cancel
+                    </button>
+
+                    <button class="btn btn-primary" data-bs-dismiss="modal"
+                            @onclick="ConfirmAction">
+                        <i class="ti ti-check me-1"></i>Confirm
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+<!-- Responsive modal -->
+<div class="modal fade" id="rowDetailsModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+
+            <div class="modal-header">
+                <h5 class="modal-title">Accounting Period Details</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"
+                        style="padding:0; right:22px; position:absolute;transform:none"></button>
+            </div>
+            @if (ViewPeriodModel != null)
+            {
+                <div class="modal-body">
+
+                    <div class="mb-2 d-flex gap-3 d-md-none">
+                        <strong>Code:</strong>
+                        <div>@ViewPeriodModel?.PeriodCode</div>
+                    </div>
+
+                    <div class="mb-2 d-flex gap-3 d-md-none">
+                        <strong>Start Date:</strong>
+                        <div>@ViewPeriodModel.StartDate?.ToString("dd-MMM-yyyy")</div>
+                    </div>
+
+                    <div class="mb-2 d-flex gap-3">
+                        <strong>End Date:</strong>
+                        <div>@ViewPeriodModel.EndDate?.ToString("dd-MMM-yyyy")</div>
+                    </div>
+
+                    <div class="mb-2 d-flex gap-3">
+                        <strong>Locks:</strong>
+                        <div>
+                            @(ViewPeriodModel.IsARLocked ? "AR " : "")
+                            @(ViewPeriodModel.IsAPLocked ? "AP " : "")
+                            @(ViewPeriodModel.IsBankLocked ? "Bank " : "")
+                            @(ViewPeriodModel.IsGLLocked ? "GL" : "")
+                        </div>
+                    </div>
+
+                    <div class="mb-2 gap-3">
+                        <strong>Status:</strong>
+                        <span class="badge @GetStatusBadge(ViewPeriodModel.Status)">
+                            @ViewPeriodModel.Status
+                        </span>
+
+                    </div>
+
+
+                </div>
+            }
+        </div>
+    </div>
+</div>

@@ -1,0 +1,10 @@
+﻿.td-width {
+    width: 240px;
+}
+
+
+@media (min-width: 426px) {
+    .td-width {
+        width: 275px;
+    }
+}

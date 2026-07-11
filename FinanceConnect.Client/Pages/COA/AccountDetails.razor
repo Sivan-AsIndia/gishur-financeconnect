@@ -1,0 +1,392 @@
+@page "/gl-accounts/{AccountId:guid}/view"
+@using FinanceConnect.Client.ViewModels
+@using FinanceConnect.Client.Services
+
+@if (SelectedAccount != null)
+{
+    <div class="content mb-4">
+
+        <!-- BREADCRUMB + HEADER -->
+        <div class="fc-page-header">
+            <div class="fc-breadcrumb">
+                <a href="/gl-accounts" class="fc-breadcrumb-link">
+                    <i class="ti ti-layout-list"></i> GL Accounts
+                </a>
+                <span class="fc-breadcrumb-sep">
+                    <i class="ti ti-chevron-right"></i>
+                </span>
+                <span class="fc-breadcrumb-current">
+                    Account Details
+                </span>
+            </div>
+
+            <div class="d-flex gap-2 page-btn">
+                @* <a @onclick="PrintPage" class="btn bg-primary text-white">
+                    <i class="bi bi-printer"></i> Print
+                </a> *@
+                <a class="btn btn-outline-secondary" @onclick="GoBack">
+                    <i class="ti ti-arrow-left me-1"></i> Back
+                </a>
+            </div>
+        </div>
+
+
+        <!-- HERO BANNER -->
+        <div class="fc-hero">
+            <div class="fc-hero-accent"></div>
+
+            <div class="fc-hero-body">
+
+                <div class="fc-hero-icon-wrap">
+                    <div class="fc-hero-icon">
+                        @SelectedAccount?.AccountCode?.Substring(0,
+                            Math.Min(2, SelectedAccount.AccountCode.Length)).ToUpper()
+                    </div>
+                </div>
+
+                <div class="fc-hero-info">
+                    <div class="fc-hero-title-row">
+                        <h2 class="fc-hero-title">
+                            @SelectedAccount.AccountName
+                        </h2>
+                    </div>
+
+                    <div class="fc-hero-meta">
+                        <span class="fc-meta-item">
+                            <i class="ti ti-folder"></i>
+                            @SelectedAccount.AccountGroupName
+                        </span>
+
+                        <span class="fc-meta-divider"></span>
+
+                        <span class="fc-meta-item">
+                            <i class="ti ti-category"></i>
+                            @SelectedAccount.AccountNature
+                        </span>
+
+                        @if (!string.IsNullOrEmpty(SelectedAccount.AccountAlias))
+                        {
+                            <span class="fc-meta-divider"></span>
+                            <span class="fc-meta-item">
+                                Alias: @SelectedAccount.AccountAlias
+                            </span>
+                        }
+                    </div>
+                </div>
+
+                <div class="fc-hero-amount">
+                    <div class="fc-amount-label">Current Balance</div>
+                    <div class="fc-amount-value">
+                        @SelectedAccount.Balance.ToString("N2")
+                    </div>
+                    <div class="fc-amount-sub">
+                        @SelectedAccount.TransactionCount transactions
+                    </div>
+                </div>
+
+            </div>
+        </div>
+
+
+        <!-- MAIN GRID -->
+        <div class="fc-grid">
+
+            <!--  LEFT COLUMN  -->
+            <div class="fc-col-main">
+
+                <!-- ACCOUNT IDENTITY -->
+                <div class="fc-card">
+                    <div class="fc-card-header">
+                        <span class="fc-card-header-icon fc-icon-blue">
+                            <i class="ti ti-id"></i>
+                        </span>
+                        <h3>Account Identity</h3>
+                    </div>
+
+                    <div class="fc-card-body">
+                        <div class="row g-4">
+
+                            <div class="col-md-3">
+                                <div class="fc-field">
+                                    <label>Account Code</label>
+                                    <div class="fc-field-value fc-mono">
+                                        @SelectedAccount.AccountCode
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="col-md-3">
+                                <div class="fc-field">
+                                    <label>Display Order</label>
+                                    <div class="fc-field-value">
+                                        @SelectedAccount.DisplayOrder
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="col-md-3">
+                                <div class="fc-field">
+                                    <label>Chart of Accounts</label>
+                                    <div class="fc-field-value">
+                                        @(SelectedAccount.ChartOfAccountsName ?? "-")
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="col-md-3">
+                                <div class="fc-field">
+                                    <label>Parent Account</label>
+                                    <div class="fc-field-value">
+                                        @(SelectedAccount.ParentAccountName ?? "-")
+                                    </div>
+                                </div>
+                            </div>
+
+                            @if (!string.IsNullOrEmpty(SelectedAccount.Description))
+                            {
+                                <div class="col-12">
+                                    <div class="fc-field">
+                                        <label>Description</label>
+                                        <div class="fc-field-value ql-editor">
+                                            @((MarkupString)(SelectedAccount.Description ?? string.Empty))
+                                        </div>
+                                    </div>
+                                </div>
+                            }
+
+                        </div>
+                    </div>
+                </div>
+
+
+                <!-- CLASSIFICATION -->
+                <div class="fc-card">
+                    <div class="fc-card-header">
+                        <span class="fc-card-header-icon fc-icon-indigo">
+                            <i class="ti ti-category"></i>
+                        </span>
+                        <h3>Classification & Reporting</h3>
+                    </div>
+
+                    <div class="fc-card-body">
+                        <div class="row g-4">
+
+                            <div class="col-md-3">
+                                <div class="fc-field">
+                                    <label>Account Nature</label>
+                                    <div class="fc-field-value">
+                                        <span class="fc-tag fc-tag-neutral">
+                                            @SelectedAccount.AccountNature
+                                        </span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="col-md-3">
+                                <div class="fc-field">
+                                    <label>Statement Type</label>
+                                    <div class="fc-field-value">
+                                        @(SelectedAccount.StatementType switch
+                                        {
+                                            "BalanceSheet" => "Balance Sheet",
+                                            "ProfitAndLoss" => "Profit & Loss",
+                                            _ => "-"
+                                        })
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="col-md-3">
+                                <div class="fc-field">
+                                    <label>Normal Balance</label>
+                                    <div class="fc-field-value">
+                                        @(SelectedAccount.NormalBalance ?? "-")
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="col-md-3">
+                                <div class="fc-field">
+                                    <label>Reporting Category</label>
+                                    <div class="fc-field-value">
+                                        @(string.IsNullOrEmpty(SelectedAccount.ReportingCategory)
+                                            ? "-"
+                                            : ReportingCategories.GetDisplayName(
+                                                SelectedAccount.ReportingCategory))
+                                    </div>
+                                </div>
+                            </div>
+
+                        </div>
+                    </div>
+                </div>
+
+
+                <!-- POSTING RULES -->
+                <div class="fc-card">
+                    <div class="fc-card-header">
+                        <span class="fc-card-header-icon fc-icon-purple">
+                            <i class="ti ti-settings"></i>
+                        </span>
+                        <h3>Posting Rules & Controls</h3>
+                    </div>
+
+                    <div class="fc-card-body">
+
+                        <div class="row g-4">
+
+                            <div class="col-md-3">
+                                <div class="fc-field">
+                                    <label>Postable</label>
+                                    <div class="fc-field-value">
+                                        @if (SelectedAccount.IsPostable)
+                                        {
+                                            <span class="fc-tag fc-tag-success">Yes</span>
+                                        }
+                                        else
+                                        {
+                                            <span class="fc-tag fc-tag-neutral">Header Only</span>
+                                        }
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="col-md-3">
+                                <div class="fc-field">
+                                    <label>Control Account</label>
+                                    <div class="fc-field-value">
+                                        @(SelectedAccount.IsControlAccount ? "Yes" : "No")
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="col-md-3">
+                                <div class="fc-field">
+                                    <label>Manual Journal</label>
+                                    <div class="fc-field-value">
+                                        @(SelectedAccount.AllowManualJournal ? "Allowed" : "Restricted")
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="col-md-3">
+                                <div class="fc-field">
+                                    <label>Branch Mandatory</label>
+                                    <div class="fc-field-value">
+                                        @(SelectedAccount.RequiresBranch ? "Yes" : "No")
+                                    </div>
+                                </div>
+                            </div>
+
+                        </div>
+
+                    </div>
+                </div>
+
+            </div>
+
+
+            <!--  RIGHT COLUMN  -->
+            <div class="fc-col-side">
+
+                <!-- STATUS CARD -->
+                <div class="fc-card">
+                    <div class="fc-card-header">
+                        <span class="fc-card-header-icon fc-icon-slate">
+                            <i class="ti ti-info-circle"></i>
+                        </span>
+                        <h3>Status & Governance</h3>
+                    </div>
+
+                    <div class="fc-card-body">
+
+                        <div class="fc-field">
+                            <label>Status</label>
+                            <div class="fc-field-value">
+                                <span class="fc-status-badge @GetStatusBadgeClass(SelectedAccount.Status)">
+                                    <span class="fc-badge-dot"></span>
+                                    @SelectedAccount.Status
+                                </span>
+                            </div>
+                        </div>
+
+                        <div class="fc-field mt-3">
+                            <label>Lock Status</label>
+                            <div class="fc-field-value">
+                                @(string.IsNullOrEmpty(SelectedAccount.LockStatus)
+                                    ? "Unlocked"
+                                    : LockStatuses.GetDisplayName(SelectedAccount.LockStatus))
+                            </div>
+                        </div>
+
+                    </div>
+                </div>
+
+
+                <!-- AUDIT TRAIL -->
+                <div class="fc-card">
+                    <div class="fc-card-header">
+                        <span class="fc-card-header-icon fc-icon-slate">
+                            <i class="ti ti-history"></i>
+                        </span>
+                        <h3>Audit Trail</h3>
+                    </div>
+
+                    <div class="fc-card-body fc-no-padding">
+
+                        <div class="fc-timeline">
+
+                            <div class="fc-timeline-item fc-tl-created">
+                                <div class="fc-tl-dot"></div>
+                                <div class="fc-tl-content">
+                                    <div class="fc-tl-label">Created</div>
+                                    <div class="fc-tl-time">
+                                        @SelectedAccount.CreatedAt.ToString("dd MMM yyyy HH:mm")
+                                    </div>
+                                    @if (!string.IsNullOrEmpty(SelectedAccount.CreatedBy))
+                                    {
+                                        <div class="fc-tl-user">
+                                            <i class="ti ti-user"></i>
+                                            @SelectedAccount.CreatedBy
+                                        </div>
+                                    }
+                                </div>
+                            </div>
+
+                            @if (SelectedAccount.UpdatedAt.HasValue)
+                            {
+                                <div class="fc-timeline-item fc-tl-updated">
+                                    <div class="fc-tl-dot"></div>
+                                    <div class="fc-tl-content">
+                                        <div class="fc-tl-label">Updated</div>
+                                        <div class="fc-tl-time">
+                                            @SelectedAccount.UpdatedAt.Value.ToString("dd MMM yyyy HH:mm")
+                                        </div>
+                                        @if (!string.IsNullOrEmpty(SelectedAccount.UpdatedBy))
+                                        {
+                                            <div class="fc-tl-user">
+                                                <i class="ti ti-user"></i>
+                                                @SelectedAccount.UpdatedBy
+                                            </div>
+                                        }
+                                    </div>
+                                </div>
+                            }
+
+                        </div>
+
+                    </div>
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>
+}
+else
+{
+    <div class="page-loading-overlay">
+        <div class="whirly-loader"></div>
+    </div>
+}

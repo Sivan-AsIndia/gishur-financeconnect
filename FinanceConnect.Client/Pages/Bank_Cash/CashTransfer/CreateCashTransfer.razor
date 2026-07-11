@@ -1,0 +1,281 @@
+﻿@page "/cash-transfers/create"
+@page "/cash-transfers/{CashTransferId:guid}"
+
+@using FinanceConnect.Client.ViewModels
+@using FinanceConnect.Client.Services
+@inject NavigationManager NavigationManager
+@inject CashTransferService CashTransferService
+@inject BranchService BranchService
+@inject CashAccountService CashAccountService
+@inject ToastService ToastService
+@inject MasterDataService MasterDataService
+
+<style>
+    .form-select option:checked {
+        color: #fff;
+        background: var(--primary);
+    }
+
+    .form-select:focus {
+        border-color: var(--primary);
+        box-shadow: none;
+    }
+
+    .validation-message {
+        color: #dc3545;
+        font-size: 12px;
+    }
+
+    .form-select.is-invalid {
+        border-color: #dc3545;
+    }
+
+    .field-validation-error {
+        color: #dc3545;
+        font-size: 12px;
+        display: block;
+        margin-top: 4px;
+    }
+</style>
+
+    <div class="content flat-form">
+        <div class="page-header">
+            <div class="add-item d-flex">
+                <div class="page-title">
+                    <h4 class="fw-bold">@(IsEditMode ? "Edit Cash Transfer" : "Create Cash Transfer")</h4>
+                    <h6>@(IsEditMode ? "Update existing cash transfer details" : "Define a new cash movement")</h6>
+
+                </div>
+            </div>
+
+            <div class="page-btn mt-0">
+            <a href="/cash-transfers" class="btn btn-outline-secondary">
+                <i class="ti ti-arrow-left"></i> Back
+                </a>
+            </div>
+        </div>
+
+
+
+    <EditForm EditContext="_editContext" OnSubmit="HandleSubmit">
+            <DataAnnotationsValidator />
+
+            <div class="card mb-3">
+                <div class="card-body">
+                    <!-- 🔹 Core Identity -->
+                    <h5 class="text-primary mb-3"><i class="ti ti-info-circle me-2"></i>Core Identity</h5>
+                    <div class="row g-3 mb-4">
+
+                    <div class="col-md-4">
+                        <label class="form-label">Company <span class="text-danger">*</span></label>
+                        <select class="form-select @(CompanyValidationError != null ? "is-invalid" : "")"
+                                @bind="SelectedCompanyId">
+                            <option value="@Guid.Empty">-- Select Company --</option>
+                            @foreach (var company in Companies)
+                            {
+                                <option value="@company.Id">
+                                    @company.CompanyCode - @company.LegalName
+                                </option>
+                            }
+                        </select>
+
+                        @if (CompanyValidationError != null)
+                        {
+                            <span class="field-validation-error">@CompanyValidationError</span>
+                        }
+                    </div>
+
+
+                        <div class="col-md-4">
+                            <label class="form-label">Branch <span class="text-danger">*</span></label>
+                        <select class="@($"form-select {GetValidationClass(() => Model.BranchId)}")"
+                                @bind="Model.BranchId" disabled="@(IsBranchDisabled)">
+                            <option value="">-- Select Branch --</option>
+                            @foreach (var b in FilteredBranches)
+                            {
+                                <option value="@b.Id">@b.BranchCode - @b.BranchName</option>
+                            }
+                        </select>
+
+                        <ValidationMessage For="@(() => Model.BranchId)" />
+
+                        </div>
+
+                        <div class="col-md-4">
+                            <label class="form-label">Transfer Number</label>
+                            <input type="text" class="form-control" @bind="Model.CashTransferNumber" readonly />
+                        </div>
+
+                        <div class="col-md-4">
+                            <label class="form-label">Status</label>
+                        <select class="@($"form-select {GetValidationClass(() => Model.CashTransferStatus)}")"
+                                @bind="Model.CashTransferStatus">
+                                <option value="">-- Select Status --</option>
+                                @foreach (var s in Enum.GetValues<CashTransferModel.CashTransferStatusEnum>())
+                                {
+                                    <option value="@s">@s</option>
+                                }
+                            </select>
+                        <ValidationMessage For="@(() => Model.CashTransferStatus)" />
+
+                        </div>
+                    </div>
+
+                    <!-- 🔹 Transfer Details -->
+                <h5 class="text-primary mb-3"><i class="ti ti-exchange"></i>Transfer Details</h5>
+                    <div class="row g-3 mb-4">
+                        <div class="col-md-4">
+                            <label class="form-label">From Cash Account <span class="text-danger">*</span></label>
+                        <select TValue="Guid ?"
+                                     class="@($"form-select {GetValidationClass(() => Model.SourceCashAccountId)}")"
+                                     @bind="Model.SourceCashAccountId">
+
+                            <option value="">-- Select Source Account --</option>
+
+                            @foreach (var c in CashAccounts)
+                            {
+                                <option value="@c.Id">@c.Code - @c.Name</option>
+                            }
+                        </select>
+
+                        <ValidationMessage For="@(() => Model.SourceCashAccountId)" />
+
+                        </div>
+
+                        <div class="col-md-4">
+                            <label class="form-label">To Cash Account <span class="text-danger">*</span></label>
+                        <select TValue="Guid ?"
+                                     class="@($"form-select {GetValidationClass(() => Model.DestinationCashAccountId)}")"
+                                     @bind="Model.DestinationCashAccountId">
+
+                            <option value="">-- Select Destination Account --</option>
+
+                            @foreach (var c in CashAccounts)
+                            {
+                                <option value="@c.Id">@c.Code - @c.Name</option>
+                            }
+                        </select>
+
+                        <ValidationMessage For="@(() => Model.DestinationCashAccountId)" />
+                        @if (SameAccountError != null)
+                        {
+                            <span class="field-validation-error">@SameAccountError</span>
+                        }
+
+                        </div>
+
+                        <div class="col-md-4">
+                            <label class="form-label">Transfer Date <span class="text-danger">*</span></label>
+                        <input type="date" class="@($"form-control {GetValidationClass(() => Model.TransferDate)}")" @bind="Model.TransferDate" />
+                            <ValidationMessage For="@(() => Model.TransferDate)" />
+                        </div>
+
+                        <div class="col-md-4">
+                            <label class="form-label">Currency</label>
+                            <InputText class="form-control" @bind-Value="Model.CurrencyCode" readonly />
+                        </div>
+
+                        <div class="col-md-4">
+                            <label class="form-label">Amount <span class="text-danger">*</span></label>
+                        <input class="@($"form-control {GetValidationClass(() => Model.Amount)}")" type="number" min="0" @bind="Model.Amount" />
+                            <ValidationMessage For="@(() => Model.Amount)" />
+                        </div>
+
+                        <div class="col-md-12">
+                            <label class="form-label">Purpose / Notes <span class="text-danger">*</span></label>
+                        <div class="@($"form-control p-0 border {GetValidationClass(() => Model.Narration)}")" style="overflow:hidden;">
+                        <RichTextEditor @ref="_narrationEditor"
+                                        Value="@Model.Narration"
+                                        Placeholder="Enter Narration Notes..."
+                                        MinHeight="60"
+                                        MaxHeight="500" />
+                                        </div>
+                            <ValidationMessage For="@(() => Model.Narration)" />
+                        </div>
+
+                        <div class="col-md-4">
+                            <label class="form-label">Reason</label>
+                            <InputSelect class="form-select" @bind-Value="Model.ReasonCode">
+                                <option value="">-- Select Reason Code --</option>
+                                @foreach (var r in Enum.GetValues<CashTransferModel.ReasonCodeEnum>())
+                                {
+                                    <option value="@r">@r</option>
+                                }
+                            </InputSelect>
+                        </div>
+                    </div>
+
+                    <!-- 🔹 Handover & Transit -->
+                    <h5 class="text-primary mb-3"><i class="ti ti-truck me-2"></i>Handover & Transit</h5>
+                    <div class="row g-3 mb-4">
+                        <div class="col-md-4">
+                            <label class="form-label">Handed Over By</label>
+                            <InputText class="form-control" @bind-Value="Model.HandedOverByUserName" readonly />
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Handed Over On</label>
+                            <InputDate class="form-control" @bind-Value="Model.HandedOverOn" />
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Transit Method</label>
+                            <InputSelect class="form-select" @bind-Value="Model.TransitMethod">
+                                <option value="">-- Select Transit Method --</option>
+                                <option value="HandCarry">Hand Carry</option>
+                                <option value="Courier">Courier</option>
+                                <option value="SecurityVan">Security Van</option>
+                                <option value="Other">Other</option>
+                            </InputSelect>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Transit Reference</label>
+                            <InputText class="form-control" @bind-Value="Model.TransitReference" maxlength="100" placeholder="Courier receipt no, vehicle id..." />
+                        </div>
+                        <div class="col-md-8">
+                            <label class="form-label">Transit Notes</label>
+                            <InputTextArea class="form-control" @bind-Value="Model.TransitNotes" rows="2" maxlength="500" placeholder="Additional transit details..." />
+                        </div>
+                    </div>
+
+                    <!-- 🔹 Receive Confirmation -->
+                <h5 class="text-primary mb-3"><i class="ti ti-check me-2"></i>Receive Confirmation</h5>
+                    <div class="row g-3 mb-4">
+                        <div class="col-md-4">
+                            <label class="form-label">Received By</label>
+                            <InputText class="form-control" @bind-Value="Model.ReceivedByUserName" readonly />
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Received On</label>
+                            <InputDate class="form-control" @bind-Value="Model.ReceivedOn" />
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Received Amount</label>
+                            <InputNumber class="form-control" @bind-Value="Model.ReceivedAmount" min="0" />
+                        </div>
+                        <div class="col-md-12">
+                            <label class="form-label">Acknowledgement Note</label>
+                        @* <InputTextArea class="form-control" @bind-Value="Model.ReceiptAcknowledgementNote" maxlength="500" /> *@
+
+                        <RichTextEditor @ref="_acknowledgementEditor"
+                                        Value="@Model.ReceiptAcknowledgementNote"
+                                        Placeholder="Enter ReceiptAcknowledgement Notes..."
+                                        MinHeight="60"
+                                        MaxHeight="500" />
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+
+            <!-- Footer Buttons -->
+        <div class="page-btn d-flex align-items-center justify-content-end gap-3 mb-5">
+            <button type="button" class="btn btn-outline-secondary" @onclick='() => NavigationManager.NavigateTo("/cash-transfers")'><i class="ti ti-x"></i> Cancel</button>
+            <button type="submit"
+                    class="btn btn-primary"
+                    @onclick="@(() => Console.WriteLine("🔥 Button clicked"))">
+                <i class="ti ti-device-floppy me-1"></i> Save
+            </button>
+
+            </div>
+        </EditForm>
+
+    </div>

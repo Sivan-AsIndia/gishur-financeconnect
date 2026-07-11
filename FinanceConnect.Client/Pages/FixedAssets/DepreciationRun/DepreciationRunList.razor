@@ -1,0 +1,414 @@
+﻿@page "/depreciation-runs"
+
+@using FinanceConnect.Client.ViewModels
+@using FinanceConnect.Client.Services
+@inject DepreciationRunService RunService
+@inject ToastService ToastService
+@inject IJSRuntime JS
+@inject NavigationManager Nav
+
+@if (!isInitialized)
+{
+    <div class="page-loading-overlay">
+        <div class="whirly-loader"></div>
+    </div>
+}
+else
+{
+    @if (isLoading)
+    {
+        <div class="page-loading-overlay">
+            <div class="whirly-loader"></div>
+        </div>
+    }
+    <div class="content List-view">
+
+        <!-- PAGE HEADER -->
+
+        <div class="page-header">
+
+            <div class="add-item d-flex">
+                <div class="page-title">
+                    <h4 class="fw-bold">Depreciation Runs</h4>
+                    <h6>Monthly asset depreciation batch processing</h6>
+                </div>
+            </div>
+
+            <ul class="table-top-head">
+                <li>
+                    <a href="javascript:void(0);" title="Refresh"
+                           @onclick="OnRefreshAsync">
+                        <i class="ti ti-refresh"></i>
+                    </a>
+                </li>
+            </ul>
+
+            <div class="page-btn">
+                <a href="/depreciation-runs/create"
+                       class="btn btn-primary">
+                    <i class="ti ti-circle-plus me-1"></i>
+                    Create
+                </a>
+            </div>
+
+        </div>
+
+
+        <!-- LIST CARD -->
+
+        <div class="card">
+
+            <div class="card-header d-flex align-items-center justify-content-between">
+
+                <div class="search-set">
+                    <div class="search-input">
+
+                        <span class="btn-searchset">
+                            <i class="ti ti-search fs-14"></i>
+                        </span>
+
+                        <input type="search"
+                               class="form-control form-control-sm"
+                               placeholder="Search run number"
+                               @bind="searchText"
+                               @oninput="OnSearch" />
+
+                    </div>
+                </div>
+
+
+                <div style="display:flex;gap:5px;flex-wrap:wrap;">
+                                    <div>
+                    <select class="form-select form-select-sm"
+                            style="min-width: 180px"
+                            @bind="SelectedCompany">
+                        <option value="">All Companies</option>
+                        @foreach (var c in Companies)
+                        {
+                            <option value="@c.Id">@c.LegalName</option>
+                        }
+                    </select>
+                </div>
+                <div>
+                    <select class="form-select form-select-sm"
+                            style="min-width:150px"
+                            @bind="SelectedStatus">
+                        <option value="">All Status</option>
+                        @foreach (var t in Enum.GetValues<DepreciationRunStatus>())
+                        {
+                            <option value="@t">@t</option>
+                        }
+                    </select>
+                    </div>
+
+                    <div>
+                    <select class="form-select form-select-sm"
+                            style="min-width:150px"
+                            @bind="SelectedRunType">
+                            <option value="">All Run Types</option>
+                        @foreach (var t in Enum.GetValues<DepreciationRunType>())
+                        {
+                            <option value="@t">@t</option>
+                        }
+
+                    </select>
+                    </div>
+                </div>
+
+            </div>
+
+
+            <div class="card-body p-0">
+                <div>
+                <table class="table align-middle table-fixed w-100">
+
+                    <thead class="thead-light">
+
+                        <tr>
+                            <th class="d-xl-none" style="width:40px"></th>
+                            @* <th style="width:200px">Run No</th> *@
+                            <th class="d-none d-md-table-cell">Period</th>
+                            <th class="d-none d-md-table-cell">Type</th>
+                            <th class="text-end d-none d-md-table-cell">Assets</th>
+                            <th class="text-end d-none d-xl-table-cell">Amount</th>
+                            <th class="d-none d-xl-table-cell">Status</th>
+                            <th class="d-none d-xl-table-cell">Generated</th>
+                            <th class="no-sort">Action</th>
+                        </tr>
+
+                    </thead>
+
+                    <tbody>
+
+                        @if (PagedRuns.Any())
+                        {
+                            @foreach (var run in PagedRuns)
+                            {
+
+                                <tr>
+
+                                    <!-- PLUS ICON -->
+                                    <td class="d-xl-none text-center" style="padding-left: 15px;">
+                                        <a href="javascript:void(0);" class="TablePlus"
+                                        data-bs-toggle="modal"
+                                        data-bs-target="#rowDetailsModal"
+                                        @onclick="() => ViewRun(run)">
+                                            <i class="ti ti-plus"></i>
+                                        </a>
+                                    </td>
+
+                                    <td>
+                                        <span class="fw-medium">
+                                        <span class="PopupIcon">⧉</span>
+                                                <a @onclick="() => runDetails(run)"  data-bs-toggle="tooltip" data-bs-placement="top"
+                                            class="text-decoration-none link-View"
+                                                   title="@run.AccountingPeriodName details">
+                                                    @run.AccountingPeriodName
+                                            </a>
+                                        </span>
+                                    </td>
+
+                                    @* <td class="d-none d-md-table-cell">@run.AccountingPeriodName</td> *@
+
+                                    <td class="d-none d-md-table-cell">@run.RunType</td>
+
+                                    <td class="text-end d-none d-md-table-cell">@run.GeneratedLineCount</td>
+
+                                    <td class="text-end d-none d-xl-table-cell">
+                                        ₹@run.TotalDepreciationAmount.ToString("N2")
+                                    </td>
+
+                                    <td class="d-none d-xl-table-cell">
+                                        <span class="badge @GetStatusBadge(run.RunStatus)">
+                                            @run.RunStatus
+                                        </span>
+                                    </td>
+
+                                    <td class="d-none d-xxl-table-cell">@run.GeneratedOn?.ToString("dd MMM yyyy")</td>
+
+                                        <td class="action-table-data">
+
+                                        <div class="edit-delete-action">
+                                                @if (run.RunStatus != DepreciationRunStatus.Draft && run.GeneratedLineCount > 0)
+                                                {
+                                                    <a class="me-2 Layer-icon p-1"
+                                                           title="View Lines"
+                                                           href="@($"/depreciation-runs/{run.DepreciationRunId}/lines")">
+
+                                                        <i data-feather="layers"></i>
+
+                                                    </a>
+                                                }
+
+                                            @if (run.RunStatus == DepreciationRunStatus.Draft)
+                                            {
+                                                    <a class="me-2 edit-icon p-1" title="Generate Run"
+                                                       @onclick='() => GenerateRun(run)'>
+                                                    <i class="ti ti-player-play"></i>
+                                                </a>
+                                            }
+
+                                            @if (run.RunStatus == DepreciationRunStatus.Generated)
+                                            {
+                                                    <a class="me-2 edit-icon p-1" title="Submit Run"
+                                                       @onclick='() => SubmitRun(run)'>
+                                                    <i class="ti ti-send"></i>
+                                                </a>
+                                            }
+
+                                            @if (run.RunStatus == DepreciationRunStatus.Submitted)
+                                            {
+                                                    <a class="me-2 edit-icon p-1" title="Approve Run"
+                                                       @onclick='() => ApproveRun(run)'>
+                                                    <i class="ti ti-check"></i>
+                                                </a>
+                                            }
+
+                                            @if (run.RunStatus == DepreciationRunStatus.Approved)
+                                            {
+                                                    <a class="me-2 edit-icon p-1" title="Post Run"
+                                                       @onclick='() => PostRun(run)'>
+                                                    <i class="ti ti-upload"></i>
+                                                </a>
+                                            }
+
+                                            @if (run.RunStatus == DepreciationRunStatus.Posted)
+                                            {
+                                                    <a class="me-2 edit-icon p-1" title="Finalize Run"
+                                                       @onclick='() => FinalizeRun(run)'>
+                                                    <i class="ti ti-lock"></i>
+                                                </a>
+                                            }
+
+                                        </div>
+
+                                    </td>
+
+                                </tr>
+
+                            }
+                        }
+
+                        else
+                        {
+                            <tr>
+                                <td colspan="9" class="text-center py-4">
+                                    <div class="text-muted">
+                                        <i class="ti ti-database-off fs-32 d-block mb-2"></i>
+                                        No depreciation runs found
+                                    </div>
+                                </td>
+                            </tr>
+                        }
+
+                    </tbody>
+
+                </table>
+                    @if (PagedRuns.Any())
+                {
+                    <!-- Pagination -->
+                    <div class="d-flex justify-content-between align-items-center p-3">
+
+                        <div class="d-flex align-items-center fs-13">
+                            <span class="me-2">Rows Per Page</span>
+                            <select class="form-select form-select-sm w-auto"
+                                    @onchange="OnPageSizeChange">
+                                <option value="5">5</option>
+                                <option value="10" selected>10</option>
+                                <option value="25">25</option>
+                            </select>
+                            <span class="ms-2">Entries</span>
+                        </div>
+
+                        <nav>
+                            <ul class="pagination pagination-sm mb-0">
+
+                                <li class="page-item @(CurrentPage == 1 ? "disabled" : "")">
+                                    <a class="page-link" href="#"
+                                           @onclick="PreviousPage"
+                                           @onclick:preventDefault>
+                                        <i class="ti ti-chevron-left"></i>
+                                    </a>
+                                </li>
+
+                                @foreach (var pageNumber in VisiblePages)
+                                {
+                                    <li class="page-item @(pageNumber == CurrentPage ? "active" : "")">
+                                        <button class="page-link"
+                                                @onclick="() => GoToPage(pageNumber)">
+                                            @pageNumber
+                                        </button>
+                                    </li>
+                                }
+
+                                <li class="page-item @(CurrentPage == TotalPages ? "disabled" : "")">
+                                    <a class="page-link" href="#"
+                                           @onclick="NextPage"
+                                           @onclick:preventDefault>
+                                        <i class="ti ti-chevron-right"></i>
+                                    </a>
+                                </li>
+
+                            </ul>
+                        </nav>
+                    </div>
+                }
+            </div>
+            </div>
+
+        </div>
+
+    </div>
+
+    <!-- Row Details Modal -->
+    <div class="modal fade" id="rowDetailsModal" tabindex="-1">
+        <div class="modal-dialog modal-lg modal-dialog-centered">
+
+            <div class="modal-content">
+
+                <div class="modal-header">
+                    <h5 class="modal-title">
+                        <i class="ti ti-calculator me-2"></i>
+                        Depreciation Run Details
+                    </h5>
+
+                    <button type="button"
+                            class="btn-close"
+                            data-bs-dismiss="modal">
+                    </button>
+                </div>
+
+                <div class="modal-body">
+
+                    @if (SelectedRun != null)
+                    {
+
+                        <div class="row g-3">
+
+                            <div class="col-md-6">
+                                <div class="detail-box">
+                                    <span class="label">Run Number: </span>
+                                    <span class="value">@SelectedRun.RunNumber</span>
+                                </div>
+                            </div>
+
+                            <div class="col-md-6">
+                                <div class="detail-box">
+                                    <span class="label">Accounting Period: </span>
+                                    <span class="value">@SelectedRun.AccountingPeriodName</span>
+                                </div>
+                            </div>
+
+                            <div class="col-md-6">
+                                <div class="detail-box">
+                                    <span class="label">Run Type: </span>
+                                    <span class="value">@SelectedRun.RunType</span>
+                                </div>
+                            </div>
+
+                            <div class="col-md-6">
+                                <div class="detail-box">
+                                    <span class="label">Generated Lines: </span>
+                                    <span class="value">@SelectedRun.GeneratedLineCount</span>
+                                </div>
+                            </div>
+
+                            <div class="col-md-6">
+                                <div class="detail-box">
+                                    <span class="label">Total Depreciation: </span>
+                                    <span class="value">
+                                        ₹@SelectedRun.TotalDepreciationAmount.ToString("N2")
+                                    </span>
+                                </div>
+                            </div>
+
+                            <div class="col-md-6">
+                                <div class="detail-box">
+                                    <span class="label">Generated On: </span>
+                                    <span class="value">
+                                        @SelectedRun.GeneratedOn?.ToString("dd MMM yyyy")
+                                    </span>
+                                </div>
+                            </div>
+
+                            <div class="col-md-12">
+                                <div class="detail-box">
+                                    <span class="label">Status: </span>
+
+                                    <span class="badge @GetStatusBadge(SelectedRun.RunStatus)">
+                                        @SelectedRun.RunStatus
+                                    </span>
+                                </div>
+                            </div>
+
+                        </div>
+
+                    }
+
+                </div>
+
+            </div>
+
+        </div>
+    </div>
+}

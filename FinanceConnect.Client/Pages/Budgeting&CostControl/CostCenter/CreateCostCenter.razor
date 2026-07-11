@@ -1,0 +1,734 @@
+﻿@page "/cost-centers/create"
+@page "/cost-centers/edit/{Code}"
+@using FinanceConnect.Client.ViewModels
+@using FinanceConnect.Client.Services
+
+<style>
+    .form-select option:checked {
+        color: #fff;
+        background: var(--primary);
+    }
+
+    .form-select:focus {
+        border-color: var(--primary);
+        box-shadow: none;
+    }
+
+    .field-validation-error {
+        color: #dc3545;
+        font-size: 12px;
+        display: block;
+        margin-top: 4px;
+    }
+
+    .form-select.is-invalid {
+        border-color: #dc3545;
+    }
+</style>
+
+@if (!isInitialized)
+{
+    <div class="page-loading-overlay"><div class="whirly-loader"></div></div>
+}
+else
+{
+    <div class="content Accordion-form">
+
+        <div class="page-header">
+            <div class="add-item d-flex">
+                <div class="page-title">
+                    <h4 class="fw-bold">@PageTitle</h4>
+                    <h6>@PageSubTitle</h6>
+                </div>
+            </div>
+            <div class="page-btn mt-0">
+                <a href="/cost-centers" class="btn btn-outline-secondary">
+                    <i class="ti ti-arrow-left"></i> Back
+                </a>
+            </div>
+        </div>
+
+        <EditForm EditContext="_editContext" OnSubmit="HandleSubmit">
+            <DataAnnotationsValidator />
+
+            <div class="add-product" style="background:#f4f7fb; padding:24px 14px;">
+                <div class="tl-accordion">
+
+                    <!-- ═══════════ LEFT PANEL ═══════════ -->
+                    <div class="tl-left-panel">
+
+                        <div class="tl-label @(ShowIdentity ? "active accent-orange" : "")"
+                             @onclick='() => ToggleAccordion("identity")'>
+                            <div class="tl-label-icon ico-orange"><i data-feather="file-text"></i></div>
+                            <div class="tl-label-text">
+                                <div class="tl-label-title">General Info</div>
+                                <div class="tl-label-sub">Code, name, description</div>
+                            </div>
+                            <span class="tl-label-chevron @(ShowIdentity ? "open" : "")"><i data-feather="chevron-right"></i></span>
+                        </div>
+
+                        <div class="tl-label @(ShowClassification ? "active accent-blue" : "")"
+                             @onclick='() => ToggleAccordion("classification")'>
+                            <div class="tl-label-icon ico-blue"><i data-feather="tag"></i></div>
+                            <div class="tl-label-text">
+                                <div class="tl-label-title">Classification</div>
+                                <div class="tl-label-sub">Type, control, usage mode</div>
+                            </div>
+                            <span class="tl-label-chevron @(ShowClassification ? "open" : "")"><i data-feather="chevron-right"></i></span>
+                        </div>
+
+                        <div class="tl-label @(ShowHierarchy ? "active accent-purple" : "")"
+                             @onclick='() => ToggleAccordion("hierarchy")'>
+                            <div class="tl-label-icon ico-purple"><i data-feather="git-merge"></i></div>
+                            <div class="tl-label-text">
+                                <div class="tl-label-title">Organization & Hierarchy</div>
+                                <div class="tl-label-sub">Parent, branch, department</div>
+                            </div>
+                            <span class="tl-label-chevron @(ShowHierarchy ? "open" : "")"><i data-feather="chevron-right"></i></span>
+                        </div>
+
+                        <div class="tl-label @(ShowOwnership ? "active accent-teal" : "")"
+                             @onclick='() => ToggleAccordion("ownership")'>
+                            <div class="tl-label-icon ico-teal"><i data-feather="user-check"></i></div>
+                            <div class="tl-label-text">
+                                <div class="tl-label-title">Ownership</div>
+                                <div class="tl-label-sub">Owner, manager, reviewer</div>
+                            </div>
+                            <span class="tl-label-chevron @(ShowOwnership ? "open" : "")"><i data-feather="chevron-right"></i></span>
+                        </div>
+
+                        <div class="tl-label @(ShowFinancial ? "active accent-orange" : "")"
+                             @onclick='() => ToggleAccordion("financial")'>
+                            <div class="tl-label-icon ico-orange"><i data-feather="shield"></i></div>
+                            <div class="tl-label-text">
+                                <div class="tl-label-title">Financial Control</div>
+                                <div class="tl-label-sub">Budget mode, tolerance</div>
+                            </div>
+                            <span class="tl-label-chevron @(ShowFinancial ? "open" : "")"><i data-feather="chevron-right"></i></span>
+                        </div>
+
+                        <div class="tl-label @(ShowAllocation ? "active accent-blue" : "")"
+                             @onclick='() => ToggleAccordion("allocation")'>
+                            <div class="tl-label-icon ico-blue"><i data-feather="layers"></i></div>
+                            <div class="tl-label-text">
+                                <div class="tl-label-title">Reporting & Allocation</div>
+                                <div class="tl-label-sub">Allocation base, sharing</div>
+                            </div>
+                            <span class="tl-label-chevron @(ShowAllocation ? "open" : "")"><i data-feather="chevron-right"></i></span>
+                        </div>
+
+                        <div class="tl-label @(ShowStatus ? "active accent-purple" : "")"
+                             @onclick='() => ToggleAccordion("status")'>
+                            <div class="tl-label-icon ico-purple"><i data-feather="check-circle"></i></div>
+                            <div class="tl-label-text">
+                                <div class="tl-label-title">Status & Governance</div>
+                                <div class="tl-label-sub">Effective dates, status</div>
+                            </div>
+                            <span class="tl-label-chevron @(ShowStatus ? "open" : "")"><i data-feather="chevron-right"></i></span>
+                        </div>
+
+                    </div><!-- end left panel -->
+                    <!-- ═══════════ RIGHT AREA ═══════════ -->
+                    <div class="tl-right-area">
+
+                        <!-- ═══ 01 GENERAL INFO ═══ -->
+                        <div class="tl-card-row @(ShowIdentity ? "row-active" : "")">
+                            <div class="tl-dot-col">
+                                <div class="tl-dot" @onclick='() => ToggleAccordion("identity")'></div>
+                            </div>
+                            <div class="tl-card-col">
+                                <div class="tl-card @(ShowIdentity ? "card-active border-orange" : "")">
+                                    <div class="tl-card-header" @onclick='() => ToggleAccordion("identity")'>
+                                        <div class="tl-card-header-title">
+                                            <span class="tl-card-step step-orange">01</span> General Info
+                                        </div>
+                                        <span class="tl-card-toggle @(ShowIdentity ? "toggle-open" : "")">
+                                            <i data-feather="chevron-down"></i>
+                                        </span>
+                                    </div>
+                                    <div class="tl-collapse @(ShowIdentity ? "tl-open" : "")">
+                                        <div class="tl-card-body">
+                                            <div class="tl-card-body-inner">
+                                                <div class="row">
+                                                    <div class="col-sm-6 col-md-3 mb-3">
+                                                        <label class="form-label">Cost Center Code <span class="text-danger ms-1">*</span></label>
+                                                        <input class="form-control text-uppercase @(CodeError != null ? "is-invalid" : "")"
+                                                               @bind="Model.CostCenterCode"
+                                                               @bind:event="oninput"
+                                                               @bind:after="OnCodeChanged"
+                                                               placeholder="e.g., CC-HR-001"
+                                                               disabled="@IsEdit"
+                                                               maxlength="30" />
+                                                        @if (CodeError != null)
+                                                        {
+                                                            <span class="field-validation-error">@CodeError</span>
+                                                        }
+                                                    </div>
+
+                                                    <div class="col-sm-6 col-md-5 mb-3">
+                                                        <label class="form-label">Cost Center Name <span class="text-danger ms-1">*</span></label>
+                                                        <input class="form-control @(NameError != null ? "is-invalid" : "")"
+                                                               @bind="Model.CostCenterName"
+                                                               @bind:after="OnNameChanged"
+                                                               placeholder="e.g., Human Resources"
+                                                               maxlength="200" />
+                                                        @if (NameError != null)
+                                                        {
+                                                            <span class="field-validation-error">@NameError</span>
+                                                        }
+                                                    </div>
+
+                                                    <div class="col-sm-6 col-md-4 mb-3">
+                                                        <label class="form-label">Short Name</label>
+                                                        <input class="form-control" @bind="Model.ShortName"
+                                                               placeholder="Abbreviated name" maxlength="50" />
+                                                    </div>
+
+                                                    <div class="col-12 mb-3">
+                                                        <label class="form-label">Description</label>
+                                                        <textarea class="form-control"
+                                                                  @bind="Model.Description"
+                                                                  rows="2"
+                                                                  placeholder="Purpose of this cost center..."
+                                                                  maxlength="1000"></textarea>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- ═══ 02 CLASSIFICATION ═══ -->
+                        <div class="tl-card-row @(ShowClassification ? "row-active" : "")">
+                            <div class="tl-dot-col">
+                                <div class="tl-dot" @onclick='() => ToggleAccordion("classification")'></div>
+                            </div>
+                            <div class="tl-card-col">
+                                <div class="tl-card @(ShowClassification ? "card-active border-blue" : "")">
+                                    <div class="tl-card-header" @onclick='() => ToggleAccordion("classification")'>
+                                        <div class="tl-card-header-title">
+                                            <span class="tl-card-step step-blue">02</span> Classification
+                                        </div>
+                                        <span class="tl-card-toggle @(ShowClassification ? "toggle-open" : "")">
+                                            <i data-feather="chevron-down"></i>
+                                        </span>
+                                    </div>
+                                    <div class="tl-collapse @(ShowClassification ? "tl-open" : "")">
+                                        <div class="tl-card-body">
+                                            <div class="tl-card-body-inner">
+                                                <div class="row">
+                                                    <div class="col-sm-6 col-md-4 mb-3">
+                                                        <label class="form-label">Cost Center Type <span class="text-danger ms-1">*</span></label>
+                                                        <select class="form-select @(TypeError != null ? "is-invalid" : "")"
+                                                                @bind="Model.CostCenterType"
+                                                                @bind:after="OnTypeChanged">
+                                                            <option value="">-- Select Type --</option>
+                                                            <option value="Operational">Operational</option>
+                                                            <option value="Administrative">Administrative</option>
+                                                            <option value="RevenueSupport">Revenue Support</option>
+                                                            <option value="SharedService">Shared Service</option>
+                                                            <option value="Project">Project</option>
+                                                            <option value="Regional">Regional</option>
+                                                            <option value="Corporate">Corporate</option>
+                                                        </select>
+                                                        @if (TypeError != null)
+                                                        {
+                                                            <span class="field-validation-error">@TypeError</span>
+                                                        }
+                                                    </div>
+
+                                                    <div class="col-sm-6 col-md-4 mb-3">
+                                                        <label class="form-label">Control Nature <span class="text-danger ms-1">*</span></label>
+                                                        <select class="form-select @(ControlNatureError != null ? "is-invalid" : "")"
+                                                                @bind="Model.ControlNature"
+                                                                @bind:after="OnControlNatureChanged">
+                                                            <option value="">-- Select Nature --</option>
+                                                            <option value="CostOnly">Cost Only</option>
+                                                            <option value="RevenueOnly">Revenue Only</option>
+                                                            <option value="Mixed">Mixed</option>
+                                                            <option value="StatisticalOnly">Statistical Only</option>
+                                                        </select>
+                                                        @if (ControlNatureError != null)
+                                                        {
+                                                            <span class="field-validation-error">@ControlNatureError</span>
+                                                        }
+                                                    </div>
+
+                                                    <div class="col-sm-6 col-md-4 mb-3">
+                                                        <label class="form-label">Usage Mode <span class="text-danger ms-1">*</span></label>
+                                                        <select class="form-select @(UsageModeError != null ? "is-invalid" : "")"
+                                                                @bind="Model.UsageMode"
+                                                                @bind:after="OnUsageModeChanged">
+                                                            <option value="">-- Select Mode --</option>
+                                                            <option value="Budgeting">Budgeting</option>
+                                                            <option value="ActualTracking">Actual Tracking</option>
+                                                            <option value="BudgetAndActual">Budget & Actual</option>
+                                                            <option value="AllocationOnly">Allocation Only</option>
+                                                            <option value="ReportingOnly">Reporting Only</option>
+                                                        </select>
+                                                        @if (UsageModeError != null)
+                                                        {
+                                                            <span class="field-validation-error">@UsageModeError</span>
+                                                        }
+                                                    </div>
+
+                                                    <div class="col-sm-6 col-md-4 mb-3 d-flex align-items-end">
+                                                        <div class="form-check form-switch">
+                                                            <InputCheckbox class="form-check-input" id="IsShared" @bind-Value="Model.IsSharedServiceCenter" />
+                                                            <label class="form-check-label" for="IsShared">Shared Service Center</label>
+                                                        </div>
+                                                    </div>
+
+                                                    <div class="col-sm-6 col-md-4 mb-3 d-flex align-items-end">
+                                                        <div class="form-check form-switch">
+                                                            <InputCheckbox class="form-check-input" id="IsAllocSrc" @bind-Value="Model.IsAllocationSourceAllowed" />
+                                                            <label class="form-check-label" for="IsAllocSrc">Allocation Source Allowed</label>
+                                                        </div>
+                                                    </div>
+
+                                                    <div class="col-sm-6 col-md-4 mb-3 d-flex align-items-end">
+                                                        <div class="form-check form-switch">
+                                                            <InputCheckbox class="form-check-input" id="IsAllocTgt" @bind-Value="Model.IsAllocationTargetAllowed" />
+                                                            <label class="form-check-label" for="IsAllocTgt">Allocation Target Allowed</label>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- ═══ 03 ORGANIZATION & HIERARCHY ═══ -->
+                        <div class="tl-card-row @(ShowHierarchy ? "row-active" : "")">
+                            <div class="tl-dot-col">
+                                <div class="tl-dot" @onclick='() => ToggleAccordion("hierarchy")'></div>
+                            </div>
+                            <div class="tl-card-col">
+                                <div class="tl-card @(ShowHierarchy ? "card-active border-purple" : "")">
+                                    <div class="tl-card-header" @onclick='() => ToggleAccordion("hierarchy")'>
+                                        <div class="tl-card-header-title">
+                                            <span class="tl-card-step step-purple">03</span> Organization & Hierarchy
+                                        </div>
+                                        <span class="tl-card-toggle @(ShowHierarchy ? "toggle-open" : "")">
+                                            <i data-feather="chevron-down"></i>
+                                        </span>
+                                    </div>
+                                    <div class="tl-collapse @(ShowHierarchy ? "tl-open" : "")">
+                                        <div class="tl-card-body">
+                                            <div class="tl-card-body-inner">
+                                                <div class="row">
+                                                    <div class="col-sm-6 col-md-4 mb-3">
+                                                        <label class="form-label">Parent Cost Center</label>
+                                                        <select class="form-select @(ParentError != null ? "is-invalid" : "")"
+                                                                @bind="Model.ParentCostCenterId"
+                                                                @bind:after="OnParentChanged">
+                                                            <option value="">-- None (Root) --</option>
+                                                            @foreach (var cc in AvailableParents)
+                                                            {
+                                                                <option value="@cc.Id">@cc.CostCenterCode – @cc.CostCenterName</option>
+                                                            }
+                                                        </select>
+                                                        @if (ParentError != null)
+                                                        {
+                                                            <span class="field-validation-error">@ParentError</span>
+                                                        }
+                                                    </div>
+
+                                                    <div class="col-sm-6 col-md-4 mb-3">
+                                                        <label class="form-label">Branch</label>
+                                                        <select class="form-select"
+                                                                @bind="Model.BranchId"
+                                                                @bind:after="OnBranchChanged">
+                                                            <option value="">-- Select Branch --</option>
+                                                            @foreach (var b in AllBranches)
+                                                            {
+                                                                <option value="@b.Id">@b.BranchCode – @b.BranchName</option>
+                                                            }
+                                                        </select>
+                                                    </div>
+
+                                                    <div class="col-sm-6 col-md-4 mb-3">
+                                                        <label class="form-label">Region Code</label>
+                                                        <input class="form-control" @bind="Model.RegionCode"
+                                                               placeholder="e.g., SOUTH" maxlength="30" />
+                                                    </div>
+
+                                                    <div class="col-sm-6 col-md-4 mb-3">
+                                                        <label class="form-label">Business Unit Code</label>
+                                                        <input class="form-control" @bind="Model.BusinessUnitCode"
+                                                               placeholder="e.g., RETAIL" maxlength="50" />
+                                                    </div>
+
+                                                    <div class="col-sm-6 col-md-4 mb-3">
+                                                        <label class="form-label">Hierarchy Level</label>
+                                                        <input class="form-control" value="@Model.HierarchyLevel" disabled />
+                                                    </div>
+
+                                                    @if (!string.IsNullOrEmpty(Model.HierarchyPath))
+                                                    {
+                                                        <div class="col-12 mb-3">
+                                                            <label class="form-label">Hierarchy Path</label>
+                                                            <input class="form-control" value="@Model.HierarchyPath" disabled style="font-family:monospace;font-size:12px" />
+                                                        </div>
+                                                    }
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- ═══ 04 OWNERSHIP ═══ -->
+                        <div class="tl-card-row @(ShowOwnership ? "row-active" : "")">
+                            <div class="tl-dot-col">
+                                <div class="tl-dot" @onclick='() => ToggleAccordion("ownership")'></div>
+                            </div>
+                            <div class="tl-card-col">
+                                <div class="tl-card @(ShowOwnership ? "card-active border-teal" : "")">
+                                    <div class="tl-card-header" @onclick='() => ToggleAccordion("ownership")'>
+                                        <div class="tl-card-header-title">
+                                            <span class="tl-card-step step-teal">04</span> Ownership
+                                        </div>
+                                        <span class="tl-card-toggle @(ShowOwnership ? "toggle-open" : "")">
+                                            <i data-feather="chevron-down"></i>
+                                        </span>
+                                    </div>
+                                    <div class="tl-collapse @(ShowOwnership ? "tl-open" : "")">
+                                        <div class="tl-card-body">
+                                            <div class="tl-card-body-inner">
+                                                <div class="row">
+                                                    <div class="col-sm-6 col-md-4 mb-3">
+                                                        <label class="form-label">Cost Center Owner <span class="text-danger ms-1">*</span></label>
+                                                        <input class="form-control @(OwnerError != null ? "is-invalid" : "")"
+                                                               @bind="Model.CostCenterOwnerName"
+                                                               @bind:after="OnOwnerChanged"
+                                                               placeholder="Owner name / employee" maxlength="150" />
+                                                        @if (OwnerError != null)
+                                                        {
+                                                            <span class="field-validation-error">@OwnerError</span>
+                                                        }
+                                                    </div>
+
+                                                    <div class="col-sm-6 col-md-4 mb-3">
+                                                        <label class="form-label">Responsible Manager</label>
+                                                        <input class="form-control"
+                                                               @bind="Model.ResponsibleManagerName"
+                                                               placeholder="May differ from owner" maxlength="150" />
+                                                    </div>
+
+                                                    <div class="col-sm-6 col-md-4 mb-3">
+                                                        <label class="form-label">Finance Reviewer</label>
+                                                        <input class="form-control"
+                                                               @bind="Model.FinanceReviewerName"
+                                                               placeholder="Finance reviewer" maxlength="150" />
+                                                    </div>
+
+                                                    <div class="col-sm-6 col-md-4 mb-3">
+                                                        <label class="form-label">Approval Role</label>
+                                                        <select class="form-select" @bind="Model.ApprovalRoleCode">
+                                                            <option value="">-- None --</option>
+                                                            <option value="DeptHead">Dept Head</option>
+                                                            <option value="RegionalController">Regional Controller</option>
+                                                            <option value="CFOReview">CFO Review</option>
+                                                        </select>
+                                                    </div>
+
+                                                    <div class="col-sm-6 col-md-8 mb-3">
+                                                        <label class="form-label">Email Distribution Group</label>
+                                                        <input class="form-control"
+                                                               @bind="Model.EmailDistributionGroup"
+                                                               placeholder="e.g., finance-team@company.com"
+                                                               maxlength="200" />
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- ═══ 05 FINANCIAL CONTROL ═══ -->
+                        <div class="tl-card-row @(ShowFinancial ? "row-active" : "")">
+                            <div class="tl-dot-col">
+                                <div class="tl-dot" @onclick='() => ToggleAccordion("financial")'></div>
+                            </div>
+                            <div class="tl-card-col">
+                                <div class="tl-card @(ShowFinancial ? "card-active border-orange" : "")">
+                                    <div class="tl-card-header" @onclick='() => ToggleAccordion("financial")'>
+                                        <div class="tl-card-header-title">
+                                            <span class="tl-card-step step-orange">05</span> Financial Control
+                                        </div>
+                                        <span class="tl-card-toggle @(ShowFinancial ? "toggle-open" : "")">
+                                            <i data-feather="chevron-down"></i>
+                                        </span>
+                                    </div>
+                                    <div class="tl-collapse @(ShowFinancial ? "tl-open" : "")">
+                                        <div class="tl-card-body">
+                                            <div class="tl-card-body-inner">
+                                                <div class="row">
+                                                    <div class="col-sm-6 col-md-3 mb-3">
+                                                        <label class="form-label">Currency <span class="text-danger ms-1">*</span></label>
+                                                        <select class="form-select @(CurrencyError != null ? "is-invalid" : "")"
+                                                                @bind="Model.DefaultCurrencyCode"
+                                                                @bind:after="OnCurrencyChanged">
+                                                            <option value="">-- Select Currency --</option>
+                                                            @foreach (var c in Currencies)
+                                                            {
+                                                                <option value="@c.CurrencyCode">@c.CurrencyCode – @c.CurrencyName</option>
+                                                            }
+                                                        </select>
+                                                        @if (CurrencyError != null)
+                                                        {
+                                                            <span class="field-validation-error">@CurrencyError</span>
+                                                        }
+                                                    </div>
+
+                                                    <div class="col-sm-6 col-md-3 mb-3">
+                                                        <label class="form-label">Budget Control Mode <span class="text-danger ms-1">*</span></label>
+                                                        <select class="form-select @(ControlModeError != null ? "is-invalid" : "")"
+                                                                @bind="Model.BudgetControlMode"
+                                                                @bind:after="OnControlModeChanged">
+                                                            <option value="">-- Select Mode --</option>
+                                                            <option value="Advisory">Advisory</option>
+                                                            <option value="SoftControl">Soft Control</option>
+                                                            <option value="HardControl">Hard Control</option>
+                                                            <option value="ReportingOnly">Reporting Only</option>
+                                                        </select>
+                                                        @if (ControlModeError != null)
+                                                        {
+                                                            <span class="field-validation-error">@ControlModeError</span>
+                                                        }
+                                                    </div>
+
+                                                    <div class="col-sm-6 col-md-3 mb-3">
+                                                        <label class="form-label">Tolerance %</label>
+                                                        <InputNumber class="form-control" min="0" max="100" @bind-Value="Model.TolerancePercent" placeholder="e.g., 5" />
+                                                    </div>
+
+                                                    <div class="col-sm-6 col-md-3 mb-3">
+                                                        <label class="form-label">Tolerance Amount</label>
+                                                        <InputNumber class="form-control" min="0" @bind-Value="Model.ToleranceAmount" placeholder="0.00" />
+                                                    </div>
+
+                                                    <div class="col-sm-6 col-md-3 mb-3">
+                                                        <label class="form-label">Default GL Account</label>
+                                                        <input class="form-control" @bind="Model.DefaultGLAccountCode"
+                                                               placeholder="Optional GL code" />
+                                                    </div>
+
+                                                    <div class="col-sm-6 col-md-3 mb-3">
+                                                        <label class="form-label">Default Budget Category</label>
+                                                        <input class="form-control" @bind="Model.DefaultBudgetCategoryCode"
+                                                               placeholder="Optional" maxlength="50" />
+                                                    </div>
+
+                                                    <div class="col-sm-6 col-md-2 mb-3 d-flex align-items-end">
+                                                        <div class="form-check form-switch">
+                                                            <InputCheckbox class="form-check-input" id="IsCapex" @bind-Value="Model.IsCapexAllowed" />
+                                                            <label class="form-check-label" for="IsCapex">Capex Allowed</label>
+                                                        </div>
+                                                    </div>
+
+                                                    <div class="col-sm-6 col-md-2 mb-3 d-flex align-items-end">
+                                                        <div class="form-check form-switch">
+                                                            <InputCheckbox class="form-check-input" id="IsOpex" @bind-Value="Model.IsOpexAllowed" />
+                                                            <label class="form-check-label" for="IsOpex">Opex Allowed</label>
+                                                        </div>
+                                                    </div>
+
+                                                    <div class="col-sm-6 col-md-2 mb-3 d-flex align-items-end">
+                                                        <div class="form-check form-switch">
+                                                            <InputCheckbox class="form-check-input" id="NegBal" @bind-Value="Model.AllowNegativeBalance" />
+                                                            <label class="form-check-label" for="NegBal">Allow Negative Balance</label>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- ═══ 06 REPORTING & ALLOCATION ═══ -->
+                        <div class="tl-card-row @(ShowAllocation ? "row-active" : "")">
+                            <div class="tl-dot-col">
+                                <div class="tl-dot" @onclick='() => ToggleAccordion("allocation")'></div>
+                            </div>
+                            <div class="tl-card-col">
+                                <div class="tl-card @(ShowAllocation ? "card-active border-blue" : "")">
+                                    <div class="tl-card-header" @onclick='() => ToggleAccordion("allocation")'>
+                                        <div class="tl-card-header-title">
+                                            <span class="tl-card-step step-blue">06</span> Reporting & Allocation
+                                        </div>
+                                        <span class="tl-card-toggle @(ShowAllocation ? "toggle-open" : "")">
+                                            <i data-feather="chevron-down"></i>
+                                        </span>
+                                    </div>
+                                    <div class="tl-collapse @(ShowAllocation ? "tl-open" : "")">
+                                        <div class="tl-card-body">
+                                            <div class="tl-card-body-inner">
+                                                <div class="row">
+                                                    <div class="col-sm-6 col-md-3 mb-3">
+                                                        <label class="form-label">Reporting Group</label>
+                                                        <select class="form-select" @bind="Model.ReportingGroupCode">
+                                                            <option value="">-- None --</option>
+                                                            <option value="ADMIN">ADMIN</option>
+                                                            <option value="SALES">SALES</option>
+                                                            <option value="SUPPORT">SUPPORT</option>
+                                                            <option value="DELIVERY">DELIVERY</option>
+                                                            <option value="FINANCE">FINANCE</option>
+                                                            <option value="OPERATIONS">OPERATIONS</option>
+                                                        </select>
+                                                    </div>
+
+                                                    <div class="col-sm-6 col-md-3 mb-3">
+                                                        <label class="form-label">Allocation Base Type</label>
+                                                        <select class="form-select" @bind="Model.AllocationBaseType">
+                                                            <option value="None">None</option>
+                                                            <option value="Headcount">Headcount</option>
+                                                            <option value="FloorArea">Floor Area</option>
+                                                            <option value="RevenueShare">Revenue Share</option>
+                                                            <option value="Usage">Usage</option>
+                                                            <option value="Manual">Manual</option>
+                                                        </select>
+                                                    </div>
+
+                                                    <div class="col-sm-6 col-md-3 mb-3">
+                                                        <label class="form-label">Default Driver Value</label>
+                                                        <InputNumber class="form-control" min="0" @bind-Value="Model.DefaultAllocationDriverValue" placeholder="0" />
+                                                    </div>
+
+                                                    <div class="col-sm-6 col-md-3 mb-3">
+                                                        <label class="form-label">Statistical Key Reference</label>
+                                                        <input class="form-control" @bind="Model.StatisticalKeyReference"
+                                                               placeholder="Optional" maxlength="100" />
+                                                    </div>
+
+                                                    <div class="col-sm-6 col-md-3 mb-3 d-flex align-items-end">
+                                                        <div class="form-check form-switch">
+                                                            <InputCheckbox class="form-check-input" id="CanReceive" @bind-Value="Model.CanReceiveSharedCost" />
+                                                            <label class="form-check-label" for="CanReceive">Can Receive Shared Cost</label>
+                                                        </div>
+                                                    </div>
+
+                                                    <div class="col-sm-6 col-md-3 mb-3 d-flex align-items-end">
+                                                        <div class="form-check form-switch">
+                                                            <InputCheckbox class="form-check-input" id="CanDistribute" @bind-Value="Model.CanDistributeSharedCost" />
+                                                            <label class="form-check-label" for="CanDistribute">Can Distribute Shared Cost</label>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- ═══ 07 STATUS & GOVERNANCE ═══ -->
+                        <div class="tl-card-row @(ShowStatus ? "row-active" : "")">
+                            <div class="tl-dot-col">
+                                <div class="tl-dot" @onclick='() => ToggleAccordion("status")'></div>
+                            </div>
+                            <div class="tl-card-col">
+                                <div class="tl-card @(ShowStatus ? "card-active border-purple" : "")">
+                                    <div class="tl-card-header" @onclick='() => ToggleAccordion("status")'>
+                                        <div class="tl-card-header-title">
+                                            <span class="tl-card-step step-purple">07</span> Status & Governance
+                                        </div>
+                                        <span class="tl-card-toggle @(ShowStatus ? "toggle-open" : "")">
+                                            <i data-feather="chevron-down"></i>
+                                        </span>
+                                    </div>
+                                    <div class="tl-collapse @(ShowStatus ? "tl-open" : "")">
+                                        <div class="tl-card-body">
+                                            <div class="tl-card-body-inner">
+                                                <div class="row">
+                                                    <div class="col-sm-6 col-md-3 mb-3">
+                                                        <label class="form-label">Status <span class="text-danger ms-1">*</span></label>
+                                                        <select class="form-select @(StatusError != null ? "is-invalid" : "")"
+                                                                @bind="Model.CostCenterStatus"
+                                                                @bind:after="OnStatusChanged">
+                                                            <option value="">-- Select Status --</option>
+                                                            <option value="Draft">Draft</option>
+                                                            <option value="Active">Active</option>
+                                                            <option value="Inactive">Inactive</option>
+                                                            <option value="Closed">Closed</option>
+                                                            <option value="Archived">Archived</option>
+                                                        </select>
+                                                        @if (StatusError != null)
+                                                        {
+                                                            <span class="field-validation-error">@StatusError</span>
+                                                        }
+                                                    </div>
+
+                                                    <div class="col-sm-6 col-md-3 mb-3">
+                                                        <label class="form-label">Effective From <span class="text-danger ms-1">*</span></label>
+                                                        <InputDate class="form-control" @bind-Value="Model.EffectiveFrom" />
+                                                    </div>
+
+                                                    <div class="col-sm-6 col-md-3 mb-3">
+                                                        <label class="form-label">Effective To</label>
+                                                        <InputDate class="form-control" @bind-Value="Model.EffectiveTo" />
+                                                    </div>
+
+                                                    @if (Model.CostCenterStatus is "Closed" or "Archived" or "Inactive")
+                                                    {
+                                                        <div class="col-sm-6 col-md-6 mb-3">
+                                                            <label class="form-label">Closure Reason <span class="text-danger ms-1">*</span></label>
+                                                            <input class="form-control" @bind="Model.ClosureReason"
+                                                                   placeholder="Reason for closure..." maxlength="500" />
+                                                            @if (_submitted && (Model.CostCenterStatus == "Closed" || Model.CostCenterStatus == "Archived")
+                                                                                                                && string.IsNullOrWhiteSpace(Model.ClosureReason))
+                                                            {
+                                                                <span class="field-validation-error">Closure reason is required</span>
+                                                            }
+                                                        </div>
+                                                    }
+
+                                                    <div class="col-sm-6 col-md-6 mb-3">
+                                                        <label class="form-label">Notes</label>
+                                                        <textarea class="form-control" @bind="Model.Notes"
+                                                                  rows="2" placeholder="Any notes..." maxlength="1500"></textarea>
+                                                    </div>
+
+                                                    <div class="col-sm-6 col-md-6 mb-3">
+                                                        <label class="form-label">Operational Remarks</label>
+                                                        <textarea class="form-control" @bind="Model.OperationalRemarks"
+                                                                  rows="2" placeholder="Operational remarks..." maxlength="1000"></textarea>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                    </div><!-- end right area -->
+                </div><!-- end tl-accordion -->
+            </div>
+
+            <div class="d-flex justify-content-end mb-4">
+                <a href="/cost-centers" class="btn btn-outline-secondary me-2">
+                    <i class="ti ti-x"></i> Cancel
+                </a>
+                <button type="submit" class="btn btn-primary" disabled="@isSaving">
+                    @if (isSaving)
+                    {
+                        <span class="spinner-border spinner-border-sm me-1"></span>
+                    }
+                    <i class="ti ti-device-floppy"></i> @(IsEdit ? "Update" : "Save")
+                </button>
+            </div>
+
+        </EditForm>
+    </div>
+}

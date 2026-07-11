@@ -1,0 +1,272 @@
+@page "/expense-categories/create"
+@page "/expense-categories/edit/{Id:guid}"
+@using FinanceConnect.Client.ViewModels
+@using FinanceConnect.Client.Services
+@using static FinanceConnect.Client.ViewModels.ExpenseCategoryViewModel
+
+<style>.validation-message{color:#dc3545;font-size:12px;}.form-check-label{font-size:13px;}</style>
+
+<div class="content flat-form">
+    <div class="page-header">
+        <div class="page-title"><h4 class="fw-bold">@(IsEdit ? "Edit Expense Category" : "Create Expense Category")</h4><h6>Master classification and policy setup for expense handling</h6></div>
+        <div class="page-btn"><a href="/expense-categories" class="btn btn-outline-secondary"><i class="ti ti-arrow-left"></i> Back</a></div>
+    </div>
+
+    <EditForm EditContext="_editContext" OnSubmit="Save">
+        <DataAnnotationsValidator />
+
+        <!-- SECTION 1: CORE IDENTITY -->
+        <div class="card mt-4"><div class="card-body">
+            <h6 class="text-primary mb-3 d-flex align-items-center"><i class="ti ti-id me-2" style="font-size:22px;"></i> Core Identity</h6>
+            <div class="row g-3">
+                <div class="col-md-4">
+                    <label class="form-label">Category Code <span class="text-danger">*</span></label>
+                    @if (IsEdit) { <div class="fw-semibold fs-14 mt-1">@Model.CategoryCode</div> }
+                    else { <InputText class="form-control text-uppercase" @bind-Value="Model.CategoryCode" placeholder="e.g. TRAVEL" title="Unique category code per company (max 30)" /> }
+                    <ValidationMessage For="@(() => Model.CategoryCode)" />
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">Category Name <span class="text-danger">*</span></label>
+                    <InputText class="form-control" @bind-Value="Model.CategoryName" placeholder="e.g. Employee Travel" title="Category display name (max 200)" />
+                    <ValidationMessage For="@(() => Model.CategoryName)" />
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label">Status <span class="text-danger">*</span></label>
+                    <InputSelect class="form-select" @bind-Value="Model.CategoryStatus" title="Current category status">
+                        @foreach (var s in Enum.GetValues<CategoryStatusEnum>()) { <option value="@s">@s</option> }
+                    </InputSelect>
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label">Short Name</label>
+                    <InputText class="form-control" @bind-Value="Model.ShortName" placeholder="e.g. Travel" title="Optional short name (max 50)" />
+                </div>
+                <div class="col-md-12">
+                    <label class="form-label">Description</label>
+                    <InputTextArea class="form-control" rows="2" @bind-Value="Model.Description" placeholder="Describe this category..." title="Optional description (max 1000)" />
+                </div>
+            </div>
+        </div></div>
+
+        <!-- SECTION 2: CLASSIFICATION & GROUPING -->
+        <div class="card mt-4"><div class="card-body">
+            <h6 class="text-primary mb-3 d-flex align-items-center"><i class="ti ti-category me-2" style="font-size:22px;"></i> Classification & Grouping</h6>
+            <div class="row g-3">
+                <div class="col-md-3">
+                    <label class="form-label">Category Type <span class="text-danger">*</span></label>
+                    <InputSelect class="form-select" @bind-Value="Model.CategoryType" title="Expense category classification type">
+                        @foreach (var v in Enum.GetValues<CategoryTypeEnum>()) { <option value="@v">@v</option> }
+                    </InputSelect>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">Reporting Group <span class="text-danger">*</span></label>
+                    <InputText class="form-control" @bind-Value="Model.ReportingGroup" placeholder="e.g. OPEX, AdminCost" title="Reporting classification group" />
+                    <ValidationMessage For="@(() => Model.ReportingGroup)" />
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">Nature <span class="text-danger">*</span></label>
+                    <InputSelect class="form-select" @bind-Value="Model.CategoryNature" title="Recurring, NonRecurring, or Mixed">
+                        @foreach (var v in Enum.GetValues<CategoryNatureEnum>()) { <option value="@v">@v</option> }
+                    </InputSelect>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">Usage Scope <span class="text-danger">*</span></label>
+                    <InputSelect class="form-select" @bind-Value="Model.UsageScope" title="Where this category can be used">
+                        @foreach (var v in Enum.GetValues<UsageScopeEnum>()) { <option value="@v">@v</option> }
+                    </InputSelect>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">Parent Category</label>
+                    <InputSelect class="form-select" @bind-Value="Model.ParentExpenseCategoryId" title="Optional parent category for hierarchy">
+                        <option value="">-- None --</option>
+                        @foreach (var p in ParentCategories) { <option value="@p.ExpenseCategoryId">@p.CategoryCode – @p.CategoryName</option> }
+                    </InputSelect>
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label">Hierarchy Level</label>
+                    <div class="form-control bg-light" title="Derived from parent">@(Model.HierarchyLevel?.ToString() ?? "–")</div>
+                </div>
+            </div>
+        </div></div>
+
+        <!-- SECTION 3: ACCOUNTING DEFAULTS -->
+        <div class="card mt-4"><div class="card-body">
+            <h6 class="text-primary mb-3 d-flex align-items-center"><i class="ti ti-building-bank me-2" style="font-size:22px;"></i> Accounting Defaults</h6>
+            <div class="row g-3">
+                <div class="col-md-4">
+                    <label class="form-label">Default GL Account <span class="text-danger">*</span></label>
+                    <InputSelect class="form-select" @bind-Value="Model.DefaultGLAccountId" title="Primary GL account for this category">
+                        <option value="">-- Select GL Account --</option>
+                        @foreach (var a in GLAccounts) { <option value="@a.Key">@a.Value</option> }
+                    </InputSelect>
+                    <ValidationMessage For="@(() => Model.DefaultGLAccountId)" />
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">Alternate GL Account</label>
+                    <InputSelect class="form-select" @bind-Value="Model.AlternateGLAccountId" title="Optional alternate GL account">
+                        <option value="">-- None --</option>
+                        @foreach (var a in GLAccounts) { <option value="@a.Key">@a.Value</option> }
+                    </InputSelect>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">Default Tax Code</label>
+                    <InputSelect class="form-select" @bind-Value="Model.TaxDefaultCodeId" title="Default tax code for this category">
+                        <option value="">-- None --</option>
+                        @foreach (var t in TaxCodes) { <option value="@t.Key">@t.Value</option> }
+                    </InputSelect>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">Accrual Liability GL</label>
+                    <InputSelect class="form-select" @bind-Value="Model.AccrualLiabilityGLId" title="GL account for accrual liability postings">
+                        <option value="">-- None --</option>
+                        @foreach (var a in GLAccounts) { <option value="@a.Key">@a.Value</option> }
+                    </InputSelect>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">Prepayment Asset GL</label>
+                    <InputSelect class="form-select" @bind-Value="Model.PrepaymentAssetGLId" title="GL account for prepayment asset postings">
+                        <option value="">-- None --</option>
+                        @foreach (var a in GLAccounts) { <option value="@a.Key">@a.Value</option> }
+                    </InputSelect>
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label">Currency Behavior <span class="text-danger">*</span></label>
+                    <InputSelect class="form-select" @bind-Value="Model.DefaultCurrencyBehavior" title="Default currency behavior">
+                        @foreach (var v in Enum.GetValues<DefaultCurrencyBehaviorEnum>()) { <option value="@v">@v</option> }
+                    </InputSelect>
+                </div>
+                <div class="col-md-2 d-flex align-items-end">
+                    <div class="d-flex align-items-center gap-2 mb-2">
+                        <InputCheckbox class="form-check-input" @bind-Value="Model.IsTaxApplicable" />
+                        <label class="form-check-label" title="Is tax applicable for this category">Tax Applicable</label>
+                    </div>
+                </div>
+            </div>
+        </div></div>
+
+        <!-- SECTION 4: POLICY CONTROLS -->
+        <div class="card mt-4"><div class="card-body">
+            <h6 class="text-primary mb-3 d-flex align-items-center"><i class="ti ti-shield-check me-2" style="font-size:22px;"></i> Policy Controls</h6>
+            <div class="row g-3">
+                <div class="col-md-3 d-flex flex-column gap-2 mt-2">
+                    <div class="d-flex align-items-center gap-2"><InputCheckbox class="form-check-input" @bind-Value="Model.IsReimbursable" /><label class="form-check-label" title="Is this expense reimbursable to employees">Reimbursable</label></div>
+                    <div class="d-flex align-items-center gap-2"><InputCheckbox class="form-check-input" @bind-Value="Model.ReceiptRequiredFlag" /><label class="form-check-label" title="Is receipt mandatory">Receipt Required</label></div>
+                    <div class="d-flex align-items-center gap-2"><InputCheckbox class="form-check-input" @bind-Value="Model.ApprovalRequiredFlag" /><label class="form-check-label" title="Does this category require approval">Approval Required</label></div>
+                    <div class="d-flex align-items-center gap-2"><InputCheckbox class="form-check-input" @bind-Value="Model.FinanceReviewRequiredFlag" /><label class="form-check-label" title="Finance review needed">Finance Review Required</label></div>
+                </div>
+                <div class="col-md-3 d-flex flex-column gap-2 mt-2">
+                    <div class="d-flex align-items-center gap-2"><InputCheckbox class="form-check-input" @bind-Value="Model.DuplicateCheckRequiredFlag" /><label class="form-check-label" title="Enable duplicate detection">Duplicate Check</label></div>
+                    <div class="d-flex align-items-center gap-2"><InputCheckbox class="form-check-input" @bind-Value="Model.BlockedForDirectPostingFlag" /><label class="form-check-label" title="Block direct posting">Blocked Direct Posting</label></div>
+                    <div class="d-flex align-items-center gap-2"><InputCheckbox class="form-check-input" @bind-Value="Model.EmployeeClaimAllowedFlag" /><label class="form-check-label" title="Can appear in employee expense claims">Employee Claim Allowed</label></div>
+                    <div class="d-flex align-items-center gap-2"><InputCheckbox class="form-check-input" @bind-Value="Model.CanBeUsedInDraftOnlyFlag" /><label class="form-check-label" title="Category restricted to draft expenses only">Draft Only Usage</label></div>
+                </div>
+                <div class="col-md-3 d-flex flex-column gap-2 mt-2">
+                    <div class="d-flex align-items-center gap-2"><InputCheckbox class="form-check-input" @bind-Value="Model.SupplierExpenseAllowedFlag" /><label class="form-check-label" title="Allow for supplier expenses">Supplier Expense Allowed</label></div>
+                    <div class="d-flex align-items-center gap-2"><InputCheckbox class="form-check-input" @bind-Value="Model.CashExpenseAllowedFlag" /><label class="form-check-label" title="Allow cash expenses">Cash Expense Allowed</label></div>
+                    <div class="d-flex align-items-center gap-2"><InputCheckbox class="form-check-input" @bind-Value="Model.CompanyCardAllowedFlag" /><label class="form-check-label" title="Allow company card expenses">Company Card Allowed</label></div>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">Receipt Threshold Amount</label>
+                    <InputNumber class="form-control" @bind-Value="Model.ReceiptThresholdAmount" placeholder="0.00" title="Above this amount, receipt is mandatory" />
+                </div>
+            </div>
+        </div></div>
+
+        <!-- SECTION 5: BUDGET & TIMING RULES -->
+        <div class="card mt-4"><div class="card-body">
+            <h6 class="text-primary mb-3 d-flex align-items-center"><i class="ti ti-clock me-2" style="font-size:22px;"></i> Budget & Timing Rules</h6>
+            <div class="row g-3">
+                <div class="col-md-3">
+                    <label class="form-label">Budget Control Mode <span class="text-danger">*</span></label>
+                    <InputSelect class="form-select" @bind-Value="Model.DefaultBudgetControlMode" title="Budget control enforcement level">
+                        @foreach (var v in Enum.GetValues<DefaultBudgetControlModeEnum>()) { <option value="@v">@v</option> }
+                    </InputSelect>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">Default Timing Treatment <span class="text-danger">*</span></label>
+                    <InputSelect class="form-select" @bind-Value="Model.DefaultTimingTreatment" title="Default timing treatment for this category">
+                        @foreach (var v in Enum.GetValues<DefaultTimingTreatmentEnum>()) { <option value="@v">@v</option> }
+                    </InputSelect>
+                </div>
+                <div class="col-md-3 d-flex flex-column gap-2 mt-4">
+                    <div class="d-flex align-items-center gap-2"><InputCheckbox class="form-check-input" @bind-Value="Model.BudgetControlApplicableFlag" /><label class="form-check-label">Budget Control Applicable</label></div>
+                    <div class="d-flex align-items-center gap-2"><InputCheckbox class="form-check-input" @bind-Value="Model.AccrualAllowedFlag" /><label class="form-check-label">Accrual Allowed</label></div>
+                    <div class="d-flex align-items-center gap-2"><InputCheckbox class="form-check-input" @bind-Value="Model.PrepaymentAllowedFlag" /><label class="form-check-label">Prepayment Allowed</label></div>
+                    <div class="d-flex align-items-center gap-2"><InputCheckbox class="form-check-input" @bind-Value="Model.ImmediateExpenseAllowedFlag" /><label class="form-check-label">Immediate Expense Allowed</label></div>
+                </div>
+                <div class="col-md-3 d-flex flex-column gap-2 mt-4">
+                    <div class="d-flex align-items-center gap-2"><InputCheckbox class="form-check-input" @bind-Value="Model.CoverageDatesRequiredFlag" /><label class="form-check-label">Coverage Dates Required</label></div>
+                    <div class="d-flex align-items-center gap-2"><InputCheckbox class="form-check-input" @bind-Value="Model.ProjectAllocationRequiredFlag" /><label class="form-check-label">Project Allocation Required</label></div>
+                    <div class="d-flex align-items-center gap-2"><InputCheckbox class="form-check-input" @bind-Value="Model.CostCenterMandatoryFlag" /><label class="form-check-label">Cost Center Mandatory</label></div>
+                    <div class="d-flex align-items-center gap-2"><InputCheckbox class="form-check-input" @bind-Value="Model.DepartmentMandatoryFlag" /><label class="form-check-label">Department Mandatory</label></div>
+                    <div class="d-flex align-items-center gap-2"><InputCheckbox class="form-check-input" @bind-Value="Model.BranchMandatoryFlag" /><label class="form-check-label">Branch Mandatory</label></div>
+                </div>
+            </div>
+        </div></div>
+
+        <!-- SECTION 6: WORKFLOW & GOVERNANCE -->
+        <div class="card mt-4"><div class="card-body">
+            <h6 class="text-primary mb-3 d-flex align-items-center"><i class="ti ti-calendar me-2" style="font-size:22px;"></i> Workflow & Governance</h6>
+            <div class="row g-3">
+                <div class="col-md-3">
+                    <label class="form-label">Effective From <span class="text-danger">*</span></label>
+                    <InputDate class="form-control" @bind-Value="Model.EffectiveFrom" title="Start date for category availability" />
+                    <ValidationMessage For="@(() => Model.EffectiveFrom)" />
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">Effective To</label>
+                    <InputDate class="form-control" @bind-Value="Model.EffectiveTo" title="End date (optional)" />
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">Prepared By <span class="text-danger">*</span></label>
+                    <InputText class="form-control" @bind-Value="Model.PreparedByUserId" placeholder="e.g. finance.admin" title="User who prepared this category" />
+                    <ValidationMessage For="@(() => Model.PreparedByUserId)" />
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">Prepared On</label>
+                    <InputDate class="form-control" @bind-Value="Model.PreparedOn" title="Date when category was prepared" />
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">Reviewed By</label>
+                    <InputText class="form-control" @bind-Value="Model.ReviewedByUserId" placeholder="Optional reviewer" title="User who reviewed this category" />
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">Reviewed On</label>
+                    <InputDate class="form-control" @bind-Value="Model.ReviewedOn" title="Date of review" />
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">Approved By</label>
+                    <InputText class="form-control" @bind-Value="Model.ApprovedByUserId" placeholder="Optional approver" title="User who approved this category" />
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">Approved On</label>
+                    <InputDate class="form-control" @bind-Value="Model.ApprovedOn" title="Date of approval" />
+                </div>
+            </div>
+        </div></div>
+
+        <!-- SECTION 7: NOTES & DOCUMENTATION -->
+        <div class="card mt-4"><div class="card-body">
+            <h6 class="text-primary mb-3 d-flex align-items-center"><i class="ti ti-notes me-2" style="font-size:22px;"></i> Notes & Documentation</h6>
+            <div class="row g-3">
+                <div class="col-md-6">
+                    <label class="form-label">Policy Notes</label>
+                    <InputTextArea class="form-control" rows="2" @bind-Value="Model.PolicyNotes" placeholder="e.g. Travel above ₹10,000 requires receipt and manager approval" title="Policy notes (max 1500)" />
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label">Notes</label>
+                    <InputTextArea class="form-control" rows="2" @bind-Value="Model.Notes" placeholder="Additional notes..." title="General notes (max 1500)" />
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">Internal Guideline Reference</label>
+                    <InputText class="form-control" @bind-Value="Model.InternalGuidelineReference" placeholder="e.g. SOP-FIN-003" title="Reference to SOP/policy code (max 200)" />
+                </div>
+            </div>
+        </div></div>
+
+        <!-- SUBMIT -->
+        <div class="text-end mt-4 mb-5">
+            <a href="/expense-categories" class="btn btn-outline-secondary me-2"><i class="ti ti-x me-1"></i> Cancel</a>
+            <button type="submit" class="btn btn-primary"><i class="ti ti-device-floppy me-1"></i> @(IsEdit ? "Update" : "Create")</button>
+        </div>
+    </EditForm>
+</div>

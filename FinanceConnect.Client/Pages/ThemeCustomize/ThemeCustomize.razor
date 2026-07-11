@@ -1,0 +1,982 @@
+﻿@page "/theme-settings"
+@inject ThemeService Theme
+@inject ToastService ToastService
+@using Microsoft.AspNetCore.Components.Forms
+@inject IJSRuntime JS
+@using FinanceConnect.Client.ViewModels
+@using System.Text.RegularExpressions
+@inject AuthService AuthService
+@inject NavigationManager Navigation
+
+<style>
+    .form-control:focus, .form-select:focus, input:focus, select:focus, textarea:focus {
+        border-color:var(--preview-primary) !important;
+        box-shadow: 0 0 0 0.2rem rgba(var(--preview-primary-rgb), 0.15) !important;
+    }
+</style>
+
+
+<div class="app-container content List-view gap-3">
+
+    <!-- SETTINGS SIDEBAR -->
+    <aside class="card settings-panel mb-3">
+        <div class="settings-title">Theme Settings</div>
+
+        <div class="d-flex" style="justify-content: flex-start;gap: 32px;flex-direction: column;">
+
+            <div style="display: flex;flex-direction: column;gap: 31px;">
+                <!-- Primary Colors -->
+                <div class="control-group">
+                    <h4>Primary Color</h4>
+                    <div class="color-options">
+                        <label for="c-blue" class="swatch s-blue" title="Blue" @onclick='() => SetPrimaryButtonPreset("#3b82f6")'></label>
+                        <label for="c-purple" class="swatch s-purple" title="Purple" @onclick='() => SetPrimaryButtonPreset("#8b5cf6")'></label>
+                        <label for="c-green" class="swatch s-green" title="Green" @onclick='() => SetPrimaryButtonPreset("#22c55e")'></label>
+                        <label for="c-red" class="swatch s-red" title="Red" @onclick='() => SetPrimaryButtonPreset("#ef4444")'></label>
+                        <label for="c-orange" class="swatch s-orange" title="Orange" @onclick='() => SetPrimaryButtonPreset("#f97316")'></label>
+                        <div class="custom-color">
+
+                            <label class="color-picker-btn"
+                                   style="border-color:@PrimaryButton">
+
+                                <input type="color"
+                                       value="@PrimaryButton"
+                                       @oninput="OnPrimaryButtonPreviewChanged" />
+
+                                <span class="picker-icon">
+                                    <i class="bi bi-eyedropper" style="color:@PrimaryButton"></i>
+                                </span>
+                            </label>
+
+                        </div>
+                    </div>
+
+                </div>
+
+                @* secondary color *@
+                <div class="control-group">
+                    <h4>Secondary Color</h4>
+
+                    <div class="color-options">
+
+                        <label class="swatch s-gray" for="Gray"
+                               title="Gray"
+                               @onclick="@(() => SetSecondaryPreset("#64748b"))">
+                        </label>
+
+                        <label class="swatch s-pink"
+                               title="Pink"
+                               @onclick="@(() => SetSecondaryPreset("#ec4899"))">
+                        </label>
+
+                        <label class="swatch s-teal"
+                               title="Teal"
+                               @onclick="@(() => SetSecondaryPreset("#14b8a6"))">
+                        </label>
+
+                        <div class="custom-color">
+                            <label class="color-picker-btn"
+                                   style="border-color:@SecondaryColor">
+
+                                <input type="color"
+                                       value="@SecondaryColor"
+                                       @oninput="OnSecondaryPreviewChanged" />
+
+                                <span class="picker-icon">
+                                    <i class="bi bi-eyedropper"
+                                       style="color:@SecondaryColor"></i>
+                                </span>
+                            </label>
+                        </div>
+
+                    </div>
+                </div>
+
+                @* Menu Icon color *@
+
+                <div class="control-group">
+                    <h4>Menu Icon Color</h4>
+
+                    <div class="color-options">
+
+                        <label class="swatch s-gray"
+                               @onclick='() => SetIconPreset("#9ca3af")'></label>
+
+                        <label class="swatch s-blue"
+                               @onclick='() => SetIconPreset("#3b82f6")'></label>
+
+                        <label class="swatch s-dark"
+                               @onclick='() => SetIconPreset("#111827")'></label>
+
+                        <div class="custom-color">
+                            <label class="color-picker-btn"
+                                   style="border-color:@IconColor">
+
+                                <input type="color"
+                                       @bind="IconColor"
+                                       @oninput="OnIconPreviewChanged" />
+
+                                <span class="picker-icon">
+                                    <i class="bi bi-eyedropper" style="color:@IconColor"></i>
+                                </span>
+                            </label>
+                        </div>
+
+                    </div>
+                </div>
+
+                @* Heading Color *@
+
+                <div class="control-group">
+                    <h4>Heading Color</h4>
+
+                    <div class="color-options">
+
+                        <label class="swatch s-dark"
+                               @onclick='() => SetHeadingPreset("#111827")'></label>
+
+                        <label class="swatch s-blue"
+                               @onclick='() => SetHeadingPreset("#3b82f6")'></label>
+
+                        <label class="swatch s-gray"
+                               @onclick='() => SetHeadingPreset("#6b7280")'></label>
+
+                        <div class="custom-color">
+
+                            <label class="color-picker-btn"
+                                   style="border-color:@HeadingColor">
+
+                                <input type="color"
+                                       value="@HeadingColor"
+                                       @oninput="OnHeadingPreviewChanged" />
+
+                                <span class="picker-icon">
+                                    <i class="bi bi-eyedropper" style="color:@HeadingColor"></i>
+                                </span>
+                            </label>
+
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Font Family -->
+                <div class="control-group">
+                    <h4>Font Family</h4>
+
+                    <div class="btn-group">
+                        @foreach (var font in Fonts)
+                        {
+                            <label class="option-btn"
+                                   @onclick="@(() => SetFont(font.Value))">
+                                @font.Name
+                            </label>
+                        }
+
+                    </div>
+                </div>
+
+
+            </div>
+
+            <div class="mt-4" style="display: flex;flex-direction: column;gap: 31px;">
+
+                @* Box Shadow  *@
+
+                <div class="control-group">
+                    <h4>Shadow</h4>
+
+                    <div class="font-slider-wrap">
+
+                        <input type="range"
+                               min="0"
+                               max="40"
+                               step="1"
+                               value="@ShadowLevel"
+                               class="font-range"
+                               @oninput="OnShadowPreview" />
+
+                        @* <span class="font-value">@ShadowLevel</span> *@
+
+                    </div>
+                </div>
+
+                @* Border Radius *@
+
+                <div class="control-group">
+                    <h4>Border Radius</h4>
+
+                    <div class="radius-slider-wrap">
+                        <input type="range"
+                               min="0"
+                               max="40"
+                               step="1"
+                               value="@borderRadiusLevel"
+                               class="radius-range"
+                               @oninput="OnBorderRadiusPreview" />
+
+                        @* <span class="radius-value">@borderRadiusLevel px</span> *@
+                    </div>
+                </div>
+
+                @* Button Radius *@
+                <div class="control-group">
+                    <h4>Button Radius</h4>
+
+                    <div class="radius-slider-wrap">
+                        <input type="range"
+                               min="0"
+                               max="40"
+                               step="1"
+                               value="@buttonRadiusLevel"
+                               class="radius-range"
+                               @oninput="OnButtonRadiusPreview" />
+
+                        @* <span class="radius-value">@buttonRadiusLevel px</span> *@
+                    </div>
+                </div>
+
+
+                <!-- Dark Mode -->
+                <div class="control-group">
+                    <div class="toggle-switch">
+                        <h4>Dark Mode</h4>
+
+                        @if (IsDarkMode)
+                        {
+                            <label for="mode-dark" @onclick="ToggleDark">
+                                <div class="switch-label1"></div>
+                            </label>
+                        }
+                        else
+                        {
+                            <label for="mode-dark" @onclick="ToggleDark">
+                                <div class="switch-label"></div>
+                            </label>
+                        }
+                    </div>
+                </div>
+
+
+                @* Sidebar Background  *@
+                <div class="sidebar-bg-section">
+                    <h3>Sidebar Background</h3>
+
+                    <div class="bg-card-row">
+
+                        @foreach (var bg in Backgrounds)
+                        {
+                            <div class="bg-card @(SelectedBg == bg ? "selected" : "")"
+                                 @onclick="() => SelectBg(bg)">
+
+                                <img src="@bg" />
+
+                                @if (SelectedBg == bg)
+                                {
+                                    <span class="check-icon">✓</span>
+                                }
+                            </div>
+                        }
+
+                    </div>
+
+                </div>
+
+
+                <!-- Profile Image Selector -->
+                <div class="control-group">
+                    <h4>Profile Image (Choose 1 of 10)</h4>
+                    <div class="image-grid">
+
+                        @foreach (var img in ProfileImages)
+                        {
+                            <div class="img-opt"
+                                 data-url="@img"
+                                 style="background-image:url('@img')"
+                                 @onclick="() => OnProfilePreview(img)">
+                            </div>
+                        }
+
+                    </div>
+
+                </div>
+
+
+
+                <div class="ActionButtons d-flex gap-3">
+                    <button class="btn btn-secondary w-100" @onclick="CancelTheme">Clear</button>
+                    <button class="btn btn-primary w-100" @onclick="SaveTheme">Submit</button>
+                </div>
+
+
+            </div>
+        </div>
+    </aside>
+
+    @* Preview *@
+    <main class="card dashboard-preview">
+
+        <div class="preview-shell">
+
+            <!-- MAIN PREVIEW CONTENT -->
+            <section class="preview-main">
+
+                <!-- HEADER -->
+                <header class="dash-header">
+                    <div class="ps-4 LivePreview" style=" ">
+                        Live Preview
+                    </div>
+
+                    <div class="header-profile">
+                        <span>Welcome, User</span>
+                        <div class="profile-pic"></div>
+                    </div>
+                </header>
+
+                <div class="dash-content" style="    display: flex;">
+
+                    <div class="sidebar" id="PreviewSidebar" style="position: relative;background:transparent">
+                        <!-- Logo -->
+                        <div class="sidebar-logo active">
+                            <a class="logo logo-normal">
+                                <img src="assets/images/logo.png" alt="Gishur POS">
+                            </a>
+                            <a class="logo logo-white">
+                                <img src="assets/images/logo.png" alt="Gishur POS">
+                            </a>
+                            <a class="logo-small">
+                                <img src="assets/images/favicon.png" alt="Gishur POS">
+                            </a>
+                            <a id="toggle_btn" href="javascript:void(0);" style="background: var(--preview-primary);">
+                                <i data-feather="chevrons-left" class="feather-16"></i>
+                            </a>
+                        </div>
+                        <!-- /Logo -->
+
+                        <div class="modern-profile p-3 pb-0">
+                            <div class="text-center rounded bg-light p-3 mb-4 user-profile">
+                                <div class="avatar avatar-lg online mb-3">
+                                    <img src="assets/images/customer15.jpg" alt="Img" class="img-fluid rounded-circle">
+                                </div>
+                                <h6 class="fs-14 fw-bold mb-1">@(AuthService.CurrentUser?.UserName ?? "Guest User")</h6>
+                                <p class="fs-12 mb-0">@(AuthService.CurrentUser?.Email ?? "Not logged in")</p>
+                            </div>
+
+                            <div class="sidebar-nav mb-3">
+                                <ul class="nav nav-tabs nav-tabs-solid nav-tabs-rounded nav-justified bg-transparent" role="tablist">
+                                    <li class="nav-item"><a class="nav-link active border-0" href="#">Menu</a></li>
+                                    <li class="nav-item"><a class="nav-link border-0">Chats</a></li>
+                                    <li class="nav-item"><a class="nav-link border-0">Inbox</a></li>
+                                </ul>
+                            </div>
+                        </div>
+
+                        <div class="sidebar-header p-3 pb-0 pt-2">
+                            <div class="text-center rounded bg-light p-2 mb-4 sidebar-profile d-flex align-items-center">
+                                <div class="avatar avatar-md online">
+                                    <img src="assets/images/customer15.jpg" alt="Img" class="img-fluid rounded-circle">
+                                </div>
+                                <div class="text-start sidebar-profile-info ms-2">
+                                    <h6 class="fs-14 fw-bold mb-1">@(AuthService.CurrentUser?.UserName ?? "Guest")</h6>
+                                    <p class="fs-12">User</p>
+                                </div>
+                            </div>
+
+                            <div class="d-flex align-items-center justify-content-between menu-item mb-3">
+                                <div>
+                                    <a class="btn btn-sm btn-icon bg-light">
+                                        <i class="ti ti-layout-grid-remove"></i>
+                                    </a>
+                                </div>
+                                <div>
+                                    <a class="btn btn-sm btn-icon bg-light">
+                                        <i class="ti ti-brand-hipchat"></i>
+                                    </a>
+                                </div>
+                                <div>
+                                    <a class="btn btn-sm btn-icon bg-light position-relative">
+                                        <i class="ti ti-message"></i>
+                                    </a>
+                                </div>
+                                <div class="notification-item">
+                                    <a class="btn btn-sm btn-icon bg-light position-relative">
+                                        <i class="ti ti-bell"></i>
+                                        <span class="notification-status-dot"></span>
+                                    </a>
+                                </div>
+                                <div class="me-0">
+                                    <a class="btn btn-sm btn-icon bg-light">
+                                        <i class="ti ti-settings"></i>
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                            <div class="sidebar-inner slimscroll1" style="height:auto">
+                                <div id="sidebar-menu" class="sidebar-menu">
+                                    <ul>
+                                        <li class="submenu-open">
+                                            <h6 class="submenu-hdr">Main</h6>
+                                            <ul>
+                                                <li class="active">
+                                                    <a href="/dashboard" style="background: rgba(var(--preview-primary-rgb), 0.15);
+    border-radius: 5px;
+    color: var(--preview-primary);">
+                                                        <i data-feather="grid" class="feather-16 me-2" style="color: var(--preview-primary) !important;"></i>
+                                                        <span style="color: var(--preview-primary) !important;">Dashboard</span>
+                                                    </a>
+                                                </li>
+
+                                                <li class="@GetActiveClass("/finance-dashboard")">
+                                                    <a href="/finance-dashboard">
+                                                        <i data-feather="bar-chart-2" class="feather-16 me-2"></i>
+                                                        <span>Finance Dashboard</span>
+                                                    </a>
+                                                </li>
+                                            </ul>
+                                        </li>
+
+                                        <li class="submenu-open">
+                                            <h6 class="submenu-hdr">Organization Setup</h6>
+                                            <ul>
+                                                <li class="@GetActiveClass("/company")">
+                                                    <a href="/company">
+                                                        <i data-feather="home" class="feather-16 me-2"></i>
+                                                        <span>Company</span>
+                                                    </a>
+                                                </li>
+
+                                                <li class="@GetActiveClass("/branch-list")">
+                                                    <a href="/branch-list">
+                                                        <i data-feather="git-branch" class="feather-16 me-2" ></i>
+                                                        <span>Branch</span>
+                                                    </a>
+                                                </li>
+
+                                                <li class="@GetActiveClass("/fiscalyears")">
+                                                    <a href="/fiscalyears">
+                                                        <i data-feather="calendar" class="feather-16 me-2" ></i>
+                                                        <span>Fiscal Years</span>
+                                                    </a>
+                                                </li>
+                                            </ul>
+                                        </li>
+
+                                        <li class="submenu-open">
+                                            <h6 class="submenu-hdr">Master Data</h6>
+                                            <ul>
+                                                <li class="@GetActiveClass("/country")">
+                                                    <a href="/country">
+                                                        <i data-feather="globe" class="feather-16 me-2"></i>
+                                                        <span>Country</span>
+                                                    </a>
+                                                </li>
+
+                                                <li class="@GetActiveClass("/stateprovince")">
+                                                    <a href="/stateprovince">
+                                                        <i data-feather="map" class="feather-16 me-2"></i>
+                                                        <span>State/Province</span>
+                                                    </a>
+                                                </li>
+
+                                            </ul>
+                                        </li>
+
+                                    </ul>
+                                </div>
+                            </div>
+                    </div>
+
+                    <!-- Card 1 -->
+                    <div class="card form-card" style="    height: max-content;
+    margin-top: 28px;
+    margin-right: 24px;">
+                        <div>
+                            <div class="d-flex gap-3">
+                                <i class="ti ti-user preview-icon"></i>
+                                <h3 class="@(ZoomPrimaryHeading ? "zoom-effect" : "")" style="color:@HeadingColor">Primary Action</h3>
+                            </div>
+                            <p>This button uses the primary color variable. Notice how it updates instantly.</p>
+                            <div class="form-header mb-3 text-Preview fw-bold">
+                                <i class="ti ti-flag"></i>
+                                <span>Country Identity</span>
+                            </div>
+
+                            <div class="form-grid">
+
+                                <div class="form-group mb-3">
+                                    <label>
+                                        Country Code <span class="required">*</span>
+                                    </label>
+
+                                    <input type="text" class="form-control" @ref="countryInput"
+                                           placeholder="E.g., IN, US, SG" />
+                                </div>
+
+                                <div class="form-group mb-3">
+                                    <label>
+                                        Country Name <span class="required">*</span>
+                                    </label>
+
+                                    <input type="text" class="form-control"
+                                           placeholder="e.g., India, United States" />
+                                </div>
+
+                            </div>
+                        </div>
+                        <div class="Action-button">
+                            <button class="btn clickMeButton">Click Me</button>
+                            <button class="btn cancelButton">Cancel</button>
+                        </div>
+                    </div>
+
+
+                </div>
+
+            </section>
+
+        </div>
+
+    </main>
+
+
+</div>
+
+
+
+@code {
+
+    private string IconColor = "#9ca3af";
+    private string HeadingColor = "#FE9F43";
+    private string PrimaryButton = "#FE9F43";
+    private bool IsDarkMode;
+    private string SelectedFont = "Inter, sans-serif";
+    private string SelectedFontSize = "16px";
+    private string SecondaryColor = "#051a2c";
+    private int ShadowLevel = 15;
+    private int borderRadiusLevel = 8;
+    private int buttonRadiusLevel = 8;
+    private string? SelectedProfilePhoto;
+    private bool ZoomPrimaryHeading = false;
+    private ElementReference countryInput;
+    List<string> ProfileImages = new()
+    {
+        "https://picsum.photos/seed/user1/100/100",
+        "https://picsum.photos/seed/user2/100/100",
+        "https://picsum.photos/seed/user3/100/100",
+        "https://picsum.photos/seed/user4/100/100",
+        "https://picsum.photos/seed/user5/100/100",
+        "https://picsum.photos/seed/user6/100/100",
+        "https://picsum.photos/seed/user7/100/100",
+        "https://picsum.photos/seed/user8/100/100",
+        "https://picsum.photos/seed/user9/100/100",
+        "https://picsum.photos/seed/user10/100/100"
+    };
+
+    List<(string Name, string Value)> Fonts = new()
+    {
+        ("Inter", "Inter, sans-serif"),
+        ("Roboto", "Roboto, sans-serif"),
+        ("Poppins", "Poppins, sans-serif"),
+        ("Nunito", "Nunito, sans-serif"),
+        ("Georgia", "Georgia, serif"),
+        ("Times", "Times New Roman, serif"),
+        ("Courier", "Courier New, monospace"),
+        ("Montserrat", "Montserrat, sans-serif"),
+        ("Lato", "Lato, sans-serif"),
+    };
+    private string GetActiveClass(string href)
+    {
+        var target = Navigation.ToAbsoluteUri(href).AbsoluteUri;
+        return Navigation.Uri.Equals(target, StringComparison.OrdinalIgnoreCase) ? "active" : "";
+    }
+
+
+    string? SelectedBg;
+
+    List<string> Backgrounds = new()
+    {
+        "https://dreamspos.dreamstechnologies.com/html/template/assets/img/theme/bg-01.jpg",
+        "https://dreamspos.dreamstechnologies.com/html/template/assets/img/theme/bg-02.jpg",
+        "https://dreamspos.dreamstechnologies.com/html/template/assets/img/theme/bg-03.jpg",
+        "https://dreamspos.dreamstechnologies.com/html/template/assets/img/theme/bg-04.jpg",
+        "https://dreamspos.dreamstechnologies.com/html/template/assets/img/theme/bg-05.jpg",
+        "https://dreamspos.dreamstechnologies.com/html/template/assets/img/theme/bg-06.jpg"
+    };
+
+    async Task SelectBg(string bg)
+    {
+        SelectedBg = bg;
+        await JS.InvokeVoidAsync("setSidebarBackground", bg);
+    }
+
+
+    // Icon
+    private async Task SetIconPreset(string color)
+    {
+        IconColor = color;
+        await JS.InvokeVoidAsync("setPreviewIconColor", IconColor);
+    }
+
+    private async Task OnIconPreviewChanged(ChangeEventArgs e)
+    {
+        IconColor = e.Value?.ToString() ?? "#000000";
+        if (!IsDarkMode && IconColor.Equals("#ffffff", StringComparison.OrdinalIgnoreCase))
+        {
+            await JS.InvokeVoidAsync("resetColorPicker", IconColor);
+
+            ToastService.ShowError("White color cannot be used in Light mode", "Error");
+            return;
+        }
+        if (IsDarkMode && IconColor.Equals("#000000", StringComparison.OrdinalIgnoreCase))
+        {
+            await JS.InvokeVoidAsync("resetColorPicker", IconColor);
+
+            ToastService.ShowError("Black color cannot be used in Dark mode", "Error");
+            return;
+        }
+
+        await JS.InvokeVoidAsync("setPreviewIconColor", IconColor);
+    }
+
+    // Primary Button
+    private async Task SetPrimaryButtonPreset(string color)
+    {
+        PrimaryButton = color;
+        await countryInput.FocusAsync();
+
+        await JS.InvokeVoidAsync("setPreviewPrimaryButtonColor", PrimaryButton);
+
+    }
+    private async Task OnPrimaryButtonPreviewChanged(ChangeEventArgs e)
+    {
+        PrimaryButton = e.Value?.ToString() ?? "#FE9F43";
+        if (!IsDarkMode && PrimaryButton.Equals("#ffffff", StringComparison.OrdinalIgnoreCase))
+        {
+            await JS.InvokeVoidAsync("resetColorPicker", PrimaryButton);
+
+            ToastService.ShowError("White color cannot be used in Light mode", "Error");
+            return;
+        }
+        if (IsDarkMode && PrimaryButton.Equals("#000000", StringComparison.OrdinalIgnoreCase))
+        {
+            await JS.InvokeVoidAsync("resetColorPicker", PrimaryButton);
+
+            ToastService.ShowError("Black color cannot be used in Dark mode", "Error");
+            return;
+        }
+        await countryInput.FocusAsync();
+
+        await JS.InvokeVoidAsync("setPreviewPrimaryButtonColor", PrimaryButton);
+
+    }
+    private async Task TriggerZoom()
+    {
+        ZoomPrimaryHeading = false;
+        StateHasChanged();
+
+        await Task.Delay(10);
+
+        ZoomPrimaryHeading = true;
+        StateHasChanged();
+    }
+
+    // Secondary Button
+    private async Task SetSecondaryPreset(string color)
+    {
+        SecondaryColor = color;
+        await JS.InvokeVoidAsync("document.documentElement.style.setProperty", "--preview-secondary", color);
+    }
+
+    private async Task OnSecondaryPreviewChanged(ChangeEventArgs e)
+    {
+        SecondaryColor = e.Value?.ToString() ?? "#64748b";
+        if (!IsDarkMode && SecondaryColor.Equals("#ffffff", StringComparison.OrdinalIgnoreCase))
+        {
+            await JS.InvokeVoidAsync("resetColorPicker", SecondaryColor);
+
+            ToastService.ShowError("White color cannot be used in Light mode", "Error");
+            return;
+        }
+        if (IsDarkMode && SecondaryColor.Equals("#000000", StringComparison.OrdinalIgnoreCase))
+        {
+            await JS.InvokeVoidAsync("resetColorPicker", SecondaryColor);
+
+            ToastService.ShowError("Black color cannot be used in Dark mode", "Error");
+            return;
+        }
+
+        await JS.InvokeVoidAsync("document.documentElement.style.setProperty", "--preview-secondary", SecondaryColor);
+    }
+
+
+    // Heading Color
+    private async Task SetHeadingPreset(string color)
+    {
+        HeadingColor = color;
+        await JS.InvokeVoidAsync("setPreviewHeadingColor", HeadingColor);
+        _ = TriggerZoom();
+    }
+
+    private async Task OnHeadingPreviewChanged(ChangeEventArgs e)
+    {
+        HeadingColor = e.Value?.ToString() ?? "#111827";
+        if (!IsDarkMode && HeadingColor.Equals("#ffffff", StringComparison.OrdinalIgnoreCase))
+        {
+            await JS.InvokeVoidAsync("resetColorPicker", HeadingColor);
+
+            ToastService.ShowError("White color cannot be used in Light mode", "Error");
+            return;
+        }
+        if (IsDarkMode && HeadingColor.Equals("#000000", StringComparison.OrdinalIgnoreCase))
+        {
+            await JS.InvokeVoidAsync("resetColorPicker", HeadingColor);
+
+            ToastService.ShowError("Black color cannot be used in Dark mode", "Error");
+            return;
+        }
+
+        await JS.InvokeVoidAsync("setPreviewHeadingColor", HeadingColor);
+        _ = TriggerZoom();
+    }
+
+    // Drak Mode
+
+    // private async Task OnDarkModeChanged()
+    // {
+    //     await JS.InvokeVoidAsync(
+    //         "themeBuilder.toggleDarkMode",
+    //         IsDarkMode);
+    // }
+
+    private async Task ToggleDark()
+    {
+        IsDarkMode = !IsDarkMode;
+
+        await JS.InvokeVoidAsync(
+         "previewDarkMode",
+         IsDarkMode);
+    }
+
+
+    // Font Family
+    private async Task SetFont(string font)
+    {
+        SelectedFont = font;
+        await JS.InvokeVoidAsync("document.documentElement.style.setProperty", "--preview-font-family", font);
+    }
+
+    // Box Shadow
+    private async Task OnShadowPreview(ChangeEventArgs e)
+    {
+        ShadowLevel = int.Parse(e.Value!.ToString()!);
+        var strength = ShadowLevel / 100.0;
+        await JS.InvokeVoidAsync("document.documentElement.style.setProperty", "--shadow-strength", strength.ToString("0.00"));
+    }
+
+    // Border Radius
+    private async Task OnBorderRadiusPreview(ChangeEventArgs e)
+    {
+        borderRadiusLevel = int.Parse(e.Value!.ToString()!);
+
+        await JS.InvokeVoidAsync(
+            "document.documentElement.style.setProperty",
+            "--preview-radius",
+            $"{borderRadiusLevel}px"
+        );
+    }
+
+    // Button Radius
+    private async Task OnButtonRadiusPreview(ChangeEventArgs e)
+    {
+        buttonRadiusLevel = int.Parse(e.Value!.ToString()!);
+
+        await JS.InvokeVoidAsync(
+            "document.documentElement.style.setProperty",
+            "--preview-btn-radius",
+            $"{buttonRadiusLevel}px"
+        );
+    }
+
+    // ProfileImage
+    private async Task OnProfilePreview(string url)
+    {
+        SelectedProfilePhoto = url;
+
+        await JS.InvokeVoidAsync(
+            "profilePreview.setActive",
+            url
+        );
+    }
+
+    private bool IsPrimaryButtonColorValid(out string errorMessage)
+    {
+        errorMessage = string.Empty;
+
+        if (string.IsNullOrWhiteSpace(PrimaryButton) || string.IsNullOrWhiteSpace(SecondaryColor) ||
+         string.IsNullOrWhiteSpace(HeadingColor) || string.IsNullOrWhiteSpace(IconColor))
+        {
+            errorMessage = "color cannot be empty.";
+            return false;
+        }
+
+        if (!Regex.IsMatch(PrimaryButton, "^#([0-9A-Fa-f]{6})$") || !Regex.IsMatch(SecondaryColor, "^#([0-9A-Fa-f]{6})$")
+        || !Regex.IsMatch(IconColor, "^#([0-9A-Fa-f]{6})$") || !Regex.IsMatch(HeadingColor, "^#([0-9A-Fa-f]{6})$"))
+        {
+            errorMessage = "Invalid color format.";
+            return false;
+        }
+
+        if (!IsDarkMode && PrimaryButton.Equals("#ffffff", StringComparison.OrdinalIgnoreCase) ||
+        !IsDarkMode && SecondaryColor.Equals("#ffffff", StringComparison.OrdinalIgnoreCase) ||
+        !IsDarkMode && HeadingColor.Equals("#ffffff", StringComparison.OrdinalIgnoreCase) ||
+        !IsDarkMode && IconColor.Equals("#ffffff", StringComparison.OrdinalIgnoreCase))
+        {
+            errorMessage = "White color cannot be used in Light mode.";
+            return false;
+        }
+        if (IsDarkMode && PrimaryButton.Equals("#000000", StringComparison.OrdinalIgnoreCase) ||
+        IsDarkMode && SecondaryColor.Equals("#000000", StringComparison.OrdinalIgnoreCase) ||
+         IsDarkMode && HeadingColor.Equals("#000000", StringComparison.OrdinalIgnoreCase) ||
+          IsDarkMode && IconColor.Equals("#000000", StringComparison.OrdinalIgnoreCase))
+        {
+            errorMessage = "Black color cannot be used in Dark mode.";
+            return false;
+        }
+
+        return true;
+    }
+
+
+    // ---------- SAVE -------------
+
+    private async Task SaveTheme()
+    {
+
+        if (!IsPrimaryButtonColorValid(out var errorMessage))
+        {
+            await JS.InvokeVoidAsync("resetColorPicker", PrimaryButton);
+
+            ToastService.ShowError(errorMessage, "Error");
+            return;
+        }
+        Theme.CurrentSettings.IconColor = IconColor;
+        Theme.CurrentSettings.HeadingColor = HeadingColor;
+        Theme.CurrentSettings.PrimaryColor = PrimaryButton;
+        Theme.CurrentSettings.IsDarkMode = IsDarkMode;
+        Theme.CurrentSettings.FontFamily = SelectedFont;
+        Theme.CurrentSettings.FontSize = SelectedFontSize;
+        Theme.CurrentSettings.SecondaryColor = SecondaryColor;
+        Theme.CurrentSettings.ShadowStrength = ShadowLevel;
+        Theme.CurrentSettings.BorderRadius = borderRadiusLevel;
+        Theme.CurrentSettings.ButtonRadius = buttonRadiusLevel;
+
+        await Theme.ApplyThemeAsync();
+
+        await JS.InvokeVoidAsync("themeBuilder.toggleDarkMode", IsDarkMode);
+        await JS.InvokeVoidAsync("themeStorage.saveTheme", Theme.CurrentSettings);
+        await JS.InvokeVoidAsync("themeBuilder.applyTheme", Theme.CurrentSettings);
+        await JS.InvokeVoidAsync("document.documentElement.style.setProperty", "--font-family", SelectedFont);
+        await JS.InvokeVoidAsync("document.documentElement.style.setProperty", "--preview-font-family", SelectedFont);
+        await JS.InvokeVoidAsync("document.documentElement.style.setProperty", "--textfont-size", SelectedFontSize);
+        await JS.InvokeVoidAsync("document.documentElement.style.setProperty", "--preview-font-size", SelectedFontSize);
+        await JS.InvokeVoidAsync("document.documentElement.style.setProperty", "--secondary", SecondaryColor);
+        await JS.InvokeVoidAsync("document.documentElement.style.setProperty", "--preview-secondary", SecondaryColor);
+        await JS.InvokeVoidAsync("document.documentElement.style.setProperty", "--shadow-strength", (ShadowLevel / 100.0).ToString("0.00"));
+        await JS.InvokeVoidAsync("document.documentElement.style.setProperty", "--btn-radius", $"{buttonRadiusLevel}px");
+        await JS.InvokeVoidAsync("document.documentElement.style.setProperty", "--radius", $"{buttonRadiusLevel}px");
+        await JS.InvokeVoidAsync("setSidebarBackgroundSave", SelectedBg);
+        var session = AuthService.CurrentUser;
+
+        if (session != null && !string.IsNullOrEmpty(SelectedProfilePhoto))
+        {
+            session.ProfilePhoto = SelectedProfilePhoto;
+
+            await JS.InvokeVoidAsync(
+                "userSessionStorage.save",
+                session
+            );
+
+            await AuthService.InitializeAsync();
+        }
+        if (!string.IsNullOrEmpty(SelectedProfilePhoto))
+        {
+            await AuthService.UpdateProfilePhotoAsync(SelectedProfilePhoto);
+        }
+
+        ToastService.ShowSuccess("Theme Applied Successfully", "Success");
+
+    }
+
+
+    private async Task CancelTheme()
+    {
+        await JS.InvokeVoidAsync("localStorage.removeItem", "app-theme");
+        await JS.InvokeVoidAsync("localStorage.removeItem", "sidebar-bg");
+
+        Navigation.NavigateTo("/", true);
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            var savedTheme = await JS.InvokeAsync<ThemeSettingsViewModel>(
+                "themeStorage.loadTheme"
+            );
+
+            if (savedTheme != null)
+            {
+                Theme.CurrentSettings = savedTheme;
+                IconColor = savedTheme.IconColor;
+                HeadingColor = savedTheme.HeadingColor;
+                PrimaryButton = savedTheme.PrimaryColor;
+                SecondaryColor = savedTheme.SecondaryColor;
+                IsDarkMode = savedTheme.IsDarkMode;
+                SelectedFontSize = savedTheme.FontSize;
+                borderRadiusLevel = savedTheme.BorderRadius;
+                buttonRadiusLevel = savedTheme.ButtonRadius;
+                await JS.InvokeVoidAsync("themeBuilder.applyTheme", savedTheme);
+                SelectedBg = await JS.InvokeAsync<string>("loadSidebarBackground1");
+                SelectedBg = await JS.InvokeAsync<string>("loadSidebarBackground");
+                await JS.InvokeVoidAsync(
+    "previewDarkMode",
+    IsDarkMode);
+                await countryInput.FocusAsync();
+
+            }
+            else
+            {
+                await countryInput.FocusAsync();
+                await JS.InvokeVoidAsync("setPreviewIconColor", IconColor);
+                await JS.InvokeVoidAsync("setPreviewHeadingColor", HeadingColor);
+                await JS.InvokeVoidAsync("setPreviewPrimaryButtonColor", PrimaryButton);
+                await JS.InvokeVoidAsync("document.documentElement.style.setProperty", "--font-family", SelectedFont);
+                await JS.InvokeVoidAsync("document.documentElement.style.setProperty", "--preview-font-family", SelectedFont);
+                await JS.InvokeVoidAsync("document.documentElement.style.setProperty", "--textfont-size", SelectedFontSize);
+                await JS.InvokeVoidAsync("document.documentElement.style.setProperty", "--secondary", SecondaryColor);
+                await JS.InvokeVoidAsync("document.documentElement.style.setProperty", "--preview-secondary", SecondaryColor);
+                await JS.InvokeVoidAsync("document.documentElement.style.setProperty", "--btn-radius", $"{buttonRadiusLevel}px");
+                await JS.InvokeVoidAsync("document.documentElement.style.setProperty", "--radius", $"{buttonRadiusLevel}px");
+                await JS.InvokeVoidAsync(
+           "previewDarkMode",
+           IsDarkMode);
+                var session = await JS.InvokeAsync<UserSession>(
+         "userSessionStorage.load"
+     );
+
+                if (session != null && !string.IsNullOrEmpty(session.ProfilePhoto))
+                {
+                    SelectedProfilePhoto = session.ProfilePhoto;
+
+                    await JS.InvokeVoidAsync(
+                        "profilePreview.setActive",
+                        session.ProfilePhoto
+                    );
+                }
+
+                StateHasChanged();
+            }
+        }
+
+    }
+
+}

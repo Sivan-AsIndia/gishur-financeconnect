@@ -1,0 +1,4 @@
+<Solution>
+  <Project Path="FinanceConnect.Api/FinanceConnect.Api.csproj" />
+  <Project Path="FinanceConnect.Client/FinanceConnect.Client.csproj" />
+</Solution>

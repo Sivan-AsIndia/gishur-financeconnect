@@ -1,0 +1,141 @@
+@page "/expense-claims/create"
+@page "/expense-claims/edit/{Id:guid}"
+@using FinanceConnect.Client.ViewModels
+@using FinanceConnect.Client.Services
+@using static FinanceConnect.Client.ViewModels.ExpenseClaimViewModel
+
+<style>.validation-message{color:#dc3545;font-size:12px;}.form-check-label{font-size:13px;}</style>
+
+<div class="content flat-form">
+    <div class="page-header">
+        <div class="page-title"><h4 class="fw-bold">@(IsEdit ? "Edit Expense Claim" : "Create Expense Claim")</h4><h6>Employee reimbursement request and claim submission</h6></div>
+        <div class="page-btn"><a href="/expense-claims" class="btn btn-outline-secondary"><i class="ti ti-arrow-left"></i> Back</a></div>
+    </div>
+    <EditForm EditContext="_editContext" OnSubmit="Save">
+        <DataAnnotationsValidator />
+
+        <!-- SECTION 1: CORE IDENTITY -->
+        <div class="card mt-4"><div class="card-body">
+            <h6 class="text-primary mb-3 d-flex align-items-center"><i class="ti ti-id me-2" style="font-size:22px;"></i> Core Identity</h6>
+            <div class="row g-3">
+                <div class="col-md-3"><label class="form-label">Claim Code <span class="text-danger">*</span></label>@if(IsEdit){<div class="fw-semibold fs-14 mt-1">@Model.ClaimCode</div>}else{<InputText class="form-control text-uppercase" @bind-Value="Model.ClaimCode" placeholder="e.g. CLM-2026-0001" title="Unique claim code per company (max 30)" />}<ValidationMessage For="@(() => Model.ClaimCode)" /></div>
+                <div class="col-md-5"><label class="form-label">Claim Title <span class="text-danger">*</span></label><InputText class="form-control" @bind-Value="Model.ClaimTitle" placeholder="e.g. Client Visit Travel Claim" title="Descriptive claim title (max 200)" /><ValidationMessage For="@(() => Model.ClaimTitle)" /></div>
+                <div class="col-md-2"><label class="form-label">Status <span class="text-danger">*</span></label><InputSelect class="form-select" @bind-Value="Model.ClaimStatus">@foreach(var s in Enum.GetValues<ClaimStatusEnum>()){<option value="@s">@s</option>}</InputSelect></div>
+                <div class="col-md-2"><label class="form-label">Currency <span class="text-danger">*</span></label><InputSelect class="form-select" @bind-Value="Model.CurrencyId" title="Transaction currency"><option value="">-- Select --</option>@foreach(var c in CurrencyList){<option value="@c.Key">@c.Value</option>}</InputSelect><ValidationMessage For="@(() => Model.CurrencyId)" /></div>
+                <div class="col-md-12"><label class="form-label">Description</label><InputTextArea class="form-control" rows="2" @bind-Value="Model.Description" placeholder="Optional description (max 1000)..." /></div>
+            </div>
+        </div></div>
+
+        <!-- SECTION 2: CLAIMANT & BUSINESS CONTEXT -->
+        <div class="card mt-4"><div class="card-body">
+            <h6 class="text-primary mb-3 d-flex align-items-center"><i class="ti ti-user me-2" style="font-size:22px;"></i> Claimant & Business Purpose</h6>
+            <div class="row g-3">
+                <div class="col-md-3"><label class="form-label">Claimant Employee ID <span class="text-danger">*</span></label><InputText class="form-control" @bind-Value="Model.ClaimantEmployeeId" placeholder="e.g. EMP-003" title="Employee ID of the claimant" /><ValidationMessage For="@(() => Model.ClaimantEmployeeId)" /></div>
+                <div class="col-md-3"><label class="form-label">Claimant Code</label><InputText class="form-control" @bind-Value="Model.ClaimantCodeSnapshot" placeholder="e.g. EMP-003" title="Claimant code snapshot (max 30)" /></div>
+                <div class="col-md-3"><label class="form-label">Claimant Name</label><InputText class="form-control" @bind-Value="Model.ClaimantNameSnapshot" placeholder="e.g. Ravi Kumar" title="Claimant name snapshot (max 200)" /></div>
+                <div class="col-md-3"><label class="form-label">Submission Date</label><InputDate class="form-control" @bind-Value="Model.ClaimSubmissionDate" title="Date when claim was submitted" /></div>
+                <div class="col-md-3"><label class="form-label">Claim Period From</label><InputDate class="form-control" @bind-Value="Model.ClaimPeriodFrom" title="Start of claim period" /></div>
+                <div class="col-md-3"><label class="form-label">Claim Period To</label><InputDate class="form-control" @bind-Value="Model.ClaimPeriodTo" title="End of claim period" /></div>
+                <div class="col-md-3"><label class="form-label">Manager Approver</label><InputText class="form-control" @bind-Value="Model.ManagerApproverId" placeholder="Optional" title="Manager or approver reference" /></div>
+                <div class="col-md-3"><label class="form-label">Branch</label><InputSelect class="form-select" @bind-Value="Model.BranchId"><option value="">-- Select Branch --</option>@foreach(var b in BranchList){<option value="@b.Key">@b.Value</option>}</InputSelect></div>
+                <div class="col-md-3"><label class="form-label">Department</label><InputText class="form-control" @bind-Value="Model.DepartmentName" placeholder="e.g. Sales" title="Department name" /></div>
+                <div class="col-md-3"><label class="form-label">Cost Center</label><InputText class="form-control" @bind-Value="Model.CostCenterName" placeholder="e.g. Production" title="Cost center name" /></div>
+                <div class="col-md-3"><label class="form-label">Project</label><InputText class="form-control" @bind-Value="Model.ProjectName" placeholder="e.g. Showroom Setup" title="Project name" /></div>
+                <div class="col-md-12"><label class="form-label">Business Purpose <span class="text-danger">*</span></label><InputTextArea class="form-control" rows="2" @bind-Value="Model.BusinessPurpose" placeholder="e.g. Customer meeting travel reimbursement (max 1000)" title="Business purpose for this claim" /><ValidationMessage For="@(() => Model.BusinessPurpose)" /></div>
+            </div>
+        </div></div>
+
+        <!-- SECTION 3: AMOUNT SUMMARY & POLICY -->
+        <div class="card mt-4"><div class="card-body">
+            <h6 class="text-primary mb-3 d-flex align-items-center"><i class="ti ti-currency-rupee me-2" style="font-size:22px;"></i> Amount Summary & Policy</h6>
+            <div class="row g-3">
+                <div class="col-md-3"><label class="form-label">Total Claimed</label><div class="form-control bg-light fw-medium" title="Derived from lines">₹@Model.TotalClaimedAmount.ToString("N2")</div></div>
+                <div class="col-md-3"><label class="form-label">Total Approved</label><div class="form-control bg-light" title="Derived from lines">₹@Model.TotalApprovedAmount.ToString("N2")</div></div>
+                <div class="col-md-3"><label class="form-label">Total Rejected</label><div class="form-control bg-light" title="Derived from lines">₹@Model.TotalRejectedAmount.ToString("N2")</div></div>
+                <div class="col-md-3"><label class="form-label">Total Reimbursed</label><div class="form-control bg-light" title="Derived from reimbursement">₹@Model.TotalReimbursedAmount.ToString("N2")</div></div>
+                <div class="col-md-3"><label class="form-label">Reimbursement Status <span class="text-danger">*</span></label><InputSelect class="form-select" @bind-Value="Model.ReimbursementStatus">@foreach(var v in Enum.GetValues<ReimbursementStatusEnum>()){<option value="@v">@v</option>}</InputSelect></div>
+                <div class="col-md-3"><label class="form-label">Receipt Compliance <span class="text-danger">*</span></label><InputSelect class="form-select" @bind-Value="Model.ReceiptComplianceStatus">@foreach(var v in Enum.GetValues<ReceiptComplianceStatusEnum>()){<option value="@v">@v</option>}</InputSelect></div>
+                <div class="col-md-3"><label class="form-label">Policy Check <span class="text-danger">*</span></label><InputSelect class="form-select" @bind-Value="Model.PolicyCheckStatus">@foreach(var v in Enum.GetValues<PolicyCheckStatusEnum>()){<option value="@v">@v</option>}</InputSelect></div>
+                <div class="col-md-3"><label class="form-label">Duplicate Check <span class="text-danger">*</span></label><InputSelect class="form-select" @bind-Value="Model.DuplicateCheckStatus">@foreach(var v in Enum.GetValues<DuplicateCheckStatusEnum>()){<option value="@v">@v</option>}</InputSelect></div>
+                <div class="col-md-6"><label class="form-label">Policy Override Reason</label><InputText class="form-control" @bind-Value="Model.PolicyOverrideReason" placeholder="Required when policy is overridden (max 1000)" /></div>
+                <div class="col-md-3 d-flex align-items-end"><div class="d-flex align-items-center gap-2 mb-2"><InputCheckbox class="form-check-input" @bind-Value="Model.ReceiptRequiredFlag" /><label class="form-check-label">Receipt Required</label></div></div>
+                <div class="col-md-3 d-flex align-items-end"><div class="d-flex align-items-center gap-2 mb-2"><InputCheckbox class="form-check-input" @bind-Value="Model.PolicyExceptionFlag" /><label class="form-check-label">Policy Exception</label></div></div>
+            </div>
+        </div></div>
+
+        <!-- SECTION 4: CLAIM LINES -->
+        <div class="card mt-4"><div class="card-body">
+            <h6 class="text-primary mb-3 d-flex align-items-center"><i class="ti ti-list me-2" style="font-size:22px;"></i> Claim Lines</h6>
+            <div class="table-responsive"><table class="table table-bordered table-sm">
+                <thead><tr><th style="width:35px">#</th><th style="width:95px">Date <span class="text-danger">*</span></th><th>Description <span class="text-danger">*</span></th><th>Category <span class="text-danger">*</span></th><th style="width:95px">Claimed <span class="text-danger">*</span></th><th style="width:80px">Tax</th><th style="width:95px">Approved</th><th style="width:70px">Receipt</th><th>Merchant</th><th>Receipt Ref</th><th style="width:35px"></th></tr></thead>
+                <tbody>@foreach(var l in Model.Lines){var line=l;
+                    <tr>
+                        <td>@line.LineNumber</td>
+                        <td><InputDate class="form-control form-control-sm" @bind-Value="line.ExpenseDate" /></td>
+                        <td><InputText class="form-control form-control-sm" @bind-Value="line.LineDescription" placeholder="Line description" /></td>
+                        <td><InputSelect class="form-select form-select-sm" @bind-Value="line.ExpenseCategoryId"><option value="">-- Select --</option>@foreach(var cat in Categories){<option value="@cat.ExpenseCategoryId">@cat.CategoryName</option>}</InputSelect></td>
+                        <td><InputNumber class="form-control form-control-sm" @bind-Value="line.ClaimedAmount" @oninput="RecalcTotals" /></td>
+                        <td><InputNumber class="form-control form-control-sm" @bind-Value="line.TaxAmount" /></td>
+                        <td><InputNumber class="form-control form-control-sm" @bind-Value="line.ApprovedAmount" /></td>
+                        <td class="text-center"><InputCheckbox class="form-check-input" @bind-Value="line.ReceiptAttachedFlag" /></td>
+                        <td><InputText class="form-control form-control-sm" @bind-Value="line.MerchantOrVendorName" placeholder="Merchant" /></td>
+                        <td><InputText class="form-control form-control-sm" @bind-Value="line.ReceiptReferenceText" placeholder="Receipt ref" /></td>
+                        <td><button type="button" class="btn btn-sm btn-outline-danger" @onclick="() => RemoveLine(line)"><i class="ti ti-x"></i></button></td>
+                    </tr>
+                    <tr>
+                        <td></td>
+                        <td colspan="5"><InputText class="form-control form-control-sm" @bind-Value="line.LineNotes" placeholder="Line notes (optional, max 500)" /></td>
+                        <td colspan="2">
+                            <InputSelect class="form-select form-select-sm" @bind-Value="line.ApprovalStatus" title="Line approval status">@foreach(var v in Enum.GetValues<LineApprovalStatusEnum>()){<option value="@v">@v</option>}</InputSelect>
+                        </td>
+                        <td colspan="3"><InputText class="form-control form-control-sm" @bind-Value="line.RejectionReason" placeholder="Rejection reason (if rejected)" /></td>
+                    </tr>
+                }</tbody>
+            </table></div>
+            <button type="button" class="btn btn-sm btn-outline-primary mt-2" @onclick="AddLine"><i class="ti ti-plus me-1"></i> Add Line</button>
+        </div></div>
+
+        <!-- SECTION 5: APPROVAL & REVIEW -->
+        <div class="card mt-4"><div class="card-body">
+            <h6 class="text-primary mb-3 d-flex align-items-center"><i class="ti ti-git-merge me-2" style="font-size:22px;"></i> Approval & Review</h6>
+            <div class="row g-3">
+                <div class="col-md-3"><label class="form-label">Submitted By</label><InputText class="form-control" @bind-Value="Model.SubmittedByUserId" placeholder="e.g. EMP-003" /></div>
+                <div class="col-md-3"><label class="form-label">Submitted On</label><InputDate class="form-control" @bind-Value="Model.SubmittedOn" /></div>
+                <div class="col-md-3"><label class="form-label">Reviewed By</label><InputText class="form-control" @bind-Value="Model.ReviewedByUserId" placeholder="Optional" /></div>
+                <div class="col-md-3"><label class="form-label">Reviewed On</label><InputDate class="form-control" @bind-Value="Model.ReviewedOn" /></div>
+                <div class="col-md-3"><label class="form-label">Approved By</label><InputText class="form-control" @bind-Value="Model.ApprovedByUserId" placeholder="Optional" /></div>
+                <div class="col-md-3"><label class="form-label">Approved On</label><InputDate class="form-control" @bind-Value="Model.ApprovedOn" /></div>
+                <div class="col-md-3"><label class="form-label">Rejected By</label><InputText class="form-control" @bind-Value="Model.RejectedByUserId" placeholder="Optional" /></div>
+                <div class="col-md-3"><label class="form-label">Rejected On</label><InputDate class="form-control" @bind-Value="Model.RejectedOn" /></div>
+                <div class="col-md-6"><label class="form-label">Approval Notes</label><InputTextArea class="form-control" rows="2" @bind-Value="Model.ApprovalNotes" placeholder="Approval/review notes (max 1500)" /></div>
+                <div class="col-md-6"><label class="form-label">Cancellation Reason</label><InputText class="form-control" @bind-Value="Model.CancellationReason" placeholder="Required if cancelled (max 500)" /></div>
+                <div class="col-md-3"><label class="form-label">Policy Exception Approved By</label><InputText class="form-control" @bind-Value="Model.PolicyExceptionApprovedBy" placeholder="Optional" /></div>
+                <div class="col-md-3"><label class="form-label">Posting Status <span class="text-danger">*</span></label><InputSelect class="form-select" @bind-Value="Model.PostingStatus">@foreach(var v in Enum.GetValues<PostingStatusEnum>()){<option value="@v">@v</option>}</InputSelect></div>
+            </div>
+        </div></div>
+
+        <!-- SECTION 6: REIMBURSEMENT -->
+        <div class="card mt-4"><div class="card-body">
+            <h6 class="text-primary mb-3 d-flex align-items-center"><i class="ti ti-cash me-2" style="font-size:22px;"></i> Reimbursement</h6>
+            <div class="row g-3">
+                <div class="col-md-3"><label class="form-label">Reimbursement Method</label><InputSelect class="form-select" @bind-Value="Model.ReimbursementMethod" title="How reimbursement will be paid"><option value="">-- Select --</option>@foreach(var v in Enum.GetValues<ReimbursementMethodEnum>()){<option value="@v">@v</option>}</InputSelect></div>
+                <div class="col-md-3"><label class="form-label">Reimbursement Date</label><InputDate class="form-control" @bind-Value="Model.ReimbursementDate" title="Date of reimbursement" /></div>
+                <div class="col-md-3"><label class="form-label">Reimbursement Ref No</label><InputText class="form-control" @bind-Value="Model.ReimbursementReferenceNumber" placeholder="e.g. TXN-12345" title="Reimbursement transaction reference (max 100)" /></div>
+            </div>
+        </div></div>
+
+        <!-- SECTION 7: NOTES -->
+        <div class="card mt-4"><div class="card-body">
+            <h6 class="text-primary mb-3 d-flex align-items-center"><i class="ti ti-notes me-2" style="font-size:22px;"></i> Notes & Attachments</h6>
+            <div class="row g-3">
+                <div class="col-md-6"><label class="form-label">Notes</label><InputTextArea class="form-control" rows="2" @bind-Value="Model.Notes" placeholder="Additional notes (max 1500)..." /></div>
+                <div class="col-md-6"><label class="form-label">Supporting Commentary</label><InputTextArea class="form-control" rows="2" @bind-Value="Model.SupportingCommentary" placeholder="Supporting commentary (max 1500)..." /></div>
+            </div>
+        </div></div>
+
+        <div class="text-end mt-4 mb-5">
+            <a href="/expense-claims" class="btn btn-outline-secondary me-2"><i class="ti ti-x me-1"></i> Cancel</a>
+            <button type="submit" class="btn btn-primary"><i class="ti ti-device-floppy me-1"></i> @(IsEdit ? "Update" : "Create")</button>
+        </div>
+    </EditForm>
+</div>

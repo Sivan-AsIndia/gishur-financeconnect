@@ -1,0 +1,209 @@
+@page "/countries/create"
+@page "/countries/{Id:guid}"
+
+<style>
+    .form-select option:checked {
+        color: white;
+        background-color: var(--primary);
+    }
+
+   
+    .validation-message {
+        color: #dc3545;
+        font-size: 12px;
+    }
+</style>
+
+@if (!isInitialized)
+{
+    <div class="page-loading-overlay">
+        <div class="whirly-loader"></div>
+    </div>
+}
+else
+{
+    <div class="content flat-form">
+        <div class="page-header">
+            <div class="add-item d-flex">
+                <div class="page-title">
+                    <h4 class="fw-bold">@PageTitle</h4>
+                    <h6>@PageSubTitle</h6>
+                </div>
+            </div>
+
+            <div class="page-btn mt-0">
+                <a href="/countries" class="btn btn-outline-secondary">
+                    <i class="ti ti-arrow-left"></i> Back
+                </a>
+            </div>
+        </div>
+
+        <EditForm EditContext="_editContext" OnValidSubmit="Save">
+            <DataAnnotationsValidator />
+
+
+
+            <div class="mt-4">
+                <div class="card">
+                    @* <div class="card-header text-white" style="border-bottom: 1px solid #80808036;">
+                        <h5>
+                            <i class="ti @(IsEdit ? "ti-edit" : "ti-plus") me-2"></i>
+                            @(IsEdit ? "Edit Country" : "Add Country")
+                        </h5>
+                    </div> *@
+
+                    <div class="card-body">
+
+                        <!-- ================= COA IDENTITY ================= -->
+                        <h6 class="text-primary mb-3 mt-3">
+                            <i class="ti ti-flag text-primary me-2"></i>  Country Identity
+                        </h6>
+                        <div class="row g-3">
+                            <div class="col-md-3">
+                                <label class="form-label">
+                                    Country Code <span class="text-danger ms-1">*</span>
+                                </label>
+
+                                <InputText class="@($"form-control text-uppercase {GetValidationClass(() => Country.CountryCode)}")"
+                                           @bind-Value="Country.CountryCode"
+                                           @bind-Value:after="onCodeChange"
+                                           disabled="@IsEdit"
+                                           placeholder="e.g., IN, US, SG"
+                                           maxlength="10" />
+
+                                <ValidationMessage For="@(() => Country.CountryCode)" />
+                            </div>
+
+                            <div class="col-md-3">
+                                <label class="form-label">
+                                    Country Name <span class="text-danger ms-1">*</span>
+                                </label>
+
+                                <InputText class="@($"form-control {GetValidationClass(() => Country.CountryName)}")"
+                                           @bind-value="Country.CountryName" oninput="this.value=this.value.replace(/[0-9]/g,'');"
+                                            @bind-value:after="onCountryNameChange"
+                                       placeholder="e.g., India, United States"
+                                       maxlength="150" />
+
+                                <ValidationMessage For="@(() => Country.CountryName)" />
+                            </div>
+
+                            <div class="col-md-3">
+                                <label class="form-label">Official Name</label>
+                                <InputText class="@($"form-control {GetValidationClass(() => Country.OfficialName)}")"
+                                           @bind-Value="Country.OfficialName" oninput="this.value=this.value.replace(/[0-9]/g,'');"
+                                           @bind-Value:after="onofficialNameChange"
+                                           placeholder="e.g., Republic of India" maxlength="200" />
+                                <ValidationMessage For="@(() => Country.OfficialName)" />
+                            </div>
+                            <div class="col-md-3">
+                                <label class="form-label">Region</label>
+                                <InputSelect class="form-select" @bind-Value="Country.Region">
+                                    <option value="">--Select Region--</option>
+                                    @foreach (var region in Regions.All)
+                                    {
+                                        <option value="@region">@region</option>
+                                    }
+                                </InputSelect>
+                            </div>
+                        </div>
+                        <!-- ================= COA IDENTITY ================= -->
+                        <h6 class="text-primary mb-3 mt-3"><i class="ti ti-certificate text-primary me-2"></i> ISO Codes & Standards</h6>
+                        <div class="row g-3">
+                            <div class="col-md-3">
+                                <label class="form-label">ISO 2-letter <span class="text-danger ms-1">*</span></label>
+                                <InputText class="@($"form-control text-uppercase {GetValidationClass(() => Country.ISO2)}")"
+                                           @bind-Value="Country.ISO2" oninput="this.value=this.value.replace(/[0-9]/g,'');"
+                                           placeholder="e.g., IN"
+                                           maxlength="2" />
+
+                                <ValidationMessage For="@(() => Country.ISO2)" />
+
+                            </div>
+                            <div class="col-md-3">
+                                <label class="form-label">ISO 3-letter</label>
+                                <InputText class="@($"form-control text-uppercase {GetValidationClass(() => Country.ISO3)}")" 
+                                           @bind-Value="Country.ISO3" oninput="this.value=this.value.replace(/[0-9]/g,'');"
+                                           placeholder="e.g., IND" maxlength="3" />
+                                <ValidationMessage For="@(() => Country.ISO3)" />
+                            </div>
+                            <div class="col-md-3">
+                                <label class="form-label">ISO Numeric Code</label>
+                                <InputText class="form-control" @bind-Value="Country.NumericCode"
+                                           placeholder="e.g., 356" maxlength="10" />
+                            </div>
+                            <div class="col-3">
+                                <label class="form-label">Default Currency</label>
+                                <InputText class="@($"form-control text-uppercase {GetValidationClass(() => Country.DefaultCurrencyCode)}")"
+                                           @bind-Value="Country.DefaultCurrencyCode" oninput="this.value=this.value.replace(/[0-9]/g,'');"
+                                           placeholder="e.g., INR" maxlength="3" />
+                                <ValidationMessage For="@(() => Country.DefaultCurrencyCode)" />
+                            </div>
+                        </div>
+                        <!-- =================Address & Postal Rules ================= -->
+                        <h6 class="text-primary mb-3 mt-3"><i class="ti ti-map-pin text-primary me-2"></i> Address & Postal Rules</h6>
+                        <div class="row g-3">
+
+                            <div class="col-md-3">
+                                <label class="form-label">Postal Code Pattern</label>
+                                <InputText class="form-control" @bind-Value="Country.PostalCodePattern"
+                                           placeholder="e.g., 600001 for India" maxlength="100" />
+                                <small class="text-muted">Regex pattern for postal code validation</small>
+                            </div>
+                            <div class="col-md-3">
+                                <label class="form-label">Phone Country Code</label>
+                                <InputText class="form-control" @bind-Value="Country.PhoneCountryCode"
+                                           oninput="this.value=this.value.replace(/[^0-9+]/g,'');" placeholder="e.g., +91" maxlength="10" />
+                            </div>
+                            <div class="col-md-3 mt-10">
+                                <InputCheckbox class="form-check-input" @bind-Value="Country.HasStates" id="hasStates" />
+                                <label class="form-check-label" for="hasStates">Has States/Provinces</label>
+                            </div>
+                        </div>
+                        <!-- =================Status & Usage Controls ================= -->
+                        <h6 class="text-primary mb-3 mt-3"><i class="ti ti-settings text-primary me-2"></i> Status & Usage Controls</h6>
+                        <div class="row g-3">
+
+
+                            <div class="col-md-3">
+                                <div>
+                                    <label class="form-label">Sort Order</label>
+                                    <InputNumber class="form-control" @bind-Value="Country.SortOrder"
+                                                 placeholder="e.g., 1" min="0" />
+                                </div>
+                                <small class="text-muted">For dropdown ordering</small>
+                            </div>
+
+                            <div class="col-md-3 mt-4">
+                                <div>
+                                    <InputCheckbox class="form-check-input" @bind-Value="Country.IsActive" id="isActive" />
+                                    <label class="form-check-label" for="isActive">Active</label>
+                                </div>
+                                <small class="text-muted">If inactive, cannot be selected for new Company/Branch</small>
+
+                            </div>
+                        </div>
+
+                    </div>
+
+                </div>
+
+                <div class="d-flex justify-content-end mb-4">
+                    <button type="button" class="btn btn-outline-secondary me-2" @onclick='() => Nav.NavigateTo("/countries")'>
+                        <i class="ti ti-x"></i> Cancel
+                    </button>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="ti ti-device-floppy"></i> @(IsEdit ? "Update" : "Save")
+                    </button>
+                </div>
+
+            </div>
+
+
+        </EditForm>
+    </div>
+
+
+
+
+}

@@ -1,0 +1,204 @@
+@page "/valuation-events/{Id:guid}/view"
+@using FinanceConnect.Client.ViewModels
+@inject IJSRuntime JS
+@inject FinanceConnect.Client.Services.AssetRevaluationImpairmentService eventService
+@inject NavigationManager navigation
+
+@if (!isInitialized)
+{
+    <div class="page-loading-overlay"><div class="whirly-loader"></div></div>
+}
+else if (Item == null)
+{
+    <div class="content py-4"><div class="alert alert-danger"><i class="ti ti-alert-circle me-2"></i>Valuation event not found. <a href="/valuation-events" class="alert-link ms-2">Return to list</a></div></div>
+}
+else
+{
+    <div class="content py-4 view-screen">
+
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <div>
+                <h4 class="fw-bold mb-1">Revaluation / Impairment Details</h4>
+                <p class="text-muted mb-0 small">Valuation adjustment record</p>
+            </div>
+            <div class="d-flex gap-2 page-btn">
+                @if (Item.EventStatus == AssetRevaluationImpairmentViewModel.EventStatusEnum.Draft)
+                { <a href="/valuation-events/edit/@Item.AssetRevaluationImpairmentId" class="btn btn-primary"><i class="ti ti-edit me-1"></i> Edit</a> }
+                <a class="btn btn-outline-secondary" href="/valuation-events"><i class="ti ti-arrow-left me-1"></i> Back</a>
+            </div>
+        </div>
+
+        <div class="row g-4">
+
+            <!-- HEADER PANEL -->
+            <div class="col-lg-12">
+                <div class="profile-list-card">
+                    <div class="profile-left">
+                        <div class="avatar letter-avatar">@Item.EventNumber?.Substring(Math.Max(0, (Item.EventNumber?.Length ?? 0) - 4))</div>
+                    </div>
+                    <div class="profile-center">
+                        <div class="top-row"><h5>@Item.EventNumber</h5></div>
+                        <div class="sub-text">
+                            <span class="d-flex gap-1 mt-1"><i class="ti ti-box"></i>@Item.AssetNameSnapshot &nbsp;·&nbsp; @Item.AssetNumberSnapshot</span>
+                            <span class="d-flex gap-1 mt-1"><i class="ti ti-calendar"></i>Effective: @Item.EffectiveDate?.ToString("dd MMM yyyy") &nbsp;·&nbsp; @FormatEnumName(Item.EventType?.ToString())</span>
+                        </div>
+                        <div class="mt-2">
+                            <span class="badge @GetStatusBadgeClass(Item.EventStatus)">@Item.EventStatus</span>
+                            <span class="badge @GetEventTypeBadge(Item.EventType) ms-1">@FormatEnumName(Item.EventType?.ToString())</span>
+                            @if (Item.PostedOn.HasValue)
+                            { <span class="badge bg-success-transparent ms-1">Posted @Item.PostedOn.Value.ToString("dd MMM yyyy")</span> }
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- LEFT PANEL (col-8) -->
+            <div class="col-lg-8">
+                <div class="profile-card">
+
+                    <!-- Asset Snapshot -->
+                    <div class="card mb-0">
+                        <div class="card-header py-2"><i class="ti ti-link me-2"></i> Asset Snapshot</div>
+                        <div class="card-body py-2">
+                            <div class="row">
+                                <div class="col-md-3 mb-2"><small class="text-muted">Asset Code</small><div class="fw-medium">@Item.AssetNumberSnapshot</div></div>
+                                <div class="col-md-3 mb-2"><small class="text-muted">Asset Name</small><div>@Item.AssetNameSnapshot</div></div>
+                                <div class="col-md-3 mb-2"><small class="text-muted">In-Service Date</small><div>@Item.InServiceDateSnapshot?.ToString("dd MMM yyyy")</div></div>
+                                <div class="col-md-3 mb-2"><small class="text-muted">Asset Status</small><div>@Item.AssetStatusSnapshot</div></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Event Details -->
+                    <div class="card mt-3 mb-0">
+                        <div class="card-header py-2"><i class="ti ti-file-text me-2"></i> Event Details</div>
+                        <div class="card-body py-2">
+                            <div class="row">
+                                <div class="col-md-3 mb-2"><small class="text-muted">Event Type</small><div><span class="badge @GetEventTypeBadge(Item.EventType)">@FormatEnumName(Item.EventType?.ToString())</span></div></div>
+                                <div class="col-md-3 mb-2"><small class="text-muted">Effective Date</small><div>@Item.EffectiveDate?.ToString("dd MMM yyyy")</div></div>
+                                <div class="col-md-3 mb-2"><small class="text-muted">Reason Code</small><div>@(Item.ReasonCode.HasValue ? FormatEnumName(Item.ReasonCode.Value.ToString()) : "—")</div></div>
+                                <div class="col-md-3 mb-2"><small class="text-muted">Calculation Mode</small><div>@FormatEnumName(Item.CalculationMode?.ToString())</div></div>
+                                @if (Item.DeltaAmount.HasValue)
+                                { <div class="col-md-3 mb-2"><small class="text-muted">Delta Amount</small><div class="fw-semibold">@Item.DeltaAmount.Value.ToString("N2")</div></div> }
+                                @if (Item.TargetCarryingAmount.HasValue)
+                                { <div class="col-md-3 mb-2"><small class="text-muted">Target Carrying</small><div class="fw-semibold">@Item.TargetCarryingAmount.Value.ToString("N2")</div></div> }
+                            </div>
+                            @if (!string.IsNullOrWhiteSpace(Item.Narration))
+                            {
+                                <div class="mt-2"><small class="text-muted">Narration</small><div class="ql-editor">@((MarkupString)(Item.Narration ?? string.Empty))</div></div>
+                            }
+                        </div>
+                    </div>
+
+                    <!-- Accumulated Depreciation Treatment -->
+                    <div class="card mt-3 mb-0">
+                        <div class="card-header py-2"><i class="ti ti-adjustments me-2"></i> Accumulated Depreciation Treatment</div>
+                        <div class="card-body py-2">
+                            <div class="row">
+                                <div class="col-md-4 mb-2"><small class="text-muted">Treatment Mode</small><div>@FormatEnumName(Item.AccumDepTreatmentMode?.ToString())</div></div>
+                                <div class="col-md-4 mb-2"><small class="text-muted">Decrease Handling</small><div>@(Item.RevaluationDecreaseHandlingMode.HasValue ? FormatEnumName(Item.RevaluationDecreaseHandlingMode.Value.ToString()) : "—")</div></div>
+                                <div class="col-md-4 mb-2"><small class="text-muted">Treatment Override</small><div>@(Item.AllowAccumDepTreatmentOverride ? "Yes" : "No")</div></div>
+                                @if (Item.AllowAccumDepTreatmentOverride && !string.IsNullOrEmpty(Item.AccumDepTreatmentReason))
+                                {
+                                    <div class="col-md-12 mb-2"><small class="text-muted">Override Reason</small><div>@Item.AccumDepTreatmentReason</div></div>
+                                }
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Before / After Values -->
+                    <div class="card mt-3 mb-0">
+                        <div class="card-header py-2"><i class="ti ti-arrows-exchange me-2"></i> Before / After Values</div>
+                        <div class="card-body py-2">
+                            <div class="table-responsive">
+                                <table class="table table-bordered mb-0">
+                                    <thead class="table-light">
+                                        <tr><th></th><th class="text-end">Before</th><th class="text-end">After</th><th class="text-end">Change</th></tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr>
+                                            <td>Gross Cost</td>
+                                            <td class="text-end">@Item.GrossCostBefore.ToString("N2")</td>
+                                            <td class="text-end fw-semibold">@Item.GrossCostAfter.ToString("N2")</td>
+                                            <td class="text-end @((Item.GrossCostAfter - Item.GrossCostBefore) >= 0 ? "text-success" : "text-danger")">@((Item.GrossCostAfter - Item.GrossCostBefore).ToString("N2"))</td>
+                                        </tr>
+                                        <tr>
+                                            <td>Accum. Depreciation</td>
+                                            <td class="text-end">@Item.AccumDepBefore.ToString("N2")</td>
+                                            <td class="text-end fw-semibold">@Item.AccumDepAfter.ToString("N2")</td>
+                                            <td class="text-end">@((Item.AccumDepAfter - Item.AccumDepBefore).ToString("N2"))</td>
+                                        </tr>
+                                        <tr class="table-warning">
+                                            <td class="fw-bold">Carrying Value (NBV)</td>
+                                            <td class="text-end fw-bold">@Item.CarryingValueBefore.ToString("N2")</td>
+                                            <td class="text-end fw-bold">@Item.CarryingValueAfter.ToString("N2")</td>
+                                            <td class="text-end fw-bold @(Item.AdjustmentAmount >= 0 ? "text-success" : "text-danger")">
+                                                @(Item.AdjustmentAmount >= 0 ? "+" : "")@Item.AdjustmentAmount.ToString("N2")
+                                            </td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Schedule Impact -->
+                    <div class="card mt-3 mb-0">
+                        <div class="card-header py-2"><i class="ti ti-calendar-event me-2"></i> Schedule Impact</div>
+                        <div class="card-body py-2">
+                            <div class="row">
+                                <div class="col-md-3 mb-2"><small class="text-muted">Requires Regeneration</small><div>@(Item.RequiresScheduleRegeneration ? "Yes" : "No")</div></div>
+                                <div class="col-md-3 mb-2"><small class="text-muted">Regeneration Mode</small><div>@FormatEnumName(Item.RegenerationMode.ToString())</div></div>
+                                <div class="col-md-3 mb-2"><small class="text-muted">New Depreciable Base</small><div class="fw-semibold">@Item.NewDepreciableBaseAmountAfter.ToString("N2")</div></div>
+                                <div class="col-md-3 mb-2"><small class="text-muted">Life Override</small><div>@(Item.NewUsefulLifeMonthsOverride.HasValue ? $"{Item.NewUsefulLifeMonthsOverride} months" : "—")</div></div>
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+
+            <!-- RIGHT PANEL (col-4) -->
+            <div class="col-lg-4">
+                <div class="profile-card">
+
+                    <!-- Status & Valuation -->
+                    <div class="card mb-0">
+                        <div class="card-header py-2"><i class="ti ti-circle-check me-2"></i> Status &amp; Valuation</div>
+                        <div class="card-body py-2">
+                            <div class="mb-2"><small class="text-muted">Event Status</small><div><span class="badge @GetStatusBadgeClass(Item.EventStatus)">@Item.EventStatus</span></div></div>
+                            <div class="mb-2"><small class="text-muted">P&amp;L Impact</small><div>@(Item.IsGainOrLossToPAndLFlag ? "Yes – affects P&L" : "No – Equity/Reserve")</div></div>
+                            <div class="mb-2"><small class="text-muted">Valuation Basis</small><div>@FormatEnumName(Item.ValuationBasis?.ToString())</div></div>
+                            @if (!string.IsNullOrEmpty(Item.ValuerName))
+                            { <div class="mb-2"><small class="text-muted">Valuer Name</small><div>@Item.ValuerName</div></div> }
+                            @if (!string.IsNullOrEmpty(Item.ValuationReportReference))
+                            { <div class="mb-2"><small class="text-muted">Report Ref</small><div>@Item.ValuationReportReference</div></div> }
+                            @if (Item.ValuationReportDate.HasValue)
+                            { <div class="mb-2"><small class="text-muted">Report Date</small><div>@Item.ValuationReportDate.Value.ToString("dd MMM yyyy")</div></div> }
+                        </div>
+                    </div>
+
+                    <!-- Audit -->
+                    <div class="card mt-3 mb-0">
+                        <div class="card-header py-2"><i class="ti ti-clock me-2"></i> Workflow &amp; Audit</div>
+                        <div class="card-body py-2">
+                            <div class="mb-2"><small class="text-muted">Created At</small><div>@Item.CreatedAt.ToString("dd MMM yyyy")</div></div>
+                            @if (Item.SubmittedOn.HasValue)
+                            { <div class="mb-2"><small class="text-muted">Submitted On</small><div>@Item.SubmittedOn.Value.ToString("dd MMM yyyy")</div></div> }
+                            @if (Item.ApprovedOn.HasValue)
+                            { <div class="mb-2"><small class="text-muted">Approved On</small><div>@Item.ApprovedOn.Value.ToString("dd MMM yyyy")</div></div> }
+                            @if (Item.PostedOn.HasValue)
+                            { <div class="mb-2"><small class="text-muted">Posted On</small><div>@Item.PostedOn.Value.ToString("dd MMM yyyy")</div></div> }
+                            @if (!string.IsNullOrEmpty(Item.ApprovalNotes))
+                            { <div class="mb-2"><small class="text-muted">Approval Notes</small><div>@Item.ApprovalNotes</div></div> }
+                            @if (!string.IsNullOrEmpty(Item.ReversalReason))
+                            { <div class="mb-2"><small class="text-muted">Reversal Reason</small><div class="text-danger">@Item.ReversalReason</div></div> }
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+
+        </div>
+    </div>
+}

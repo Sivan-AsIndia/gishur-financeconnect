@@ -1,0 +1,1983 @@
+﻿@inherits LayoutComponentBase
+@inject AuthService AuthService
+@inject NavigationManager Navigation
+@implements IDisposable
+@inject ThemeService Theme
+@inject ToastService ToastService
+@using System.Text.RegularExpressions
+
+<script src="assets/js/script.js"></script>
+
+<ToastContainer />
+
+<div class="main-wrapper">
+
+    <NavMenu />
+
+    <div class="header">
+        <div class="main-header" style="justify-content: end;display: flex;">
+            <!-- Logo -->
+            <div class="header-left active">
+                <a class="logo logo-normal">
+                    <img src="assets/images/logo.png" alt="Finance">
+                </a>
+                <a class="logo logo-white">
+                    <img src="assets/images/logo.png" alt="Finance">
+                </a>
+                <a class="logo-small">
+                    <img src="assets/images/logo.png" alt="Finance">
+                </a>
+            </div>
+            <!-- /Logo -->
+            <a id="mobile_btn" class="mobile_btn" href="#sidebar">
+                <span class="bar-icon">
+                    <span></span>
+                    <span></span>
+                    <span></span>
+                </span>
+            </a>
+
+            <!-- Header Menu -->
+            <ul class="nav user-menu">
+
+                <!-- Date + Time Widget -->
+                <li class="nav-item d-none d-md-none d-lg-flex d-xl-flex d-xxl-flex">
+                    <div class="header-time-user">
+
+                        <div class="datetime-widget">
+                            <!-- Calendar Chip -->
+                            <div class="dt-cal-chip">
+                                <span class="dt-cal-day" id="currentDayName">FRI</span>
+                                <span class="dt-cal-date" id="currentDateShort">20</span>
+                                <span class="dt-cal-month" id="currentMonthShort">FEB</span>
+                            </div>
+
+                            <!-- Separator -->
+                            <span class="dt-sep"></span>
+
+                            <!-- Clock -->
+                            <div class="dt-clock">
+                                <span class="dt-clock-hm" id="currentTimeHM">2:08</span>
+                                <div class="dt-clock-right">
+                                    <span class="dt-clock-sec" id="currentTimeSec">:58</span>
+                                    <span class="dt-clock-ampm" id="currentAmPm">PM</span>
+                                </div>
+                            </div>
+
+                            <!-- Live indicator -->
+                            @* <span class="dt-live"></span> *@
+                        </div>
+
+                    </div>
+                </li>
+
+
+                <li class="nav-item nav-item-box">
+                    <a href="javascript:void(0);" id="btnFullscreen">
+                        <i class="ti ti-maximize"></i>
+                    </a>
+                </li>
+                <li class="nav-item nav-item-box">
+                    <a>
+                        <i class="ti ti-mail"></i>
+                        <span class="badge rounded-pill">1</span>
+                    </a>
+                </li>
+                <!-- Notifications -->
+                <li class="nav-item dropdown nav-item-box">
+                    <a href="javascript:void(0);" class="dropdown-toggle nav-link" data-bs-toggle="dropdown">
+                        <i class="ti ti-bell"></i>
+                    </a>
+                    <div class="dropdown-menu notifications">
+                        <div class="topnav-dropdown-header">
+                            <a href="/Setting?tab=3"><h5 class="notification-title">Notifications</h5></a>
+                        </div>
+                        <div class="noti-content">
+                            <ul class="notification-list">
+                                <li class="notification-message">
+                                    <a>
+                                        <div class="media d-flex">
+                                            <span class="avatar flex-shrink-0">
+                                                <img alt="Img" src="assets/images/avatar-13.jpg">
+                                            </span>
+                                            <div class="flex-grow-1">
+                                                <p class="noti-details"><span class="noti-title">James Kirwin</span> confirmed his order.  Order No: #78901.Estimated delivery: 2 days</p>
+                                                <p class="noti-time">4 mins ago</p>
+                                            </div>
+                                        </div>
+                                    </a>
+                                </li>
+                                <li class="notification-message">
+                                    <a>
+                                        <div class="media d-flex">
+                                            <span class="avatar flex-shrink-0">
+                                                <img alt="Img" src="assets/images/avatar-03.jpg">
+                                            </span>
+                                            <div class="flex-grow-1">
+                                                <p class="noti-details"><span class="noti-title">Leo Kelly</span> cancelled his order scheduled for  17 Jan 2025</p>
+                                                <p class="noti-time">10 mins ago</p>
+                                            </div>
+                                        </div>
+                                    </a>
+                                </li>
+                                <li class="notification-message">
+                                    <a class="recent-msg">
+                                        <div class="media d-flex">
+                                            <span class="avatar flex-shrink-0">
+                                                <img alt="Img" src="assets/images/avatar-17.jpg">
+                                            </span>
+                                            <div class="flex-grow-1">
+                                                <p class="noti-details">Payment of $50 received for Order #67890 from <span class="noti-title">Antonio Engle</span></p>
+                                                <p class="noti-time">05 mins ago</p>
+                                            </div>
+                                        </div>
+                                    </a>
+                                </li>
+                                <li class="notification-message">
+                                    <a class="recent-msg">
+                                        <div class="media d-flex">
+                                            <span class="avatar flex-shrink-0">
+                                                <img alt="Img" src="assets/images/avatar-02.jpg">
+                                            </span>
+                                            <div class="flex-grow-1">
+                                                <p class="noti-details"><span class="noti-title">Andrea</span> confirmed his order.  Order No: #73401.Estimated delivery: 3 days</p>
+                                                <p class="noti-time">4 mins ago</p>
+                                            </div>
+                                        </div>
+                                    </a>
+                                </li>
+                            </ul>
+                        </div>
+                    </div>
+                </li>
+                <!-- /Notifications -->
+
+                <li class="nav-item dropdown has-arrow main-drop profile-nav">
+                    <!-- Avatar + User + Branch -->
+                    <a href="javascript:void(0);" class="nav-link userset" data-bs-toggle="dropdown">
+                        <span class="user-info p-0">
+                            <span class="user-letter">
+                                @if (!string.IsNullOrEmpty(AuthService.CurrentUser?.ProfilePhoto))
+                                {
+                                    <img src="@AuthService.CurrentUser.ProfilePhoto" alt="Profile" class="img-fluid" style="width: 38px; height: 35px; object-fit: cover;">
+                                }
+                                else
+                                {
+                                    <img src="assets/images/avator1.jpg" alt="Img" class="img-fluid">
+                                }
+                            </span>
+                        </span>
+
+                        <!-- User + Branch Info -->
+                        <div class="header-user-mini">
+                            <div class="header-user-text">
+                                <div class="header-user-name"
+                                     title="@(AuthService.CurrentUser?.UserName ?? "Guest")">
+                                    @(
+                                                                        string.Join(" ",
+                                                                        (AuthService.CurrentUser?.UserName ?? "Guest")
+                                                                        .Split(' ', StringSplitOptions.RemoveEmptyEntries)
+                                                                        .Take(2)
+                                                                        )
+                                                                        )
+                                </div>
+                                <div class="header-user-branch"
+                                     title="@(SettingsService.SelectedBranchName ?? "No Branch")">
+
+                                    <i class="ti ti-map-pin"></i>
+
+                                    <span>
+                                        @(
+                                                                                string.Join(" ",
+                                                                                (SettingsService.SelectedBranchName ?? "No Branch")
+                                                                                .Split(' ', StringSplitOptions.RemoveEmptyEntries)
+                                                                                .Take(2)
+                                                                                )
+                                                                                )
+                                    </span>
+
+                                </div>
+                            </div>
+                        </div>
+
+                    </a>
+                    <div class="dropdown-menu menu-drop-user modern-switch-dropdown">
+
+                        <!-- Switch Section -->
+                        @* <div class="switch-section">
+
+                            <!-- Company Row -->
+                            <div class="switch-item">
+                                <div class="switch-left">
+                                    <div class="switch-icon company-bg">
+                                        <i class="ti ti-building"></i>
+                                    </div>
+                                    <div class="switch-text">
+                                        <div class="switch-title">Company</div>
+                                        <div class="switch-value">
+                                            @Companies.FirstOrDefault(x => x.Id == SelectedCompanyId)?.LegalName
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <select class="switch-select form-select"
+                                        @bind="SelectedCompanyId"
+                                        @bind:after="OnCompanyChanged">
+                                    <option value="">--Select Company--</option>
+                                    @foreach (var c in Companies)
+                                    {
+                                        <option value="@c.Id">@c.LegalName</option>
+                                    }
+                                </select>
+                            </div>
+
+                            <!-- Branch Row -->
+                            <div class="switch-item">
+                                <div class="switch-left">
+                                    <div class="switch-icon branch-bg">
+                                        <i class="ti ti-map-pin"></i>
+                                    </div>
+                                    <div class="switch-text">
+                                        <div class="switch-title">Branch</div>
+                                        <div class="switch-value">
+                                            @FilteredBranches.FirstOrDefault(x => x.Id == SelectedBranchId)?.BranchName
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <select class="switch-select form-select"
+                                        @bind="SelectedBranchId"
+                                        @bind:after="OnBranchChanged">
+                                    <option value="">--Select Branch--</option>
+                                    @foreach (var c in FilteredBranches)
+                                    {
+                                        <option value="@c.Id">@c.BranchName</option>
+                                    }
+                                </select>
+                            </div>
+
+                        </div>
+
+                        <div class="menu-divider"></div> *@
+
+                        <!-- Menu Items -->
+                        <a class="modern-link" href="/Setting?tab=1">
+                            <i class="ti ti-user-circle"></i> My Profile
+                        </a>
+                        <a class="modern-link">
+                            <i class="ti ti-file-text"></i> Reports
+                        </a>
+                        <a class="modern-link" href="/Setting?tab=2">
+                            <i class="ti ti-settings-2"></i> Settings
+                        </a>
+
+                        <div class="menu-divider"></div>
+
+                        <a class="modern-link logout-link"
+                           href="javascript:void(0);"
+                           @onclick="HandleLogout">
+                            <i class="ti ti-logout"></i> Logout
+                        </a>
+
+                    </div>
+                </li>
+            </ul>
+            <!-- /Header Menu -->
+            <!-- Mobile Menu -->
+            <div class="dropdown mobile-user-menu">
+
+                <a href="javascript:void(0);"
+                   class="nav-link dropdown-toggle mobile-trigger"
+                   data-bs-toggle="dropdown"
+                   aria-expanded="false">
+                    <i class="ti ti-dots-vertical"></i>
+                </a>
+
+                <div class="dropdown-menu dropdown-menu-end mobile-menu-pro" style="line-height:20px;">
+
+                    <!-- PROFILE CARD -->
+                    <div class="mobile-profile-card">
+                        <div class="profile-row">
+                            <div class="profile-avatar">
+                                @if (!string.IsNullOrEmpty(AuthService.CurrentUser?.ProfilePhoto))
+                                {
+                                    <img src="@AuthService.CurrentUser.ProfilePhoto" />
+                                }
+                                else
+                                {
+                                    <img src="assets/images/avator1.jpg" />
+                                }
+                            </div>
+
+                            <div class="profile-meta">
+                                <div class="profile-name">
+                                    @(
+                                                                        string.Join(" ",
+                                                                        (AuthService.CurrentUser?.UserName ?? "Guest")
+                                                                        .Split(' ', StringSplitOptions.RemoveEmptyEntries)
+                                                                        .Take(2))
+                                                                        )
+                                </div>
+
+                                <div class="profile-branch">
+                                    <i class="ti ti-map-pin"></i>
+                                    @(
+                                                                        string.Join(" ",
+                                                                        (SelectedBranchName ?? "No Branch")
+                                                                        .Split(' ', StringSplitOptions.RemoveEmptyEntries)
+                                                                        .Take(2))
+                                                                        )
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Switch Section -->
+                    @* <div class="switch-section">
+
+                        <!-- Company Row -->
+                        <div class="switch-item">
+                            <div class="switch-left">
+                                <div class="switch-icon company-bg">
+                                    <i class="ti ti-building"></i>
+                                </div>
+                                <div class="switch-text">
+                                    <div class="switch-title">Company</div>
+                                    <div class="switch-value">
+                                        @Companies.FirstOrDefault(x => x.Id == SelectedCompanyId)?.LegalName
+                                    </div>
+                                </div>
+                            </div>
+
+                            <select class="switch-select form-select"
+                                    @bind="SelectedCompanyId"
+                                    @bind:after="OnCompanyChanged">
+                                <option value="">--Select Company--</option>
+                                @foreach (var c in Companies)
+                                {
+                                    <option value="@c.Id">@c.LegalName</option>
+                                }
+                            </select>
+                        </div>
+
+                        <!-- Branch Row -->
+                        <div class="switch-item">
+                            <div class="switch-left">
+                                <div class="switch-icon branch-bg">
+                                    <i class="ti ti-map-pin"></i>
+                                </div>
+                                <div class="switch-text">
+                                    <div class="switch-title">Branch</div>
+                                    <div class="switch-value">
+                                        @FilteredBranches.FirstOrDefault(x => x.Id == SelectedBranchId)?.BranchName
+                                    </div>
+                                </div>
+                            </div>
+
+                            <select class="switch-select form-select"
+                                    @bind="SelectedBranchId"
+                                    @bind:after="OnBranchChanged">
+                                <option value="">--Select Branch--</option>
+                                @foreach (var c in FilteredBranches)
+                                {
+                                    <option value="@c.Id">@c.BranchName</option>
+                                }
+                            </select>
+                        </div>
+
+                    </div>
+
+                    <div class="menu-divider"></div> *@
+
+                    <!-- ACTIONS -->
+                    <div class="mobile-actions-pro">
+
+                        <a href="/Setting?tab=1" class="action-row">
+                            <i class="ti ti-user-circle"></i>
+                            <span>My Profile</span>
+                        </a>
+
+                        <a href="/Setting?tab=2" class="action-row">
+                            <i class="ti ti-settings"></i>
+                            <span>Settings</span>
+                        </a>
+
+                        <a href="javascript:void(0);" class="action-row danger" @onclick="HandleLogout">
+                            <i class="ti ti-logout"></i>
+                            <span>Logout</span>
+                        </a>
+
+                    </div>
+
+                </div>
+            </div>
+
+            <!-- /Mobile Menu -->
+
+
+        </div>
+    </div>
+    <div class="page-wrapper">
+        <div class="toggle-theme" data-bs-toggle="offcanvas" data-bs-target="#theme-setting" style="    position: fixed;
+    right: 0;
+    top: 40%;
+    background: var(--primary);
+    color: white;
+    padding: 10px; cursor:pointer;
+    z-index: 111;
+    border-radius: 13px 0px 0px 13px;">
+            <i class="fa fa-cog fa-w-16 fa-spin"></i>
+        </div>
+        @Body
+        <Footer />
+    </div>
+
+</div>
+
+
+<ScrollToTop />
+
+
+<style>
+    /* Size Tiles */
+    .size-tile-grid {
+        display: grid;
+        grid-template-columns: repeat(6, 1fr);
+        gap: 5px;
+        margin-bottom: 14px;
+    }
+
+    .size-tile {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        padding: 8px 4px 6px;
+        border-radius: 8px;
+        border: 1.5px solid #e8e8e8;
+        cursor: pointer;
+        background: #fafafa;
+        transition: all 0.15s;
+    }
+
+        .size-tile:hover {
+            border-color: var(--primary);
+            background-color: color-mix(in srgb, var(--primary) 20%, white);
+        }
+
+        .size-tile.active {
+            border-color: var(--primary);
+            background: var(--primary);
+        }
+
+    .size-num {
+        font-size: 13px;
+        font-weight: 700;
+        color: #374151;
+    }
+
+    .size-unit {
+        font-size: 8px;
+        color: #9ca3af;
+    }
+
+    .size-tile.active .size-num, .size-tile.active .size-unit {
+        color: #fff;
+    }
+
+    /* Weight Cards */
+    .weight-card-grid {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 5px;
+        margin-bottom: 14px;
+    }
+
+    .weight-card {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        padding: 8px 4px;
+        border-radius: 8px;
+        border: 1.5px solid #e8e8e8;
+        cursor: pointer;
+        background: #fafafa;
+        transition: all 0.15s;
+        gap: 3px;
+    }
+
+        .weight-card:hover {
+            border-color: var(--primary);
+            background-color: color-mix(in srgb, var(--primary) 20%, white);
+        }
+
+        .weight-card.active {
+            border-color: var(--primary);
+            background: var(--primary);
+        }
+
+    .weight-sample {
+        font-size: 16px;
+        color: #374151;
+    }
+
+    .weight-name {
+        font-size: 8px;
+        color: #9ca3af;
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+    }
+
+    .weight-card.active .weight-sample, .weight-card.active .weight-name {
+        color: #fff;
+    }
+
+    /* Line Height */
+    .lh-labels {
+        font-size: 9px;
+        color: #c4c4c4;
+        margin-bottom: 4px;
+    }
+
+    .lh-big-num {
+        font-size: 20px;
+        font-weight: 700;
+        color: #1a1a2e;
+    }
+
+    .lh-unit-text {
+        font-size: 10px;
+        color: #9ca3af;
+    }
+
+    /* Icon wrap */
+    .fs-icon-wrap {
+        width: 26px;
+        height: 26px;
+        border-radius: 7px;
+        background: var(--primary);
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        color: #fff;
+        font-size: 13px;
+    }
+</style>
+
+@* OffCanvas Popup *@
+<div class="sidebar-themesettings offcanvas offcanvas-end" id="theme-setting" aria-modal="true" role="dialog">
+    <div class="offcanvas-header d-flex align-items-center justify-content-between bg-dark">
+        <div>
+            <h3 class="mb-1 text-white">Theme Customizer</h3>
+            <p class="text-white">Choose your themes &amp; layouts etc.</p>
+        </div>
+        @* <a href="#" class="custom-btn-close d-flex align-items-center justify-content-center text-white" data-bs-dismiss="offcanvas"><i class="ti ti-x"></i></a> *@
+    </div>
+    <div class="themecard-body offcanvas-body" style="margin-bottom: 60px;">
+        <div class="accordion accordion-customicon1 accordions-items-seperate" id="settingtheme">
+            @* Theme color *@
+            <div class="accordion-item border px-3">
+                <h2 class="accordion-header">
+                    <button class="accordion-button text-dark fs-16 px-0 py-3 bg-transparent" type="button" data-bs-toggle="collapse" data-bs-target="#sidebarcolor2" aria-expanded="true">
+                        Theme Colors
+                    </button>
+                </h2>
+                <div id="sidebarcolor2" class="accordion-collapse collapse show">
+                    <div class="accordion-body pb-2 px-0 py-3 border-top">
+
+                        <div class="d-flex align-items-center flex-wrap">
+                            <div class="color-wrapper">
+
+                                @foreach (var color in PrimaryPresets)
+                                {
+                                    <div class="color-item"
+                                         @onclick="() => SetPrimaryButtonPreset(color)">
+
+                                        <div class="color-circle @(PrimaryButton?.ToLower() == color.ToLower() ? "active" : "")"
+                                             style="background:@color">
+
+                                            @if (PrimaryButton?.ToLower() == color.ToLower())
+                                            {
+                                                <span class="tick">
+                                                    <i class="bi bi-check"></i>
+                                                </span>
+                                            }
+                                        </div>
+                                    </div>
+                                }
+
+                                @* Custom Color *@
+                                @if (IsCustomPrimary)
+                                {
+                                    <div class="color-item">
+                                        <div class="color-circle active"
+                                             style="background:var(--primary)">
+
+                                            <span class="tick">
+                                                <i class="bi bi-check"></i>
+                                            </span>
+                                        </div>
+                                    </div>
+                                }
+
+                                <!-- Color Picker -->
+                                <label class="color-picker-btn">
+                                    <input type="color"
+                                           value="@PrimaryButton"
+                                           @oninput="OnPrimaryButtonPreviewChanged" />
+                                    <i class="bi bi-eyedropper" style="color:var(--primary)"></i>
+                                </label>
+
+                            </div>
+                        </div>
+
+                    </div>
+                </div>
+            </div>
+
+
+            @* Secondary Color *@
+            <div class="accordion-item border px-3">
+                <h2 class="accordion-header">
+                    <button class="accordion-button text-dark fs-16 px-0 py-3 bg-transparent"
+                            type="button"
+                            data-bs-toggle="collapse"
+                            data-bs-target="#sidebarcolorSecondary"
+                            aria-expanded="true">
+                        Secondary Colors
+                    </button>
+                </h2>
+                <div id="sidebarcolorSecondary" class="accordion-collapse collapse show">
+                    <div class="accordion-body pb-2 px-0 py-3 border-top">
+                        <div class="d-flex align-items-center flex-wrap">
+                            <div class="color-wrapper">
+                                @foreach (var color in SecondaryPresets)
+                                {
+                                    <div class="color-item"
+                                         @onclick="() => SetSecondaryPreset(color)">
+
+                                        <div class="color-circle @(SecondaryColor?.ToLower() == color.ToLower() ? "active" : "")"
+                                             style="background:@color">
+
+                                            @if (SecondaryColor?.ToLower() == color.ToLower())
+                                            {
+                                                <span class="tick">
+                                                    <i class="bi bi-check"></i>
+                                                </span>
+                                            }
+                                        </div>
+                                    </div>
+                                }
+                                @* Custom Secondary *@
+                                @if (IsCustomSecondary)
+                                {
+                                    <div class="color-item">
+                                        <div class="color-circle active"
+                                             style="background:var(--secondary)">
+
+                                            <span class="tick">
+                                                <i class="bi bi-check"></i>
+                                            </span>
+                                        </div>
+                                    </div>
+                                }
+                                <label class="color-picker-btn">
+                                    <input type="color"
+                                           value="@SecondaryColor"
+                                           @oninput="OnSecondaryPreviewChanged" />
+                                    <i class="bi bi-eyedropper" style="color:var(--secondary)"></i>
+                                </label>
+
+                            </div>
+                        </div>
+
+                    </div>
+                </div>
+            </div>
+
+            @* Select Layouts *@
+            <div class="accordion-item border px-3" id="Select_Layout">
+                <h2 class="accordion-header">
+                    <button class="accordion-button text-dark fs-16 px-0 py-3 bg-transparent"
+                            type="button" data-bs-toggle="collapse"
+                            data-bs-target="#sidebarcolorLayouts" aria-expanded="true">
+                        Select Layouts
+                    </button>
+                </h2>
+                <div id="sidebarcolorLayouts" class="accordion-collapse collapse show">
+                    <div class="accordion-body pb-3 px-0 py-3 border-top">
+
+                        <input type="radio" name="width" id="fluidWidth" value="fluid" style="display:none">
+                        <input type="radio" name="width" id="boxWidth" value="box" style="display:none">
+
+                        <div class="layout-card-group">
+
+                            <!-- Horizontal -->
+                            <div class="layout-card @(LayoutMode == "fluid" ? "active" : "")"
+                                 id="card-horizontal"
+                                 @onclick='() => SelectLayout("fluid")'
+                                 title="Horizontal">
+                                <div class="layout-preview horizontal-preview">
+                                    <div class="lp-topbar">
+                                        <div class="lp-logo"></div>
+                                        <div class="lp-nav">
+                                            <span></span><span></span><span></span><span></span>
+                                        </div>
+                                    </div>
+                                    <div class="lp-body">
+                                        <div class="lp-content">
+                                            <div class="lp-block"></div>
+                                            <div class="lp-block short"></div>
+                                            <div class="lp-block"></div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="layout-card-label">
+                                    <i class="ti ti-layout-navbar me-1"></i>Horizontal
+                                </div>
+                                <div class="layout-card-check">
+                                    <i class="ti ti-circle-check-filled"></i>
+                                </div>
+                            </div>
+
+                            <!-- Vertical -->
+                            <div class="layout-card @(LayoutMode == "box" ? "active" : "")"
+                                 id="card-vertical"
+                                 @onclick='() => SelectLayout("box")'
+                                 title="Vertical">
+                                <div class="layout-preview vertical-preview">
+                                    <div class="lp-sidebar">
+                                        <div class="lp-logo-v"></div>
+                                        <div class="lp-menu">
+                                            <span></span><span></span><span></span><span></span><span></span>
+                                        </div>
+                                    </div>
+                                    <div class="lp-main">
+                                        <div class="lp-header-v"></div>
+                                        <div class="lp-content-v">
+                                            <div class="lp-block"></div>
+                                            <div class="lp-block short"></div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="layout-card-label">
+                                    <i class="ti ti-layout-sidebar me-1"></i>Vertical
+                                </div>
+                                <div class="layout-card-check">
+                                    <i class="ti ti-circle-check-filled"></i>
+                                </div>
+                            </div>
+
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <style>
+                .btn-group .option-btn.active {
+                    background: var(--primary);
+                    color: white;
+                    border: 1px solid var(--primary);
+                }
+                /* ── Group Label ── */
+                .ff-label {
+                    display: flex;
+                    align-items: center;
+                    gap: 8px;
+                    margin: 18px 0 10px;
+                    font-size: 11px;
+                    font-weight: 600;
+                    letter-spacing: 0.1em;
+                    text-transform: uppercase;
+                    color: #1313138a;
+                }
+
+                .ff-label-dot {
+                    width: 6px;
+                    height: 6px;
+                    border-radius: 50%;
+                    background: var(--primary);
+                    flex-shrink: 0;
+                }
+
+                /* ── Font Grid ── */
+                .ff-grid {
+                    display: flex;
+                    flex-wrap: wrap;
+                    gap: 6px;
+                }
+
+                /* ── Font Pill Button ── */
+                .ff-pill {
+                    padding: 6px 13px;
+                    border-radius: 8px;
+                    border: 1px solid rgb(181 180 180 / 64%);
+                    background: rgb(109 106 106 / 9%);
+                    color: #00000087;
+                    font-size: 12px;
+                    font-weight: 500;
+                    cursor: pointer;
+                    user-select: none;
+                    white-space: nowrap;
+                    line-height: 1.4;
+                }
+
+                    .ff-pill:hover {
+                        border: 1px solid var(--primary);
+                        color: var(--primary);
+                        background: rgb(255 255 255 / 8%);
+                    }
+
+                    .ff-pill.active {
+                        background: var(--primary);
+                        border-color: var(--primary);
+                        color: #fff;
+                        box-shadow: 0 0 0 3px rgba(var(--primary-rgb), 0.4);
+                        font-weight: 600;
+                    }
+
+                /* ── Active indicator badge ── */
+                .ff-active-badge {
+                    margin-left: 6px;
+                    font-size: 9px;
+                    letter-spacing: 0.05em;
+                    background: rgb(0 0 0 / 13%);
+                    border-radius: 4px;
+                    padding: 1px 5px;
+                    vertical-align: middle;
+                }
+
+            </style>
+
+            @* Font Family *@
+            <div class="accordion-item border px-3">
+                <h2 class="accordion-header">
+                    <button class="accordion-button text-dark fs-16 px-0 py-3 bg-transparent"
+                            type="button" data-bs-toggle="collapse" data-bs-target="#fontSection">
+                        Font Family
+                    </button>
+                </h2>
+                <div id="fontSection" class="accordion-collapse collapse show">
+                    <div class="accordion-body border-top p-0 mb-3">
+                        <div class="ff-body p-0">
+
+                            @* ── Menu Font ── *@
+                            <div class="ff-label"><span class="ff-label-dot"></span>Menu Font</div>
+                            <div class="ff-grid">
+                                @foreach (var font in Fonts)
+                                {
+                                    <label class="ff-pill @(SelectedMenuFont == font.Value ? "active" : "")"
+                                           @onclick="@(() => SetFont("--font-menu", font.Value, "menu"))">
+                                        @font.Name
+                                        @if (SelectedMenuFont == font.Value)
+                                        {
+                                            <span class="ff-active-badge" style="color: white;">✓</span>
+                                        }
+                                    </label>
+                                }
+                            </div>
+
+                            @* ── Heading Font ── *@
+                            <div class="ff-label"><span class="ff-label-dot"></span>Heading Font</div>
+                            <div class="ff-grid">
+                                @foreach (var font in Fonts)
+                                {
+                                    <label class="ff-pill @(SelectedHeadingFont == font.Value ? "active" : "")"
+                                           @onclick="@(() => SetFont("--font-heading", font.Value, "heading"))">
+                                        @font.Name
+                                        @if (SelectedHeadingFont == font.Value)
+                                        {
+                                            <span class="ff-active-badge" style="color: white;">✓</span>
+                                        }
+                                    </label>
+                                }
+                            </div>
+
+                            @* ── Number Font ── *@
+                            <div class="ff-label"><span class="ff-label-dot"></span>Number Font</div>
+                            <div class="ff-grid">
+                                @foreach (var font in Fonts)
+                                {
+                                    <label class="ff-pill @(SelectedNumberFont == font.Value ? "active" : "")"
+                                           @onclick="@(() => SetFont("--font-number", font.Value, "number"))">
+                                        @font.Name
+                                        @if (SelectedNumberFont == font.Value)
+                                        {
+                                            <span class="ff-active-badge" style="color: white;">✓</span>
+                                        }
+                                    </label>
+                                }
+                            </div>
+
+                            @* ── Other Font ── *@
+                            <div class="ff-label"><span class="ff-label-dot"></span>Other Font</div>
+                            <div class="ff-grid">
+                                @foreach (var font in Fonts)
+                                {
+                                    <label class="ff-pill @(SelectedOtherFont == font.Value ? "active" : "")"
+                                           @onclick="@(() => SetFont("--font-other", font.Value, "other"))">
+                                        @font.Name
+                                        @if (SelectedOtherFont == font.Value)
+                                        {
+                                            <span class="ff-active-badge" style="color: white;">✓</span>
+                                        }
+                                    </label>
+                                }
+                            </div>
+
+                        </div>
+
+                    </div>
+                </div>
+            </div>
+
+            @* Font Size & Style *@
+            <div class="accordion-item border px-3">
+                <h2 class="accordion-header">
+                    <button class="accordion-button text-dark fs-16 px-0 py-3 bg-transparent"
+                            type="button" data-bs-toggle="collapse" data-bs-target="#fontSizeSection">
+                        <span class="d-flex align-items-center gap-2">
+                            <span class="fs-icon-wrap">
+                                <i class="bi bi-type"></i>
+                            </span>
+                            Font Size &amp; Style
+                        </span>
+                    </button>
+                </h2>
+                <div id="fontSizeSection" class="accordion-collapse collapse show">
+                    <div class="accordion-body border-top p-0 pb-3">
+
+                        @* Font Size *@
+                        <div class="ff-label"><span class="ff-label-dot"></span>Font Size</div>
+                        <div class="size-tile-grid">
+                            @foreach (var size in FontSizes)
+                            {
+                                <div class="size-tile @(SelectedFontSize == size.ToString() ? "active" : "")"
+                                     @onclick="@(() => SetFontSize(size))">
+                                    <span class="size-num">@size</span>
+                                    <span class="size-unit">px</span>
+                                </div>
+                            }
+                        </div>
+
+                        @* Font Weight *@
+                        <div class="ff-label"><span class="ff-label-dot"></span>Font Weight</div>
+                        <div class="weight-card-grid">
+                            @foreach (var w in FontWeights)
+                            {
+                                <div class="weight-card @(SelectedFontWeight == w.Value ? "active" : "")"
+                                     @onclick="@(() => SetFontWeight(w.Value))">
+                                    <span class="weight-sample" style="font-weight:@w.Value">Aa</span>
+                                    <span class="weight-name">@w.Label</span>
+                                </div>
+                            }
+                        </div>
+
+                        @* Line Height *@
+                        <div class="ff-label"><span class="ff-label-dot"></span>Line Height</div>
+                        <div class="lh-labels d-flex justify-content-between">
+                            <span>Tight 1.2</span><span>Normal 1.6</span><span>Loose 2.2</span>
+                        </div>
+                        <div class="font-slider-wrap">
+                            <input type="range" min="1.2" max="2.2" step="0.1"
+                                   value="@SelectedLineHeight"
+                                   class="font-range w-100"
+                                   @oninput="OnLineHeightPreview" />
+                        </div>
+                        <div class="lh-val-row d-flex align-items-center justify-content-between mt-1">
+                            <div class="d-flex align-items-baseline gap-1">
+                                <span class="lh-big-num">@SelectedLineHeight</span>
+                                <span class="lh-unit-text">line-height</span>
+                            </div>
+                        </div>
+
+                    </div>
+                </div>
+            </div>
+            @* Dark Theme mode  *@
+            <div class="accordion-item border px-3">
+                <h2 class="accordion-header">
+                    <button class="accordion-button text-dark fs-16 px-0 py-3 bg-transparent" type="button" data-bs-toggle="collapse" data-bs-target="#modesetting" aria-expanded="true">
+                        Theme Mode
+                    </button>
+                </h2>
+                <div id="modesetting" class="accordion-collapse collapse show">
+                    <div class="accordion-body px-0 py3 border-top">
+                        <div class="d-flex align-items-center mt-3">
+
+                            <!-- Light -->
+                            <div class="theme-mode flex-fill text-center w-100 me-3">
+                                <input type="radio"
+                                       name="theme"
+                                       id="lightTheme"
+                                       checked="@(!IsDarkMode)"
+                                       @onclick='() => SetThemeMode(false)' />
+
+                                <label for="lightTheme" class="rounded fw-medium w-100">
+                                    <span class="d-inline-flex rounded me-2">
+                                        <i class="ti ti-sun-filled"></i>
+                                    </span>
+                                    Light
+                                </label>
+                            </div>
+
+                            <!-- Dark -->
+                            <div class="theme-mode flex-fill text-center w-100 me-3">
+                                <input type="radio"
+                                       name="theme"
+                                       id="darkTheme"
+                                       checked="@(IsDarkMode)"
+                                       @onclick='() => SetThemeMode(true)' />
+
+                                <label for="darkTheme" class="rounded fw-medium w-100">
+                                    <span class="d-inline-flex rounded me-2">
+                                        <i class="ti ti-moon-filled"></i>
+                                    </span>
+                                    Dark
+                                </label>
+                            </div>
+
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+
+            @* Sidebar Background *@
+            <div class="accordion-item border px-3 layout-select themesidebar-background">
+                <h2 class="accordion-header">
+                    <button class="accordion-button text-dark fs-16 px-0 py-3 bg-transparent" type="button" data-bs-toggle="collapse" data-bs-target="#sidebarbgsetting" aria-expanded="true">
+                        Sidebar Background
+                    </button>
+                </h2>
+                <div id="sidebarbgsetting" class="accordion-collapse collapse show">
+                    <div class="accordion-body pb-1 px-0 py-3 border-top">
+                        <div class="d-flex align-items-center flex-wrap gap-2">
+
+                            <!-- NONE OPTION -->
+                            <div class="bg-card @(SelectedBg == null ? "selected" : "")"
+                                 @onclick="() => SelectBg(null)" style="background: #80808012;">
+
+                                <div class="none-bg" style="    display: flex;
+    align-items: center;
+    flex-direction: column;
+    justify-content: center;
+    margin-top: 10px;">
+                                    <i class="ti ti-ban"></i>
+                                    <span>None</span>
+                                </div>
+
+                                @if (SelectedBg == null)
+                                {
+                                    <span class="check-icon">✓</span>
+                                }
+                            </div>
+
+                            @foreach (var bg in Backgrounds)
+                            {
+                                <div class="bg-card @(SelectedBg == bg ? "selected" : "")"
+                                     @onclick="() => SelectBg(bg)">
+
+                                    <img src="@bg" />
+
+                                    @if (SelectedBg == bg)
+                                    {
+                                        <span class="check-icon">✓</span>
+                                    }
+                                </div>
+                            }
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            @* Icon Color *@
+            <div class="accordion-item border px-3">
+                <h2 class="accordion-header">
+                    <button class="accordion-button text-dark fs-16 px-0 py-3 bg-transparent"
+                            type="button"
+                            data-bs-toggle="collapse"
+                            data-bs-target="#sidebarIconColor">
+                        Icon Colors
+                    </button>
+                </h2>
+
+                <div id="sidebarIconColor" class="accordion-collapse collapse show">
+                    <div class="accordion-body pb-2 px-0 py-3 border-top">
+
+                        <div class="color-wrapper d-flex flex-wrap">
+
+                            @foreach (var color in IconPresets)
+                            {
+                                <div class="color-item"
+                                     @onclick="() => SetIconPreset(color)">
+
+                                    <div class="color-circle @(IconColor?.ToLower() == color.ToLower() ? "active" : "")"
+                                         style="background:@color">
+
+                                        @if (IconColor?.ToLower() == color.ToLower())
+                                        {
+                                            <span class="tick">
+                                                <i class="bi bi-check"></i>
+                                            </span>
+                                        }
+                                    </div>
+                                </div>
+                            }
+
+                            @if (IsCustomIcon)
+                            {
+                                <div class="color-item">
+                                    <div class="color-circle active"
+                                         style="background:var(--icon-color)">
+
+                                        <span class="tick">
+                                            <i class="bi bi-check" ></i>
+                                        </span>
+                                    </div>
+                                </div>
+                            }
+
+                            <label class="color-picker-btn">
+                                <input type="color"
+                                       value="@IconColor"
+                                       @oninput="OnIconPreviewChanged" />
+                                <i class="bi bi-eyedropper" style="color:var(--icon-color)"></i>
+                            </label>
+
+                        </div>
+                    </div>
+                </div>
+            </div>
+            @* Heading Color *@
+            <div class="accordion-item border px-3">
+                <h2 class="accordion-header">
+                    <button class="accordion-button text-dark fs-16 px-0 py-3 bg-transparent"
+                            type="button"
+                            data-bs-toggle="collapse"
+                            data-bs-target="#sidebarHeadingColor">
+                        Heading Colors
+                    </button>
+                </h2>
+
+                <div id="sidebarHeadingColor" class="accordion-collapse collapse show">
+                    <div class="accordion-body pb-2 px-0 py-3 border-top">
+
+                        <div class="color-wrapper d-flex flex-wrap">
+
+                            @foreach (var color in HeadingPresets)
+                            {
+                                <div class="color-item"
+                                     @onclick="() => SetHeadingPreset(color)">
+
+                                    <div class="color-circle @(HeadingColor?.ToLower() == color.ToLower() ? "active" : "")"
+                                         style="background:@color">
+
+                                        @if (HeadingColor?.ToLower() == color.ToLower())
+                                        {
+                                            <span class="tick">
+                                                <i class="bi bi-check"></i>
+                                            </span>
+                                        }
+                                    </div>
+                                </div>
+                            }
+
+                            @if (IsCustomHeading)
+                            {
+                                <div class="color-item">
+                                    <div class="color-circle active"
+                                         style="background:var(--heading-color)">
+
+                                        <span class="tick">
+                                            <i class="bi bi-check"></i>
+                                        </span>
+                                    </div>
+                                </div>
+                            }
+
+                            <label class="color-picker-btn">
+                                <input type="color"
+                                       value="@HeadingColor"
+                                       @oninput="OnHeadingPreviewChanged" />
+                                <i class="bi bi-eyedropper" style="color:var(--heading-color)"></i>
+                            </label>
+
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            @*  Shadow & Radius *@
+            <div class="accordion-item border px-3 layout-select themesidebar-background">
+                <h2 class="accordion-header">
+                    <button class="accordion-button text-dark fs-16 px-0 py-3 bg-transparent" type="button" data-bs-toggle="collapse" data-bs-target="#Shadow" aria-expanded="true">
+                        Shadow & Radius
+                    </button>
+                </h2>
+                <div id="Shadow" class="accordion-collapse collapse show">
+                    <div class="accordion-body pb-1 px-0 py-3 border-top">
+                        <div class="d-flex align-items-center flex-wrap gap-2">
+                            <div class="font-slider-wrap" style="width: 100%;margin-bottom: 13px;">
+
+                                <input type="range"
+                                       min="0"
+                                       max="40"
+                                       step="1"
+                                       value="@ShadowLevel"
+                                       class="font-range"
+                                       @oninput="OnShadowPreview" />
+
+                                <span class="font-value">@ShadowLevel</span>
+
+                            </div>
+                        </div>
+                        @* Border Radius  *@
+                        <div class="d-flex align-items-center flex-wrap gap-2">
+                            <div class="" style="width: 100%;margin-bottom: 13px;">
+                                <h4 class="accordion-button text-dark fs-16 px-0 py-3 bg-transparent">Border Radius</h4>
+
+                                <div class="radius-slider-wrap">
+                                    <input type="range"
+                                           min="0"
+                                           max="40"
+                                           step="1"
+                                           value="@borderRadiusLevel"
+                                           class="radius-range"
+                                           @oninput="OnBorderRadiusPreview" />
+
+                                    <span class="radius-value">@borderRadiusLevel px</span>
+                                </div>
+
+                            </div>
+                        </div>
+
+                        @* Button Radius  *@
+                        <div class="d-flex align-items-center flex-wrap gap-2">
+                            <div class="" style="width: 100%;margin-bottom: 13px;">
+                                <h4 class="accordion-button text-dark fs-16 px-0 py-3 bg-transparent">Button Radius</h4>
+
+                                <div class="radius-slider-wrap">
+                                    <input type="range"
+                                           min="0"
+                                           max="40"
+                                           step="1"
+                                           value="@buttonRadiusLevel"
+                                           class="radius-range"
+                                           @oninput="OnButtonRadiusPreview" />
+
+                                    <span class="radius-value">@buttonRadiusLevel px</span>
+                                </div>
+                            </div>
+                        </div>
+
+                    </div>
+                </div>
+            </div>
+
+            @* Profile Image  *@
+            <div class="accordion-item border px-3 layout-select themesidebar-background">
+                <h2 class="accordion-header">
+                    <button class="accordion-button text-dark fs-16 px-0 py-3 bg-transparent" type="button" data-bs-toggle="collapse" data-bs-target="#ProfileImageSetting" aria-expanded="true">
+                        Profile Image (Choose 1 of 10)
+                    </button>
+                </h2>
+                <div id="ProfileImageSetting" class="accordion-collapse collapse show">
+                    <div class="accordion-body pb-1 px-0 py-3 border-top mb-2">
+                        <div class="image-grid">
+
+                            @foreach (var img in ProfileImages)
+                            {
+                                <div class="img-opt"
+                                     data-url="@img"
+                                     style="background-image:url('@img')"
+                                     @onclick="() => OnProfilePreview(img)">
+                                </div>
+                            }
+
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+
+        </div>
+
+
+        <div class="p-3 pt-0 themeFooter" style="    position: absolute;
+    bottom: 0;
+    width: 100%;
+    background: white;
+    right: 0;
+    left: 0;z-index: 11111111;
+    padding-top: 17px !important;">
+            <div class="row gx-3">
+                <div class="col-6">
+                    <a href="#"
+                       id="resetbutton"
+                       class="btn close-theme w-100 btn-outline-secondary p-2 text-center"
+                       @onclick="CancelTheme">
+
+                        <i class="bi bi-arrow-counterclockwise me-2"></i>
+                        Reset
+                    </a>
+                </div>
+                @* <div class="col-4">
+                    <a href="#"
+                       class="btn close-theme w-100 btn-outline-secondary p-2 text-center"
+                       data-bs-dismiss="offcanvas">
+
+                        <i class="bi bi-x-circle me-2"></i>
+                        Close
+                    </a>
+                </div> *@
+                <div class="col-6">
+                    <a href="#"
+                       class="btn btn-primary w-100 text-center"
+                       data-bs-dismiss="offcanvas"
+                       @onclick="SaveTheme">
+
+                        <i class="bi bi-check-circle me-2"></i>
+                        Save
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+
+
+<script>
+    window.openBranchModal = () => {
+        const modal = new bootstrap.Modal(document.getElementById('branchModal'));
+        modal.show();
+    };
+
+    window.closeBranchModal = () => {
+        const modalEl = document.getElementById('branchModal');
+        const modal = bootstrap.Modal.getInstance(modalEl);
+        if (modal) modal.hide();
+    };
+</script>
+
+
+@code {
+    string? SelectedBg;
+    [Parameter] public string LayoutMode { get; set; } = "box";
+    private string IconColor = "#64748b";
+    private string HeadingColor = "#000000";
+    private string PrimaryButton = "#FE9F43";
+    private bool IsDarkMode;
+    private string SelectedFont = "Nunito, sans-serif";
+    private string SelectedMenuFont = "Nunito, sans-serif";
+    private string SelectedNumberFont = "Nunito, sans-serif";
+    private string SelectedHeadingFont = "Nunito, sans-serif";
+    private string SelectedOtherFont = "Nunito, sans-serif";
+
+    private string SecondaryColor = "#051a2c";
+    private int ShadowLevel = 15;
+    private int borderRadiusLevel = 8;
+    private int buttonRadiusLevel = 8;
+    private string? SelectedProfilePhoto;
+    public List<int> FontSizes = new() { 12, 13, 14, 15, 16, 18 };
+    public string SelectedFontWeight { get; set; } = "400";
+    public double SelectedLineHeight { get; set; } = 1.6;
+    public string SelectedFontSize { get; set; } = "14";
+
+    public List<(string Label, string Value)> FontWeights = new()
+{
+    ("Light", "300"), ("Regular", "400"), ("Medium", "500"), ("Bold", "600")
+};
+
+    List<string> ProfileImages = new()
+    {
+        "https://picsum.photos/seed/user1/100/100",
+        "https://picsum.photos/seed/user2/100/100",
+        "https://picsum.photos/seed/user3/100/100",
+        "https://picsum.photos/seed/user4/100/100",
+        "https://picsum.photos/seed/user5/100/100",
+        "https://picsum.photos/seed/user6/100/100",
+        "https://picsum.photos/seed/user7/100/100",
+        "https://picsum.photos/seed/user8/100/100",
+        "https://picsum.photos/seed/user9/100/100",
+        "https://picsum.photos/seed/user10/100/100"
+    };
+
+    List<string> Backgrounds = new()
+    {
+        "https://dreamspos.dreamstechnologies.com/html/template/assets/img/theme/bg-01.jpg",
+        "https://dreamspos.dreamstechnologies.com/html/template/assets/img/theme/bg-02.jpg",
+        "https://dreamspos.dreamstechnologies.com/html/template/assets/img/theme/bg-03.jpg",
+        "https://dreamspos.dreamstechnologies.com/html/template/assets/img/theme/bg-04.jpg",
+        "https://dreamspos.dreamstechnologies.com/html/template/assets/img/theme/bg-05.jpg",
+        "https://dreamspos.dreamstechnologies.com/html/template/assets/img/theme/bg-06.jpg"
+    };
+
+
+    private bool IsCustomPrimary => IsCustom(PrimaryButton, PrimaryPresets);
+    private bool IsCustomSecondary => IsCustom(SecondaryColor, SecondaryPresets);
+    private bool IsCustomIcon => IsCustom(IconColor, IconPresets);
+    private bool IsCustomHeading => IsCustom(HeadingColor, HeadingPresets);
+    private bool IsCustom(string? color, List<string>? presets)
+    {
+        return !string.IsNullOrWhiteSpace(color) &&
+               presets != null &&
+               !presets.Contains(color.ToLower());
+    }
+
+    private List<string> DefaultPrimaryPresets = new()
+{
+    "#f97316",
+    "#ef4444",
+    "#8b5cf6",
+    "#10b981",
+    "#fb3cf9"
+};
+    private List<string> PrimaryPresets = new();
+
+
+    private List<string> DefaultSecondaryPresets = new()
+{
+    "#f97316",
+    "#ef4444",
+    "#8b5cf6",
+    "#10b981",
+    "#fb3cf9"
+};
+    private List<string> SecondaryPresets = new();
+
+    private List<string> DefaultIconPresets = new()
+{
+    "#f97316",
+    "#ef4444",
+    "#8b5cf6",
+    "#10b981",
+    "#fb3cf9"
+};
+    private List<string> IconPresets = new();
+
+    private List<string> DefaultHeadingPresets = new()
+{
+    "#f97316",
+    "#ef4444",
+    "#8b5cf6",
+    "#10b981",
+    "#fb3cf9"
+};
+    private List<string> HeadingPresets = new();
+
+    List<(string Name, string Value)> Fonts = new()
+    {
+        ("Inter",      "Inter, sans-serif"),
+        ("Roboto",     "Roboto, sans-serif"),
+        ("Poppins",    "Poppins, sans-serif"),
+        ("Nunito",     "Nunito, sans-serif"),
+        ("Georgia",    "Georgia, serif"),
+        ("Times",      "Times New Roman, serif"),
+        ("Courier",    "Courier New, monospace"),
+        ("Montserrat", "Montserrat, sans-serif"),
+        ("Lato",       "Lato, sans-serif"),
+    };
+
+    private async Task SetFont(string cssVariable, string fontValue, string type)
+    {
+
+
+        switch (type)
+        {
+            case "menu": SelectedMenuFont = fontValue; break;
+            case "heading": SelectedHeadingFont = fontValue; break;
+            case "number": SelectedNumberFont = fontValue; break;
+            case "other": SelectedOtherFont = fontValue; break;
+        }
+
+        StateHasChanged();
+    }
+
+    void SetFontSize(int size)
+    {
+        SelectedFontSize = size.ToString();
+    }
+    void SetFontWeight(string w)
+    {
+        SelectedFontWeight = w;
+    }
+    void OnLineHeightPreview(ChangeEventArgs e)
+    {
+        SelectedLineHeight = double.Parse(e.Value?.ToString() ?? "1.6");
+    }
+    // ── Layout ──────────────────────────────────────
+    private async Task SelectLayout(string mode)
+    {
+        LayoutMode = mode;
+        StateHasChanged();
+    }
+
+    // ── Background ──────────────────────────────────
+    async Task SelectBg(string bg)
+    {
+        SelectedBg = bg;
+        await JS.InvokeVoidAsync("setSidebarBackground", bg);
+    }
+
+    // ── Primary Color ───────────────────────────────
+    private async Task SetPrimaryButtonPreset(string color)
+    {
+        PrimaryButton = color.ToLower();
+        await JS.InvokeVoidAsync("setPreviewPrimaryButtonColor", PrimaryButton);
+        StateHasChanged();
+    }
+
+    private async Task OnPrimaryButtonPreviewChanged(ChangeEventArgs e)
+    {
+        PrimaryButton = e.Value?.ToString()?.ToLower() ?? "#fe9f43";
+
+        await JS.InvokeVoidAsync("setPreviewPrimaryButtonColor", PrimaryButton);
+        StateHasChanged();
+    }
+
+    // ── Theme Mode ──────────────────────────────────
+    private async Task SetThemeMode(bool dark)
+    {
+        IsDarkMode = dark;
+        await JS.InvokeVoidAsync("previewDarkMode", IsDarkMode);
+    }
+
+    private async Task ToggleDark()
+    {
+        await SetThemeMode(!IsDarkMode);
+    }
+
+    // ── Secondary Color ─────────────────────────────
+    private async Task SetSecondaryPreset(string color)
+    {
+        SecondaryColor = color;
+        await JS.InvokeVoidAsync("document.documentElement.style.setProperty", "--preview-secondary", color);
+    }
+
+    private async Task OnSecondaryPreviewChanged(ChangeEventArgs e)
+    {
+        SecondaryColor = e.Value?.ToString() ?? "#64748b";
+        await JS.InvokeVoidAsync("document.documentElement.style.setProperty", "--preview-secondary", SecondaryColor);
+    }
+
+    // ── Font ────────────────────────────────────────
+    private async Task SetFont(string font)
+    {
+        SelectedFont = font;
+        await JS.InvokeVoidAsync("document.documentElement.style.setProperty", "--preview-font-family", font);
+    }
+
+    // ── Shadow ──────────────────────────────────────
+    private async Task OnShadowPreview(ChangeEventArgs e)
+    {
+        ShadowLevel = int.Parse(e.Value!.ToString()!);
+        var strength = ShadowLevel / 100.0;
+        await JS.InvokeVoidAsync("document.documentElement.style.setProperty", "--shadow-strength", strength.ToString("0.00"));
+    }
+
+    // ── Border Radius ───────────────────────────────
+    private async Task OnBorderRadiusPreview(ChangeEventArgs e)
+    {
+        borderRadiusLevel = int.Parse(e.Value!.ToString()!);
+        await JS.InvokeVoidAsync("document.documentElement.style.setProperty", "--preview-radius", $"{borderRadiusLevel}px");
+    }
+
+    // ── Button Radius ───────────────────────────────
+    private async Task OnButtonRadiusPreview(ChangeEventArgs e)
+    {
+        buttonRadiusLevel = int.Parse(e.Value!.ToString()!);
+        await JS.InvokeVoidAsync("document.documentElement.style.setProperty", "--preview-btn-radius", $"{buttonRadiusLevel}px");
+    }
+
+    // ── Profile Image ───────────────────────────────
+    private async Task OnProfilePreview(string url)
+    {
+        SelectedProfilePhoto = url;
+        await JS.InvokeVoidAsync("profilePreview.setActive", url);
+    }
+
+    // ── Icon Color ──────────────────────────────────
+    private async Task SetIconPreset(string color)
+    {
+        IconColor = color;
+        await JS.InvokeVoidAsync("setPreviewIconColor", IconColor);
+    }
+
+    private async Task OnIconPreviewChanged(ChangeEventArgs e)
+    {
+        IconColor = e.Value?.ToString() ?? "#000000";
+        await JS.InvokeVoidAsync("setPreviewIconColor", IconColor);
+    }
+
+    // ── Heading Color ───────────────────────────────
+    private async Task SetHeadingPreset(string color)
+    {
+        HeadingColor = color;
+        await JS.InvokeVoidAsync("setPreviewHeadingColor", HeadingColor);
+    }
+
+    private async Task OnHeadingPreviewChanged(ChangeEventArgs e)
+    {
+        HeadingColor = e.Value?.ToString() ?? "#111827";
+        await JS.InvokeVoidAsync("setPreviewHeadingColor", HeadingColor);
+    }
+
+    // ── OnAfterRenderAsync ───
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+
+            // Url
+            var redirectUrl = await JS.InvokeAsync<string>("localStorage.getItem", "theme-reset-redirect");
+            if (!string.IsNullOrEmpty(redirectUrl))
+            {
+                await JS.InvokeVoidAsync("localStorage.removeItem", "theme-reset-redirect");
+                Navigation.NavigateTo(redirectUrl, false);
+            }
+
+            // Primary Color
+            var savedPrimary = await JS.InvokeAsync<List<string>>("themeStorage.loadPrimaryColors");
+            PrimaryPresets = new List<string>(DefaultPrimaryPresets);
+            if (savedPrimary != null)
+            {
+                foreach (var color in savedPrimary)
+                    if (!PrimaryPresets.Contains(color.ToLower()))
+                        PrimaryPresets.Add(color.ToLower());
+            }
+
+            // secondary Color
+            var savedSecondary = await JS.InvokeAsync<List<string>>("themeStorage.loadSecondaryColors");
+            SecondaryPresets = new List<string>(DefaultSecondaryPresets);
+            if (savedSecondary != null)
+            {
+                foreach (var color in savedSecondary)
+                    if (!SecondaryPresets.Contains(color.ToLower()))
+                        SecondaryPresets.Add(color.ToLower());
+            }
+            // Icon Color
+            var savedIcon = await JS.InvokeAsync<List<string>>("themeStorage.loadIconColors");
+            IconPresets = new List<string>(DefaultIconPresets);
+            if (savedIcon != null)
+            {
+                foreach (var color in savedIcon)
+                    if (!IconPresets.Contains(color.ToLower()))
+                        IconPresets.Add(color.ToLower());
+            }
+
+            // Heading Color
+            var savedHeading = await JS.InvokeAsync<List<string>>("themeStorage.loadHeadingColors");
+            HeadingPresets = new List<string>(DefaultHeadingPresets);
+            if (savedHeading != null)
+            {
+                foreach (var color in savedHeading)
+                    if (!HeadingPresets.Contains(color.ToLower()))
+                        HeadingPresets.Add(color.ToLower());
+            }
+
+
+            var savedTheme = await JS.InvokeAsync<ThemeSettingsViewModel>("themeStorage.loadTheme");
+
+            if (savedTheme != null)
+            {
+                Theme.CurrentSettings = savedTheme;
+                IconColor = savedTheme.IconColor;
+                HeadingColor = savedTheme.HeadingColor;
+                PrimaryButton = savedTheme.PrimaryColor;
+                SecondaryColor = savedTheme.SecondaryColor;
+                IsDarkMode = savedTheme.IsDarkMode;
+                SelectedFontSize = savedTheme.FontSize;
+                borderRadiusLevel = savedTheme.BorderRadius;
+                buttonRadiusLevel = savedTheme.ButtonRadius;
+                if (!string.IsNullOrEmpty(savedTheme.LayoutMode))
+                    LayoutMode = savedTheme.LayoutMode;
+                else
+                {
+                    var stored = await JS.InvokeAsync<string>("localStorage.getItem", "layoutMode");
+                    LayoutMode = stored ?? "box";
+                }
+
+                await JS.InvokeVoidAsync("themeBuilder.applyTheme", savedTheme);
+                SelectedBg = await JS.InvokeAsync<string>("loadSidebarBackground");
+                await JS.InvokeVoidAsync("previewDarkMode", IsDarkMode);
+                await JS.InvokeVoidAsync("applyLayout", LayoutMode, false);
+
+                var savedFonts = await JS.InvokeAsync<ThemeSettingsViewModel>("fontStorage.loadFonts");
+                if (savedFonts != null)
+                {
+                    if (!string.IsNullOrEmpty(savedFonts.MenuFont))
+                        SelectedMenuFont = savedFonts.MenuFont;
+
+                    if (!string.IsNullOrEmpty(savedFonts.HeadingFont))
+                        SelectedHeadingFont = savedFonts.HeadingFont;
+
+                    if (!string.IsNullOrEmpty(savedFonts.NumberFont))
+                        SelectedNumberFont = savedFonts.NumberFont;
+
+                    if (!string.IsNullOrEmpty(savedFonts.OtherFont))
+                        SelectedOtherFont = savedFonts.OtherFont;
+
+                    await JS.InvokeVoidAsync("document.documentElement.style.setProperty",
+                        "--font-menu", SelectedMenuFont);
+                    await JS.InvokeVoidAsync("document.documentElement.style.setProperty",
+                        "--font-heading", SelectedHeadingFont);
+                    await JS.InvokeVoidAsync("document.documentElement.style.setProperty",
+                        "--font-number", SelectedNumberFont);
+                    await JS.InvokeVoidAsync("document.documentElement.style.setProperty",
+                        "--font-other", SelectedOtherFont);
+
+                    await JS.InvokeVoidAsync("eval", @"
+            const fs = localStorage.getItem('font-size-base');
+            const fw = localStorage.getItem('font-weight-base');
+            const lh = localStorage.getItem('line-height-base');
+            if (fs) document.documentElement.style.setProperty('--font-size-base', fs + 'px');
+            if (fw) document.documentElement.style.setProperty('--font-weight-base', fw);
+            if (lh) document.documentElement.style.setProperty('--line-height-base', lh);
+        ");
+                    StateHasChanged();
+                }
+
+            }
+            else
+            {
+                var stored = await JS.InvokeAsync<string>("localStorage.getItem", "layoutMode");
+                LayoutMode = stored ?? "box";
+                await JS.InvokeVoidAsync("applyLayout", LayoutMode, false);
+                await JS.InvokeVoidAsync("setPreviewIconColor", IconColor);
+                await JS.InvokeVoidAsync("setPreviewHeadingColor", HeadingColor);
+                await JS.InvokeVoidAsync("setPreviewPrimaryButtonColor", PrimaryButton);
+                await JS.InvokeVoidAsync("document.documentElement.style.setProperty", "--font-family", SelectedFont);
+                await JS.InvokeVoidAsync("document.documentElement.style.setProperty", "--preview-font-family", SelectedFont);
+                await JS.InvokeVoidAsync("document.documentElement.style.setProperty", "--textfont-size", SelectedFontSize);
+                await JS.InvokeVoidAsync("document.documentElement.style.setProperty", "--secondary", SecondaryColor);
+                await JS.InvokeVoidAsync("document.documentElement.style.setProperty", "--preview-secondary", SecondaryColor);
+                await JS.InvokeVoidAsync("document.documentElement.style.setProperty", "--btn-radius", $"{buttonRadiusLevel}px");
+                await JS.InvokeVoidAsync("document.documentElement.style.setProperty", "--radius", $"{buttonRadiusLevel}px");
+                await JS.InvokeVoidAsync("previewDarkMode", IsDarkMode);
+
+                var session = await JS.InvokeAsync<UserSession>("userSessionStorage.load");
+                if (session != null && !string.IsNullOrEmpty(session.ProfilePhoto))
+                {
+                    SelectedProfilePhoto = session.ProfilePhoto;
+                    await JS.InvokeVoidAsync("profilePreview.setActive", session.ProfilePhoto);
+                }
+
+                StateHasChanged();
+            }
+        }
+    }
+
+    // ── Validation ──────────────────────────────────
+    private bool IsPrimaryButtonColorValid(out string errorMessage)
+    {
+        errorMessage = string.Empty;
+
+        if (string.IsNullOrWhiteSpace(PrimaryButton) || string.IsNullOrWhiteSpace(SecondaryColor) ||
+            string.IsNullOrWhiteSpace(HeadingColor) || string.IsNullOrWhiteSpace(IconColor))
+        {
+            errorMessage = "color cannot be empty.";
+            return false;
+        }
+
+        if (!Regex.IsMatch(PrimaryButton, "^#([0-9A-Fa-f]{6})$") ||
+            !Regex.IsMatch(SecondaryColor, "^#([0-9A-Fa-f]{6})$") ||
+            !Regex.IsMatch(IconColor, "^#([0-9A-Fa-f]{6})$") ||
+            !Regex.IsMatch(HeadingColor, "^#([0-9A-Fa-f]{6})$"))
+        {
+            errorMessage = "Invalid color format.";
+            return false;
+        }
+
+        if (!IsDarkMode && (PrimaryButton.Equals("#ffffff", StringComparison.OrdinalIgnoreCase) ||
+                            SecondaryColor.Equals("#ffffff", StringComparison.OrdinalIgnoreCase) ||
+                            HeadingColor.Equals("#ffffff", StringComparison.OrdinalIgnoreCase) ||
+                            IconColor.Equals("#ffffff", StringComparison.OrdinalIgnoreCase)))
+        {
+            errorMessage = "In light theme, white should not be used for the content color. Please change it to a suitable contrasting color..";
+            return false;
+        }
+
+        if (IsDarkMode && (PrimaryButton.Equals("#000000", StringComparison.OrdinalIgnoreCase) ||
+                           SecondaryColor.Equals("#000000", StringComparison.OrdinalIgnoreCase) ||
+                           HeadingColor.Equals("#000000", StringComparison.OrdinalIgnoreCase) ||
+                           IconColor.Equals("#000000", StringComparison.OrdinalIgnoreCase)))
+        {
+            errorMessage = "In dark mode, the heading color and icon color cannot be black. Please change them to a suitable color.";
+            return false;
+        }
+
+        return true;
+    }
+
+    // ── Save Theme ──────────────────────────────────
+    private async Task SaveTheme()
+    {
+        if (!IsPrimaryButtonColorValid(out var errorMessage))
+        {
+            await JS.InvokeVoidAsync("resetColorPicker", PrimaryButton);
+            ToastService.ShowError(errorMessage, "Error");
+            return;
+        }
+        Theme.CurrentSettings.IconColor = IconColor;
+        Theme.CurrentSettings.HeadingColor = HeadingColor;
+        Theme.CurrentSettings.PrimaryColor = PrimaryButton;
+        Theme.CurrentSettings.IsDarkMode = IsDarkMode;
+        Theme.CurrentSettings.FontFamily = SelectedFont;
+        Theme.CurrentSettings.FontSize = SelectedFontSize;
+        Theme.CurrentSettings.SecondaryColor = SecondaryColor;
+        Theme.CurrentSettings.ShadowStrength = ShadowLevel;
+        Theme.CurrentSettings.BorderRadius = borderRadiusLevel;
+        Theme.CurrentSettings.ButtonRadius = buttonRadiusLevel;
+        Theme.CurrentSettings.LayoutMode = LayoutMode;
+
+        await Theme.ApplyThemeAsync();
+        await JS.InvokeVoidAsync("themeBuilder.toggleDarkMode", IsDarkMode);
+        await JS.InvokeVoidAsync("themeStorage.saveTheme", Theme.CurrentSettings);
+        await JS.InvokeVoidAsync("themeBuilder.applyTheme", Theme.CurrentSettings);
+        await JS.InvokeVoidAsync("document.documentElement.style.setProperty", "--font-family", SelectedFont);
+        await JS.InvokeVoidAsync("document.documentElement.style.setProperty", "--preview-font-family", SelectedFont);
+        await JS.InvokeVoidAsync("document.documentElement.style.setProperty", "--textfont-size", SelectedFontSize);
+        await JS.InvokeVoidAsync("document.documentElement.style.setProperty", "--preview-font-size", SelectedFontSize);
+        await JS.InvokeVoidAsync("document.documentElement.style.setProperty", "--secondary", SecondaryColor);
+        await JS.InvokeVoidAsync("document.documentElement.style.setProperty", "--preview-secondary", SecondaryColor);
+        await JS.InvokeVoidAsync("document.documentElement.style.setProperty", "--shadow-strength", (ShadowLevel / 100.0).ToString("0.00"));
+        await JS.InvokeVoidAsync("document.documentElement.style.setProperty", "--btn-radius", $"{buttonRadiusLevel}px");
+        await JS.InvokeVoidAsync("document.documentElement.style.setProperty", "--radius", $"{buttonRadiusLevel}px");
+        await JS.InvokeVoidAsync("eval", $@"
+    document.documentElement.style.setProperty('--line-height-base', '{SelectedLineHeight}');
+    localStorage.setItem('line-height-base', '{SelectedLineHeight}');
+");
+
+        await JS.InvokeVoidAsync("eval", $@"
+    document.documentElement.style.setProperty('--font-size-base', '{SelectedFontSize}px');
+    localStorage.setItem('font-size-base', '{SelectedFontSize}');
+");
+
+        await JS.InvokeVoidAsync("eval", $@"
+    document.documentElement.style.setProperty('--font-weight-base', '{SelectedFontWeight}');
+    localStorage.setItem('font-weight-base', '{SelectedFontWeight}');
+");
+
+        // ---------- SideBar Background ----------
+        await JS.InvokeVoidAsync("loadSidebarBackground1", SelectedBg);
+        if (SelectedBg == null)
+        {
+            await JS.InvokeVoidAsync("clearSidebarBg");
+        }
+        else
+        {
+            await JS.InvokeVoidAsync("setSidebarBackgroundSave", SelectedBg);
+
+        }
+
+        // ---------- Horizontal Vertical Layout ----------
+        await JS.InvokeVoidAsync("saveLayoutMode", LayoutMode);
+        await JS.InvokeVoidAsync("applyLayout", LayoutMode, false);
+
+        // ---------- Profile Photo ----------
+        var session = AuthService.CurrentUser;
+        if (session != null && !string.IsNullOrEmpty(SelectedProfilePhoto))
+        {
+            session.ProfilePhoto = SelectedProfilePhoto;
+            await JS.InvokeVoidAsync("userSessionStorage.save", session);
+            await AuthService.InitializeAsync();
+        }
+        if (!string.IsNullOrEmpty(SelectedProfilePhoto))
+        {
+            await AuthService.UpdateProfilePhotoAsync(SelectedProfilePhoto);
+        }
+
+        // ---------- Font Family ----------
+        var settings = new
+        {
+            menuFont = SelectedMenuFont,
+            headingFont = SelectedHeadingFont,
+            numberFont = SelectedNumberFont,
+            otherFont = SelectedOtherFont
+        };
+
+        await JS.InvokeVoidAsync("fontStorage.saveFonts", settings);
+        await JS.InvokeVoidAsync("document.documentElement.style.setProperty", "--font-menu", SelectedMenuFont);
+        await JS.InvokeVoidAsync("document.documentElement.style.setProperty", "--font-heading", SelectedHeadingFont);
+        await JS.InvokeVoidAsync("document.documentElement.style.setProperty", "--font-number", SelectedNumberFont);
+        await JS.InvokeVoidAsync("document.documentElement.style.setProperty", "--font-other", SelectedOtherFont);
+
+        var fontSettings = new
+        {
+            menuFont = SelectedMenuFont,
+            headingFont = SelectedHeadingFont,
+            numberFont = SelectedNumberFont,
+            otherFont = SelectedOtherFont
+        };
+        await JS.InvokeVoidAsync("fontStorage.saveFonts", fontSettings);
+
+        // ---------- Primary ----------
+        if (!DefaultPrimaryPresets.Contains(PrimaryButton) &&
+            !PrimaryPresets.Contains(PrimaryButton))
+        {
+            PrimaryPresets.Add(PrimaryButton);
+
+            var customColors = PrimaryPresets
+                .Where(c => !DefaultPrimaryPresets.Contains(c))
+                .ToList();
+
+            await JS.InvokeVoidAsync("themeStorage.savePrimaryColors", customColors);
+        }
+        // ---------- SECONDARY ----------
+        if (!DefaultSecondaryPresets.Contains(SecondaryColor) &&
+            !SecondaryPresets.Contains(SecondaryColor))
+        {
+            SecondaryPresets.Add(SecondaryColor);
+
+            var custom = SecondaryPresets
+                .Where(c => !DefaultSecondaryPresets.Contains(c))
+                .ToList();
+
+            await JS.InvokeVoidAsync("themeStorage.saveSecondaryColors", custom);
+        }
+
+        // ---------- ICON ----------
+        if (!DefaultIconPresets.Contains(IconColor) &&
+            !IconPresets.Contains(IconColor))
+        {
+            IconPresets.Add(IconColor);
+
+            var custom = IconPresets
+                .Where(c => !DefaultIconPresets.Contains(c))
+                .ToList();
+
+            await JS.InvokeVoidAsync("themeStorage.saveIconColors", custom);
+        }
+
+        // ---------- HEADING ----------
+        if (!DefaultHeadingPresets.Contains(HeadingColor) &&
+            !HeadingPresets.Contains(HeadingColor))
+        {
+            HeadingPresets.Add(HeadingColor);
+
+            var custom = HeadingPresets
+                .Where(c => !DefaultHeadingPresets.Contains(c))
+                .ToList();
+
+            await JS.InvokeVoidAsync("themeStorage.saveHeadingColors", custom);
+        }
+        ToastService.ShowSuccess("Theme Applied Successfully", "Success");
+    }
+
+    // ── Reset Theme ──
+    private async Task CancelTheme()
+    {
+        await JS.InvokeVoidAsync("localStorage.setItem", "theme-reset-redirect", Navigation.Uri);
+        await JS.InvokeVoidAsync("localStorage.removeItem", "app-theme");
+        await JS.InvokeVoidAsync("localStorage.removeItem", "sidebar-bg");
+        await JS.InvokeVoidAsync("localStorage.removeItem", "layoutMode");
+        await JS.InvokeVoidAsync("localStorage.removeItem", "app-fonts");
+        await JS.InvokeVoidAsync("localStorage.removeItem", "custom-primary-colors");
+        await JS.InvokeVoidAsync("localStorage.removeItem", "custom-secondary-colors");
+        await JS.InvokeVoidAsync("localStorage.removeItem", "custom-icon-colors");
+        await JS.InvokeVoidAsync("localStorage.removeItem", "custom-heading-colors");
+        await JS.InvokeVoidAsync("location.reload");
+    }
+}

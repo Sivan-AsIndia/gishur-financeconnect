@@ -1,0 +1,281 @@
+@page "/Ledgers/{LedgerId:guid}/view"
+@using FinanceConnect.Client.ViewModels
+@using FinanceConnect.Client.Services
+@inject MasterDataService MasterDataService
+@inject FinanceDataService FinanceDataService
+@inject NavigationManager Nav
+@inject IJSRuntime JS
+
+@if (SelectedLedger != null)
+{
+    <div class="content view-screen py-3">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <div>
+                <h4 class="fw-bold mb-1">Ledger Details</h4>
+                <p class="text-muted mb-0 small">View ledger balances and transaction history</p>
+            </div>
+            <a class="btn btn-outline-secondary" @onclick="GoBack">
+                <i class="ti ti-arrow-left me-1"></i> Back
+            </a>
+        </div>
+        <div class="row g-3">
+
+            <!-- TOP PANEL : LEDGER HEADER -->
+            <div class="col-lg-12">
+                <div class="card mb-0">
+                    <div class="header-card">
+                        <div class="header-inner">
+                            <div class="header-left1">
+                                <div class="company-logo">
+                                    <span class="logo-initials">@SelectedLedger?.LedgerCode?.Substring(0, Math.Min(2, SelectedLedger.LedgerCode.Length)).ToUpper()</span>
+                                </div>
+
+                                <div class="header-meta">
+                                    <h2 class="company-title">@SelectedLedger.LedgerName</h2>
+                                    <div class="company-subtitle">
+                                        <span>@SelectedLedger.CompanyName</span>
+                                        <span class="dot">·</span>
+                                        <span>@SelectedLedger.BaseCurrencyCode - @SelectedLedger.BaseCurrencyName</span>
+                                    </div>
+                                    <div class="header-tags">
+                                        <span class="tag @GetLedgerTypeBadgeTag(SelectedLedger.LedgerType)">
+                                            @LedgerTypes.GetDisplayName(SelectedLedger.LedgerType)
+                                        </span>
+                                        @if (SelectedLedger.IsDefaultLedger)
+                                        {
+                                            <span class="tag tag-default" style="border: 1px solid #0ed77a; background: #e6f9f0; color: #14a85a;">Default Ledger</span>
+                                        }
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="header-right">
+                                @if (SelectedLedger?.Status?.ToLower() == "active")
+                                {
+                                    <span class="status-badge status-active">● ACTIVE</span>
+                                }
+                                else if (SelectedLedger?.Status?.ToLower() == "draft")
+                                {
+                                    <span class="status-badge status-draft">● DRAFT</span>
+                                }
+                                else
+                                {
+                                    <span class="status-badge status-inactive">● INACTIVE</span>
+                                }
+                                <div class="created-info">Created @SelectedLedger?.CreatedAt.ToString("dd MMM yyyy")</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- LEFT PANEL : LEDGER DETAILS -->
+            <div class="col-lg-8">
+                <div class="profile-card">
+
+                    <!-- Ledger Identity -->
+                    <div class="card mb-3">
+                        <div class="card-header py-2">
+                            <i class="ti ti-id me-2"></i> Ledger Identity
+                        </div>
+                        <div class="card-body py-2">
+                            <div class="row">
+                                <div class="col-md-3">
+                                    <small class="text-muted">Ledger Code</small>
+                                    <div class="fw-medium">@SelectedLedger.LedgerCode</div>
+                                </div>
+                                <div class="col-md-5">
+                                    <small class="text-muted">Ledger Name</small>
+                                    <div>@SelectedLedger.LedgerName</div>
+                                </div>
+                                <div class="col-md-4 ledger-info">
+                                    <small class="text-muted">Default Ledger:</small>
+                                    <span class="ms-2" data-bs-toggle="tooltip" title="@(SelectedLedger.IsDefaultLedger ? "Yes" : "No")">
+                                        @if (SelectedLedger.IsDefaultLedger)
+                                        {
+                                            <i class="ti ti-checks text-success"></i>
+                                        }
+                                        else
+                                        {
+                                            <i class="ti ti-x text-danger"></i>
+                                        }
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Type & Currency -->
+                    <div class="card mb-3">
+                        <div class="card-header py-2">
+                            <i class="ti ti-currency-dollar me-2"></i> Type & Currency
+                        </div>
+                        <div class="card-body py-2">
+                            <div class="row">
+                                <div class="col-md-3">
+                                    <small class="text-muted">Ledger Type</small>
+                                    <div><span class="badge bg-info-transparent">@LedgerTypes.GetDisplayName(SelectedLedger.LedgerType)</span></div>
+                                </div>
+                                <div class="col-md-3">
+                                    <small class="text-muted">Base Currency</small>
+                                    <div class="fw-medium">@SelectedLedger.BaseCurrencyCode - @SelectedLedger.BaseCurrencyName</div>
+                                </div>
+                                <div class="col-md-3">
+                                    <small class="text-muted">Reporting Currency</small>
+                                    <div>@(SelectedLedger.ReportingCurrencyCode ?? "Same as Base")</div>
+                                </div>
+                                <div class="col-md-3">
+                                    <small class="text-muted">Currency Mode</small>
+                                    <div>@CurrencyModes.GetDisplayName(SelectedLedger.CurrencyMode)</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Posting Controls -->
+                    <div class="card mb-0">
+                        <div class="card-header py-2">
+                            <i class="ti ti-lock me-2"></i> Posting Controls
+                        </div>
+                        <div class="card-body py-2">
+                            <div class="row">
+                                <div class="col-md-3">
+                                    <small class="text-muted">Allow Posting From</small>
+                                    <div>@(SelectedLedger.AllowPostingFromDate?.ToString("dd MMM yyyy") ?? "-")</div>
+                                </div>
+                                <div class="col-md-3">
+                                    <small class="text-muted">Allow Posting To</small>
+                                    <div>@(SelectedLedger.AllowPostingToDate?.ToString("dd MMM yyyy") ?? "-")</div>
+                                </div>
+                                <div class="col-md-3">
+                                    <small class="text-muted">Lock Back-Dated</small>
+                                    <div>
+                                        <span class="badge @(SelectedLedger.LockBackDatedPosting ? "bg-warning-transparent" : "bg-secondary-transparent text-secondary")">
+                                            @(SelectedLedger.LockBackDatedPosting ? "Locked" : "Unlocked")
+                                        </span>
+                                    </div>
+                                </div>
+                                <div class="col-md-3">
+                                    <small class="text-muted">Backdated Days</small>
+                                    <div>@SelectedLedger.BackdatedPostingDaysAllowed days</div>
+                                </div>
+                                <div class="col-md-3">
+                                    <small class="text-muted">Future Days</small>
+                                    <div>@SelectedLedger.FuturePostingDaysAllowed days</div>
+                                </div>
+                                <div class="col-md-3 ledger-info">
+                                    <small class="text-muted">Require Approval:</small>
+                                    <span class="ms-2">
+                                        @if (SelectedLedger.RequireApprovalBeforePosting)
+                                        {
+                                            <i class="ti ti-checks text-success"></i>
+                                        }
+                                        else
+                                        {
+                                            <i class="ti ti-x text-danger"></i>
+                                        }
+                                    </span>
+                                </div>
+                                <div class="col-md-3 ledger-info">
+                                    <small class="text-muted">Enforce Period:</small>
+                                    <span class="ms-2">
+                                        @if (SelectedLedger.EnforceAccountingPeriodOpen)
+                                        {
+                                            <i class="ti ti-checks text-success"></i>
+                                        }
+                                        else
+                                        {
+                                            <i class="ti ti-x text-danger"></i>
+                                        }
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+
+            <!-- RIGHT PANEL : STATUS & GOVERNANCE -->
+            <div class="col-lg-4">
+                <div class="profile-card mb-3">
+                    <div class="card mb-0">
+                        <div class="card-header py-2">
+                            <i class="ti ti-settings me-2"></i> Status & Governance
+                        </div>
+                        <div class="card-body py-2">
+                            <div class="row">
+                                <div class="col-12">
+                                    <small class="text-muted">Status</small>
+                                    <div>
+                                        <span class="badge @GetStatusBadge(SelectedLedger.Status)">@SelectedLedger.Status</span>
+                                    </div>
+                                </div>
+                                <div class="col-12">
+                                    <small class="text-muted">Lock Status</small>
+                                    <div>
+                                        <span class="badge @GetLockStatusBadge(SelectedLedger.LockStatus)">@SelectedLedger.LockStatus</span>
+                                    </div>
+                                </div>
+                                <div class="col-12 ledger-info">
+                                    <small class="text-muted">Consolidation Eligible:</small>
+                                    <span class="ms-2">
+                                        @if (SelectedLedger.IsConsolidationEligible)
+                                        {
+                                            <i class="ti ti-checks text-success"></i>
+                                        }
+                                        else
+                                        {
+                                            <i class="ti ti-x text-danger"></i>
+                                        }
+                                    </span>
+                                </div>
+                                @if (!string.IsNullOrWhiteSpace(SelectedLedger.ConsolidationGroupName))
+                                {
+                                    <div class="col-12">
+                                        <small class="text-muted">Consolidation Group</small>
+                                        <div>@SelectedLedger.ConsolidationGroupName</div>
+                                    </div>
+                                }
+                                @if (!string.IsNullOrWhiteSpace(SelectedLedger.LockReason))
+                                {
+                                    <div class="col-12">
+                                        <small class="text-muted">Lock / Inactivation Reason</small>
+                                        <div class="text-warning ql-editor">@((MarkupString)(SelectedLedger.LockReason ?? string.Empty))</div>
+                                    </div>
+                                }
+                                <div class="col-12">
+                                    <small class="text-muted">Created</small>
+                                    <div>@SelectedLedger.CreatedAt.ToString("dd MMM yyyy")</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="profile-card">
+                    <div class="card mb-0">
+                        <div class="card-header py-2">
+                            <i class="ti ti-exchange me-2"></i> Exchange Rate
+                        </div>
+                        <div class="card-body py-2">
+                            <div class="row">
+                                <div class="col-12">
+                                    <small class="text-muted">Exchange Rate Source</small>
+                                    <div class="fw-medium">@(ExchangeRateSources.GetDisplayName(SelectedLedger.ExchangeRateSource ?? "Manual"))</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+}
+else
+{
+    <div class="page-loading-overlay">
+        <div class="whirly-loader"></div>
+    </div>
+}

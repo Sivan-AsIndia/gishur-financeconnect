@@ -1,0 +1,228 @@
+@page "/currencies/create"
+@page "/currencies/{Id:guid}"
+
+<style>
+    .form-select option:checked {
+        color: white;
+        background-color: var(--primary);
+    }
+
+  
+    .validation-message {
+        color: #dc3545;
+        font-size: 12px;
+    }
+</style>
+
+@if (!isInitialized)
+{
+    <div class="page-loading-overlay">
+        <div class="whirly-loader"></div>
+    </div>
+}
+else
+{
+    <div class="content flat-form">
+        <div class="page-header">
+            <div class="add-item d-flex">
+                <div class="page-title">
+                    <h4 class="fw-bold">@PageTitle</h4>
+                    <h6>@PageSubTitle</h6>
+                </div>
+            </div>
+
+            <div class="page-btn mt-0">
+                <a href="/currencies" class="btn btn-outline-secondary">
+                    <i class="ti ti-arrow-left"></i> Back
+                </a>
+            </div>
+        </div>
+
+        <EditForm EditContext="_editContext" OnValidSubmit="Save">
+            <DataAnnotationsValidator />
+            <div class="mt-4">
+                <div class="card">
+                    @* <div class="card-header text-white" style="border-bottom: 1px solid #80808036;">
+                        <h5>
+                            <i class="ti @(IsEdit ? "ti-edit" : "ti-plus") me-2"></i>
+                            @(IsEdit ? "Edit Currency" : "Add Currency")
+                        </h5>
+                    </div> *@
+
+                    <div class="card-body">
+
+                        <!-- ================= COA IDENTITY ================= -->
+                        <h6 class="text-primary mb-3 mt-2">
+                            <i class="ti ti-currency-dollar text-primary me-2"></i>Currency Identity
+                        </h6>
+                        <div class="row g-3">
+                            <div class="col-md-3">
+                                <label class="form-label">
+                                    Currency Code (ISO) <span class="text-danger ms-1">*</span>
+                                </label>
+
+                                <InputText class="@($"form-control text-uppercase {GetValidationClass(() => Currency.CurrencyCode)}")"
+                                           @bind-Value="Currency.CurrencyCode"
+                                           disabled="@IsEdit"
+                                           placeholder="e.g., INR, USD"
+                                           maxlength="3" />
+
+                                <ValidationMessage For="@(() => Currency.CurrencyCode)" />
+
+                                <small class="text-muted">
+                                    Exactly 3 letters (ISO 4217)
+                                </small>
+                            </div>
+
+                            <div class="col-md-3">
+                                <label class="form-label">
+                                    Currency Name <span class="text-danger ms-1">*</span>
+                                </label>
+
+                                <InputText class="@($"form-control {GetValidationClass(() => Currency.CurrencyName)}")"
+                                           @bind-Value="Currency.CurrencyName" @bind-Value:after="OnCurrencyNameInput"
+                                           oninput="this.value=this.value.replace(/[0-9]/g,'');"
+                                           placeholder="e.g., Indian Rupee, US Dollar"
+                                           maxlength="100" />
+
+                                <ValidationMessage For="@(() => Currency.CurrencyName)" />
+                            </div>
+
+                            <div class="col-md-3">
+                                <label class="form-label">ISO Numeric Code</label>
+                                <InputNumber class="form-control" @bind-Value="Currency.NumericCode"
+                                             placeholder="e.g., 356" />
+                                <ValidationMessage For="@(() => Currency.NumericCode)" />
+                                <small class="text-muted">0-999</small>
+                            </div>
+                            <div class="col-md-3">
+                                <label class="form-label">Currency Type <span class="text-danger ms-1">*</span></label>
+                                <InputSelect class="@($"form-select {GetValidationClass(() => Currency.CurrencyType)}")" @bind-Value="Currency.CurrencyType">
+                                    <option value="">--Select Currency Type--</option>
+                                    @foreach (var type in CurrencyTypes.All)
+                                    {
+                                        <option value="@type">@type</option>
+                                    }
+                                </InputSelect>
+                                <ValidationMessage For="@(() => Currency.CurrencyType)" />
+                            </div>
+                        </div>
+                        <!-- ================= COA IDENTITY ================= -->
+                        <h6 class="text-primary mb-3 mt-3"> <i class="ti ti-typography text-primary me-2"></i>Symbol & Formatting</h6>
+                        <div class="row g-3">
+                            <div class="col-md-3">
+                                <label class="form-label">Currency Symbol</label>
+                                <InputText class="form-control" @bind-Value="Currency.Symbol"
+                                           placeholder="e.g., ₹, $, €" maxlength="10" />
+                                <small class="text-muted">Used in displays and reports</small>
+                            </div>
+                            <div class="col-md-3">
+                                <label class="form-label">Symbol Position <span class="text-danger ms-1">*</span></label>
+                                <InputSelect class="@($"form-select {GetValidationClass(() => Currency.SymbolPosition)}")" @bind-Value="Currency.SymbolPosition">
+                                    <option value="">--Select Symbol Position--</option>
+                                    @foreach (var pos in SymbolPositions.All)
+                                    {
+                                        <option value="@pos">@pos</option>
+                                    }
+                                </InputSelect>
+                                <ValidationMessage For="@(() => Currency.SymbolPosition)" />
+                                <small class="text-muted">Prefix: ₹100 / Suffix: 100₹</small>
+                            </div>
+                            <div class="col-md-3">
+                                <label class="form-label">Display Format</label>
+                                <InputText class="form-control" @bind-Value="Currency.DisplayFormat"
+                                           placeholder="e.g., ₹ {amount} or {amount} USD" maxlength="50" />
+                                <small class="text-muted">Custom format for UI/reports</small>
+                            </div>
+                        </div>
+                        <!-- =================Address & Postal Rules ================= -->
+                        <h6 class="text-primary mb-3 mt-3"><i class="ti ti-calculator text-primary me-2"></i>Decimal / Rounding Behavior</h6>
+                        <div class="row g-3">
+
+                            <div class="col-md-3">
+                                <label class="form-label">Decimal Places <span class="text-danger ms-1">*</span></label>
+                                <InputSelect class="@($"form-select {GetValidationClass(() => Currency.DecimalPlaces)}")" @bind-Value="Currency.DecimalPlaces">
+                                    <option value="">--Select Decimal Places--</option>
+                                    <option value="0">0 (e.g., JPY)</option>
+                                    <option value="1">1</option>
+                                    <option value="2">2 (Default)</option>
+                                    <option value="3">3</option>
+                                    <option value="4">4</option>
+                                </InputSelect>
+                                <ValidationMessage For="@(() => Currency.DecimalPlaces)" />
+                            </div>
+                            <div class="col-md-3">
+                                <label class="form-label">Minor Unit Name</label>
+                                <InputText class="form-control" @bind-Value="Currency.MinorUnitName"
+                                           placeholder="e.g., Paise, Cent" maxlength="50" />
+                            </div>
+                            <div class="col-md-3">
+                                <label class="form-label">Rounding Mode <span class="text-danger ms-1">*</span></label>
+                                <InputSelect class="@($"form-select {GetValidationClass(() => Currency.RoundingMode)}")" @bind-Value="Currency.RoundingMode">
+                                    <option value="">--Select Rounding Mode--</option>
+                                    @foreach (var mode in RoundingModes.All)
+                                    {
+                                        <option value="@mode">@mode</option>
+                                    }
+                                </InputSelect>
+                                <ValidationMessage For="@(() => Currency.RoundingMode)" />
+                            </div>
+                            <div class="col-md-3">
+                                <label class="form-label">Rounding Step</label>
+                                <InputSelect class="form-select" @bind-Value="RoundingStepString">
+                                    <option value="">--Select Rounding Step--</option>
+                                    <option value="0.01">0.01</option>
+                                    <option value="0.05">0.05</option>
+                                    <option value="0.10">0.10</option>
+                                    <option value="1.00">1.00</option>
+                                </InputSelect>
+                                <small class="text-muted">For cash rounding</small>
+                            </div>
+                        </div>
+                        <!-- =================Status & Usage Controls ================= -->
+                        <h6 class="text-primary mb-3 mt-3"> <i class="ti ti-settings text-primary me-2"></i>Status & Notes</h6>
+                        <div class="row g-3">
+
+                             <div class="col-md-3">
+                                <label class="form-label">Status</label>
+                                <div class="form-check form-switch mt-2">
+                                    <input class="form-check-input" id="Active" type="checkbox" @bind="Currency.IsActive" />
+                                    <label class="form-check-label" for="Active">@(Currency.IsActive ? "Active" : "Inactive")</label>
+                                </div>
+                            </div>
+
+
+                            @* maxlength="500" *@
+                            <div class="col-md-6">
+                                <label class="form-label">Internal Notes</label>
+                                <RichTextEditor @ref="_notesEditor"
+                                    Value="@Currency.Notes"
+                                    MaxHeight="200" MinHeight="80"
+                                    placeholder="Additional notes..." />
+
+                            </div>
+
+
+
+
+                        </div>
+
+                    </div>
+
+                </div>
+
+                <!-- Actions -->
+                <div class="text-end mb-4">
+                    <a href="/currencies" class="btn btn-outline-secondary me-2"><i class="ti ti-x"></i> Cancel</a>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="ti ti-device-floppy"></i> @(IsEdit ? "Update" : "Save")
+                    </button>
+                </div>
+
+            </div>
+
+
+        </EditForm>
+    </div>
+}
+

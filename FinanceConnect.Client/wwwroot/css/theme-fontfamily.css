@@ -1,0 +1,40 @@
+﻿
+
+/* Theme Font Family */
+
+:root {
+    --font-menu: "Nunito", sans-serif;
+    --font-number: "Nunito", sans-serif;
+    --font-heading: "Nunito", sans-serif;
+    --font-other: "Nunito", sans-serif;
+    --font-size-base: 14px;
+    --font-weight-base: 400;
+    --line-height-base: 1.6;
+}
+div,span .table tbody tr td, th, p, li, a, label, input, select, textarea, button {
+    font-size: var(--font-size-base) !important;
+    font-weight: var(--font-weight-base) !important;
+    line-height: var(--line-height-base) !important;
+}
+.dt-clock-hm {
+    font-size: 19px !important;
+}
+.dt-clock-right {
+    line-height: 1 !important;
+}
+/* MENU */
+.sidebar, .navbar, .menu-text {
+    font-family: var(--font-menu) !important;
+}
+/* NUMBER */
+.number, .amount, input[type="number"] {
+    font-family: var(--font-number) !important;
+}
+/* HEADING */
+h1, h2, h3, h4, h5, h6 {
+    font-family: var(--font-heading) !important;
+}
+/* OTHER */
+p, label {
+    font-family: var(--font-other) !important;
+}

@@ -1,0 +1,425 @@
+﻿@page "/tax-codes/{Id:guid}/view"
+@using static FinanceConnect.Client.ViewModels.TaxCodeViewModel
+
+@if (!isInitialized)
+{
+    <div class="page-loading-overlay"><div class="whirly-loader"></div></div>
+}
+else if (TaxCode == null)
+{
+    <div class="content py-4">
+        <div class="alert alert-danger">
+            <i class="ti ti-alert-circle me-2"></i> Tax Code not found.
+            <a href="/tax-codes" class="alert-link ms-2">Return to list</a>
+        </div>
+    </div>
+}
+else
+{
+    <div class="content py-4 view-screen">
+
+        <!-- PAGE TITLE ROW -->
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <div>
+                <h4 class="fw-bold mb-1">Tax Code Details</h4>
+                <p class="text-muted mb-0 small">Tax master configuration and GL mapping</p>
+            </div>
+            <div class="d-flex gap-2 page-btn">
+                @if (!TaxCode.IsLockedForChanges && TaxCode.Status != TaxCodeStatus.Archived)
+                {
+                    <a href="/tax-codes/edit/@TaxCode.TaxCodeId" class="btn btn-primary">
+                        <i class="ti ti-edit me-1"></i> Edit
+                    </a>
+                }
+                <a @onclick="PrintPage" class="btn btn-primary"><i class="bi bi-printer"></i> Print</a>
+
+                <a class="btn btn-outline-secondary" href="/tax-codes">
+                    <i class="ti ti-arrow-left me-1"></i> Back
+                </a>
+            </div>
+        </div>
+
+        <div class="row g-4">
+
+            <!-- ═══ HEADER PANEL ═══ -->
+            <div class="col-lg-12">
+                <div class="profile-list-card">
+                    <div class="profile-left">
+                        <div class="avatar letter-avatar">
+                            @TaxCode.Code?.Substring(0, Math.Min(3, TaxCode.Code?.Length ?? 0)).ToUpper()
+                        </div>
+                    </div>
+                    <div class="profile-center">
+                        <div class="top-row">
+                            <h5>@TaxCode.Code</h5>
+                            @if (TaxCode.IsLockedForChanges)
+                            {
+                                <span class="badge bg-warning-transparent ms-2">
+                                    <i class="ti ti-lock me-1"></i>Locked
+                                </span>
+                            }
+                        </div>
+                        <div class="sub-text">
+                            <span class="d-flex gap-1 mt-1">
+                                <i class="ti ti-tag"></i>
+                                @TaxCode.TaxName
+                            </span>
+                            <span class="d-flex gap-1 mt-1">
+                                <i class="ti ti-world"></i>
+                                @TaxCode.JurisdictionCountryCode
+                                &nbsp;·&nbsp;
+                                @GetTypeLabel(TaxCode.Type)
+                                @if (TaxCode.Type == TaxType.GST && TaxCode.GSTComponent.HasValue)
+                                {
+                                    <span>&nbsp;·&nbsp; @TaxCode.GSTComponent</span>
+                                }
+                            </span>
+                        </div>
+                        <div class="mt-2">
+                            <span class="badge @GetStatusBadgeClass(TaxCode.Status)">
+                                @GetStatusLabel(TaxCode.Status)
+                            </span>
+                            <span class="badge @GetDirectionBadgeClass(TaxCode.Direction) ms-1">
+                                @GetDirectionLabel(TaxCode.Direction)
+                            </span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ═══ LEFT PANEL (col-8) ═══ -->
+            <div class="col-lg-8">
+                <div class="profile-card">
+
+                    <!-- Core Identity -->
+                    <div class="card mb-0">
+                        <div class="card-header py-2">
+                            <i class="ti ti-file-description me-2"></i> Core Identity
+                        </div>
+                        <div class="card-body py-2">
+                            <div class="row">
+                                <div class="col-md-4 mb-2">
+                                    <small class="text-muted">Tax Code</small>
+                                    <div class="fw-medium">@TaxCode.Code</div>
+                                </div>
+                                <div class="col-md-8 mb-2">
+                                    <small class="text-muted">Tax Name</small>
+                                    <div>@TaxCode.TaxName</div>
+                                </div>
+                                @if (!string.IsNullOrWhiteSpace(TaxCode.Description))
+                                {
+                                    <div class="col-md-12 mb-2">
+                                        <small class="text-muted">Description</small>
+                                        <div class="text-secondary" style="font-style:italic;">@TaxCode.Description</div>
+                                    </div>
+                                }
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Tax Classification -->
+                    <div class="card mt-3 mb-0">
+                        <div class="card-header py-2">
+                            <i class="ti ti-category me-2"></i> Tax Classification
+                        </div>
+                        <div class="card-body py-2">
+                            <div class="row">
+                                <div class="col-md-4 mb-2">
+                                    <small class="text-muted">Tax Type</small>
+                                    <div>
+                                        <span class="badge @GetTypeBadgeClass(TaxCode.Type)">
+                                            @GetTypeLabel(TaxCode.Type)
+                                        </span>
+                                    </div>
+                                </div>
+                                <div class="col-md-4 mb-2">
+                                    <small class="text-muted">Country</small>
+                                    <div>@TaxCode.JurisdictionCountryCode</div>
+                                </div>
+                                <div class="col-md-4 mb-2">
+                                    <small class="text-muted">Direction</small>
+                                    <div>
+                                        <span class="badge @GetDirectionBadgeClass(TaxCode.Direction)">
+                                            @GetDirectionLabel(TaxCode.Direction)
+                                        </span>
+                                    </div>
+                                </div>
+                                @if (TaxCode.Type == TaxType.GST)
+                                {
+                                    <div class="col-md-4 mb-2">
+                                        <small class="text-muted">GST Component</small>
+                                        <div>@(TaxCode.GSTComponent.HasValue? TaxCode.GSTComponent.ToString() : "—")</div>
+                                    </div>
+                                    <div class="col-md-4 mb-2">
+                                        <small class="text-muted">Reverse Charge</small>
+                                        <div>
+                                            @if (TaxCode.IsReverseChargeApplicable)
+                                            {
+                                                <span class="badge bg-warning-transparent">Applicable</span>
+                                            }
+                                            else
+                                            {
+                                                <span class="badge bg-secondary-transparent text-secondary">Not Applicable</span>
+                                            }
+                                        </div>
+                                    </div>
+                                    <div class="col-md-4 mb-2">
+                                        <small class="text-muted">ITC Eligible (Default)</small>
+                                        <div>
+                                            @if (TaxCode.IsITCEligibleDefault)
+                                            {
+                                                <span class="badge bg-success-transparent">Yes</span>
+                                            }
+                                            else
+                                            {
+                                                <span class="badge bg-secondary-transparent text-secondary">No</span>
+                                            }
+                                        </div>
+                                    </div>
+                                }
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Calculation Rules -->
+                    <div class="card mt-3 mb-0">
+                        <div class="card-header py-2">
+                            <i class="ti ti-calculator me-2"></i> Calculation Rules
+                        </div>
+                        <div class="card-body py-2">
+                            <div class="row">
+                                <div class="col-md-4 mb-2">
+                                    <small class="text-muted">Calculation Type</small>
+                                    <div>@TaxCode.CalcType</div>
+                                </div>
+                                <div class="col-md-4 mb-2">
+                                    <small class="text-muted">Rate Basis</small>
+                                    <div>@TaxCode.Basis</div>
+                                </div>
+                                <div class="col-md-4 mb-2">
+                                    <small class="text-muted">Rounding Rule</small>
+                                    <div>@TaxCode.Rounding</div>
+                                </div>
+                                <div class="col-md-4 mb-2">
+                                    <small class="text-muted">Decimal Precision</small>
+                                    <div>@TaxCode.RoundingPrecisionDecimals</div>
+                                </div>
+                                @if (TaxCode.MinTaxAmount.HasValue)
+                                {
+                                    <div class="col-md-4 mb-2">
+                                        <small class="text-muted">Min Tax Amount</small>
+                                        <div>₹ @TaxCode.MinTaxAmount.Value.ToString("N2")</div>
+                                    </div>
+                                }
+                                @if (TaxCode.MaxTaxAmount.HasValue)
+                                {
+                                    <div class="col-md-4 mb-2">
+                                        <small class="text-muted">Max Tax Amount</small>
+                                        <div>₹ @TaxCode.MaxTaxAmount.Value.ToString("N2")</div>
+                                    </div>
+                                }
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Accounting Mapping -->
+                    <div class="card mt-3 mb-0">
+                        <div class="card-header py-2">
+                            <i class="ti ti-book me-2"></i> Accounting (GL) Mapping
+                        </div>
+                        <div class="card-body py-2">
+                            <div class="row">
+                                @if (TaxCode.InputTaxGLAccountId.HasValue)
+                                {
+                                    <div class="col-md-6 mb-2">
+                                        <small class="text-muted">Input Tax GL (ITC)</small>
+                                        <div class="fw-medium text-success">@(TaxCode.InputTaxGLAccountName ?? TaxCode.InputTaxGLAccountId.ToString())</div>
+                                    </div>
+                                }
+                                @if (TaxCode.OutputTaxGLAccountId.HasValue)
+                                {
+                                    <div class="col-md-6 mb-2">
+                                        <small class="text-muted">Output Tax GL</small>
+                                        <div class="fw-medium text-danger">@(TaxCode.OutputTaxGLAccountName ?? TaxCode.OutputTaxGLAccountId.ToString())</div>
+                                    </div>
+                                }
+                                @if (TaxCode.TDSGLAccountId.HasValue)
+                                {
+                                    <div class="col-md-6 mb-2">
+                                        <small class="text-muted">TDS Payable GL</small>
+                                        <div class="fw-medium">@(TaxCode.TDSGLAccountName ?? TaxCode.TDSGLAccountId.ToString())</div>
+                                    </div>
+                                }
+                                @if (TaxCode.TCSGLAccountId.HasValue)
+                                {
+                                    <div class="col-md-6 mb-2">
+                                        <small class="text-muted">TCS Payable GL</small>
+                                        <div class="fw-medium">@(TaxCode.TCSGLAccountName ?? TaxCode.TCSGLAccountId.ToString())</div>
+                                    </div>
+                                }
+                                @if (!TaxCode.InputTaxGLAccountId.HasValue && !TaxCode.OutputTaxGLAccountId.HasValue &&
+                                                                     !TaxCode.TDSGLAccountId.HasValue && !TaxCode.TCSGLAccountId.HasValue)
+                                {
+                                    <div class="col-12">
+                                        <span class="text-muted fst-italic">No GL accounts mapped.</span>
+                                    </div>
+                                }
+                                <div class="col-md-6 mb-2 mt-2">
+                                    <small class="text-muted">GL Override by Mapping</small>
+                                    <div>
+                                        @if (TaxCode.IsGLOverrideAllowedByMapping)
+                                        {
+                                            <span class="badge bg-info-transparent">Allowed</span>
+                                        }
+                                        else
+                                        {
+                                            <span class="badge bg-secondary-transparent text-secondary">Not Allowed</span>
+                                        }
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Compliance Tags -->
+                    <div class="card mt-3 mb-0">
+                        <div class="card-header py-2">
+                            <i class="ti ti-certificate me-2"></i> Compliance Tags
+                        </div>
+                        <div class="card-body py-2">
+                            <div class="row">
+                                @if (TaxCode.ReturnTag.HasValue)
+                                {
+                                    <div class="col-md-6 mb-2">
+                                        <small class="text-muted">GST Return Tag</small>
+                                        <div>@TaxCode.ReturnTag</div>
+                                    </div>
+                                }
+                                @if (!string.IsNullOrWhiteSpace(TaxCode.TDSSectionCode))
+                                {
+                                    <div class="col-md-6 mb-2">
+                                        <small class="text-muted">TDS Section Code</small>
+                                        <div class="fw-medium">§ @TaxCode.TDSSectionCode</div>
+                                    </div>
+                                }
+                                @if (!string.IsNullOrWhiteSpace(TaxCode.TCSSectionCode))
+                                {
+                                    <div class="col-md-6 mb-2">
+                                        <small class="text-muted">TCS Section Code</small>
+                                        <div class="fw-medium">§ @TaxCode.TCSSectionCode</div>
+                                    </div>
+                                }
+                                @if (!string.IsNullOrWhiteSpace(TaxCode.StatutoryReportingGroup))
+                                {
+                                    <div class="col-md-6 mb-2">
+                                        <small class="text-muted">Statutory Reporting Group</small>
+                                        <div>@TaxCode.StatutoryReportingGroup</div>
+                                    </div>
+                                }
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+
+            <!-- ═══ RIGHT PANEL (col-4) ═══ -->
+            <div class="col-lg-4">
+                <div class="profile-card">
+
+                    <!-- Status & Governance -->
+                    <div class="card mb-0">
+                        <div class="card-header py-2">
+                            <i class="ti ti-shield-check me-2"></i> Status &amp; Governance
+                        </div>
+                        <div class="card-body py-2">
+
+                            <div class="mb-2">
+                                <small class="text-muted">Status</small>
+                                <div>
+                                    <span class="badge @GetStatusBadgeClass(TaxCode.Status)">
+                                        @GetStatusLabel(TaxCode.Status)
+                                    </span>
+                                </div>
+                            </div>
+
+                            <div class="mb-2">
+                                <small class="text-muted">Locked for Changes</small>
+                                <div>
+                                    @if (TaxCode.IsLockedForChanges)
+                                    {
+                                        <span class="badge bg-warning-transparent">
+                                            <i class="ti ti-lock me-1"></i>Locked
+                                        </span>
+                                    }
+                                    else
+                                    {
+                                        <span class="badge bg-secondary-transparent text-secondary">Unlocked</span>
+                                    }
+                                </div>
+                            </div>
+
+                            @if (!string.IsNullOrWhiteSpace(TaxCode.LockReason))
+                            {
+                                <div class="mb-2">
+                                    <small class="text-muted">Lock Reason</small>
+                                    <div class="text-warning fst-italic" style="font-size:13px;">@TaxCode.LockReason</div>
+                                </div>
+                            }
+
+                            <div class="mb-2">
+                                <small class="text-muted">Effective From Policy</small>
+                                <div style="font-size:13px;">@TaxCode.EffectivePolicy</div>
+                            </div>
+
+                        </div>
+                    </div>
+
+                    <!-- Audit -->
+                    <div class="card mt-3 mb-0">
+                        <div class="card-header py-2">
+                            <i class="ti ti-clock me-2"></i> Audit
+                        </div>
+                        <div class="card-body py-2">
+                            <div class="mb-2">
+                                <small class="text-muted">Created At</small>
+                                <div>@TaxCode.CreatedAt.ToString("dd MMM yyyy")</div>
+                            </div>
+                            <div class="mb-2">
+                                <small class="text-muted">Updated At</small>
+                                <div>@(TaxCode.UpdatedAt.HasValue? TaxCode.UpdatedAt.Value.ToString("dd MMM yyyy") : "—")</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Timeline -->
+                    @if (Timeline.Any())
+                    {
+                        <div class="card mt-3 mb-0">
+                            <div class="card-header py-2">
+                                <i class="ti ti-timeline me-2"></i> Activity Timeline
+                            </div>
+                            <div class="card-body py-2">
+                                <ul class="list-unstyled mb-0">
+                                    @foreach (var entry in Timeline)
+                                    {
+                                        <li class="d-flex align-items-start mb-2 gap-2">
+                                            <span class="rounded-circle @entry.DotClass"
+                                                  style="width:10px;height:10px;min-width:10px;margin-top:5px;"></span>
+                                            <div>
+                                                <div class="fw-medium" style="font-size:13px;">@entry.Label</div>
+                                                <div class="text-muted" style="font-size:12px;">@entry.Note</div>
+                                            </div>
+                                        </li>
+                                    }
+                                </ul>
+                            </div>
+                        </div>
+                    }
+
+                </div>
+            </div>
+
+        </div>
+    </div>
+}

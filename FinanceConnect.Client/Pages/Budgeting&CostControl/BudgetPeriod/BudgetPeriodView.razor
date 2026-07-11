@@ -1,0 +1,202 @@
+@page "/budget-periods/{Id:guid}/view"
+@using FinanceConnect.Client.ViewModels
+@using static FinanceConnect.Client.ViewModels.BudgetPeriodViewModel
+
+@if (!isInitialized)
+{
+    <div class="page-loading-overlay"><div class="whirly-loader"></div></div>
+}
+else if (Item == null)
+{
+    <div class="vb-root"><div class="content">
+        <div class="alert alert-danger"><i class="ti ti-alert-circle me-2"></i>Budget period not found. <a href="/budget-periods" class="alert-link ms-2">Return to list</a></div>
+    </div></div>
+}
+else
+{
+    <div class="vb-root"><div class="content">
+
+        <!-- ═══ HEADER ═══ -->
+        <div class="vb-header-card">
+            <div class="vb-cover"><div class="vb-cover-orb vb-orb-1"></div><div class="vb-cover-orb vb-orb-2"></div><div class="vb-cover-orb vb-orb-3"></div></div>
+            <div class="vb-header-body">
+                <div class="vb-avatar">@Item.PeriodCode?.Substring(0, Math.Min(2, Item.PeriodCode?.Length ?? 0)).ToUpper()</div>
+                <div class="vb-header-meta">
+                    <div>
+                        <p class="vb-bill-number">@Item.PeriodCode – @Item.PeriodName</p>
+                        <p class="vb-bill-sub">@Item.PeriodType · Seq #@Item.PeriodSequenceNo · @Item.PeriodLengthDays days</p>
+                        <div class="vb-badges">
+                            <span class="badge @GetStatusBadge(Item.PeriodStatus)">@Item.PeriodStatus</span>
+                            <span class="badge bg-info-transparent">@Item.PeriodType</span>
+                            @if (Item.IsLocked) { <span class="badge badge-red">🔒 Locked</span> }
+                            @if (Item.IsClosed) { <span class="badge bg-dark">Closed</span> }
+                            @if (Item.IsOverspent) { <span class="badge bg-warning-transparent">⚠ Overspent</span> }
+                        </div>
+                    </div>
+                    <div class="vb-header-actions">
+                        <a href="/budget-periods" class="btn btn-outline-secondary"><i class="ti ti-arrow-left me-1"></i> Back</a>
+                        @if (!Item.IsLocked && !Item.IsClosed) { <a href="/budget-periods/edit/@Item.BudgetPeriodId" class="btn btn-primary"><i class="ti ti-pencil me-1"></i> Edit</a> }
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ═══ SUMMARY TILES ═══ -->
+        <div class="vb-summary-grid mb-4 mt-2" style="background:transparent;border:none;box-shadow:none;">
+            <div class="vb-tile"><div class="vb-tile-label">Planned Amount</div><div class="vb-tile-value primary">@Item.PlannedBudgetAmount.ToString("N2")</div></div>
+            <div class="vb-tile"><div class="vb-tile-label">Effective Amount</div><div class="vb-tile-value primary">@Item.EffectiveBudgetAmount.ToString("N2")</div></div>
+            <div class="vb-tile"><div class="vb-tile-label">Actual Consumed</div><div class="vb-tile-value @(Item.IsOverspent ? "text-danger" : "")">@Item.ActualConsumedAmount.ToString("N2")</div></div>
+            <div class="vb-tile"><div class="vb-tile-label">Available Balance</div><div class="vb-tile-value @(Item.AvailableBalanceAmount < 0 ? "text-danger" : "text-success")">@Item.AvailableBalanceAmount.ToString("N2")</div></div>
+            <div class="vb-tile"><div class="vb-tile-label">Utilization %</div><div class="vb-tile-value">@Item.UtilizationPercent.ToString("N2")%</div></div>
+            <div class="vb-tile"><div class="vb-tile-label">Overspend</div><div class="vb-tile-value @(Item.IsOverspent ? "text-danger" : "")">@Item.OverspendAmount.ToString("N2")</div></div>
+        </div>
+
+        <!-- ═══ TWO-COLUMN BODY ═══ -->
+        <div class="ac-layout mb-5">
+
+            <!-- ══ LEFT SIDEBAR ══ -->
+            <div class="ac-left">
+
+                <!-- Period Classification -->
+                <div class="vb-card">
+                    <div class="vb-card-header"><h6><i class="ti ti-category me-1"></i> Period Classification</h6></div>
+                    <div class="vb-card-body">
+                        <div class="vb-row"><span class="vb-label">Period Type</span><span class="vb-val">@Item.PeriodType</span></div>
+                        <div class="vb-row"><span class="vb-label">Fiscal Month</span><span class="vb-val">@(Item.FiscalMonthNo?.ToString() ?? "–")</span></div>
+                        <div class="vb-row"><span class="vb-label">Fiscal Quarter</span><span class="vb-val">@(Item.FiscalQuarterNo?.ToString() ?? "–")</span></div>
+                        <div class="vb-row"><span class="vb-label">Fiscal Half</span><span class="vb-val">@(Item.FiscalHalfNo?.ToString() ?? "–")</span></div>
+                    </div>
+                </div>
+
+                <!-- Date Range -->
+                <div class="vb-card">
+                    <div class="vb-card-header"><h6><i class="ti ti-calendar me-1"></i> Date Range</h6></div>
+                    <div class="vb-card-body">
+                        <div class="vb-row"><span class="vb-label">Start Date</span><span class="vb-val">@Item.StartDate.ToString("dd MMM yyyy")</span></div>
+                        <div class="vb-row"><span class="vb-label">End Date</span><span class="vb-val">@Item.EndDate.ToString("dd MMM yyyy")</span></div>
+                        <div class="vb-row"><span class="vb-label">Duration</span><span class="vb-val">@Item.PeriodLengthDays days</span></div>
+                    </div>
+                </div>
+
+                <!-- Status & Controls -->
+                <div class="vb-card">
+                    <div class="vb-card-header"><h6><i class="ti ti-toggle-right me-1"></i> Status & Controls</h6></div>
+                    <div class="vb-card-body">
+                        <div class="vb-row"><span class="vb-label">Period Status</span><span class="vb-val"><span class="badge @GetStatusBadge(Item.PeriodStatus)">@Item.PeriodStatus</span></span></div>
+                        <div class="vb-row"><span class="vb-label">Locked</span><span class="vb-val">@BoolBadge(Item.IsLocked)</span></div>
+                        <div class="vb-row"><span class="vb-label">Closed</span><span class="vb-val">@BoolBadge(Item.IsClosed)</span></div>
+                        <div class="vb-row"><span class="vb-label">Open for Consumption</span><span class="vb-val">@BoolBadge(Item.OpenForConsumptionFlag)</span></div>
+                        <div class="vb-row"><span class="vb-label">Within Budget Range</span><span class="vb-val">@BoolBadge(Item.IsWithinBudgetRange)</span></div>
+                        <div class="vb-row"><span class="vb-label">Attachment Count</span><span class="vb-val">@Item.AttachmentCount</span></div>
+                    </div>
+                </div>
+
+            </div>
+            <!-- ══ END LEFT ══ -->
+
+            <!-- ══ RIGHT MAIN ══ -->
+            <div class="ac-right">
+
+                <!-- Planned Values -->
+                <div class="vb-card">
+                    <div class="vb-card-header"><h6><i class="ti ti-currency-dollar me-1"></i> Planned Values</h6></div>
+                    <div class="vb-card-body">
+                        <div class="ac-2col">
+                            <div class="vb-row"><span class="vb-label">Planned Amount</span><span class="vb-val">@Item.PlannedBudgetAmount.ToString("N2")</span></div>
+                            <div class="vb-row"><span class="vb-label">Revised Amount</span><span class="vb-val">@(Item.RevisedBudgetAmount?.ToString("N2") ?? "–")</span></div>
+                            <div class="vb-row"><span class="vb-label">Effective Amount</span><span class="vb-val fw-bold">@Item.EffectiveBudgetAmount.ToString("N2")</span></div>
+                            <div class="vb-row"><span class="vb-label">Released Amount</span><span class="vb-val">@(Item.ReleasedBudgetAmount?.ToString("N2") ?? "–")</span></div>
+                            <div class="vb-row"><span class="vb-label">Reserved Commitment</span><span class="vb-val">@(Item.ReservedCommitmentAmount?.ToString("N2") ?? "–")</span></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Actual Consumption -->
+                <div class="vb-card">
+                    <div class="vb-card-header"><h6><i class="ti ti-chart-bar me-1"></i> Actual Consumption</h6></div>
+                    <div class="vb-card-body">
+                        <div class="ac-2col">
+                            <div class="vb-row"><span class="vb-label">Actual Consumed</span><span class="vb-val @(Item.IsOverspent ? "text-danger fw-bold" : "")">@Item.ActualConsumedAmount.ToString("N2")</span></div>
+                            <div class="vb-row"><span class="vb-label">Committed Amount</span><span class="vb-val">@(Item.CommittedAmount?.ToString("N2") ?? "–")</span></div>
+                            <div class="vb-row"><span class="vb-label">Available Balance</span><span class="vb-val @(Item.AvailableBalanceAmount < 0 ? "text-danger" : "text-success")">@Item.AvailableBalanceAmount.ToString("N2")</span></div>
+                            <div class="vb-row"><span class="vb-label">Utilization %</span><span class="vb-val">@Item.UtilizationPercent.ToString("N2")%</span></div>
+                            <div class="vb-row"><span class="vb-label">Overspent</span><span class="vb-val">@BoolBadge(Item.IsOverspent)</span></div>
+                            <div class="vb-row"><span class="vb-label">Overspend Amount</span><span class="vb-val @(Item.IsOverspent ? "text-danger" : "")">@Item.OverspendAmount.ToString("N2")</span></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Revision -->
+                @if (!string.IsNullOrWhiteSpace(Item.RevisionReason))
+                {
+                    <div class="vb-card">
+                        <div class="vb-card-header"><h6><i class="ti ti-edit me-1"></i> Revision</h6></div>
+                        <div class="vb-card-body">
+                            <div class="vb-row" style="flex-direction:column;gap:4px;"><span class="vb-label">Revision Reason</span><span class="vb-val" style="font-style:italic;color:var(--gray-600);">@Item.RevisionReason</span></div>
+                        </div>
+                    </div>
+                }
+
+                <!-- Notes & Assumptions -->
+                @if (!string.IsNullOrWhiteSpace(Item.PeriodNotes) || !string.IsNullOrWhiteSpace(Item.PlanningAssumptionSummary))
+                {
+                    <div class="vb-card">
+                        <div class="vb-card-header"><h6><i class="ti ti-notes me-1"></i> Notes & Assumptions</h6></div>
+                        <div class="vb-card-body">
+                            @if (!string.IsNullOrWhiteSpace(Item.PeriodNotes))
+                            {
+                                <div class="vb-row" style="flex-direction:column;gap:4px;"><span class="vb-label">Period Notes</span><span class="vb-val" style="font-style:italic;color:var(--gray-600);">@Item.PeriodNotes</span></div>
+                            }
+                            @if (!string.IsNullOrWhiteSpace(Item.PlanningAssumptionSummary))
+                            {
+                                <div class="vb-row" style="flex-direction:column;gap:4px;"><span class="vb-label">Planning Assumptions</span><span class="vb-val" style="font-style:italic;color:var(--gray-600);">@Item.PlanningAssumptionSummary</span></div>
+                            }
+                        </div>
+                    </div>
+                }
+
+                <!-- Audit Trail -->
+                <div class="vb-card">
+                    <div class="vb-card-header"><h6><i class="ti ti-history me-1"></i> Audit Trail</h6></div>
+                    <div class="vb-card-body">
+                        <div class="ac-2col">
+                            <div class="vb-row"><span class="vb-label">Locked On</span><span class="vb-val">@(Item.LockedOn?.ToString("dd MMM yyyy HH:mm") ?? "–")</span></div>
+                            <div class="vb-row"><span class="vb-label">Locked By</span><span class="vb-val">@(Item.LockedBy?.ToString() ?? "–")</span></div>
+                            <div class="vb-row"><span class="vb-label">Closed On</span><span class="vb-val">@(Item.ClosedOn?.ToString("dd MMM yyyy HH:mm") ?? "–")</span></div>
+                            <div class="vb-row"><span class="vb-label">Closed By</span><span class="vb-val">@(Item.ClosedBy?.ToString() ?? "–")</span></div>
+                            <div class="vb-row"><span class="vb-label">Created At</span><span class="vb-val">@Item.CreatedAt.ToString("dd MMM yyyy HH:mm")</span></div>
+                            <div class="vb-row"><span class="vb-label">Updated At</span><span class="vb-val">@(Item.UpdatedAt?.ToString("dd MMM yyyy HH:mm") ?? "–")</span></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Linkage to Planning Intelligence -->
+                @if (Item.ForecastReferenceId.HasValue || Item.VarianceAnalysisReferenceId.HasValue || Item.CarryForwardFromPeriodId.HasValue || Item.CarryForwardToPeriodId.HasValue)
+                {
+                    <div class="vb-card">
+                        <div class="vb-card-header"><h6><i class="ti ti-link me-1"></i> Planning Linkage</h6></div>
+                        <div class="vb-card-body">
+                            <div class="ac-2col">
+                                <div class="vb-row"><span class="vb-label">Forecast Reference</span><span class="vb-val">@(Item.ForecastReferenceId?.ToString() ?? "–")</span></div>
+                                <div class="vb-row"><span class="vb-label">Variance Analysis Ref</span><span class="vb-val">@(Item.VarianceAnalysisReferenceId?.ToString() ?? "–")</span></div>
+                                <div class="vb-row"><span class="vb-label">Carry Forward From</span><span class="vb-val">@(Item.CarryForwardFromPeriodId?.ToString() ?? "–")</span></div>
+                                <div class="vb-row"><span class="vb-label">Carry Forward To</span><span class="vb-val">@(Item.CarryForwardToPeriodId?.ToString() ?? "–")</span></div>
+                            </div>
+                        </div>
+                    </div>
+                }
+
+            </div>
+            <!-- ══ END RIGHT ══ -->
+
+        </div>
+
+    </div></div>
+}
+
+<style>
+    .ac-layout { display: grid; grid-template-columns: 300px 1fr; gap: 16px; align-items: start; }
+    .ac-left, .ac-right { display: flex; flex-direction: column; gap: 16px; }
+    .ac-2col { display: grid; grid-template-columns: repeat(auto-fit, minmax(204px, 1fr)); gap: 0 32px; }
+    @@media (max-width: 900px) { .ac-layout { grid-template-columns: 1fr; } .ac-2col { grid-template-columns: 1fr; } }
+</style>

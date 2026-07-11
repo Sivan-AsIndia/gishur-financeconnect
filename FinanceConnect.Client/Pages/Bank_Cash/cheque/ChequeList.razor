@@ -1,0 +1,435 @@
+@page "/cheques"
+
+@inject ChequeService Service
+@inject NavigationManager Nav
+@inject IJSRuntime JS
+
+@inject ToastService ToastService
+
+
+<div class="content List-view">
+
+    <!-- Page Header -->
+    <div class="page-header">
+        <div class="add-item d-flex">
+            <div class="page-title">
+                <h4 class="fw-bold">Cheque Details</h4>
+                <h6>Manage cash transfer details</h6>
+            </div>
+        </div>
+
+        <ul class="table-top-head me-2">
+            <li>
+                <a title="Refresh" @onclick="Reload">
+                    <i class="ti ti-refresh"></i>
+                </a>
+            </li>
+        </ul>
+
+        <div class="page-btn">
+            <a href="/cheques/create" class="btn btn-primary">
+                <i class="ti ti-circle-plus me-1"></i>
+                Create
+            </a>
+        </div>
+    </div>
+
+    <!-- Filters -->
+    <div class="card">
+        <div class="card-header d-flex align-items-center justify-content-between flex-wrap row-gap-3">
+
+            <div class="search-set">
+                <div class="search-input">
+                    <span class="btn-searchset">
+                        <i class="ti ti-search fs-14"></i>
+                    </span>
+                    <input type="search"
+                           class="form-control form-control-sm"
+                           placeholder="Search code or name..."
+                           @bind="SearchText"
+                           @oninput="OnSearch" />
+                </div>
+            </div>
+
+            <div style="display:flex;gap:10px;">
+                <select class="form-select form-select-sm"
+                        @bind="selectedStatus"
+                        style="min-width:140px">
+
+                    <option value="">All Status</option>
+
+                    @foreach (var s in AvailableStatuses)
+                    {
+                        <option value="@s">@s</option>
+                    }
+                </select>
+
+            </div>
+        </div>
+
+        <!-- Table -->
+        <div class="card-body p-0">
+            <table class="table align-middle w-100 table-fixed">
+                <thead class="thead-light">
+                    <tr>
+                        <th class="d-xl-none" style="width:40px"></th>
+                        <th>Cheque No</th>
+                        <th class="d-none d-md-table-cell" >Date</th>
+                        <th class="d-none d-xl-table-cell">Party</th>
+                        <th class="d-none d-md-table-cell">Bank</th>
+                        <th class="d-none d-md-table-cell">Amount</th>
+                        <th class="d-none d-xl-table-cell">Status</th>
+                        <th style="width:20%;">Actions</th>
+                    </tr>
+                </thead>
+
+                <tbody>
+                    @if (PagedAccounts == null)
+                    {
+                        <tr>
+                            <td colspan="7">Loading...</td>
+                        </tr>
+                    }
+                    else if (!PagedAccounts.Any())
+                    {
+                        <tr class="text-center">
+                            <td colspan="@VisibleColumnCount">No records found</td>
+                        </tr>
+                    }
+                    else
+                    {
+                        @foreach (var c in PagedAccounts)
+                        {
+                            <tr>
+                                <td class="d-xl-none text-center" style="padding: 0;padding-left: 15px;">
+                                    <a href="javascript:void(0);" class="TablePlus"
+                                       data-bs-toggle="modal"
+                                       data-bs-target="#rowDetailsModal"
+                                       @onclick="() => OpenRowDetails(c)">
+                                        <i class="ti ti-plus"></i>
+                                    </a>
+                                </td>
+
+                                <td>
+                                    <span class="fw-medium">
+                                        <i class="ti ti-external-link me-2 PopupIcon"></i>
+                                        <a @onclick="() => ViewChequeDetails(c)" class="text-decoration-none link-View"
+                                           data-bs-toggle="tooltip"
+                                           data-bs-placement="top"
+                                           title="@c.ChequeNumber details">
+                                            @c.ChequeNumber
+                                        </a>
+                                    </span>
+                                </td>
+                                <td class="d-none d-md-table-cell">@c.ChequeDate.ToString("dd-MMM-yy")</td>
+                                <td class="d-none d-xl-table-cell">@c.CounterpartyName</td>
+                                <td class="d-none d-md-table-cell">@c.OurBankAccount</td>
+                                <td class="d-none d-md-table-cell text-end" style="white-space:nowrap;">
+                                    <div style="width:80px">@IndianNumberFormatter.Format(c.Amount)</div>
+                                </td>
+                                <td class="d-none d-xl-table-cell">
+
+                                    <div class="d-flex align-items-center gap-2">
+                                        <div class="ActiveDot @GetStatusDotBadge(c.Status)">
+                                        </div>
+                                        <span> @c.Status</span>
+                                    </div>
+                                </td>
+
+                                <td class="action-table-data">
+                                    <div class="edit-delete-action">
+
+                                        <a class="me-2 edit-icon p-1"
+                                           href="javascript:void(0);"
+                                           title="Edit"
+                                           @onclick='() => Nav.NavigateTo($"/cheques/edit/{c.Id}")'>
+                                            <i class="ti ti-edit"></i>
+                                        </a>
+
+
+                                        @* Printed -> Issue *@
+                                        @if (c.Status == ChequeStatus.Printed)
+                                        {
+                                            <a class="me-2 p-1 Issue" href="javascript:void(0);"
+                                               title="Issue" data-bs-toggle="modal" data-bs-target="#issueModal"
+                                               @onclick="() => OpenActionModal(c)">
+                                                <i class="ti ti-send"></i>
+                                            </a>
+                                        }
+
+                                        @* Issued/Received -> Deposit *@
+                                        @if (c.Status == ChequeStatus.Issued || c.Status == ChequeStatus.Received)
+                                        {
+                                            <a class="me-2 p-1 Deposit" href="javascript:void(0);"
+                                               title="Deposit" data-bs-toggle="modal" data-bs-target="#depositModal"
+                                               @onclick="() => OpenActionModal(c)">
+                                                <i class="ti ti-building-bank"></i>
+                                            </a>
+                                        }
+
+                                        @* Deposited -> Clear / Bounce *@
+                                        @if (c.Status == ChequeStatus.Deposited)
+                                        {
+                                            <a class="me-2 p-1 Clear" href="javascript:void(0);"
+                                               title="Clear" data-bs-toggle="modal" data-bs-target="#clearModal"
+                                               @onclick="() => OpenActionModal(c)">
+                                                <i class="ti ti-check"></i>
+                                            </a>
+
+                                            <a class="me-2 p-1 Bounce" href="javascript:void(0);"
+                                               title="Bounce" data-bs-toggle="modal" data-bs-target="#bounceModal"
+                                               @onclick="() => OpenActionModal(c)">
+                                                <i class="ti ti-x"></i>
+                                            </a>
+                                        }
+
+                                        @* Bounced/Stopped -> Reissue *@
+                                        @if (c.Status == ChequeStatus.Bounced || c.Status == ChequeStatus.Stopped)
+                                        {
+                                            <a class="me-2 p-1 Reissue" href="javascript:void(0);"
+                                               title="Reissue" data-bs-toggle="modal" data-bs-target="#reissueModal"
+                                               @onclick="() => OpenActionModal(c)">
+                                                <i class="ti ti-refresh"></i>
+                                            </a>
+                                        }
+
+
+                                    </div>
+                                </td>
+                            </tr>
+                        }
+                    }
+                </tbody>
+
+            </table>
+
+            <!-- Pagination -->
+            @if (PagedAccounts.Any())
+            {
+                <div class="d-flex align-items-center justify-content-between flex-wrap row-gap-3 px-3 pt-3 pb-4" id="RowsPerPageContent">
+                    <div class="d-flex align-items-center">
+                        <span class="me-2">Rows per page:</span>
+                        <select class="form-select form-select-sm" style="width: auto" @onchange="OnPageSizeChange">
+                            <option value="5" selected="@(PageSize == 5)">5</option>
+                            <option value="10" selected="@(PageSize == 10)">10</option>
+                            <option value="25" selected="@(PageSize == 25)">25</option>
+                            <option value="50" selected="@(PageSize == 50)">50</option>
+                        </select>
+                        <span class="ms-3 text-muted">
+                            Entries
+                        </span>
+                    </div>
+
+                    <nav>
+                        <ul class="pagination pagination-sm mb-0">
+                            <li class="page-item @(CurrentPage == 1 ? "disabled" : "")">
+                                <a class="page-link" href="javascript:void(0);" @onclick="PreviousPage">
+                                    <i class="ti ti-chevron-left"></i>
+                                </a>
+                            </li>
+                            @for (int i = StartPage; i <= EndPage; i++)
+                            {
+                                int pageNum = i;
+                                <li class="page-item @(CurrentPage == pageNum ? "active" : "")">
+                                    <a class="page-link" href="javascript:void(0);" @onclick="() => GoToPage(pageNum)">@pageNum</a>
+                                </li>
+                            }
+                            <li class="page-item @(CurrentPage == TotalPages ? "disabled" : "")">
+                                <a class="page-link" href="javascript:void(0);" @onclick="NextPage">
+                                    <i class="ti ti-chevron-right"></i>
+                                </a>
+                            </li>
+                        </ul>
+                    </nav>
+                </div>
+            }
+
+
+        </div>
+    </div>
+
+
+</div>
+
+
+@* Responsive View popup *@
+<div class="modal fade list-Popup" id="rowDetailsModal" tabindex="-1" data-bs-backdrop="static" data-bs-keyboard="false">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+
+            <div class="modal-header">
+                <h5 class="modal-title">Cheque Details</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"
+                        style="padding:0; right:22px; position:absolute;transform:none"></button>
+            </div>
+
+            <div class="modal-body">
+                <div class="mb-2 d-flex gap-3">
+                    <strong>Party:</strong>
+                    <div>@SelectedCheque?.CounterpartyName</div>
+                </div>
+                <div class="mb-2 d-flex gap-3">
+                    <strong>Bank:</strong>
+                    <div>@SelectedCheque?.OurBankAccount</div>
+                </div>
+                <div class="mb-2 d-flex gap-3">
+                    <strong>Amount:</strong>
+                    <div>@(SelectedCheque != null ? IndianNumberFormatter.Format(SelectedCheque.Amount) : "")</div>
+                </div>
+                <div class="mb-2 d-flex gap-3">
+                    <strong>Date:</strong>
+                    <div>@SelectedCheque?.ChequeDate.ToShortDateString()</div>
+                </div>
+                <div class="mb-2 gap-3">
+                    <strong>Status:</strong>
+                    <span class="badge @(SelectedCheque != null ? GetStatusBadge(SelectedCheque.Status) : "")">
+                        @SelectedCheque?.Status
+                    </span>
+                </div>
+            </div>
+
+        </div>
+    </div>
+</div>
+
+
+<!-- ==================== ACTION CONFIRMATION MODALS ==================== -->
+
+<!-- Issue Modal -->
+<div class="modal fade" id="issueModal" data-bs-backdrop="static" data-bs-keyboard="false">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="page-wrapper-new p-0">
+                <div class="p-5 px-3 text-center">
+                    <span class="rounded-circle d-inline-flex p-2 bg-primary-transparent mb-2">
+                        <i class="ti ti-send fs-24 text-primary"></i>
+                    </span>
+                    <h4 class="fs-20 text-gray-9 fw-bold mb-2 mt-1">Issue Cheque</h4>
+                    <p class="text-gray-6 mb-0 fs-16">
+                        Do you want to issue <strong>@ActionCheque?.ChequeNumber</strong>?
+                    </p>
+                    <div class="modal-footer-btn mt-4 d-flex justify-content-center gap-3">
+                        <button type="button" class="btn btn-secondary fs-13 fw-medium p-2 px-4" data-bs-dismiss="modal">
+                            <i class="ti ti-x me-1"></i>Cancel
+                        </button>
+                        <button type="button" class="btn btn-primary fs-13 fw-medium p-2 px-4" @onclick="ConfirmIssue" data-bs-dismiss="modal">
+                            <i class="ti ti-send me-1"></i>Yes, Issue
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Deposit Modal -->
+<div class="modal fade" id="depositModal" data-bs-backdrop="static" data-bs-keyboard="false">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="page-wrapper-new p-0">
+                <div class="p-5 px-3 text-center">
+                    <span class="rounded-circle d-inline-flex p-2 bg-success-transparent mb-2">
+                        <i class="ti ti-building-bank fs-24 text-success"></i>
+                    </span>
+                    <h4 class="fs-20 text-gray-9 fw-bold mb-2 mt-1">Deposit Cheque</h4>
+                    <p class="text-gray-6 mb-0 fs-16">
+                        Are you sure you want to deposit <strong>@ActionCheque?.ChequeNumber</strong>?
+                    </p>
+                    <div class="modal-footer-btn mt-4 d-flex justify-content-center gap-3">
+                        <button type="button" class="btn btn-outline-secondary fs-13 fw-medium p-2 px-4" data-bs-dismiss="modal">
+                            <i class="ti ti-x me-1"></i>Cancel
+                        </button>
+                        <button type="button" class="btn btn-success fs-13 fw-medium p-2 px-4" @onclick="ConfirmDeposit" data-bs-dismiss="modal">
+                            <i class="ti ti-building-bank me-1"></i>Yes, Deposit
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Clear Modal -->
+<div class="modal fade" id="clearModal" data-bs-backdrop="static" data-bs-keyboard="false">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="page-wrapper-new p-0">
+                <div class="p-5 px-3 text-center">
+                    <span class="rounded-circle d-inline-flex p-2 bg-success-transparent mb-2">
+                        <i class="ti ti-check fs-24 text-success"></i>
+                    </span>
+                    <h4 class="fs-20 text-gray-9 fw-bold mb-2 mt-1">Clear Cheque</h4>
+                    <p class="text-gray-6 mb-0 fs-16">
+                        Are you sure you want to <strong>@ActionCheque?.ChequeNumber</strong> as cleared?
+                    </p>
+                    <div class="alert alert-warning mt-3 text-start small">
+                        <i class="ti ti-alert-triangle me-2"></i>
+                        Once cleared, the cheque status cannot be changed back.
+                    </div>
+                    <div class="modal-footer-btn mt-4 d-flex justify-content-center gap-3">
+                        <button type="button" class="btn btn-outline-secondary fs-13 fw-medium p-2 px-4" data-bs-dismiss="modal">
+                            <i class="ti ti-x me-1"></i>Cancel
+                        </button>
+                        <button type="button" class="btn btn-success fs-13 fw-medium p-2 px-4" @onclick="ConfirmClear" data-bs-dismiss="modal">
+                            <i class="ti ti-check me-1"></i>Yes, Clear
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Bounce Modal -->
+<div class="modal fade" id="bounceModal" data-bs-backdrop="static" data-bs-keyboard="false">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="page-wrapper-new p-0">
+                <div class="p-5 px-3 text-center">
+                    <span class="rounded-circle d-inline-flex p-2 bg-danger-transparent mb-2">
+                        <i class="ti ti-alert-triangle fs-24 text-danger"></i>
+                    </span>
+                    <h4 class="fs-20 text-gray-9 fw-bold mb-2 mt-1">Bounce Cheque</h4>
+                    <p class="text-gray-6 mb-0 fs-16">
+                        Are you sure you want to <strong>@ActionCheque?.ChequeNumber</strong> as bounced?
+                    </p>
+                    <div class="modal-footer-btn mt-4 d-flex justify-content-center gap-3">
+                        <button type="button" class="btn btn-outline-secondary fs-13 fw-medium p-2 px-4" data-bs-dismiss="modal">
+                            <i class="ti ti-x me-1"></i>Cancel
+                        </button>
+                        <button type="button" class="btn btn-danger fs-13 fw-medium p-2 px-4" @onclick="ConfirmBounce" data-bs-dismiss="modal">
+                            <i class="ti ti-alert-triangle me-1"></i>Yes, Bounce
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Reissue Modal -->
+<div class="modal fade" id="reissueModal" data-bs-backdrop="static" data-bs-keyboard="false">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="page-wrapper-new p-0">
+                <div class="p-5 px-3 text-center">
+                    <span class="rounded-circle d-inline-flex p-2 bg-warning-transparent mb-2">
+                        <i class="ti ti-refresh fs-24 text-warning"></i>
+                    </span>
+                    <h4 class="fs-20 text-gray-9 fw-bold mb-2 mt-1">Reissue Cheque</h4>
+                    <p class="text-gray-6 mb-0 fs-16">
+                        Are you sure you want to reissue <strong>@ActionCheque?.ChequeNumber</strong>?
+                    </p>
+                    <div class="modal-footer-btn mt-4 d-flex justify-content-center gap-3">
+                        <button type="button" class="btn btn-outline-secondary fs-13 fw-medium p-2 px-4" data-bs-dismiss="modal">
+                            <i class="ti ti-x me-1"></i>Cancel
+                        </button>
+                        <button type="button" class="btn btn-warning fs-13 fw-medium p-2 px-4" @onclick="ConfirmReissue" data-bs-dismiss="modal">
+                            <i class="ti ti-refresh me-1"></i>Yes, Reissue
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

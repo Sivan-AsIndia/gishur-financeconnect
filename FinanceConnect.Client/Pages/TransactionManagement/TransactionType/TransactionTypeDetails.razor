@@ -1,0 +1,307 @@
+﻿@page "/transaction-types/{TypeId:guid}/view"
+
+@using FinanceConnect.Client.ViewModels
+@using FinanceConnect.Client.Services
+@inject TransactionTypeService TypeService
+@inject PostingProfileService PostingProfileService
+@inject DocumentNumberSeriesService DocSeriesService
+@inject NavigationManager Nav
+
+@if (SelectedType != null)
+{
+<div class="dn-wrapper">
+    <div class="content">
+
+        <!-- PAGE HEADER -->
+        <div class="pageHeader d-flex justify-content-between align-items-center mb-3">
+            <div>
+                <h3>Transaction Type Details</h3>
+                <p style="color: gray;">Transaction configuration overview and control policies.</p>
+            </div>
+
+            <div class="dn-hero-actions">
+                <button class="btn btn-outline-secondary" @onclick="GoBack">
+                    <i class="ti ti-arrow-left"></i> Back
+                </button>
+            </div>
+        </div>
+
+        <!-- HERO HEADER -->
+        <div class="dn-hero">
+            <div class="dn-hero-inner">
+
+                <div class="dn-icon-wrap">
+                    <i class="ti ti-forms"></i>
+                </div>
+
+                <div class="dn-hero-content">
+                    <h1 class="dn-number">@SelectedType.Code</h1>
+
+                    <div class="dn-meta-row">
+                        <span class="dn-meta-item">
+                            <i class="ti ti-building"></i>
+                            @GetCompanyName(SelectedType.CompanyId)
+                        </span>
+
+                        <span class="dn-meta-item">
+                            <i class="ti ti-tag"></i>
+                            @SelectedType.SourceCategory
+                        </span>
+
+                        <span class="dn-meta-item">
+                            <i class="ti ti-calendar"></i>
+                            Created @SelectedType.CreatedAt.ToString("dd MMM yyyy")
+                        </span>
+                    </div>
+
+                    <div class="dn-badges">
+                        <span class="badge-dn @(SelectedType.IsActive ? "badge-posted" : "badge-draft")">
+                            @(SelectedType.IsActive ? "Active" : "Inactive")
+                        </span>
+
+                        @if (SelectedType.IsSystemDefined)
+                        {
+                            <span class="badge-dn badge-cancelled">
+                                System Defined
+                            </span>
+                        }
+                    </div>
+                </div>
+
+            </div>
+        </div>
+
+        <!-- MAIN GRID -->
+        <div class="dn-grid">
+
+            <!-- ================= LEFT PANEL ================= -->
+            <div class="dn-left">
+
+                <!-- CORE IDENTITY -->
+                <div class="dn-card">
+                    <div class="dn-card-header">
+                        <span class="dn-card-title">
+                            <i class="ti ti-id"></i> Identity
+                        </span>
+                    </div>
+
+                    <div class="card-body">
+                        <div class="row g-0">
+
+                            <div class="col-md-4 field-item">
+                                <div class="field-label">Type Code</div>
+                                <div class="field-value mono">@SelectedType.Code</div>
+                            </div>
+
+                            <div class="col-md-4 field-item">
+                                <div class="field-label">Type Name</div>
+                                <div class="field-value">@SelectedType.Name</div>
+                            </div>
+
+                            <div class="col-md-4 field-item">
+                                <div class="field-label">Company</div>
+                                <div class="field-value">@GetCompanyName(SelectedType.CompanyId)</div>
+                            </div>
+
+                            <div class="col-12 field-item-full">
+                                <div class="field-label">Description</div>
+                                    <div class=" field-value ql-editor">
+                                        @((MarkupString)(SelectedType.Description ?? "-"))
+                                    </div>
+                            </div>
+
+                        </div>
+                    </div>
+                </div>
+
+                <!-- CLASSIFICATION -->
+                <div class="dn-card">
+                    <div class="dn-card-header">
+                        <span class="dn-card-title">
+                            <i class="ti ti-category"></i> Classification & Reporting
+                        </span>
+                    </div>
+
+                    <div class="card-body">
+                        <div class="row g-0">
+
+                            <div class="col-md-6 field-item">
+                                <div class="field-label">Source Category</div>
+                                <div class="field-value">@SelectedType.SourceCategory</div>
+                            </div>
+
+                            <div class="col-md-6 field-item">
+                                <div class="field-label">Transaction Nature</div>
+                                <div class="field-value">@SelectedType.TransactionNature</div>
+                            </div>
+
+                        </div>
+                    </div>
+                </div>
+
+                <!-- POSTING & APPROVAL -->
+                <div class="dn-card">
+                    <div class="dn-card-header">
+                        <span class="dn-card-title">
+                            <i class="ti ti-lock"></i> Posting & Approval Policy
+                        </span>
+                    </div>
+
+                    <div class="card-body">
+                        <div class="field-grid field-grid-3">
+
+                            <div class="field-item">
+                                <div class="field-label">Postable to GL</div>
+                                <div class="field-value @(SelectedType.IsPostable ? "boolean-yes" : "boolean-no")">
+                                    @(SelectedType.IsPostable ? "Yes" : "No")
+                                </div>
+                            </div>
+
+                            <div class="field-item">
+                                <div class="field-label">Auto Post</div>
+                                <div class="field-value @(SelectedType.AllowAutoPost ? "boolean-yes" : "boolean-no")">
+                                    @(SelectedType.AllowAutoPost ? "Allowed" : "No")
+                                </div>
+                            </div>
+
+                            <div class="field-item" style="border-right:none;">
+                                <div class="field-label">Approval Required</div>
+                                <div class="field-value @(SelectedType.RequiresApproval ? "boolean-yes" : "boolean-no")">
+                                    @(SelectedType.RequiresApproval ? "Required" : "No")
+                                </div>
+                            </div>
+
+                        </div>
+
+                        @if (SelectedType.RequiresApproval)
+                        {
+                            <div class="col-12 field-item-full">
+                                <div class="field-label">Approval Workflow</div>
+                                <div class="field-value mono">@SelectedType.ApprovalWorkflowKey</div>
+                            </div>
+                        }
+                    </div>
+                </div>
+
+                <!-- WORKFLOW RULES -->
+                <div class="dn-card">
+                    <div class="dn-card-header">
+                        <span class="dn-card-title">
+                            <i class="ti ti-shield-check"></i> Workflow Rules
+                        </span>
+                    </div>
+
+                    <div class="card-body">
+                        <div class="field-grid field-grid-4">
+
+                            <div class="field-item">
+                                <div class="field-label">Draft Edit</div>
+                                <div class="field-value">@(SelectedType.AllowDraftEdit ? "Yes" : "No")</div>
+                            </div>
+
+                            <div class="field-item">
+                                <div class="field-label">Draft Cancel</div>
+                                <div class="field-value">@(SelectedType.AllowDraftCancel ? "Yes" : "No")</div>
+                            </div>
+
+                            <div class="field-item">
+                                <div class="field-label">Reversal</div>
+                                <div class="field-value">@(SelectedType.AllowReversal ? "Yes" : "No")</div>
+                            </div>
+
+                            <div class="field-item" style="border-right:none;">
+                                <div class="field-label">Manual Entry</div>
+                                <div class="field-value">@(SelectedType.AllowManualEntry ? "Allowed" : "System Only")</div>
+                            </div>
+
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- ================= RIGHT PANEL ================= -->
+            <div class="dn-right">
+
+                <!-- DOCUMENT POLICY -->
+                <div class="dn-card" style="margin-bottom:16px;">
+                    <div class="dn-card-header">
+                        <span class="dn-card-title">
+                            <i class="ti ti-hash"></i> Document Policy
+                        </span>
+                    </div>
+
+                    <div class="dn-card-body">
+                        <div class="info-row">
+                            <span class="info-key">Assignment Timing</span>
+                            <span class="info-val">@SelectedType.DocumentNoAssignmentTiming</span>
+                        </div>
+
+                        <div class="info-row">
+                            <span class="info-key">Document Series</span>
+                            <span class="info-val">@(DocumentSeriesName ?? "-")</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- CURRENCY POLICY -->
+                <div class="dn-card" style="margin-bottom:16px;">
+                    <div class="dn-card-header">
+                        <span class="dn-card-title">
+                            <i class="ti ti-currency-dollar"></i> Currency & Amount
+                        </span>
+                    </div>
+
+                    <div class="dn-card-body">
+                        <div class="info-row">
+                            <span class="info-key">Foreign Currency</span>
+                            <span class="info-val">@(SelectedType.AllowForeignCurrency ? "Allowed" : "Not Allowed")</span>
+                        </div>
+
+                        <div class="info-row">
+                            <span class="info-key">Negative Lines</span>
+                            <span class="info-val">@(SelectedType.AllowNegativeLines ? "Allowed" : "Not Allowed")</span>
+                        </div>
+
+                        <div class="info-row">
+                            <span class="info-key">Amount Precision</span>
+                            <span class="info-val">@(SelectedType.AmountPrecisionPolicy?.ToString() ?? "-")</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- SYSTEM INFO -->
+                <div class="dn-card">
+                    <div class="dn-card-header">
+                        <span class="dn-card-title">
+                            <i class="ti ti-settings"></i> System Information
+                        </span>
+                    </div>
+
+                    <div class="dn-card-body">
+                        <div class="info-row">
+                            <span class="info-key">Created</span>
+                            <span class="info-val">@SelectedType.CreatedAt.ToString("dd MMM yyyy HH:mm")</span>
+                        </div>
+
+                        <div class="info-row">
+                            <span class="info-key">Last Updated</span>
+                            <span class="info-val">@(SelectedType.UpdatedAt?.ToString("dd MMM yyyy HH:mm") ?? "-")</span>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+
+        </div>
+    </div>
+</div>
+}
+else
+{
+    <div class="page-loading-overlay">
+        <div class="whirly-loader"></div>
+    </div>
+}
+
+

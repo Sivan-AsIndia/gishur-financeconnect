@@ -1,0 +1,428 @@
+@page "/create-opening-balance"
+@page "/create-opening-balance/{Id:guid}"
+
+<style>
+    .form-select option:checked {
+        color: #fff;
+        background: #FE9F43;
+    }
+
+    .form-select:focus {
+        border-color: #FE9F43;
+        box-shadow: none;
+    }
+
+    .totals-card {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+    }
+
+        .totals-card .label {
+            font-size: 12px;
+            opacity: 0.8;
+        }
+
+        .totals-card .value {
+            font-size: 18px;
+            font-weight: 600;
+        }
+
+    .line-table th {
+        background: #f8f9fa;
+        font-size: 13px;
+    }
+
+    .line-table td {
+        vertical-align: middle;
+    }
+
+    .balance-ok {
+        color: #28a745;
+    }
+
+    .balance-error {
+        color: #dc3545;
+    }
+</style>
+
+@if (!isInitialized)
+{
+    <div class="page-loading-overlay"><div class="whirly-loader"></div></div>
+}
+else
+{
+    <div class="content">
+        <div class="page-header">
+            <div class="add-item d-flex">
+                <div class="page-title">
+                    <h4 class="fw-bold">@PageTitle</h4>
+                    <h6>@PageSubTitle</h6>
+                </div>
+            </div>
+            <div class="page-btn mt-0">
+                <a href="/opening-balance" class="btn btn-secondary">Back to List</a>
+            </div>
+        </div>
+
+        <EditForm Model="OpeningBalance" OnValidSubmit="Save">
+            <DataAnnotationsValidator />
+            <div class="add-product">
+                <div class="accordions-items-seperate" id="accordionOB">
+
+                    <!-- OPENING BALANCE IDENTITY -->
+                    <div class="accordion-item border mb-4">
+                        <h2 class="accordion-header">
+                            <div class="accordion-button bg-white" data-bs-toggle="collapse" data-bs-target="#obIdentity">
+                                <h5 class="d-flex align-items-center">
+                                    <i class="ti ti-file-invoice text-primary me-2"></i>
+                                    <span>Opening Balance Identity</span>
+                                </h5>
+                            </div>
+                        </h2>
+                        <div id="obIdentity" class="accordion-collapse collapse show">
+                            <div class="accordion-body border-top pt-3">
+                                <div class="row">
+                                    @if (IsEdit)
+                                    {
+                                        <div class="col-md-3 mb-3">
+                                            <label class="form-label">OB Number</label>
+                                            <input type="text" class="form-control bg-light" value="@OpeningBalance.OpeningBalanceNumber" readonly />
+                                        </div>
+                                    }
+                                    <div class="col-md-3 mb-3">
+                                        <label class="form-label">Company <span class="text-danger">*</span></label>
+                                        <InputSelect class="form-select" @bind-Value="OpeningBalance.CompanyId" disabled="@(!CanEdit)">
+                                            <option value="@Guid.Empty">--Select--</option>
+                                            @foreach (var company in Companies)
+                                            {
+                                                <option value="@company.Id">@company.CompanyCode - @company.LegalName</option>
+                                            }
+                                        </InputSelect>
+                                    </div>
+                                    <div class="col-md-3 mb-3">
+                                        <label class="form-label">Branch <span class="text-danger">*</span></label>
+                                        <InputSelect class="form-select" @bind-Value="OpeningBalance.BranchId" disabled="@(!CanEdit)">
+                                            <option value="@Guid.Empty">--Select--</option>
+                                            @foreach (var branch in Branches)
+                                            {
+                                                <option value="@branch.Id">@branch.Code - @branch.Name</option>
+                                            }
+                                        </InputSelect>
+                                    </div>
+                                    <div class="col-md-3 mb-3">
+                                        <label class="form-label">Ledger <span class="text-danger">*</span></label>
+                                        <InputSelect class="form-select" @bind-Value="OpeningBalance.LedgerId" disabled="@(!CanEdit)">
+                                            <option value="@Guid.Empty">--Select--</option>
+                                            @foreach (var ledger in Ledgers)
+                                            {
+                                                <option value="@ledger.Id">@ledger.LedgerCode - @ledger.LedgerName</option>
+                                            }
+                                        </InputSelect>
+                                    </div>
+                                    <div class="col-md-3 mb-3">
+                                        <label class="form-label">Fiscal Year <span class="text-danger">*</span></label>
+                                        <InputSelect class="form-select" @bind-Value="OpeningBalance.FiscalYearId" disabled="@(!CanEdit)">
+                                            <option value="@Guid.Empty">--Select--</option>
+                                            @foreach (var fy in FiscalYears)
+                                            {
+                                                <option value="@fy.Id">@fy.Name</option>
+                                            }
+                                        </InputSelect>
+                                    </div>
+                                    <div class="col-md-3 mb-3">
+                                        <label class="form-label">Opening Period <span class="text-danger">*</span></label>
+                                        <InputSelect class="form-select" @bind-Value="OpeningBalance.OpeningAccountingPeriodId" disabled="@(!CanEdit)">
+                                            <option value="@Guid.Empty">--Select--</option>
+                                            @foreach (var period in AccountingPeriods)
+                                            {
+                                                <option value="@period.Id">@period.Name</option>
+                                            }
+                                        </InputSelect>
+                                    </div>
+                                    <div class="col-md-3 mb-3">
+                                        <label class="form-label">Opening Date <span class="text-danger">*</span></label>
+                                        <InputDate class="form-control" @bind-Value="OpeningBalance.OpeningDate" disabled="@(!CanEdit)" />
+                                    </div>
+                                    <div class="col-md-3 mb-3">
+                                        <label class="form-label">Entry Mode <span class="text-danger">*</span></label>
+                                        <InputSelect class="form-select" @bind-Value="OpeningBalance.EntryMode" disabled="@(!CanEdit)">
+                                            @foreach (var mode in EntryModes.All)
+                                            {
+                                                <option value="@mode">@EntryModes.GetDisplayName(mode)</option>
+                                            }
+                                        </InputSelect>
+                                    </div>
+                                    <div class="col-md-3 mb-3">
+                                        <div class="form-check mt-4">
+                                            <InputCheckbox class="form-check-input" @bind-Value="OpeningBalance.RestrictToBalanceSheetAccounts"
+                                                           id="restrictBS" disabled="@(!CanEdit)" />
+                                            <label class="form-check-label" for="restrictBS">Balance Sheet Only</label>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-3 mb-3">
+                                        <label class="form-label">Currency Mode</label>
+                                        <input type="text" class="form-control bg-light"
+                                               value="@(CurrencyModes.GetDisplayName(OpeningBalance.CurrencyMode ?? "SingleCurrencyOnly"))" readonly />
+                                        <small class="text-muted">Derived from Ledger</small>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- TOTALS CARD -->
+                    <div class="row mb-4">
+                        <div class="col-md-4">
+                            <div class="card totals-card mb-0">
+                                <div class="card-body py-3">
+                                    <div class="label">Total Debit</div>
+                                    <div class="value">₹ @OpeningBalance.TotalDebit.ToString("N2")</div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="card totals-card mb-0">
+                                <div class="card-body py-3">
+                                    <div class="label">Total Credit</div>
+                                    <div class="value">₹ @OpeningBalance.TotalCredit.ToString("N2")</div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="card mb-0" style="background: @(OpeningBalance.IsBalanced ? "#d4edda" : "#f8d7da")">
+                                <div class="card-body py-3">
+                                    <div class="label @(OpeningBalance.IsBalanced ? "text-success" : "text-danger")">Difference</div>
+                                    <div class="value @(OpeningBalance.IsBalanced ? "balance-ok" : "balance-error")">
+                                        ₹ @OpeningBalance.Difference.ToString("N2")
+                                        @if (OpeningBalance.IsBalanced)
+                                        {
+                                            <i class="ti ti-check ms-2"></i>
+                                        }
+                                        else
+                                        {
+                                            <i class="ti ti-alert-triangle ms-2"></i>
+                                        }
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- OPENING BALANCE LINES -->
+                    <div class="accordion-item border mb-4">
+                        <h2 class="accordion-header">
+                            <div class="accordion-button bg-white" data-bs-toggle="collapse" data-bs-target="#obLines">
+                                <h5 class="d-flex align-items-center">
+                                    <i class="ti ti-list text-primary me-2"></i>
+                                    <span>Opening Balance Lines (@OpeningBalance.Lines.Count)</span>
+                                </h5>
+                            </div>
+                        </h2>
+                        <div id="obLines" class="accordion-collapse collapse show">
+                            <div class="accordion-body border-top pt-3">
+                                @if (CanEdit)
+                                {
+                                    <div class="mb-3">
+                                        <button type="button" class="btn btn-outline-primary btn-sm" @onclick="AddLine">
+                                            <i class="ti ti-plus me-1"></i>Add Line
+                                        </button>
+                                    </div>
+                                }
+                                <div class="table-responsive">
+                                    <table class="table table-bordered line-table mb-0">
+                                        <thead>
+                                            <tr>
+                                                <th style="width:40px">#</th>
+                                                <th style="min-width:250px">Account <span class="text-danger">*</span></th>
+                                                <th style="min-width:200px">Description</th>
+                                                <th style="width:150px">Debit</th>
+                                                <th style="width:150px">Credit</th>
+                                                @if (IsMultiCurrency)
+                                                {
+                                                    <th style="width:140px">Currency</th>
+                                                    <th style="width:130px">Txn Amount</th>
+                                                    <th style="width:120px">Ex. Rate</th>
+                                                }
+                                                @if (CanEdit)
+                                                {
+                                                    <th style="width:60px">Action</th>
+                                                }
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            @if (OpeningBalance.Lines.Any())
+                                            {
+                                                @for (int i = 0; i < OpeningBalance.Lines.Count; i++)
+                                                {
+                                                    var line = OpeningBalance.Lines[i];
+                                                    var index = i;
+                                                    <tr>
+                                                        <td class="text-center">@(i + 1)</td>
+                                                        <td>
+                                                            @if (CanEdit)
+                                                            {
+                                                                <select class="form-select form-select-sm" @bind="line.AccountId" @bind:after="RecalculateTotals">
+                                                                    <option value="@Guid.Empty">--Select--</option>
+                                                                    @foreach (var account in Accounts)
+                                                                    {
+                                                                        <option value="@account.Id">@account.Code - @account.Name</option>
+                                                                    }
+                                                                </select>
+                                                            }
+                                                            else
+                                                            {
+                                                                <span>@line.AccountCode - @line.AccountName</span>
+                                                            }
+                                                        </td>
+                                                        <td>
+                                                            @if (CanEdit)
+                                                            {
+                                                                <input type="text" class="form-control form-control-sm" @bind="line.LineDescription" maxlength="300" />
+                                                            }
+                                                            else
+                                                            {
+                                                                <span>@(line.LineDescription ?? "-")</span>
+                                                            }
+                                                        </td>
+                                                        <td>
+                                                            @if (CanEdit)
+                                                            {
+                                                                <input type="number" class="form-control form-control-sm text-end"
+                                                                       @bind="line.DebitAmountBase" @bind:after="RecalculateTotals" min="0" step="0.01" />
+                                                            }
+                                                            else
+                                                            {
+                                                                <span class="text-end d-block">@line.DebitAmountBase.ToString("N2")</span>
+                                                            }
+                                                        </td>
+                                                        <td>
+                                                            @if (CanEdit)
+                                                            {
+                                                                <input type="number" class="form-control form-control-sm text-end"
+                                                                       @bind="line.CreditAmountBase" @bind:after="RecalculateTotals" min="0" step="0.01" />
+                                                            }
+                                                            else
+                                                            {
+                                                                <span class="text-end d-block">@line.CreditAmountBase.ToString("N2")</span>
+                                                            }
+                                                        </td>
+                                                        @if (IsMultiCurrency)
+                                                        {
+                                                            <td>
+                                                                @if (CanEdit)
+                                                                {
+                                                                    <select class="form-select form-select-sm" @bind="line.TransactionCurrencyId">
+                                                                        <option value="">-- Base --</option>
+                                                                        @foreach (var currency in Currencies)
+                                                                        {
+                                                                            <option value="@currency.Id">@currency.CurrencyCode</option>
+                                                                        }
+                                                                    </select>
+                                                                }
+                                                                else
+                                                                {
+                                                                    <span>@(line.TransactionCurrencyCode ?? "-")</span>
+                                                                }
+                                                            </td>
+                                                            <td>
+                                                                @if (CanEdit)
+                                                                {
+                                                                    <input type="number" class="form-control form-control-sm text-end"
+                                                                           @bind="line.TransactionAmount" min="0" step="0.01" />
+                                                                }
+                                                                else
+                                                                {
+                                                                    <span class="text-end d-block">@(line.TransactionAmount?.ToString("N2") ?? "-")</span>
+                                                                }
+                                                            </td>
+                                                            <td>
+                                                                @if (CanEdit)
+                                                                {
+                                                                    <input type="number" class="form-control form-control-sm text-end"
+                                                                           @bind="line.ExchangeRateUsed" min="0" step="0.000001" />
+                                                                }
+                                                                else
+                                                                {
+                                                                    <span class="text-end d-block">@(line.ExchangeRateUsed?.ToString("N6") ?? "-")</span>
+                                                                }
+                                                            </td>
+                                                        }
+                                                        @if (CanEdit)
+                                                        {
+                                                            <td class="text-center">
+                                                                <button type="button" class="btn btn-sm btn-outline-danger" @onclick="() => RemoveLine(index)">
+                                                                    <i class="ti ti-trash"></i>
+                                                                </button>
+                                                            </td>
+                                                        }
+                                                    </tr>
+                                                }
+                                            }
+                                            else
+                                            {
+                                                <tr>
+                                                    <td colspan="@(CanEdit ? (IsMultiCurrency ? 9 : 6) : (IsMultiCurrency ? 8 : 5))" class="text-center py-4 text-muted">
+                                                        No lines added. Click "Add Line" to begin.
+                                                    </td>
+                                                </tr>
+                                            }
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- NOTES -->
+                    <div class="accordion-item border mb-4">
+                        <h2 class="accordion-header">
+                            <div class="accordion-button collapsed bg-white" data-bs-toggle="collapse" data-bs-target="#obNotes">
+                                <h5 class="d-flex align-items-center">
+                                    <i class="ti ti-notes text-primary me-2"></i>
+                                    <span>Notes & Status</span>
+                                </h5>
+                            </div>
+                        </h2>
+                        <div id="obNotes" class="accordion-collapse collapse">
+                            <div class="accordion-body border-top pt-3">
+                                <div class="row">
+                                    <div class="col-md-9 mb-3">
+                                        <label class="form-label">Notes</label>
+                                        <InputTextArea class="form-control" @bind-Value="OpeningBalance.Notes" rows="3"
+                                                       placeholder="Any remarks..." maxlength="1000" disabled="@(!CanEdit)" />
+                                    </div>
+                                    <div class="col-md-3 mb-3">
+                                        <label class="form-label">Status</label>
+                                        <div class="mt-2">
+                                            <span class="badge @GetStatusBadge(OpeningBalance.Status) fs-6">@OpeningBalance.Status</span>
+                                        </div>
+                                        @if (IsEdit && OpeningBalance.ApprovedAt.HasValue)
+                                        {
+                                            <small class="text-muted d-block mt-2">Approved: @OpeningBalance.ApprovedAt?.ToString("dd MMM yyyy")</small>
+                                        }
+                                        @if (IsEdit && OpeningBalance.PostedAt.HasValue)
+                                        {
+                                            <small class="text-muted d-block">Posted: @OpeningBalance.PostedAt?.ToString("dd MMM yyyy")</small>
+                                        }
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+
+                <div class="text-end mt-4">
+                    <a href="/opening-balance" class="btn btn-secondary me-2">Cancel</a>
+                    @if (CanEdit)
+                    {
+                        <button type="submit" class="btn btn-primary">
+                            @(IsEdit ? "Update" : "Save as Draft")
+                        </button>
+                    }
+                </div>
+            </div>
+        </EditForm>
+    </div>
+}
+

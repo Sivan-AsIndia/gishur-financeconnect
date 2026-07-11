@@ -1,0 +1,380 @@
+@page "/fund-transfers/create"
+@page "/fund-transfers/{Id:guid}"
+
+@inject BranchService BranchService
+@inject MasterDataService MasterDataService
+
+<style>
+    .form-select option:checked {
+        color: #fff;
+        background: var(--primary);
+    }
+
+    .form-select:focus {
+        border-color: var(--primary);
+        box-shadow: none;
+    }
+
+    .validation-message {
+        color: #dc3545;
+        font-size: 12px;
+    }
+
+    .form-select.is-invalid {
+        border-color: #dc3545;
+    }
+
+    .field-validation-error {
+        color: #dc3545;
+        font-size: 12px;
+        display: block;
+        margin-top: 4px;
+    }
+</style>
+
+@if (!isInitialized)
+{
+    <div class="page-loading-overlay">
+        <div class="whirly-loader"></div>
+    </div>
+}
+else
+{
+    <div class="content flat-form">
+        <div class="page-header">
+            <div class="add-item d-flex">
+                <div class="page-title">
+                    <h4 class="fw-bold">@PageTitle</h4>
+                    <h6>@PageSubTitle</h6>
+                </div>
+            </div>
+
+            <div class="page-btn mt-0">
+                <a href="/fund-transfers" class="btn btn-outline-secondary">
+                    <i class="ti ti-arrow-left"></i> Back
+                </a>
+            </div>
+        </div>
+
+        <EditForm EditContext="editContext" OnSubmit="Save">
+
+            <div class="card mb-3">
+                <div class="card-body">
+
+                    <!-- Core Identity -->
+                    <h5 class="text-primary mb-3"><i class="ti ti-building me-2"></i>Core Identity</h5>
+                    <div class="row g-3 mb-4">
+                        <div class="col-md-4">
+                            <label class="form-label">Transfer Number</label>
+                            <InputText class="form-control" @bind-Value="Fund.FundTransferNumber" readonly />
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Company <span class="text-danger">*</span></label>
+                            <select class="@($"form-select {(validationAttempted && !Fund.CompanyId.HasValue ? "is-invalid" : "")}")"
+                                    value="@Fund.CompanyId" @onchange="OnCompanyChanged">
+                                <option value="">-- Select Company --</option>
+                                @if (company != null)
+                                {
+                                    @foreach (var b in company)
+                                    {
+                                        <option value="@b.Id">@b.LegalName</option>
+                                    }
+                                }
+                            </select>
+                            @if (validationAttempted && !Fund.CompanyId.HasValue)
+                            {
+                                <span class="field-validation-error">Company is required</span>
+                            }
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Branch <span class="text-danger">*</span></label>
+                            <select class="@($"form-select {(validationAttempted && !Fund.BranchId.HasValue ? "is-invalid" : "")}")"
+                                    value="@Fund.BranchId" @onchange="OnBranchSelected"
+                                    disabled="@IsBranchDisabled">
+                                <option value="">-- Select Branch --</option>
+                                @if (FilteredBranches != null)
+                                {
+                                    @foreach (var b in FilteredBranches)
+                                    {
+                                        <option value="@b.Id">@b.BranchCode - @b.BranchName</option>
+                                    }
+                                }
+                            </select>
+                            @if (validationAttempted && !Fund.BranchId.HasValue)
+                            {
+                                <span class="field-validation-error">Branch is required</span>
+                            }
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Status <span class="text-danger">*</span></label>
+                            <InputSelect class="@($"form-select {(validationAttempted && Fund.Status == null ? "is-invalid" : "")}")" @bind-Value="Fund.Status">
+                                <option value="">-- Select Status --</option>
+                                @foreach (var status in Enum.GetValues<FundTransferStatus>())
+                                {
+                                    <option value="@status">@status</option>
+                                }
+                            </InputSelect>
+                            @if (validationAttempted && Fund.Status == null)
+                            {
+                                <span class="field-validation-error">Status is required</span>
+                            }
+                        </div>
+                    </div>
+
+                    <!-- Transfer Details -->
+                    <h5 class="text-primary mb-3"><i class="ti ti-exchange me-2"></i>Transfer Details</h5>
+                    <div class="row g-3 mb-4">
+                        <div class="col-md-4">
+                            <label class="form-label">From Bank Account <span class="text-danger">*</span></label>
+                            <InputSelect class="@($"form-select {(validationAttempted && string.IsNullOrWhiteSpace(Fund.SourceBankAccount) ? "is-invalid" : "")}")" @bind-Value="Fund.SourceBankAccount">
+                                <option value="">-- Select Source Account --</option>
+                                @if (BankAccounts != null)
+                                {
+                                    @foreach (var acc in BankAccounts)
+                                    {
+                                        <option value="@acc.BankAccountName">@acc.BankAccountName</option>
+                                    }
+                                }
+                            </InputSelect>
+                            @if (validationAttempted && string.IsNullOrWhiteSpace(Fund.SourceBankAccount))
+                            {
+                                <span class="field-validation-error">From Bank Account is required</span>
+                            }
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">To Bank Account <span class="text-danger">*</span></label>
+                            <InputSelect class="@($"form-select {(validationAttempted && string.IsNullOrWhiteSpace(Fund.DestinationBankAccount) ? "is-invalid" : "")}")" @bind-Value="Fund.DestinationBankAccount">
+                                <option value="">-- Select Destination Account --</option>
+                                @if (BankAccounts != null)
+                                {
+                                    @foreach (var acc in BankAccounts)
+                                    {
+                                        <option value="@acc.BankAccountName">@acc.BankAccountName</option>
+                                    }
+                                }
+                            </InputSelect>
+                            @if (validationAttempted && string.IsNullOrWhiteSpace(Fund.DestinationBankAccount))
+                            {
+                                <span class="field-validation-error">To Bank Account is required</span>
+                            }
+                            @if (SameAccountError != null)
+                            {
+                                <span class="field-validation-error">@SameAccountError</span>
+                            }
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Transfer Date <span class="text-danger">*</span></label>
+                            <InputDate class="@($"form-control {(validationAttempted && Fund.TransferDate == default ? "is-invalid" : "")}")" @bind-Value="Fund.TransferDate" />
+                            @if (validationAttempted && Fund.TransferDate == default)
+                            {
+                                <span class="field-validation-error">Transfer Date is required</span>
+                            }
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Currency</label>
+                            <InputText class="form-control" @bind-Value="Fund.Currency" disabled />
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Amount <span class="text-danger">*</span></label>
+                            <InputNumber class="@($"form-control {(validationAttempted && Fund.Amount <= 0 ? "is-invalid" : "")}")" @bind-Value="Fund.Amount" min="0" />
+                            @if (validationAttempted && Fund.Amount <= 0)
+                            {
+                                <span class="field-validation-error">Amount must be greater than 0</span>
+                            }
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Source Value Date <span class="text-danger">*</span></label>
+                            <InputDate class="@($"form-control {(validationAttempted && Fund.SourceValueDate == default ? "is-invalid" : "")}")"
+                                       min="@(Fund.TransferDate.ToString("yyyy-MM-dd"))" @bind-Value="Fund.SourceValueDate" />
+                            @if (validationAttempted && Fund.SourceValueDate == default)
+                            {
+                                <span class="field-validation-error">Source Value Date is required</span>
+                            }
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Destination Value Date <span class="text-danger">*</span></label>
+                            <InputDate class="@($"form-control {(validationAttempted && Fund.DestinationValueDate == default ? "is-invalid" : "")}")"
+                                       min="@(Fund.SourceValueDate.ToString("yyyy-MM-dd"))" @bind-Value="Fund.DestinationValueDate" />
+                            @if (validationAttempted && Fund.DestinationValueDate == default)
+                            {
+                                <span class="field-validation-error">Destination Value Date is required</span>
+                            }
+                        </div>
+                        <div class="col-md-12">
+                            <label class="form-label">Narration <span class="text-danger">*</span></label>
+                            <div class="@($"form-control p-0 border {(validationAttempted && IsQuillEmpty(Fund.Narration) ? "border-danger" : "")}")" style="overflow:hidden;">
+                                <RichTextEditor @ref="_narrationEditor"
+                                                Value="@Fund.Narration"
+                                                Placeholder="Enter Narration Notes..."
+                                                MinHeight="60"
+                                                MaxHeight="500" />
+                            </div>
+                            @if (validationAttempted && IsQuillEmpty(Fund.Narration))
+                            {
+                                <span class="field-validation-error">Narration is required</span>
+                            }
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Reason Code</label>
+                            <select class="form-select" @bind="Fund.ReasonCode">
+                                <option value="">-- Select Reason Code --</option>
+                                <option value="LiquidityMove">Liquidity Move</option>
+                                <option value="BranchFunding">Branch Funding</option>
+                                <option value="PayrollFunding">Payroll Funding</option>
+                                <option value="CollectionSweep">Collection Sweep</option>
+                                <option value="InvestmentMove">Investment Move</option>
+                                <option value="Other">Other</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- Method & Reference -->
+                    <h5 class="text-primary mb-3"><i class="ti ti-map me-2"></i>Method & Reference</h5>
+                    <div class="row g-3 mb-4">
+                        <div class="col-md-4">
+                            <label class="form-label">Transfer Method <span class="text-danger">*</span></label>
+                            <InputSelect class="@($"form-select {(validationAttempted && Fund.TransferMethod == null ? "is-invalid" : "")}")" @bind-Value="Fund.TransferMethod">
+                                <option value="">-- Select Transfer Method --</option>
+                                @foreach (var method in Enum.GetValues<TransferMethod>())
+                                {
+                                    <option value="@method">@method</option>
+                                }
+                            </InputSelect>
+                            @if (validationAttempted && Fund.TransferMethod == null)
+                            {
+                                <span class="field-validation-error">Transfer Method is required</span>
+                            }
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">UTR Number <span class="text-danger">*</span></label>
+                            <InputText class="@($"form-control {(validationAttempted && string.IsNullOrWhiteSpace(Fund.UTRNumber) ? "is-invalid" : "")}")" @bind-Value="Fund.UTRNumber" maxlength="100" />
+                            @if (validationAttempted && string.IsNullOrWhiteSpace(Fund.UTRNumber))
+                            {
+                                <span class="field-validation-error">UTR Number is required</span>
+                            }
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Initiation Reference</label>
+                            <InputText class="form-control" @bind-Value="Fund.InitiationReference" maxlength="100" placeholder="Bank portal batch id, request id..." />
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Channel</label>
+                            <InputSelect class="form-select" @bind-Value="Fund.Channel">
+                                <option value="">-- Select Channel --</option>
+                                @foreach (var ch in Enum.GetValues<ChannelType>())
+                                {
+                                    <option value="@ch">@ch</option>
+                                }
+                            </InputSelect>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Beneficiary Narration</label>
+                            <InputText class="form-control" @bind-Value="Fund.BeneficiaryNarration" maxlength="200" placeholder="What appears to beneficiary..." />
+                        </div>
+                    </div>
+
+                    <!-- Approval Workflow -->
+                    <h5 class="text-primary mb-3"><i class="ti ti-check me-2"></i>Approval Workflow</h5>
+                    <div class="row g-3 mb-4">
+                        <div class="col-md-4">
+                            <label class="form-label">Requested By</label>
+                            <InputText class="form-control" @bind-Value="Fund.RequestedBy" readonly />
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Submitted On</label>
+                            <InputDate class="form-control" @bind-Value="Fund.SubmittedOn" readonly />
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Approved By</label>
+                            <InputText class="form-control" @bind-Value="Fund.ApprovedBy" readonly />
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Approved On</label>
+                            <InputDate class="form-control" @bind-Value="Fund.ApprovedOn" readonly />
+                        </div>
+                        <div class="col-md-12">
+                            <label class="form-label">Approval Notes</label>
+                            <div class="form-control p-0 border" style="overflow:hidden;">
+                                <RichTextEditor @ref="_approvalNotesEditor"
+                                                Value="@Fund.ApprovalNotes"
+                                                Placeholder="Approval remarks..."
+                                                MinHeight="60"
+                                                MaxHeight="500" />
+                            </div>
+                            <small class="text-muted">Optional but recommended</small>
+                        </div>
+                        <div class="col-md-12">
+                            <label class="form-label">Failure Reason</label>
+                            <div class="form-control p-0 border" style="overflow:hidden;">
+                                <RichTextEditor @ref="_failureReasonEditor"
+                                                Value="@Fund.FailureReason"
+                                                Placeholder="Required if status is Failed..."
+                                                MinHeight="60"
+                                                MaxHeight="500" />
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Charges -->
+                    <h5 class="text-primary mb-3"><i class="ti ti-settings me-2"></i>Charges</h5>
+                    <div class="row g-3 mb-4">
+                        <div class="col-md-4">
+                            <label class="form-label">Charge Handling Mode <span class="text-danger">*</span></label>
+                            <InputSelect class="@($"form-select {(validationAttempted && Fund.ChargeHandlingMode == null ? "is-invalid" : "")}")"
+                                         @bind-Value="Fund.ChargeHandlingMode">
+                                <option value="">-- Select Charge Handling Mode --</option>
+                                @foreach (var method in Enum.GetValues<ChargeHandlingMode>())
+                                {
+                                    <option value="@method">@method</option>
+                                }
+                            </InputSelect>
+                            @if (validationAttempted && Fund.ChargeHandlingMode == null)
+                            {
+                                <span class="field-validation-error">Charge Handling Mode is required</span>
+                            }
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Charge Bearer <span class="text-danger">*</span></label>
+                            <InputSelect class="@($"form-select {(validationAttempted && Fund.ChargeBearerType == null ? "is-invalid" : "")}")"
+                                         @bind-Value="Fund.ChargeBearerType">
+                                <option value="">-- Select Charge Bearer --</option>
+                                @foreach (var method in Enum.GetValues<ChargeBearerType>())
+                                {
+                                    <option value="@method">@method</option>
+                                }
+                            </InputSelect>
+                            @if (validationAttempted && Fund.ChargeBearerType == null)
+                            {
+                                <span class="field-validation-error">Charge Bearer is required</span>
+                            }
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Expected Charge Amount</label>
+                            <InputNumber class="form-control" @bind-Value="Fund.ExpectedChargeAmount" min="0" />
+                        </div>
+                        <div class="col-md-12">
+                            <label class="form-label">Charge Narration</label>
+                            <div class="form-control p-0 border" style="overflow:hidden;">
+                                <RichTextEditor @ref="_chargeNarrationEditor"
+                                                Value="@Fund.ChargeNarration"
+                                                Placeholder="Enter Charge Narration..."
+                                                MinHeight="60"
+                                                MaxHeight="500" />
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+
+            <!-- Footer Buttons -->
+            <div class="page-btn d-flex align-items-center justify-content-end gap-3 mb-5">
+                <button type="button" class="btn btn-outline-secondary" @onclick='() => Nav.NavigateTo("/fund-transfers")'><i class="ti ti-x"></i> Cancel</button>
+                <button type="submit" class="btn btn-primary">
+                    <i class="ti ti-device-floppy me-1"></i> @(IsEdit ? "Update" : "Save")
+                </button>
+            </div>
+
+        </EditForm>
+    </div>
+}

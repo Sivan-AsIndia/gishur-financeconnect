@@ -1,0 +1,992 @@
+@page "/vendor-bills/create"
+@page "/vendor-bills/{Id:guid}"
+
+@using FinanceConnect.Client.ViewModels
+
+<style>
+    .form-select option:checked {
+        color: #fff;
+        background: var(--primary);
+    }
+
+    .form-select:focus {
+        border-color: var(--primary);
+        box-shadow: none;
+    }
+
+    .validation-message {
+        color: #dc3545;
+        font-size: 11px;
+        margin-top: 2px;
+    }
+
+    /* ===== RESPONSIVE BILL LINES GRID ===== */
+    .bill-line-item {
+        background: #fff;
+        border: 1px solid #e9ecef;
+        border-radius: 10px;
+        margin-bottom: 12px;
+        padding: 16px;
+        transition: all 0.2s ease;
+    }
+
+    .bill-line-item:hover {
+        border-color: #5B8FF9;
+        box-shadow: 0 4px 12px rgba(91, 143, 249, 0.1);
+    }
+
+    /* Line Header with number and total */
+    .line-item-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 16px;
+        padding-bottom: 12px;
+        border-bottom: 1px solid #e9ecef;
+    }
+
+    .line-item-number {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+    }
+
+    .line-number-badge {
+        background: linear-gradient(135deg, #5B8FF9 0%, #4178e8 100%);
+        color: #fff;
+        font-weight: 700;
+        font-size: 12px;
+        padding: 4px 10px;
+        border-radius: 20px;
+        min-width: 36px;
+        text-align: center;
+    }
+
+    .line-type-badge {
+        padding: 3px 8px;
+        border-radius: 12px;
+        font-size: 10px;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+
+    .line-type-badge.service { background: #e8f0fe; color: #5B8FF9; }
+    .line-type-badge.goods { background: #e6f4ea; color: #28a745; }
+    .line-type-badge.expense { background: #fff3cd; color: #856404; }
+    .line-type-badge.asset { background: #f5e6ff; color: #6f42c1; }
+    .line-type-badge.other { background: #e9ecef; color: #6c757d; }
+
+    .line-item-total {
+        text-align: right;
+    }
+
+    .line-item-total-label {
+        font-size: 10px;
+        text-transform: uppercase;
+        color: #6c757d;
+        font-weight: 600;
+        letter-spacing: 0.5px;
+    }
+
+    .line-item-total-value {
+        font-size: 18px;
+        font-weight: 700;
+        color: #212529;
+    }
+
+    /* Responsive Grid for line fields */
+    .line-fields-grid {
+        display: grid;
+        grid-template-columns: repeat(12, 1fr);
+        gap: 12px;
+        align-items: start;
+    }
+
+    .line-field {
+        display: flex;
+        flex-direction: column;
+    }
+
+    .line-field-label {
+        font-size: 11px;
+        text-transform: uppercase;
+        color: #6c757d;
+        font-weight: 600;
+        margin-bottom: 4px;
+        letter-spacing: 0.3px;
+    }
+
+    .line-field input,
+    .line-field select {
+        width: 100%;
+        padding: 8px 10px;
+        font-size: 13px;
+        border-radius: 6px;
+        border: 1px solid #ced4da;
+        background-color: #fff;
+        transition: all 0.2s ease;
+    }
+
+    .line-field input:focus,
+    .line-field select:focus {
+        border-color: #5B8FF9;
+        outline: none;
+        box-shadow: 0 0 0 2px rgba(91, 143, 249, 0.15);
+    }
+
+    .line-field input:disabled,
+    .line-field select:disabled {
+        background-color: #f8f9fa;
+        cursor: not-allowed;
+    }
+
+    .line-field input.is-invalid,
+    .line-field select.is-invalid {
+        border-color: #dc3545;
+    }
+
+    /* Line Actions */
+    .line-actions {
+        display: flex;
+        gap: 8px;
+        justify-content: flex-end;
+        margin-top: 12px;
+        padding-top: 12px;
+        border-top: 1px solid #e9ecef;
+    }
+
+    .line-action-btn {
+        padding: 6px 10px;
+        border-radius: 6px;
+        font-size: 12px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        border: 1px solid transparent;
+        display: flex;
+        align-items: center;
+        gap: 4px;
+    }
+
+    .line-action-btn.duplicate {
+        background: #e8f0fe;
+        color: #5B8FF9;
+    }
+
+    .line-action-btn.duplicate:hover {
+        background: #5B8FF9;
+        color: #fff;
+    }
+
+    .line-action-btn.delete {
+        background: #f8d7da;
+        color: #dc3545;
+    }
+
+    .line-action-btn.delete:hover {
+        background: #dc3545;
+        color: #fff;
+    }
+
+    /* Totals Section */
+    .totals-section {
+        background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+        border-radius: 12px;
+        padding: 20px;
+        border: 1px solid #e9ecef;
+    }
+
+    .totals-grid {
+        display: grid;
+        grid-template-columns: repeat(6, 1fr);
+        gap: 12px;
+    }
+
+    .total-item {
+        padding: 12px 16px;
+        background: #fff;
+        border-radius: 8px;
+        border: 1px solid #e9ecef;
+        text-align: center;
+        transition: all 0.2s ease;
+    }
+
+    .total-item:hover {
+            border-color: var(--bg-primary);
+        box-shadow: 0 2px 8px rgba(91, 143, 249, 0.1);
+    }
+
+    .total-item-label {
+        font-size: 10px;
+        text-transform: uppercase;
+        color: #6c757d;
+        font-weight: 600;
+        letter-spacing: 0.5px;
+        margin-bottom: 4px;
+    }
+
+    .total-item-value {
+        font-size: 16px;
+        font-weight: 700;
+        color: #212529;
+    }
+
+    .total-item-value.grand-total {
+        color: #5B8FF9;
+        font-size: 18px;
+    }
+
+    .total-item-value.discount {
+        color: #dc3545;
+    }
+
+    .currency-badge {
+        display: inline-block;
+        padding: 4px 12px;
+        background: #28a745;
+        color: #fff;
+        border-radius: 20px;
+        font-size: 12px;
+        font-weight: 600;
+    }
+
+    /* Empty State */
+    .empty-lines-state {
+        padding: 40px 20px;
+        text-align: center;
+        color: #6c757d;
+        background: #f8f9fa;
+        border-radius: 10px;
+        border: 2px dashed #dee2e6;
+    }
+
+    .empty-lines-state i {
+        font-size: 48px;
+        margin-bottom: 12px;
+        color: #dee2e6;
+    }
+
+    /* Add Line Button */
+    .add-line-btn {
+        background: linear-gradient(135deg, #5B8FF9 0%, #4178e8 100%);
+        border: none;
+        padding: 8px 16px;
+        font-weight: 600;
+        border-radius: 8px;
+        transition: all 0.2s ease;
+    }
+
+    .add-line-btn:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 4px 12px rgba(91, 143, 249, 0.3);
+        background: linear-gradient(135deg, #4178e8 0%, #5B8FF9 100%);
+    }
+
+    /* Section Header */
+    .section-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding-bottom: 16px;
+        border-bottom: 2px solid #e9ecef;
+        margin-bottom: 20px;
+        flex-wrap: wrap;
+        gap: 12px;
+    }
+
+
+    /* Validation error highlight animation */
+    .validation-highlight {
+        animation: highlightPulse 0.5s ease-in-out 2;
+    }
+
+    @@keyframes highlightPulse {
+        0%, 100% {
+            box-shadow: 0 0 0 2px rgba(220, 53, 69, 0.2);
+        }
+        50% {
+            box-shadow: 0 0 0 4px rgba(220, 53, 69, 0.4);
+        }
+    }
+
+    /* ===== RESPONSIVE BREAKPOINTS ===== */
+
+    /* Extra Large screens - 1400px+ */
+    @@media (min-width: 1400px) {
+        .line-fields-grid {
+            grid-template-columns: repeat(12, 1fr);
+        }
+        .col-type { grid-column: span 2; }
+        .col-desc { grid-column: span 3; }
+        .col-qty { grid-column: span 1; }
+        .col-price { grid-column: span 1; }
+        .col-disc { grid-column: span 1; }
+        .col-tax { grid-column: span 1; }
+        .col-account { grid-column: span 3; }
+        
+        .totals-grid {
+            grid-template-columns: repeat(6, 1fr);
+        }
+    }
+
+    /* Large screens - 1200px to 1399px */
+    @@media (min-width: 1200px) and (max-width: 1399px) {
+        .line-fields-grid {
+            grid-template-columns: repeat(12, 1fr);
+        }
+        .col-type { grid-column: span 2; }
+        .col-desc { grid-column: span 3; }
+        .col-qty { grid-column: span 1; }
+        .col-price { grid-column: span 1; }
+        .col-disc { grid-column: span 1; }
+        .col-tax { grid-column: span 1; }
+        .col-account { grid-column: span 3; }
+        
+        .totals-grid {
+            grid-template-columns: repeat(6, 1fr);
+        }
+    }
+
+    /* Medium-Large screens - 992px to 1199px */
+    @@media (min-width: 992px) and (max-width: 1199px) {
+        .line-fields-grid {
+            grid-template-columns: repeat(6, 1fr);
+            gap: 10px;
+        }
+        .col-type { grid-column: span 2; }
+        .col-desc { grid-column: span 4; }
+        .col-qty { grid-column: span 1; }
+        .col-price { grid-column: span 1; }
+        .col-disc { grid-column: span 1; }
+        .col-tax { grid-column: span 1; }
+        .col-account { grid-column: span 2; }
+        
+        .totals-grid {
+            grid-template-columns: repeat(3, 1fr);
+        }
+    }
+
+    /* Tablet Landscape - 768px to 991px */
+    @@media (min-width: 768px) and (max-width: 991px) {
+        .line-fields-grid {
+            grid-template-columns: repeat(4, 1fr);
+            gap: 10px;
+        }
+        .col-type { grid-column: span 2; }
+        .col-desc { grid-column: span 2; }
+        .col-qty { grid-column: span 1; }
+        .col-price { grid-column: span 1; }
+        .col-disc { grid-column: span 1; }
+        .col-tax { grid-column: span 1; }
+        .col-account { grid-column: span 4; }
+        
+        .totals-grid {
+            grid-template-columns: repeat(3, 1fr);
+        }
+    }
+
+    /* Tablet Portrait - 576px to 767px */
+    @@media (min-width: 576px) and (max-width: 767px) {
+        .line-fields-grid {
+            grid-template-columns: repeat(2, 1fr);
+            gap: 10px;
+        }
+        .col-type { grid-column: span 2; }
+        .col-desc { grid-column: span 2; }
+        .col-qty { grid-column: span 1; }
+        .col-price { grid-column: span 1; }
+        .col-disc { grid-column: span 1; }
+        .col-tax { grid-column: span 1; }
+        .col-account { grid-column: span 2; }
+        
+        .totals-grid {
+            grid-template-columns: repeat(2, 1fr);
+        }
+    }
+
+    /* Mobile - below 576px */
+    @@media (max-width: 575px) {
+        .line-fields-grid {
+            grid-template-columns: 1fr;
+            gap: 8px;
+        }
+        .col-type,
+        .col-desc,
+        .col-qty,
+        .col-price,
+        .col-disc,
+        .col-tax,
+        .col-account {
+            grid-column: span 1;
+        }
+        
+        .totals-grid {
+            grid-template-columns: repeat(2, 1fr);
+        }
+        
+        .line-item-header {
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 10px;
+        }
+        
+        .line-item-total {
+            text-align: left;
+        }
+    }
+</style>
+
+@if (!isInitialized)
+{
+    <div class="page-loading-overlay">
+        <div class="whirly-loader"></div>
+    </div>
+}
+else
+{
+    @if (isLoading)
+    {
+        <div class="page-loading-overlay">
+            <div class="whirly-loader"></div>
+        </div>
+    }
+
+    <div class="content">
+        <!-- Page Header -->
+        <div class="page-header">
+            <div class="add-item d-flex">
+                <div class="page-title">
+                    <h4 class="fw-bold">@(IsEditMode ? "Edit Vendor Bill" : "Create Vendor Bill")</h4>
+                    <h6>@(IsEditMode ? $"Edit bill {Bill.BillNumber}" : "Enter vendor bill details")</h6>
+                </div>
+            </div>
+            <div class="page-btn">
+                <a href="/vendor-bills" class="btn btn-outline-secondary">
+                    <i class="ti ti-arrow-left me-1"></i> Back
+                </a>
+            </div>
+        </div>
+
+        <!-- Bill Form -->
+        <div class="card">
+            <div class="card-body">
+                <EditForm EditContext="_editContext" OnValidSubmit="HandleValidSubmit">
+                    <DataAnnotationsValidator />
+
+                    <!-- Bill Header Section -->
+                    <div class="row">
+                        <!-- Left Column: Bill Identity -->
+                        <div class="col-lg-6">
+                            <div class="section-header">
+                                <h5 class="section-title text-primary">
+                                    <i class="ti ti-file-invoice"></i> Bill Identity
+                                </h5>
+                            </div>
+
+                            <div class="row g-3">
+                                <div class="col-md-6">
+                                    <label class="form-label">Bill Number <span class="text-danger">*</span></label>
+                                    <input type="text" class="form-control" @bind="Bill.BillNumber" 
+                                           readonly placeholder="Auto-generated" disabled />
+                                    <ValidationMessage For="@(() => Bill.BillNumber)" />
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label">Bill Type <span class="text-danger">*</span></label>
+                                    <select class="form-select @(formSubmitted && string.IsNullOrWhiteSpace(Bill.BillType) ? "is-invalid" : "")" @bind="Bill.BillType" disabled="@IsReadOnly">
+                                        <option value="">--Select Bill Type--</option>
+                                        @foreach (var type in BillTypes.All)
+                                        {
+                                            <option value="@type">@BillTypes.GetDisplayName(type)</option>
+                                        }
+                                    </select>
+                                    <ValidationMessage For="@(() => Bill.BillType)" />
+                                    @if (formSubmitted && string.IsNullOrWhiteSpace(Bill.BillType))
+                                    {
+                                        <div class="validation-message">Bill Type is required</div>
+                                    }
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label">Bill Date <span class="text-danger">*</span></label>
+                                    <input type="date" class="form-control" @bind="Bill.BillDate" disabled="@IsReadOnly" />
+                                    <ValidationMessage For="@(() => Bill.BillDate)" />
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label">Due Date <span class="text-danger">*</span></label>
+                                    <input type="date" class="form-control" @bind="Bill.DueDate" disabled="@IsReadOnly" />
+                                    <ValidationMessage For="@(() => Bill.DueDate)" />
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label">Narration</label>
+                                    @if (IsReadOnly)
+                                    {
+                                        <div class="form-control bg-light" style="min-height:60px">@((MarkupString)(Bill.BillNarration ?? ""))</div>
+                                    }
+                                    else
+                                    {
+                                        <RichTextEditor @ref="narrationEditor" Value="@Bill.BillNarration" Placeholder="Enter notes/narration" MinHeight="60" MaxHeight="150" />
+                                    }
+                                </div>
+                          
+                            </div>
+                        </div>
+
+                        <!-- Right Column: Vendor Invoice Details -->
+                        <div class="col-lg-6">
+                            <div class="section-header">
+                                <h5 class="section-title text-primary">
+                                    <i class="ti ti-receipt"></i> Vendor Invoice Details
+                                </h5>
+                            </div>
+
+                            <div class="row g-3">
+                                <div class="col-md-6">
+                                    <label class="form-label">Vendor Invoice No <span class="text-danger">*</span></label>
+                                    <input type="text"
+                                           class="@($"form-control {GetValidationClass(() => Bill.VendorInvoiceNumber)}")"
+                                           @bind-value="Bill.VendorInvoiceNumber"
+                                           @bind-value:event="oninput"
+                                           @onblur="CheckDuplicateVendorInvoice"
+                                           maxlength="50"
+                                           placeholder="Enter vendor's invoice number"
+                                           disabled="@IsReadOnly" />
+
+                                    <ValidationMessage For="@(() => Bill.VendorInvoiceNumber)" />
+                                    @if (formSubmitted && string.IsNullOrWhiteSpace(Bill.VendorInvoiceNumber))
+                                    {
+                                        <div class="validation-message">Vendor Invoice Number is required</div>
+                                    }
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label">Vendor Invoice Date <span class="text-danger">*</span></label>
+                                    <input type="date" class="form-control" @bind="Bill.VendorInvoiceDate" 
+                                           @bind:after="OnVendorInvoiceDateChanged"
+                                           disabled="@IsReadOnly" />
+                                    <ValidationMessage For="@(() => Bill.VendorInvoiceDate)" />
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label">Payment Terms</label>
+                                    <select class="form-select" @bind="SelectedPaymentTermId" 
+                                            @bind:after="OnPaymentTermChanged"
+                                            disabled="@IsReadOnly">
+                                        <option value="">--Select Payment Terms--</option>
+                                        @foreach (var term in PaymentTerms)
+                                        {
+                                            <option value="@term.Id">@term.Name</option>
+                                        }
+                                    </select>
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label">Posting Date</label>
+                                    <input type="date" class="form-control" @bind="Bill.PostingDate" disabled="@IsReadOnly" />
+                                </div>
+
+                            </div>
+                        </div>
+                    </div>
+
+                    <hr class="my-4" />
+
+                    <!-- Company & Vendor Section -->
+                    <div class="row">
+                        <div class="col-lg-6">
+                            <div class="section-header">
+                                <h5 class="section-title text-primary">
+                                    <i class="ti ti-building"></i> Company & Branch
+                                </h5>
+                            </div>
+
+                            <div class="row g-3">
+                                <div class="col-md-6">
+                                    <label class="form-label">Company <span class="text-danger">*</span></label>
+                                    <select class="form-select @(formSubmitted && Bill.CompanyId == Guid.Empty ? "is-invalid" : "")" @bind="Bill.CompanyId" disabled="@IsReadOnly">
+                                        <option value="">--Select Company--</option>
+                                        @foreach (var company in Companies)
+                                        {
+                                            <option value="@company.Id">@company.LegalName</option>
+                                        }
+                                    </select>
+                                    @if (formSubmitted && Bill.CompanyId == Guid.Empty)
+                                    {
+                                        <div class="validation-message">Company is required</div>
+                                    }
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label">Branch <span class="text-danger">*</span></label>
+                                    <select class="form-select @(formSubmitted && Bill.BranchId == Guid.Empty ? "is-invalid" : "")" @bind="Bill.BranchId" disabled="@IsReadOnly">
+                                        <option value="">--Select Branch--</option>
+                                        @foreach (var branch in Branches)
+                                        {
+                                            <option value="@branch.Id">@branch.BranchCode - @branch.BranchName</option>
+                                        }
+                                    </select>
+                                    @if (formSubmitted && Bill.BranchId == Guid.Empty)
+                                    {
+                                        <div class="validation-message">Branch is required</div>
+                                    }
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="col-lg-6">
+                            <div class="section-header">
+                                <h5 class="section-title text-primary">
+                                    <i class="ti ti-users"></i> Vendor
+                                </h5>
+                            </div>
+
+                            <div class="row g-3">
+                                <div class="col-md-8">
+                                    <label class="form-label">Vendor <span class="text-danger">*</span></label>
+                                        <SearchDropdown TItem="VendorViewModel"
+                                            Items="Vendors"
+                                            TextSelector="@(v => v.VendorCode + " - " + v.VendorName)"
+                                            ValueSelector="@(v => v.Id)"
+                                            @bind-Value="SelectedVendorId"
+                                            @bind-Value:after="OnVendorChanged"
+                                             Class="@GetValidationClass(() => Bill.VendorId)"
+                                            Placeholder="-- Select Customer --"
+                                            Disabled="@IsReadOnly" />
+                                    @if (formSubmitted && (Bill.VendorId == null || Bill.VendorId == Guid.Empty))
+                                    {
+                                        <div class="validation-message">Vendor is required</div>
+                                    }
+                                </div>
+                                <div class="col-md-4">
+                                    <label class="form-label">Currency</label>
+                                    <div class="d-flex align-items-center" style="height: 38px;">
+                                        <span class="currency-badge">@(Bill.CurrencyCode ?? "INR")</span>
+                                        @if (Bill.CurrencyCode != "INR" && Bill.CurrencyCode != null)
+                                        {
+                                            <small class="ms-2 text-muted">Rate: @Bill.ExchangeRate.ToString("N4")</small>
+                                        }
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <hr class="my-4" />
+
+                    <!-- Tax & Compliance Section -->
+                    <div class="row">
+                        <div class="col-12">
+                            <div class="section-header">
+                                <h5 class="section-title text-primary">
+                                    <i class="ti ti-receipt-tax"></i> Tax, Compliance & Classification
+                                </h5>
+                            </div>
+
+                            <div class="row g-3">
+                                <div class="col-md-3">
+                                    <div class="form-check form-switch">
+                                        <input class="form-check-input" type="checkbox" @bind="Bill.IsGSTApplicable" 
+                                               disabled="@IsReadOnly" id="gstSwitch" />
+                                        <label class="form-check-label" for="gstSwitch">GST Applicable</label>
+                                    </div>
+                                </div>
+                                <div class="col-md-3">
+                                    <div class="form-check form-switch">
+                                        <input class="form-check-input" type="checkbox" @bind="Bill.IsReverseChargeApplicable" 
+                                               disabled="@IsReadOnly" id="rcmSwitch" />
+                                        <label class="form-check-label" for="rcmSwitch">Reverse Charge (RCM)</label>
+                                    </div>
+                                </div>
+                                <div class="col-md-3">
+                                    <div class="form-check form-switch">
+                                        <input class="form-check-input" type="checkbox" @bind="Bill.IsTDSApplicable" 
+                                               disabled="@IsReadOnly" id="tdsSwitch" />
+                                        <label class="form-check-label" for="tdsSwitch">TDS Applicable</label>
+                                    </div>
+                                </div>
+                                <div class="col-md-3">
+                                    <div class="form-check form-switch">
+                                        <input class="form-check-input" type="checkbox" @bind="Bill.IsRecurringBill" 
+                                               disabled="@IsReadOnly" id="recurringSwitch" />
+                                        <label class="form-check-label" for="recurringSwitch">Recurring Bill</label>
+                                    </div>
+                                </div>
+
+                                @if (Bill.IsGSTApplicable)
+                                {
+                                    <div class="col-md-4">
+                                        <label class="form-label">Vendor GSTIN</label>
+                                        <input type="text" class="form-control" value="@Bill.VendorGSTINSnapshot" 
+                                               readonly style="background-color: #f8f9fa;" />
+                                    </div>
+                                    <div class="col-md-4">
+                                        <label class="form-label">Place of Supply (State)</label>
+                                        <select class="form-select" @bind="Bill.PlaceOfSupplyStateId" disabled="@IsReadOnly">
+                                            <option value="">--Select Place of Supply--</option>
+                                            @foreach (var state in States)
+                                            {
+                                                <option value="@state.Id">@state.StateProvinceCode - @state.StateProvinceName</option>
+                                            }
+                                        </select>
+                                    </div>
+                                }
+
+                                @if (Bill.IsTDSApplicable)
+                                {
+                                    <div class="col-md-3">
+                                        <label class="form-label">TDS Section <span class="text-danger">*</span></label>
+                                        <select class="form-select @(formSubmitted && Bill.IsTDSApplicable && string.IsNullOrWhiteSpace(Bill.TDSSectionCodeSnapshot) ? "is-invalid" : "")"
+                                                @bind="Bill.TDSSectionCodeSnapshot" disabled="@IsReadOnly">
+                                            <option value="">--Select TDS Section--</option>
+                                            <option value="194C">194C - Contractor</option>
+                                            <option value="194J">194J - Professional</option>
+                                            <option value="194H">194H - Commission</option>
+                                            <option value="194I">194I - Rent</option>
+                                            <option value="194A">194A - Interest</option>
+                                            <option value="194Q">194Q - Purchase</option>
+                                        </select>
+                                        @if (formSubmitted && Bill.IsTDSApplicable && string.IsNullOrWhiteSpace(Bill.TDSSectionCodeSnapshot))
+                                        {
+                                            <div class="validation-message">TDS Section is required when TDS is applicable</div>
+                                        }
+                                    </div>
+                                    <div class="col-md-3">
+                                        <label class="form-label">TDS Rate %</label>
+                                        <input type="number" class="form-control text-end" 
+                                               @bind="Bill.TDSRatePercentSnapshot" step="0.01" min="0" max="100"
+                                               disabled="@IsReadOnly" />
+                                    </div>
+                                    <div class="col-md-3">
+                                        <label class="form-label">TDS Base Amount</label>
+                                        <input type="text" class="form-control text-end" 
+                                               value="@Bill.TDSBaseAmount.ToString("N2")" readonly 
+                                               style="background-color: #f8f9fa;" />
+                                    </div>
+                                    <div class="col-md-3">
+                                        <label class="form-label">TDS Amount</label>
+                                        <input type="text" class="form-control text-end fw-bold" 
+                                               value="@Bill.TDSAmount.ToString("N2")" readonly 
+                                               style="background-color: #f8f9fa;" />
+                                    </div>
+                                }
+
+                                @if (Bill.CurrencyCode != "INR" && Bill.CurrencyCode != null)
+                                {
+                                    <div class="col-md-3">
+                                        <label class="form-label">Exchange Rate</label>
+                                        <input type="number" class="form-control" @bind="Bill.ExchangeRate" 
+                                               step="0.0001" min="0" disabled="@IsReadOnly" />
+                                    </div>
+                                }
+                            </div>
+                        </div>
+                    </div>
+
+                    <hr class="my-4" />
+
+                    <!-- Bill Lines Section -->
+                    <div class="section-header">
+                        <h5 class="section-title text-primary">
+                            <i class="ti ti-list-details"></i> Bill Lines
+                        </h5>
+                        @if (!IsReadOnly)
+                        {
+                            <button type="button" class="btn btn-primary" @onclick="AddLine">
+                                <i class="ti ti-plus me-1"></i> Add Line
+                            </button>
+                        }
+                    </div>
+
+                    @if (Bill.Lines.Any())
+                    {
+                        @foreach (var line in Bill.Lines.OrderBy(l => l.LineNumber))
+                        {
+                            <div class="bill-line-item">
+                                <div class="line-item-header">
+                                    <div class="line-item-number">
+                                        <span class="line-number-badge">@line.LineNumber</span>
+                                        <span class="line-type-badge @GetLineTypeCssClass(line.LineType)">
+                                            @VendorBillLineTypes.GetDisplayName(line.LineType)
+                                        </span>
+                                    </div>
+                                    <div class="line-item-total">
+                                        <div class="line-item-total-label">Line Total</div>
+                                        <div class="line-item-total-value">
+                                            @Bill.CurrencyCode @line.LineTotalAmount.ToString("N2")
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="line-fields-grid">
+                                    <div class="line-field col-type">
+                                        <span class="line-field-label">Type <span class="text-danger">*</span></span>
+                                        <select @bind="line.LineType" @bind:after="() => RecalculateLineAndTotal(line)"
+                                                disabled="@IsReadOnly"
+                                                class="@(formSubmitted && string.IsNullOrWhiteSpace(line.LineType) ? "is-invalid" : "")">
+                                            <option value="">--Select Type--</option>
+                                            @foreach (var type in VendorBillLineTypes.All)
+                                            {
+                                                <option value="@type">@VendorBillLineTypes.GetDisplayName(type)</option>
+                                            }
+                                        </select>
+                                        @if (formSubmitted && string.IsNullOrWhiteSpace(line.LineType))
+                                        {
+                                            <div class="validation-message">Type is required</div>
+                                        }
+                                    </div>
+
+                                    <div class="line-field col-desc">
+                                        <span class="line-field-label">Description <span class="text-danger">*</span></span>
+                                        <input type="text" @bind="line.Description" placeholder="Enter description"
+                                               disabled="@IsReadOnly" class="form-control @(formSubmitted && string.IsNullOrWhiteSpace(line.Description) ? "is-invalid" : "")" />
+                                        @if (formSubmitted && string.IsNullOrWhiteSpace(line.Description))
+                                        {
+                                            <div class="validation-message">Description is required</div>
+                                        }
+
+                                    </div>
+
+                                    <div class="line-field col-qty">
+                                        <span class="line-field-label">Qty <span class="text-danger">*</span></span>
+                                        <input type="number" @bind="line.Quantity" @bind:after="() => RecalculateLineAndTotal(line)"
+                                               step="0.01" min="0" disabled="@IsReadOnly"
+                                               class="@(formSubmitted && line.Quantity <= 0 ? "is-invalid" : "")" />
+                                        @if (formSubmitted && line.Quantity <= 0)
+                                        {
+                                            <div class="validation-message">Qty must be greater than 0</div>
+                                        }
+                                    </div>
+
+                                    <div class="line-field col-price">
+                                        <span class="line-field-label">Rate <span class="text-danger">*</span></span>
+                                        <input type="number" @bind="line.UnitRate" @bind:after="() => RecalculateLineAndTotal(line)"
+                                               step="0.01" min="0" disabled="@IsReadOnly"
+                                               class="@(formSubmitted && line.UnitRate < 0 ? "is-invalid" : "")" />
+                                        @if (formSubmitted && line.UnitRate < 0)
+                                        {
+                                            <div class="validation-message">Rate must be &ge; 0</div>
+                                        }
+                                    </div>
+
+                                    <div class="line-field col-disc">
+                                        <span class="line-field-label">Discount</span>
+                                        <input type="number" @bind="line.DiscountAmount" @bind:after="() => RecalculateLineAndTotal(line)"
+                                               step="0.01" min="0" disabled="@IsReadOnly" />
+                                    </div>
+
+                                    <div class="line-field col-tax">
+                                        <span class="line-field-label">Tax %</span>
+                                        <input type="number" @bind="line.TaxRatePercentSnapshot" @bind:after="() => RecalculateLineAndTotal(line)"
+                                               step="0.01" min="0" max="100" disabled="@IsReadOnly" />
+                                    </div>
+
+                                    <div class="line-field col-account">
+                                        <span class="line-field-label">Account <span class="text-danger">*</span></span>
+                                        <select @bind="line.ExpenseOrAssetAccountId" disabled="@IsReadOnly"
+                                                class="@(line.ExpenseOrAssetAccountId == Guid.Empty && formSubmitted ? "is-invalid" : "")">
+                                            <option value="@Guid.Empty">--Select Account--</option>
+                                            @foreach (var account in ExpenseAccounts)
+                                            {
+                                                <option value="@account.Id">@account.AccountCode - @account.AccountName</option>
+                                            }
+                                        </select>
+                                        @if (formSubmitted && line.ExpenseOrAssetAccountId == Guid.Empty)
+                                        {
+                                            <div class="validation-message">Account is required</div>
+                                        }
+                                    </div>
+                                </div>
+
+                                <!-- Calculated Line Amounts (read-only) -->
+                                <div class="d-flex flex-wrap gap-3 px-3 py-2" style="background-color: #f8f9fa; border-radius: 0 0 8px 8px; font-size: 12px;">
+                                    <span class="text-muted">Gross: <strong class="text-dark">@line.GrossAmount.ToString("N2")</strong></span>
+                                    <span class="text-muted">Taxable: <strong class="text-dark">@line.TaxableAmount.ToString("N2")</strong></span>
+                                    <span class="text-muted">Tax: <strong class="text-info">@line.LineTaxAmount.ToString("N2")</strong></span>
+                                    <span class="text-muted">Net: <strong class="text-dark">@line.LineNetAmount.ToString("N2")</strong></span>
+                                </div>
+
+                                @if (!IsReadOnly)
+                                {
+                                    <div class="line-actions">
+                                        <button type="button" class="line-action-btn duplicate" @onclick="() => DuplicateLine(line)">
+                                            <i class="ti ti-copy"></i> Duplicate
+                                        </button>
+                                        <button type="button" class="line-action-btn delete" @onclick="() => RemoveLine(line)">
+                                            <i class="ti ti-trash"></i> Delete
+                                        </button>
+                                    </div>
+                                }
+                            </div>
+                        }
+                    }
+                    else
+                    {
+                        <div class="empty-lines-state">
+                            <i class="ti ti-file-off"></i>
+                            <p class="mb-0">No bill lines yet. Click "Add Line" to start adding items.</p>
+                        </div>
+                    }
+
+                    <hr class="my-4" />
+
+                    <!-- Totals Section -->
+                    <div class="totals-section">
+                        <div class="totals-grid">
+                            <div class="total-item">
+                                <div class="total-item-label">Subtotal</div>
+                                <div class="total-item-value">@Bill.SubTotalAmount.ToString("N2")</div>
+                            </div>
+                            <div class="total-item">
+                                <div class="total-item-label">Discount</div>
+                                <div class="total-item-value discount">-@Bill.DiscountTotalAmount.ToString("N2")</div>
+                            </div>
+                            <div class="total-item">
+                                <div class="total-item-label">Tax</div>
+                                <div class="total-item-value">@Bill.TaxTotalAmount.ToString("N2")</div>
+                            </div>
+                            <div class="total-item">
+                                <div class="total-item-label">Round Off</div>
+                                <div class="total-item-value">@Bill.RoundOffAmount.ToString("N2")</div>
+                            </div>
+                            <div class="total-item">
+                                <div class="total-item-label">Grand Total</div>
+                                <div class="total-item-value grand-total">@Bill.GrandTotalAmount.ToString("N2")</div>
+                            </div>
+                            <div class="total-item">
+                                <div class="total-item-label">Currency</div>
+                                <span class="currency-badge">@(Bill.CurrencyCode ?? "INR")</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <hr class="my-4" />
+
+                    <!-- Action Buttons -->
+                    <div class="d-flex justify-content-end gap-2 flex-wrap">
+                        <a href="/vendor-bills" class="btn btn-outline-secondary">
+                            <i class="ti ti-x me-1"></i> Cancel
+                        </a>
+                        @if (!IsReadOnly)
+                        {
+                            <button type="submit" class="btn btn-primary" disabled="@isSaving">
+                                @if (isSaving)
+                                {
+                                    <span class="spinner-border spinner-border-sm me-1"></span>
+                                }
+                                <i class="ti ti-device-floppy me-1"></i>
+                                @(IsEditMode ? "Update" : "Save")
+                            </button>
+                        }
+                        @if (Bill.BillStatus == VendorBillStatuses.Draft && Bill.Lines.Any())
+                        {
+                            <button type="button" class="btn btn-info" @onclick="SubmitBill" disabled="@isSaving">
+                                <i class="ti ti-send me-1"></i> Submit for Approval
+                            </button>
+                        }
+                        @if (Bill.CanPost && Bill.Lines.Any())
+                        {
+                            <button type="button" class="btn btn-success" @onclick="PostBill" disabled="@isSaving">
+                                <i class="ti ti-check me-1"></i> Post Bill
+                            </button>
+                        }
+                    </div>
+                </EditForm>
+            </div>
+        </div>
+    </div>
+}

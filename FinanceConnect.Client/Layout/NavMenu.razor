@@ -1,0 +1,900 @@
+﻿@inject AuthService AuthService
+@inject NavigationManager Navigation
+@inject IJSRuntime JS
+
+<div class="sidebar" id="sidebar">
+    <!-- Logo -->
+    <div class="sidebar-logo active horizontalLogo">
+        <a class="logo logo-normal">
+            <img src="assets/images/logo.png" alt="Gishur POS">
+        </a>
+        <a class="logo logo-white">
+            <img src="assets/images/logo.png" alt="Gishur POS">
+        </a>
+        <a class="logo-small">
+            <img src="assets/images/favicon.png" alt="Gishur POS">
+        </a>
+        <a id="toggle_btn" href="javascript:void(0);">
+            <i data-feather="chevrons-left" class="feather-16"></i>
+        </a>
+    </div>
+    <!-- /Logo -->
+
+    <div class="modern-profile p-3 pb-0">
+        <div class="text-center rounded bg-light p-3 mb-4 user-profile">
+            <div class="avatar avatar-lg online mb-3">
+                <img src="assets/images/customer15.jpg" alt="Img" class="img-fluid rounded-circle">
+            </div>
+            <h6 class="fs-14 fw-bold mb-1">@(AuthService.CurrentUser?.UserName ?? "Guest User")</h6>
+            <p class="fs-12 mb-0">@(AuthService.CurrentUser?.Email ?? "Not logged in")</p>
+        </div>
+
+        <div class="sidebar-nav mb-3">
+            <ul class="nav nav-tabs nav-tabs-solid nav-tabs-rounded nav-justified bg-transparent" role="tablist">
+                <li class="nav-item"><a class="nav-link active border-0" href="#">Menu</a></li>
+                <li class="nav-item"><a class="nav-link border-0">Chats</a></li>
+                <li class="nav-item"><a class="nav-link border-0">Inbox</a></li>
+            </ul>
+        </div>
+    </div>
+
+    <div class="sidebar-header p-3 pb-0 pt-2">
+        <div class="text-center rounded bg-light p-2 mb-4 sidebar-profile d-flex align-items-center">
+            <div class="avatar avatar-md online">
+                <img src="assets/images/customer15.jpg" alt="Img" class="img-fluid rounded-circle">
+            </div>
+            <div class="text-start sidebar-profile-info ms-2">
+                <h6 class="fs-14 fw-bold mb-1">@(AuthService.CurrentUser?.UserName ?? "Guest")</h6>
+                <p class="fs-12">User</p>
+            </div>
+        </div>
+
+        <div class="d-flex align-items-center justify-content-between menu-item mb-3">
+            <div>
+                <a class="btn btn-sm btn-icon bg-light">
+                    <i class="ti ti-layout-grid-remove"></i>
+                </a>
+            </div>
+            <div>
+                <a class="btn btn-sm btn-icon bg-light">
+                    <i class="ti ti-brand-hipchat"></i>
+                </a>
+            </div>
+            <div>
+                <a class="btn btn-sm btn-icon bg-light position-relative">
+                    <i class="ti ti-message"></i>
+                </a>
+            </div>
+            <div class="notification-item">
+                <a class="btn btn-sm btn-icon bg-light position-relative">
+                    <i class="ti ti-bell"></i>
+                    <span class="notification-status-dot"></span>
+                </a>
+            </div>
+            <div class="me-0">
+                <a class="btn btn-sm btn-icon bg-light">
+                    <i class="ti ti-settings"></i>
+                </a>
+            </div>
+        </div>
+    </div>
+    <div class="nav-scroll-track">
+        <div class="sidebar-inner slimscroll">
+            <button class="nav-scroll-btn nav-scroll-left" id="navScrollLeft" onclick="navScroll('left')">
+                ‹
+            </button>
+            <div class="nav-scroll-track">
+                <div id="sidebar-menu" class="sidebar-menu">
+                    <ul>
+                        <li class="submenu-open">
+                            <h6 class="submenu-hdr">Main</h6>
+                            <ul>
+                                <li class="@GetActiveClass("/dashboard")">
+                                    <a href="/dashboard">
+                                        <i data-feather="grid" class="feather-16 me-2"></i>
+                                        <span>Dashboard</span>
+                                    </a>
+                                </li>
+
+                                <li class="@GetActiveClass("/finance-dashboard")">
+                                    <a href="/finance-dashboard">
+                                        <i data-feather="bar-chart-2" class="feather-16 me-2"></i>
+                                        <span>Finance Dashboard</span>
+                                    </a>
+                                </li>
+                            </ul>
+                        </li>
+
+                        @* Inventory (kept commented as requested)
+				<li class="submenu-open">
+					<h6 class="submenu-hdr">Inventory</h6>
+					<ul>
+						<li class="@GetActiveClass("/productlist")">
+							<a href="/productlist"><i data-feather="box"></i><span>Products</span></a>
+						</li>
+						<li class="@GetActiveClass("/addproduct")">
+							<a href="/addproduct"><i data-feather="plus-square"></i><span>Create Product</span></a>
+						</li>
+					</ul>
+				</li>
+				*@
+
+                        <li class="submenu-open">
+                            <h6 class="submenu-hdr">Organization Setup</h6>
+                            <ul>
+                                <li class="@GetActiveClass("/companies")" id="shepherd-example">
+                                    <a href="/companies">
+                                        <i data-feather="home" class="feather-16 me-2"></i>
+                                        <span>Company</span>
+                                    </a>
+                                </li>
+
+                                <li class="@GetActiveClass("/branches")">
+                                    <a href="/branches">
+                                        <i data-feather="git-branch" class="feather-16 me-2"></i>
+                                        <span>Branch</span>
+                                    </a>
+                                </li>
+
+                                <li class="@GetActiveClass("/fiscalyears")">
+                                    <a href="/fiscalyears">
+                                        <i data-feather="calendar" class="feather-16 me-2"></i>
+                                        <span>Fiscal Years</span>
+                                    </a>
+                                </li>
+                            </ul>
+                        </li>
+
+                        <li class="submenu-open">
+                            <h6 class="submenu-hdr">Master Data</h6>
+                            <ul>
+                                <li class="@GetActiveClass("/countries")">
+                                    <a href="/countries">
+                                        <i data-feather="globe" class="feather-16 me-2"></i>
+                                        <span>Country</span>
+                                    </a>
+                                </li>
+
+                                <li class="@GetActiveClass("/states")">
+                                    <a href="/states">
+                                        <i data-feather="map" class="feather-16 me-2"></i>
+                                        <span>State</span>
+                                    </a>
+                                </li>
+
+                                <li class="@GetActiveClass("/timezones")">
+                                    <a href="/timezones">
+                                        <i data-feather="clock" class="feather-16 me-2"></i>
+                                        <span>Time Zone</span>
+                                    </a>
+                                </li>
+
+                                <li class="@GetActiveClass("/cities")">
+                                    <a href="/cities">
+                                        <i data-feather="map-pin" class="feather-16 me-2"></i>
+                                        <span>City</span>
+                                    </a>
+                                </li>
+
+                                <li class="@GetActiveClass("/currencies")">
+                                    <a href="/currencies">
+                                        <i data-feather="dollar-sign" class="feather-16 me-2"></i>
+                                        <span>Currency</span>
+                                    </a>
+                                </li>
+
+                                @* Old duplicate timezone/currency block kept commented
+						<li class="@(activeMenu == "TimeZone" ? "active" : "")" @onclick='() => SetActive("TimeZone")'>
+							<a href="/timezone">
+								<i class="ti ti-currency-dollar fs-16 me-2"></i>
+								<span>Currency</span>
+							</a>
+						</li>
+						*@
+
+                                <li class="@GetActiveClass("/exchange-rates")">
+                                    <a href="/exchange-rates">
+                                        <i data-feather="repeat" class="feather-16 me-2"></i>
+                                        <span>Exchange Rate</span>
+                                    </a>
+                                </li>
+                            </ul>
+                        </li>
+
+                        <li class="submenu-open">
+                            <h6 class="submenu-hdr">Chart Of Accounts</h6>
+                            <ul>
+                                <li class="@GetActiveClass("/chart-of-accounts")">
+                                    <a href="/chart-of-accounts">
+                                        <i data-feather="layers" class="feather-16 me-2"></i>
+                                        <span>Charts Of Accounts</span>
+                                    </a>
+                                </li>
+
+                                <li class="@GetActiveClass("/account-groups")">
+                                    <a href="/account-groups">
+                                        <i data-feather="folder" class="feather-16 me-2"></i>
+                                        <span>Account Groups</span>
+                                    </a>
+                                </li>
+
+                                <li class="@GetActiveClass("/gl-accounts")">
+                                    <a href="/gl-accounts">
+                                        <i data-feather="file-text" class="feather-16 me-2"></i>
+                                        <span>GL Accounts</span>
+                                    </a>
+                                </li>
+                            </ul>
+                        </li>
+
+                        <li class="submenu-open">
+                            <h6 class="submenu-hdr">Finance</h6>
+                            <ul>
+                                <li class="@GetActiveClass("/general-ledger-entries")">
+                                    <a href="/general-ledger-entries">
+                                        <i data-feather="book-open" class="feather-16 me-2"></i>
+                                        <span>General Ledger</span>
+                                    </a>
+                                </li>
+
+                                <li class="@GetActiveClass("/ledgers")">
+                                    <a href="/ledgers">
+                                        <i data-feather="layers" class="feather-16 me-2"></i>
+                                        <span>Ledger</span>
+                                    </a>
+                                </li>
+
+                                <li class="@GetActiveClass("/opening-balances")">
+                                    <a href="/opening-balances">
+                                        <i data-feather="log-in" class="feather-16 me-2"></i>
+                                        <span>Opening Balance</span>
+                                    </a>
+                                </li>
+
+                                <li class="@GetActiveClass("/closing-balances")">
+                                    <a href="/closing-balances">
+                                        <i data-feather="log-out" class="feather-16 me-2"></i>
+                                        <span>Closing Balance</span>
+                                    </a>
+                                </li>
+
+                                <li class="@GetActiveClass("/journals")">
+                                    <a href="/journals">
+                                        <i data-feather="file-text" class="feather-16 me-2"></i>
+                                        <span>Journals</span>
+                                    </a>
+                                </li>
+
+                                <li class="@GetActiveClass("/journal-entries")">
+                                    <a href="/journal-entries">
+                                        <i data-feather="layers" class="feather-16 me-2"></i>
+                                        <span>Journal Entries</span>
+                                    </a>
+                                </li>
+                            </ul>
+                        </li>
+
+                        <li class="submenu-open">
+
+                            <h6 class="submenu-hdr">Transaction Management</h6>
+                            <ul>
+
+                                <li class="@GetActiveClass("/financial-transactions")">
+                                    <a href="/financial-transactions">
+                                        <i data-feather="dollar-sign" class="feather-16 me-2"></i>
+                                        <span>Financial Transactions</span>
+                                    </a>
+                                </li>
+
+                                <li class="@GetActiveClass("/transaction-status")">
+                                    <a href="/transaction-status">
+                                        <i data-feather="grid" class="feather-16 me-2"></i>
+                                        <span>Transaction Status</span>
+                                    </a>
+                                </li>
+                                <li class="@GetActiveClass("/transaction-types")">
+                                    <a href="/transaction-types">
+                                        <i data-feather="file-text" class="feather-16 me-2"></i>
+                                        <span>Transaction Types</span>
+                                    </a>
+                                </li>
+                                <li class="@GetActiveClass("/posting-profiles")">
+                                    <a href="/posting-profiles">
+                                        <i data-feather="sliders" class="feather-16 me-2"></i>
+                                        <span>Posting Profiles</span>
+                                    </a>
+                                </li>
+                                <li class="@GetActiveClass("/document-sequences")">
+                                    <a href="/document-sequences">
+                                        <i data-feather="git-branch" class="feather-16 me-2"></i>
+                                        <span>Document Sequences</span>
+                                    </a>
+                                </li>
+                                <li class="@GetActiveClass("/document-series")">
+                                    <a href="/document-series">
+                                        <i data-feather="hash" class="feather-16 me-2"></i>
+                                        <span>Document Number Series</span>
+                                    </a>
+                                </li>
+
+                            </ul>
+                        </li>
+
+
+                        <li class="submenu-open">
+                            <h6 class="submenu-hdr">Cash & Bank</h6>
+                            <ul>
+                                <li class="@GetActiveClass("/cash-accounts")">
+                                    <a href="/cash-accounts"><i data-feather="dollar-sign"></i><span>Cash Account</span></a>
+                                </li>
+                                <li class="@GetActiveClass("/bank-accounts")">
+                                    <a href="/bank-accounts"><i data-feather="credit-card"></i><span>Bank Account</span></a>
+                                </li>
+                                <li class="@GetActiveClass("/bank-transactions")">
+                                    <a href="/bank-transactions">
+                                        <i data-feather="repeat"></i>
+                                        <span>Bank Transaction</span>
+                                    </a>
+                                </li>
+                                <li class="@GetActiveClass("/cash-transfers")">
+                                    <a href="/cash-transfers">
+                                        <i data-feather="shuffle"></i>
+                                        <span>Cash Transfer</span>
+                                    </a>
+                                </li>
+                                <li class="@GetActiveClass("/cheques")">
+                                    <a href="/cheques">
+                                        <i data-feather="credit-card"></i>
+                                        <span>Cheques</span>
+                                    </a>
+                                </li>
+                                <li class="@GetActiveClass("/fund-transfers")">
+                                    <a href="/fund-transfers">
+                                        <i data-feather="repeat"></i>
+                                        <span>Fund Transfer</span>
+                                    </a>
+                                </li>
+
+                                <li class="@GetActiveClass("/bank-statements")">
+                                    <a href="/bank-statements">
+                                        <i data-feather="layers"></i>
+                                        <span>Bank Statements</span>
+                                    </a>
+                                </li>
+
+                                <li class="@GetActiveClass("/bank-reconciliations")">
+                                    <a href="/bank-reconciliations">
+                                        <i data-feather="repeat"></i>
+                                        <span>Bank Reconciliation</span>
+                                    </a>
+                                </li>
+                            </ul>
+                        </li>
+                        <li class="submenu-open">
+                            <h6 class="submenu-hdr">Accounts Receivable</h6>
+                            <ul>
+                                <li class="@GetActiveClass("/customers")">
+                                    <a href="/customers">
+                                        <i data-feather="users" class="feather-16 me-2"></i>
+                                        <span>Customer</span>
+                                    </a>
+                                </li>
+                                <li class="@GetActiveClass("/customer-accounts")">
+                                    <a href="/customer-accounts">
+                                        <i data-feather="briefcase" class="feather-16 me-2"></i>
+                                        <span>Customer Account</span>
+                                    </a>
+                                </li>
+                                <li class="@GetActiveClass("/customer-invoices")">
+                                    <a href="/customer-invoices">
+                                        <i data-feather="file-text" class="feather-16 me-2"></i>
+                                        <span>Customer Invoice</span>
+                                    </a>
+                                </li>
+                                <li class="@GetActiveClass("/customer-credit-notes")">
+                                    <a href="/customer-credit-notes">
+                                        <i data-feather="file-minus" class="feather-16 me-2"></i>
+                                        <span>Customer Credit Note</span>
+                                    </a>
+                                </li>
+                                <li class="@GetActiveClass("/customer-debit-notes")">
+                                    <a href="/customer-debit-notes">
+                                        <i data-feather="file-plus" class="feather-16 me-2"></i>
+                                        <span>Customer Debit Note</span>
+                                    </a>
+                                </li>
+                                <li class="@GetActiveClass("/customer-payments")">
+                                    <a href="/customer-payments">
+                                        <i data-feather="credit-card" class="feather-16 me-2"></i>
+                                        <span>Customer Payment</span>
+                                    </a>
+                                </li>
+                                <li class="@GetActiveClass("/ar-adjustments")">
+                                    <a href="/ar-adjustments">
+                                        <i data-feather="sliders" class="feather-16 me-2"></i>
+                                        <span>AR Adjustment</span>
+                                    </a>
+                                </li>
+                                <li class="@GetActiveClass("/customer-aging")">
+                                    <a href="/customer-aging">
+                                        <i data-feather="clock" class="feather-16 me-2"></i>
+                                        <span>Customer Aging</span>
+                                    </a>
+                                </li>
+                            </ul>
+                        </li>
+                        <li class="submenu-open">
+                            <h6 class="submenu-hdr">Accounts Payable</h6>
+                            <ul>
+                                <li class="@GetActiveClass("/vendors")">
+                                    <a href="/vendors">
+                                        <i data-feather="truck" class="feather-16 me-2"></i>
+                                        <span>Vendor</span>
+                                    </a>
+                                </li>
+                                <li class="@GetActiveClass("/vendor-accounts")">
+                                    <a href="/vendor-accounts">
+                                        <i data-feather="briefcase" class="feather-16 me-2"></i>
+                                        <span>Vendor Account</span>
+                                    </a>
+                                </li>
+                                <li class="@GetActiveClass("/vendor-bills")">
+                                    <a href="/vendor-bills">
+                                        <i data-feather="file-text" class="feather-16 me-2"></i>
+                                        <span>Vendor Bill</span>
+                                    </a>
+                                </li>
+                                <li class="@GetActiveClass("/vendor-payments")">
+                                    <a href="/vendor-payments">
+                                        <i data-feather="credit-card" class="feather-16 me-2"></i>
+                                        <span>Vendor Payment</span>
+                                    </a>
+                                </li>
+                                <li class="@GetActiveClass("/vendor-credit-notes")">
+                                    <a href="/vendor-credit-notes">
+                                        <i data-feather="file-minus" class="feather-16 me-2"></i>
+                                        <span>Vendor Credit Note</span>
+                                    </a>
+                                </li>
+                                <li class="@GetActiveClass("/vendor-debit-notes")">
+                                    <a href="/vendor-debit-notes">
+                                        <i data-feather="file-plus" class="feather-16 me-2"></i>
+                                        <span>Vendor Debit Note</span>
+                                    </a>
+                                </li>
+                                <li class="@GetActiveClass("/ap-adjustments")">
+                                    <a href="/ap-adjustments">
+                                        <i data-feather="sliders" class="feather-16 me-2"></i>
+                                        <span>AP Adjustment</span>
+                                    </a>
+                                </li>
+                                <li class="@GetActiveClass("/vendor-aging")">
+                                    <a href="/vendor-aging">
+                                        <i data-feather="clock" class="feather-16 me-2"></i>
+                                        <span>Vendor Aging</span>
+                                    </a>
+                                </li>
+                            </ul>
+                        </li>
+
+                        <li class="submenu-open">
+                            <h6 class="submenu-hdr">Employee Management</h6>
+                            <ul>
+                                <li class="@GetActiveClass("/employees")">
+                                    <a href="/employees">
+                                        <i data-feather="user-check" class="feather-16 me-2"></i>
+                                        <span>Employees</span>
+                                    </a>
+                                </li>
+                                <li class="@GetActiveClass("/tasks")">
+                                    <a href="/tasks">
+                                        <i data-feather="check-square" class="feather-16 me-2"></i>
+                                        <span>Tasks</span>
+                                    </a>
+                                </li>
+                            </ul>
+                        </li>
+
+                        <li class="submenu-open">
+                            <h6 class="submenu-hdr">Sales Management</h6>
+                            <ul>
+                                <li class="@GetActiveClass("/quotations")">
+                                    <a href="/quotations">
+                                        <i data-feather="file-text" class="feather-16 me-2"></i>
+                                        <span>Quotations</span>
+                                    </a>
+                                </li>
+                                <li class="@GetActiveClass("/deliverychallans")">
+                                    <a href="/deliverychallans">
+                                        <i data-feather="truck" class="feather-16 me-2"></i>
+                                        <span>Delivery Challan</span>
+                                    </a>
+                                </li>
+                            </ul>
+
+                        </li>
+                        <li class="submenu-open">
+                            <h6 class="submenu-hdr">Fixed Assets</h6>
+                            <ul>
+                                <li class="@GetActiveClass("/assets-category")">
+                                    <a href="/assets-category">
+                                        <i data-feather="layers" class="feather-16 me-2"></i>
+                                        <span>Asset Category</span>
+                                    </a>
+                                </li>
+                                <li class="@GetActiveClass("/fixed-assets")">
+                                    <a href="/fixed-assets">
+                                        <i data-feather="briefcase" class="feather-16 me-2"></i>
+                                        <span>Fixed Assets</span>
+                                    </a>
+                                </li>
+                                <li class="@GetActiveClass("/asset-transfers")">
+                                    <a href="/asset-transfers">
+                                        <i data-feather="send" class="feather-16 me-2"></i>
+                                        <span>Asset Transfer</span>
+                                    </a>
+                                </li>
+                                <li class="@GetActiveClass("/depreciation-runs")">
+                                    <a href="/depreciation-runs">
+                                        <i data-feather="trending-down" class="feather-16 me-2"></i>
+                                        <span>Depreciation Runs</span>
+                                    </a>
+                                </li>
+
+                                <li class="@GetActiveClass("/asset-disposals")">
+                                    <a href="/asset-disposals">
+                                        <i data-feather="trash-2" class="feather-16 me-2"></i>
+                                        <span>Asset Disposals</span>
+                                    </a>
+                                </li>
+                                <li class="@GetActiveClass("/asset-acquisitions")">
+                                    <a href="/asset-acquisitions">
+                                        <i data-feather="plus-circle" class="feather-16 me-2"></i>
+                                        <span>Asset Acquisition</span>
+                                    </a>
+                                </li>
+                                <li class="@GetActiveClass("/depreciation-methods")">
+                                    <a href="/depreciation-methods">
+                                        <i data-feather="sliders" class="feather-16 me-2"></i>
+                                        <span>Depreciation Method</span>
+                                    </a>
+                                </li>
+                                <li class="@GetActiveClass("/depreciation-schedules")">
+                                    <a href="/depreciation-schedules">
+                                        <i data-feather="calendar" class="feather-16 me-2"></i>
+                                        <span>Depreciation Schedule</span>
+                                    </a>
+                                </li>
+                                <li class="@GetActiveClass("/valuation-events")">
+                                    <a href="/valuation-events">
+                                        <i data-feather="trending-up" class="feather-16 me-2"></i>
+                                        <span>Revaluation / Impairment</span>
+                                    </a>
+                                </li>
+                            </ul>
+                        </li>
+
+                        <li class="submenu-open">
+                            <h6 class="submenu-hdr">Tax & Statutory</h6>
+                            <ul>
+                                <li class="@GetActiveClass("/tax-codes")">
+                                    <a href="/tax-codes">
+                                        <i data-feather="tag" class="feather-16 me-2"></i>
+                                        <span>Tax Code</span>
+                                    </a>
+                                </li>
+                                <li class="@GetActiveClass("/tax-rate-versions")">
+                                    <a href="/tax-rate-versions">
+                                        <i data-feather="trending-up" class="feather-16 me-2"></i>
+                                        <span>TaxRate Version</span>
+                                    </a>
+                                </li>
+                                <li class="@GetActiveClass("/tax-category-mapping")">
+                                    <a href="/tax-category-mapping">
+                                        <i data-feather="shuffle" class="feather-16 me-2"></i>
+                                        <span>Tax Category Mapping</span>
+                                    </a>
+                                </li>
+                                <li class="@GetActiveClass("/tds-config")">
+                                    <a href="/tds-config">
+                                        <i data-feather="sliders" class="feather-16 me-2"></i>
+                                        <span>TDS Config</span>
+                                    </a>
+                                </li>
+                                <li class="@GetActiveClass("/tcs-config")">
+                                    <a href="/tcs-config">
+                                        <i data-feather="settings" class="feather-16 me-2"></i>
+                                        <span>TCS Config</span>
+                                    </a>
+                                </li>
+                                <li class="@GetActiveClass("/tax-transaction")">
+                                    <a href="/tax-transaction">
+                                        <i data-feather="percent" class="feather-16 me-2"></i>
+                                        <span>Tax Transaction</span>
+                                    </a>
+                                </li>
+                                <li class="@GetActiveClass("/tds-deduction-entries")">
+                                    <a href="/tds-deduction-entries">
+                                        <i data-feather="file-text" class="feather-16 me-2"></i>
+                                        <span>TDS Deduction Entry</span>
+                                    </a>
+                                </li>
+                                <li class="@GetActiveClass("/tax-settlements")">
+                                    <a href="/tax-settlements">
+                                        <i data-feather="credit-card" class="feather-16 me-2"></i>
+                                        <span>Tax Settlement</span>
+                                    </a>
+                                </li>
+                                <li class="@GetActiveClass("/gst-return-runs")">
+                                    <a href="/gst-return-runs">
+                                        <i data-feather="file-text" class="feather-16 me-2"></i>
+                                        <span>GST Return Run</span>
+                                    </a>
+                                </li>
+                                <li class="@GetActiveClass("/tax-audit-trail")">
+                                    <a href="/tax-audit-trail">
+                                        <i data-feather="shield" class="feather-16 me-2"></i>
+                                        <span>Tax Audit Trail</span>
+                                    </a>
+                                </li>
+
+                            </ul>
+                        </li>
+                        <li class="submenu-open">
+                        <h6 class="submenu-hdr">Revenue &amp; Expense</h6>
+                        <ul>
+                            <li class="@GetActiveClass("/revenues")">
+                                <a href="/revenues">
+                                    <i data-feather="trending-up" class="feather-16 me-2"></i>
+                                    <span>Revenue</span>
+                                </a>
+                            </li>
+                            <li class="@GetActiveClass("/revenue-recognitions")">
+                                <a href="/revenue-recognitions">
+                                    <i data-feather="check-circle" class="feather-16 me-2"></i>
+                                    <span>Revenue Recognition</span>
+                                </a>
+                            </li>
+                            <li class="@GetActiveClass("/expenses")">
+                                <a href="/expenses">
+                                    <i data-feather="credit-card" class="feather-16 me-2"></i>
+                                    <span>Expense</span>
+                                </a>
+                            </li>
+                            <li class="@GetActiveClass("/expense-categories")">
+                                <a href="/expense-categories">
+                                    <i data-feather="layers" class="feather-16 me-2"></i>
+                                    <span>Expense Category</span>
+                                </a>
+                            </li>
+                            <li class="@GetActiveClass("/expense-claims")">
+                                <a href="/expense-claims">
+                                    <i data-feather="file-text" class="feather-16 me-2"></i>
+                                    <span>Expense Claim</span>
+                                </a>
+                            </li>
+                            <li class="@GetActiveClass("/accruals")">
+                                <a href="/accruals">
+                                    <i data-feather="clock" class="feather-16 me-2"></i>
+                                    <span>Accrual</span>
+                                </a>
+                            </li>
+                            <li class="@GetActiveClass("/prepayments")">
+                                <a href="/prepayments">
+                                    <i data-feather="fast-forward" class="feather-16 me-2"></i>
+                                    <span>Prepayment</span>
+                                </a>
+                            </li>
+                            <li class="@GetActiveClass("/deferred-revenues")">
+                                <a href="/deferred-revenues">
+                                    <i data-feather="pause-circle" class="feather-16 me-2"></i>
+                                    <span>Deferred Revenue</span>
+                                </a>
+                            </li>
+                        </ul>
+                        </li>
+                        <li class="submenu-open">
+                        <h6 class="submenu-hdr">Budgeting & Cost Control</h6>
+                        <ul>
+                             
+                                <li class="@GetActiveClass("/cost-centers")">
+                                    <a href="/cost-centers">
+                                        <i data-feather="dollar-sign" class="feather-16 me-2"></i>
+                                        <span>Cost Center</span>
+                                    </a>
+                                </li>
+                                <li class="@GetActiveClass("/cost-allocations")">
+                                    <a href="/cost-allocations">
+                                        <i data-feather="share-2" class="feather-16 me-2"></i>
+                                        <span>Cost Allocation</span>
+                                    </a>
+                                </li>
+                            <li class="@GetActiveClass("/variance-analysis")">
+                                <a href="/variance-analysis">
+                                    <i data-feather="bar-chart-2" class="feather-16 me-2"></i>
+                                    <span>Variance Analysis</span>
+                                </a>
+                            </li>
+                            <li class="@GetActiveClass("/forecasts")">
+                                <a href="/forecasts">
+                                    <i data-feather="trending-up" class="feather-16 me-2"></i>
+                                    <span>Forecast</span>
+                                </a>
+                            </li>
+                            <li class="@GetActiveClass("/financial-plans")">
+                                <a href="/financial-plans">
+                                    <i data-feather="target" class="feather-16 me-2"></i>
+                                    <span>Financial Plan</span>
+                                </a>
+                            </li>
+                            <li class="@GetActiveClass("/budgets")">
+                                    <a href="/budgets">
+                                        <i data-feather="briefcase" class="feather-16 me-2"></i>
+                                        <span>Budgets</span>
+                                    </a>
+                            </li> 
+                                <li class="@GetActiveClass("/budget-periods")">
+                                    <a href="/budget-periods">
+                                        <i data-feather="clock" class="feather-16 me-2"></i>
+                                        <span>Budget Period</span>
+                                    </a>
+                                </li>
+                                <li class="@GetActiveClass("/budget-lines")">
+                                    <a href="/budget-lines">
+                                        <i data-feather="list" class="feather-16 me-2"></i>
+                                        <span>Budget Line</span>
+                                    </a>
+                                </li>
+                        </ul>
+                    </li>
+
+
+                        <li class="submenu-open">
+                            <h6 class="submenu-hdr">Utility</h6>
+                            <ul>
+                                <li class="@GetActiveClass("/document-viewer")" id="shepherd-example1">
+                                    <a href="/document-viewer">
+                                        <i data-feather="book" class="feather-16 me-2"></i>
+                                        <span>Document viewer</span>
+                                    </a>
+                                </li>
+                                <li class="@GetActiveClass("/rolehierarchy")" id="shepherd-example1">
+                                    <a href="/rolehierarchy">
+                                        <i data-feather="git-branch" class="feather-16 me-2"></i>
+                                        <span>Role Hierarchy</span>
+                                    </a>
+                                </li>
+                                <li class="@GetActiveClass("/file-manager")">
+                                    <a href="/file-manager">
+                                        <i data-feather="folder" class="feather-16 me-2"></i>
+                                        <span>File Manager</span>
+                                    </a>
+                                </li>
+                                <li class="@GetActiveClass("/404page")">
+                                    <a href="/404page">
+                                        <i data-feather="alert-triangle" class="feather-16 me-2"></i>
+                                        <span>404 Page</span>
+                                    </a>
+                                </li>
+                                <li class="@GetActiveClass("/500page")">
+                                    <a href="/500page">
+                                        <i data-feather="server" class="feather-16 me-2"></i>
+                                        <span>500 Page</span>
+                                    </a>
+                                </li>
+                                <li class="@GetActiveClass("/403page")">
+                                    <a href="/403page">
+                                        <i data-feather="lock" class="feather-16 me-2"></i>
+                                        <span>Forbidden</span>
+                                    </a>
+                                </li>
+                                <li class="@GetActiveClass("/401page")">
+                                    <a href="/401page">
+                                        <i data-feather="key" class="feather-16 me-2"></i>
+                                        <span>Unauthorized</span>
+                                    </a>
+                                </li>
+                                <li class="@GetActiveClass("/400page")">
+                                    <a href="/400page">
+                                        <i data-feather="alert-circle" class="feather-16 me-2"></i>
+                                        <span>Bad Request</span>
+                                    </a>
+                                </li>
+                            </ul>
+                        </li>
+                        @* Account section kept commented
+				<li class="submenu-open">
+					<h6 class="submenu-hdr">Account</h6>
+					<ul>
+						<li class="@GetActiveClass("/change-password")">
+							<a href="/change-password"><i data-feather="lock"></i><span>Change Password</span></a>
+						</li>
+					</ul>
+				</li>
+				*@
+
+                        @* Optional Logout item (enable if needed)
+				<li>
+					<a href="javascript:void(0)" @onclick="HandleLogout">
+						<i data-feather="log-out" class="feather-16 me-2"></i>
+						<span>Logout</span>
+					</a>
+				</li>
+				*@
+                    </ul>
+                </div>
+            </div>
+            <button class="nav-scroll-btn nav-scroll-right" id="navScrollRight" onclick="navScroll('right')">
+                ›
+            </button>
+        </div>
+    </div>
+
+</div>
+
+@code {
+    // Keep this if you still want manual menu tracking, but URL-based active is more reliable.
+    // private string activeMenu = "Dashboard";
+    // private void SetActive(string menu) => activeMenu = menu;
+
+    protected override void OnInitialized()
+    {
+        // Re-render on navigation so active class updates even on route changes done elsewhere.
+        Navigation.LocationChanged += (_, __) => InvokeAsync(StateHasChanged); // Pattern commonly used for active menu refresh. [web:7]
+    }
+    private async Task navScroll(string direction)
+    {
+        await JS.InvokeVoidAsync("navScroll", direction);
+    }
+    // private string GetActiveClass(string href)
+    // {
+    // 	Normalize: Navigation.Uri is absolute; compare with the absolute target.
+    // 	var target = Navigation.ToAbsoluteUri(href).AbsoluteUri;
+    // 	return Navigation.Uri.Equals(target, StringComparison.OrdinalIgnoreCase) ? "active" : "";
+    // }
+
+    private string GetActiveClass(string href)
+    {
+        var currentPath = "/" + Navigation.ToBaseRelativePath(Navigation.Uri).TrimEnd('/');
+        var targetPath = href.TrimEnd('/');
+
+        // Exact match
+        if (currentPath.Equals(targetPath, StringComparison.OrdinalIgnoreCase))
+            return "active";
+
+        // Child route match
+        if (currentPath.StartsWith(targetPath + "/", StringComparison.OrdinalIgnoreCase))
+            return "active";
+
+        return "";
+    }
+
+    private async Task HandleLogout()
+    {
+        await AuthService.LogoutAsync();
+        Navigation.NavigateTo("/Login");
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+
+
+            try
+            {
+                await JS.InvokeVoidAsync("eval", @"
+                if (typeof window.initCompanyTour === 'function') {
+                    window.initCompanyTour();
+                }
+            ");
+                await JS.InvokeAsync<string>(
+            "loadSidebarBackground");
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Tour init error: {ex.Message}");
+            }
+        }
+    }
+}

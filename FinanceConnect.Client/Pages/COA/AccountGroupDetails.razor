@@ -1,0 +1,331 @@
+@page "/account-groups/{GroupId:guid}/view"
+@using FinanceConnect.Client.ViewModels
+@using FinanceConnect.Client.Services
+@inject COADataService COADataService
+@inject NavigationManager Nav
+@inject IJSRuntime JS
+
+@if (SelectedGroup != null)
+{
+    <div class="content view-screen py-3">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <div>
+                <h4 class="fw-bold mb-1">Account Groups Details</h4>
+                <p class="text-muted mb-0 small">View account group classifications and structure</p>
+            </div>
+            <div class="d-flex gap-2 page-btn">
+                <a @onclick="PrintPage" class="btn bg-primary text-white">
+                    <i class="bi bi-printer"></i> Print
+                </a>
+                <a class="btn btn-outline-secondary" @onclick="GoBack">
+                    <i class="ti ti-arrow-left me-1"></i> Back
+                </a>
+            </div>
+        </div>
+        <div class="row g-3">
+
+            <!-- TOP PANEL : GROUP HEADER -->
+            <div class="col-lg-12">
+                <div class="card mb-0">
+                    <div class="header-card">
+                        <div class="header-inner">
+
+                            <!-- LEFT SIDE -->
+                            <div class="header-left1">
+
+                                <!-- Group Logo / Initials -->
+                                <div class="company-logo">
+                                    <span class="logo-initials">
+                                        @SelectedGroup?.GroupCode?.Substring(0, Math.Min(2, SelectedGroup.GroupCode.Length)).ToUpper()
+                                    </span>
+                                </div>
+
+                                <!-- Group Meta Info -->
+                                <div class="header-meta">
+
+                                    <!-- Group Name -->
+                                    <h2 class="company-title">
+                                        @SelectedGroup.GroupName
+                                    </h2>
+
+                                    <!-- Subtitle -->
+                                    <div class="company-subtitle">
+                                        <span>@SelectedGroup.ChartOfAccountsName</span>
+                                        <span class="dot">·</span>
+                                        <span>@SelectedGroup.AccountNature</span>
+                                    </div>
+
+                                    <!-- Tags -->
+                                    <div class="header-tags">
+
+                                        <span class="tag tag-info">
+                                            <i class="ti ti-chart-pie me-1"></i>
+                                            @SelectedGroup.ChartOfAccountsName
+                                        </span>
+
+                                        <span class="tag tag-secondary">
+                                            <i class="ti ti-category me-1"></i>
+                                            @SelectedGroup.AccountNature
+                                        </span>
+
+                                        @if (SelectedGroup.IsControlGroup)
+                                        {
+                                            <span class="tag tag-warning">
+                                                Control Group
+                                            </span>
+                                        }
+
+                                    </div>
+
+                                </div>
+                            </div>
+
+                            <!-- RIGHT SIDE -->
+                            <div class="header-right">
+
+                                @if (SelectedGroup?.Status?.ToLower() == "active")
+                                {
+                                    <span class="status-badge status-active">● ACTIVE</span>
+                                }
+                                else if (SelectedGroup?.Status?.ToLower() == "draft")
+                                {
+                                    <span class="status-badge status-draft">● DRAFT</span>
+                                }
+                                else
+                                {
+                                    <span class="status-badge status-inactive">● INACTIVE</span>
+                                }
+
+                                <div class="created-info">
+                                    Created @SelectedGroup?.CreatedAt.ToString("dd MMM yyyy")
+                                </div>
+
+                            </div>
+
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- LEFT PANEL : GROUP DETAILS -->
+            <div class="col-lg-8">
+                <div class="profile-card">
+                    @* <h5 class="mb-3">
+                        <i class="ti ti-folder me-2" style="color: #fe9f43;"></i>Group Details
+                    </h5> *@
+
+                    <!-- Group Identity -->
+                    <div class="card mb-3">
+                        <div class="card-header py-2">
+                            <i class="ti ti-id me-2"></i> Group Identity
+                        </div>
+                        <div class="card-body py-2">
+                            <div class="row">
+                                <div class="col-md-3">
+                                    <small class="text-muted">Group Code</small>
+                                    <div class="fw-medium">@SelectedGroup.GroupCode</div>
+                                </div>
+                                <div class="col-md-5">
+                                    <small class="text-muted">Group Name</small>
+                                    <div>@SelectedGroup.GroupName</div>
+                                </div>
+                                <div class="col-md-4">
+                                    <small class="text-muted">Display Order</small>
+                                    <div>@SelectedGroup.DisplayOrder</div>
+                                </div>
+                            </div>
+                            @if (!string.IsNullOrEmpty(SelectedGroup.Description))
+                            {
+                                <div class="row mt-2">
+                                    <div class="col-12">
+                                        <small class="text-muted">Description</small>
+                                        <div class="ql-editor">@((MarkupString)(SelectedGroup.Description ?? string.Empty))</div>
+                                    </div>
+                                </div>
+                            }
+                        </div>
+                    </div>
+
+                    <!-- Classification -->
+                    <div class="card mb-3">
+                        <div class="card-header py-2">
+                            <i class="ti ti-tags me-2"></i> Classification & Reporting Rules
+                        </div>
+                        <div class="card-body py-2">
+                            <div class="row">
+                                <div class="col-md-3">
+                                    <small class="text-muted">Account Nature</small>
+                                    <div><span class="badge @GetNatureBadge(SelectedGroup.AccountNature)">@SelectedGroup.AccountNature</span></div>
+                                </div>
+                                <div class="col-md-3">
+                                    <small class="text-muted">Statement Type</small>
+                                    <div class="fw-medium">@(SelectedGroup.StatementType ?? "Auto")</div>
+                                </div>
+                                <div class="col-md-3">
+                                    <small class="text-muted">Normal Balance Type</small>
+                                    <div><span class="badge @GetBalanceBadge(SelectedGroup.BalanceBehavior)">@(SelectedGroup.BalanceBehavior ?? "-")</span></div>
+                                </div>
+                                <div class="col-md-3 ledger-info">
+                                    <small class="text-muted">Control Group:</small>
+                                    <span class="ms-2">
+                                        @if (SelectedGroup.IsControlGroup)
+                                        {
+                                            <i class="ti ti-checks text-success"></i>
+                                        }
+                                        else
+                                        {
+                                            <i class="ti ti-x text-danger"></i>
+                                        }
+                                    </span>
+                                </div>
+                            </div>
+                            <div class="row mt-2">
+                                <div class="col-md-3">
+                                    <small class="text-muted">Reporting Category</small>
+                                    <div>@(!string.IsNullOrEmpty(SelectedGroup.ReportingCategory) ? ReportingCategories.GetDisplayName(SelectedGroup.ReportingCategory) : "-")</div>
+                                </div>
+                                <div class="col-md-3">
+                                    <small class="text-muted">Hierarchy Level</small>
+                                    <div>Level @SelectedGroup.HierarchyLevel</div>
+                                </div>
+                                <div class="col-md-3">
+                                    <small class="text-muted">Parent Group</small>
+                                    <div>@(SelectedGroup.ParentGroupName ?? "None (Top Level)")</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Default Behavior -->
+                    <div class="card mb-0">
+                        <div class="card-header py-2">
+                            <i class="ti ti-settings me-2"></i> Default Behavior for Accounts
+                        </div>
+                        <div class="card-body py-2">
+                            <div class="row">
+                                <div class="col-md-3 ledger-info">
+                                    <small class="text-muted">Default Postable:</small>
+                                    <span class="ms-2">
+                                        @if (SelectedGroup.DefaultIsPostable)
+                                        {
+                                            <i class="ti ti-checks text-success"></i>
+                                        }
+                                        else
+                                        {
+                                            <i class="ti ti-x text-danger"></i>
+                                        }
+                                    </span>
+                                </div>
+                                <div class="col-md-3 ledger-info">
+                                    <small class="text-muted">Default Requires Branch:</small>
+                                    <span class="ms-2">
+                                        @if (SelectedGroup.DefaultRequiresBranch)
+                                        {
+                                            <i class="ti ti-checks text-success"></i>
+                                        }
+                                        else
+                                        {
+                                            <i class="ti ti-x text-danger"></i>
+                                        }
+                                    </span>
+                                </div>
+                                <div class="col-md-3 ledger-info">
+                                    <small class="text-muted">Default Cost Center Required:</small>
+                                    <span class="ms-2">
+                                        @if (SelectedGroup.DefaultRequiresCostCenter)
+                                        {
+                                            <i class="ti ti-checks text-success"></i>
+                                        }
+                                        else
+                                        {
+                                            <i class="ti ti-x text-danger"></i>
+                                        }
+                                    </span>
+                                </div>
+                                <div class="col-md-3 ledger-info">
+                                    <small class="text-muted">Allow Manual Journal:</small>
+                                    <span class="ms-2">
+                                        @if (SelectedGroup.DefaultAllowManualJournal)
+                                        {
+                                            <i class="ti ti-checks text-success"></i>
+                                        }
+                                        else
+                                        {
+                                            <i class="ti ti-x text-danger"></i>
+                                        }
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+
+            <!-- RIGHT PANEL : STATUS & STATS -->
+            <div class="col-lg-4">
+                <div class="profile-card mb-3">
+                    <!-- Status -->
+                    <div class="card mb-0">
+                        <div class="card-header py-2">
+                            <i class="ti ti-info-circle me-2"></i> Status
+                        </div>
+                        <div class="card-body py-2">
+                            <div class="row">
+                                <div class="col-12">
+                                    <small class="text-muted">Status</small>
+                                    <div>
+                                        <span class="badge @GetStatusBadge(SelectedGroup.Status)">@SelectedGroup.Status</span>
+                                    </div>
+                                </div>
+                                <div class="col-12">
+                                    <small class="text-muted">Chart of Accounts</small>
+                                    <div>@SelectedGroup.ChartOfAccountsName</div>
+                                </div>
+                                @if (!string.IsNullOrEmpty(SelectedGroup.LockReason))
+                                {
+                                    <div class="col-12">
+                                        <small class="text-muted">Inactivation Reason</small>
+                                        <div class="ql-editor">@((MarkupString)(SelectedGroup.LockReason ?? string.Empty))</div>
+                                    </div>
+                                }
+                                <div class="col-12">
+                                    <small class="text-muted">Created</small>
+                                    <div>@SelectedGroup.CreatedAt.ToString("dd MMM yyyy")</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="profile-card">
+                    <!-- Statistics -->
+                    <div class="card mb-0">
+                        <div class="card-header py-2">
+                            <i class="ti ti-chart-bar me-2"></i> Statistics
+                        </div>
+                        <div class="card-body py-2">
+                            <div class="row">
+                                <div class="col-6">
+                                    <small class="text-muted">Child Groups</small>
+                                    <div class="fw-medium text-primary">@SelectedGroup.ChildGroupCount</div>
+                                </div>
+                                <div class="col-6">
+                                    <small class="text-muted">Accounts</small>
+                                    <div class="fw-medium text-success">@SelectedGroup.AccountCount</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+}
+else
+{
+    <div class="page-loading-overlay">
+        <div class="whirly-loader"></div>
+    </div>
+}

@@ -1,0 +1,376 @@
+@page "/closing-balances/{BalanceId:guid}/view"
+@using FinanceConnect.Client.ViewModels
+@using FinanceConnect.Client.Services
+@inject MasterDataService MasterDataService
+@inject NavigationManager Nav
+@inject IJSRuntime JS
+@inject AuthService AuthService
+@inject ToastService ToastService
+
+<PageTitle>Closing Balance Details - FinanceConnect</PageTitle>
+
+@if (!isInitialized)
+{
+    <div class="page-loading-overlay">
+        <div class="whirly-loader"></div>
+    </div>
+}
+else if (SelectedItem == null)
+{
+    <div class="vb-root">
+        <div class="content">
+            <div class="alert alert-danger">
+                <i class="ti ti-alert-circle me-2"></i>
+                Closing balance not found.
+                <a href="/closing-balances" class="alert-link ms-2">Return to list</a>
+            </div>
+        </div>
+    </div>
+}
+else
+{
+    <div class="vb-root">
+        <div class="content">
+            <div>
+            <!-- PROFILE HEADER CARD -->
+            <div class="vb-header-card">
+                <div class="vb-cover">
+                    <div class="vb-cover-orb vb-orb-1"></div>
+                    <div class="vb-cover-orb vb-orb-2"></div>
+                    <div class="vb-cover-orb vb-orb-3"></div>
+                </div>
+                <div class="vb-header-body">
+                    <div class="vb-avatar">
+                        @SelectedItem.AccountCode?.Substring(0, Math.Min(2, SelectedItem.AccountCode?.Length ?? 0)).ToUpper()
+                    </div>
+                    <div class="vb-header-meta">
+                        <div>
+                            <p class="vb-bill-number">@SelectedItem.AccountCode - @SelectedItem.AccountName</p>
+                            <p class="vb-bill-sub">@SelectedItem.CompanyName &nbsp;·&nbsp; @SelectedItem.BranchName &nbsp;·&nbsp; @(SelectedItem.FiscalYearName ?? "-")</p>
+                            <div class="vb-badges">
+                                <span class="badge @GetStatusBadge(SelectedItem.CloseStatus)">@SelectedItem.CloseStatus</span>
+                                <span class="badge @GetSideBadge(SelectedItem.ClosingBalanceSide)">
+                                    <i class="ti ti-arrows-right-left me-1"></i>@SelectedItem.ClosingBalanceSide
+                                </span>
+                            </div>
+                        </div>
+                        <div class="vb-header-actions">
+                            <a href="/closing-balances" class="btn btn-outline-secondary">
+                                <i class="ti ti-arrow-left me-1"></i> Back
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Balance Summary Tiles -->
+            <div class="vb-card" style="background: transparent;border: none;box-shadow: none;">
+                <div class="vb-summary-grid mb-4 mt-2" style="grid-template-columns:repeat(6,1fr);">
+                    <div class="vb-tile">
+                        <div class="vb-tile-label">Opening Debit</div>
+                        <div class="vb-tile-value primary">₹ @SelectedItem.OpeningDebit.ToString("N2")</div>
+                    </div>
+                    <div class="vb-tile">
+                        <div class="vb-tile-label">Opening Credit</div>
+                        <div class="vb-tile-value success">₹ @SelectedItem.OpeningCredit.ToString("N2")</div>
+                    </div>
+                    <div class="vb-tile">
+                        <div class="vb-tile-label">Period Debit</div>
+                        <div class="vb-tile-value primary">₹ @SelectedItem.PeriodDebit.ToString("N2")</div>
+                    </div>
+                    <div class="vb-tile">
+                        <div class="vb-tile-label">Period Credit</div>
+                        <div class="vb-tile-value success">₹ @SelectedItem.PeriodCredit.ToString("N2")</div>
+                    </div>
+                    <div class="vb-tile" style="border-color:var(--primary);">
+                        <div class="vb-tile-label">Closing Balance</div>
+                        <div class="vb-tile-value primary">₹ @SelectedItem.ClosingBalanceAmount.ToString("N2")</div>
+                        <span class="badge @GetSideBadge(SelectedItem.ClosingBalanceSide) mt-1" style="font-size:10px;">@SelectedItem.ClosingBalanceSide</span>
+                    </div>
+                    <div class="vb-tile">
+                        <div class="vb-tile-label">Closing Debit</div>
+                        <div class="vb-tile-value">₹ @SelectedItem.ClosingDebit.ToString("N2")</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="vb-two-col mb-4">
+                <!-- SIDEBAR -->
+                <aside class="vb-sidebar">
+                    <div class="vb-card">
+                        <div class="vb-card-header"><h6><i class="ti ti-report"></i> Balance Identity</h6></div>
+                        <div class="vb-card-body">
+                            <div class="vb-row"><span class="vb-label">Account Code</span><span class="vb-val fw-medium">@SelectedItem.AccountCode</span></div>
+                            <div class="vb-row"><span class="vb-label">Account Name</span><span class="vb-val">@SelectedItem.AccountName</span></div>
+                            <div class="vb-row"><span class="vb-label">Fiscal Year</span><span class="vb-val">@(SelectedItem.FiscalYearName ?? "-")</span></div>
+                            <div class="vb-row"><span class="vb-label">Period</span><span class="vb-val">@SelectedItem.AccountingPeriodName</span></div>
+                            <div class="vb-row"><span class="vb-label">Status</span><span class="vb-val"><span class="badge @GetStatusBadge(SelectedItem.CloseStatus)">@SelectedItem.CloseStatus</span></span></div>
+                        </div>
+                    </div>
+
+                    <div class="vb-card">
+                        <div class="vb-card-header"><h6><i class="ti ti-building"></i> Organization</h6></div>
+                        <div class="vb-card-body">
+                            <div class="vb-row"><span class="vb-label">Company</span><span class="vb-val">@SelectedItem.CompanyName</span></div>
+                            <div class="vb-row"><span class="vb-label">Branch</span><span class="vb-val">@SelectedItem.BranchName</span></div>
+                            <div class="vb-row"><span class="vb-label">Ledger</span><span class="vb-val">@SelectedItem.LedgerName</span></div>
+                            <div class="vb-row"><span class="vb-label">Base Currency</span><span class="vb-val">@SelectedItem.BaseCurrencyCode - @SelectedItem.BaseCurrencyName</span></div>
+                        </div>
+                    </div>
+
+                    <div class="vb-card">
+                        <div class="vb-card-header"><h6><i class="ti ti-clock"></i> Close Run Info</h6></div>
+                        <div class="vb-card-body">
+                            <div class="vb-row"><span class="vb-label">Close Run ID</span><span class="vb-val text-truncate" title="@SelectedItem.CloseRunId">@SelectedItem.CloseRunId.ToString("N").Substring(0, 12)…</span></div>
+                            <div class="vb-row"><span class="vb-label">Status</span><span class="vb-val"><span class="badge @GetStatusBadge(SelectedItem.CloseStatus)">@SelectedItem.CloseStatus</span></span></div>
+                            <div class="vb-row"><span class="vb-label">Calculated At</span><span class="vb-val">@SelectedItem.CalculatedAt.ToString("dd MMM yyyy HH:mm")</span></div>
+                            <div class="vb-row"><span class="vb-label">Calculated By</span><span class="vb-val">@(SelectedItem.CalculatedBy ?? "-")</span></div>
+                            @if (!string.IsNullOrWhiteSpace(SelectedItem.LockedBy))
+                            {
+                                <div class="vb-row"><span class="vb-label">Locked By</span><span class="vb-val">@SelectedItem.LockedBy</span></div>
+                            }
+                            @if (SelectedItem.LockedAt.HasValue)
+                            {
+                                <div class="vb-row"><span class="vb-label">Locked At</span><span class="vb-val">@SelectedItem.LockedAt?.ToString("dd MMM yyyy HH:mm")</span></div>
+                            }
+                        </div>
+                    </div>
+
+                    <div class="vb-card">
+                        <div class="vb-card-header"><h6><i class="ti ti-history"></i> History</h6></div>
+                        <div class="vb-card-body">
+                            <div class="vb-row"><span class="vb-label">Created</span><span class="vb-val">@SelectedItem.CreatedAt.ToString("dd MMM yyyy HH:mm")</span></div>
+                            @if (!string.IsNullOrWhiteSpace(SelectedItem.CreatedBy))
+                            {
+                                <div class="vb-row"><span class="vb-label">Created By</span><span class="vb-val">@SelectedItem.CreatedBy</span></div>
+                            }
+                        </div>
+                    </div>
+                </aside>
+
+                <!-- MAIN CONTENT -->
+                <div class="vb-main">
+                    <div class="vb-card">
+                        <div class="vb-card-header"><h6><i class="ti ti-id"></i> Header Information</h6></div>
+                        <div class="vb-card-body">
+                            <div style="display:grid; grid-template-columns:1fr 1fr; gap:0 32px;">
+                                <div class="vb-row"><span class="vb-label">Company</span><span class="vb-val">@SelectedItem.CompanyName</span></div>
+                                <div class="vb-row"><span class="vb-label">Branch</span><span class="vb-val">@SelectedItem.BranchName</span></div>
+                                <div class="vb-row"><span class="vb-label">Ledger</span><span class="vb-val">@SelectedItem.LedgerName</span></div>
+                                <div class="vb-row"><span class="vb-label">Fiscal Year</span><span class="vb-val">@(SelectedItem.FiscalYearName ?? "-")</span></div>
+                                <div class="vb-row"><span class="vb-label">Period</span><span class="vb-val fw-medium">@SelectedItem.AccountingPeriodName</span></div>
+                                <div class="vb-row"><span class="vb-label">Account</span><span class="vb-val fw-medium">@SelectedItem.AccountCode - @SelectedItem.AccountName</span></div>
+                                <div class="vb-row"><span class="vb-label">Base Currency</span><span class="vb-val">@SelectedItem.BaseCurrencyCode - @SelectedItem.BaseCurrencyName</span></div>
+                                <div class="vb-row"><span class="vb-label">Status</span><span class="vb-val"><span class="badge @GetStatusBadge(SelectedItem.CloseStatus)">@SelectedItem.CloseStatus</span></span></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Balance Breakdown Table -->
+                    <div class="vb-card">
+                        <div class="vb-card-header"><h6><i class="ti ti-calculator"></i> Balance Breakdown</h6></div>
+                        <div style="overflow-x:auto;">
+                            <table class="vb-table">
+                                <thead class="bg-light">
+                                    <tr>
+                                        <th></th>
+                                        <th class="text-end">Debit</th>
+                                        <th class="text-end">Credit</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr>
+                                        <td>Opening</td>
+                                        <td class="text-end">
+                                            <span class="@(SelectedItem.OpeningDebit > 0 ? "text-success fw-medium" : "text-muted")">@SelectedItem.OpeningDebit.ToString("N2")</span>
+                                        </td>
+                                        <td class="text-end">
+                                            <span class="@(SelectedItem.OpeningCredit > 0 ? "text-info fw-medium" : "text-muted")">@SelectedItem.OpeningCredit.ToString("N2")</span>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td>Period Movement</td>
+                                        <td class="text-end">
+                                            <span class="@(SelectedItem.PeriodDebit > 0 ? "text-success fw-medium" : "text-muted")">@SelectedItem.PeriodDebit.ToString("N2")</span>
+                                        </td>
+                                        <td class="text-end">
+                                            <span class="@(SelectedItem.PeriodCredit > 0 ? "text-info fw-medium" : "text-muted")">@SelectedItem.PeriodCredit.ToString("N2")</span>
+                                        </td>
+                                    </tr>
+                                    <tr style="background: color-mix(in srgb, var(--primary) 6%, white); font-weight: 700;">
+                                        <td>Closing</td>
+                                        <td class="text-end">@SelectedItem.ClosingDebit.ToString("N2")</td>
+                                        <td class="text-end">@SelectedItem.ClosingCredit.ToString("N2")</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <!-- Closing Summary -->
+                    <div class="vb-card">
+                        <div class="vb-card-header"><h6><i class="ti ti-chart-bar"></i> Closing Summary</h6></div>
+                        <div class="vb-card-body">
+                            <div style="display:grid; grid-template-columns:1fr 1fr; gap:0 32px;">
+                                <div class="vb-row">
+                                    <span class="vb-label">Closing Balance</span>
+                                    <span class="vb-val fw-bold" style="color:var(--primary);">₹ @SelectedItem.ClosingBalanceAmount.ToString("N2")</span>
+                                </div>
+                                <div class="vb-row">
+                                    <span class="vb-label">Balance Side</span>
+                                    <span class="vb-val"><span class="badge @GetSideBadge(SelectedItem.ClosingBalanceSide)">@SelectedItem.ClosingBalanceSide</span></span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Snapshot -->
+                    <div class="vb-card">
+                        <div class="vb-card-header"><h6><i class="ti ti-camera"></i> Snapshot (At Close Time)</h6></div>
+                        <div class="vb-card-body">
+                            <div style="display:grid; grid-template-columns:1fr 1fr; gap:0 32px;">
+                                <div class="vb-row"><span class="vb-label">Account Snapshot</span><span class="vb-val">@(SelectedItem.AccountCodeSnapshot ?? "-") - @(SelectedItem.AccountNameSnapshot ?? "-")</span></div>
+                                <div class="vb-row"><span class="vb-label">Branch Snapshot</span><span class="vb-val">@(SelectedItem.BranchCodeSnapshot ?? "-") - @(SelectedItem.BranchNameSnapshot ?? "-")</span></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Recalculation Info -->
+                    @if (SelectedItem.RecalculatedFromCloseRunId.HasValue || !string.IsNullOrWhiteSpace(SelectedItem.RecalculationReason))
+                    {
+                        <div class="vb-card">
+                            <div class="vb-card-header"><h6><i class="ti ti-refresh-alert"></i> Recalculation</h6></div>
+                            <div class="vb-card-body">
+                                @if (SelectedItem.RecalculatedFromCloseRunId.HasValue)
+                                {
+                                    <div class="vb-row">
+                                        <span class="vb-label">Recalculated From Run</span>
+                                        <span class="vb-val text-truncate" title="@SelectedItem.RecalculatedFromCloseRunId">@SelectedItem.RecalculatedFromCloseRunId?.ToString("N").Substring(0, 12)…</span>
+                                    </div>
+                                }
+                                @if (!string.IsNullOrWhiteSpace(SelectedItem.RecalculationReason))
+                                {
+                                    <div class="vb-row">
+                                        <span class="vb-label">Reason</span>
+                                        <span class="vb-val text-warning">@SelectedItem.RecalculationReason</span>
+                                    </div>
+                                }
+                            </div>
+                        </div>
+                    }
+
+                    <!-- Workflow History -->
+                    <div class="vb-card">
+                        <div class="vb-card-header"><h6><i class="ti ti-git-branch"></i> Workflow History</h6></div>
+                        <div class="vb-card-body">
+                            <div class="vb-timeline">
+                                <div class="vb-tl-item">
+                                    <div class="vb-tl-dot"><i class="ti ti-calculator"></i></div>
+                                    <div class="vb-tl-content">
+                                        <div class="vb-tl-title">Calculated</div>
+                                        <div class="vb-tl-meta">
+                                            @SelectedItem.CalculatedAt.ToString("dd MMM yyyy HH:mm")
+                                            @if (!string.IsNullOrWhiteSpace(SelectedItem.CalculatedBy))
+                                            {
+                                                <span> by @SelectedItem.CalculatedBy</span>
+                                            }
+                                        </div>
+                                    </div>
+                                </div>
+                                @if (SelectedItem.CloseStatus == "Verified" || SelectedItem.CloseStatus == "Locked")
+                                {
+                                    <div class="vb-tl-item">
+                                        <div class="vb-tl-dot" style="background: color-mix(in srgb, var(--primary) 12%, white);border-color:#16a34a;color:#16a34a;"><i class="ti ti-check"></i></div>
+                                        <div class="vb-tl-content">
+                                            <div class="vb-tl-title">Verified</div>
+                                            <div class="vb-tl-meta">Balance has been verified</div>
+                                        </div>
+                                    </div>
+                                }
+                                @if (SelectedItem.LockedAt.HasValue)
+                                {
+                                    <div class="vb-tl-item">
+                                        <div class="vb-tl-dot" style="background: color-mix(in srgb, var(--primary) 12%, white);border-color:var(--orange);color:var(--orange-d);"><i class="ti ti-lock"></i></div>
+                                        <div class="vb-tl-content">
+                                            <div class="vb-tl-title">Locked</div>
+                                            <div class="vb-tl-meta">
+                                                @SelectedItem.LockedAt.Value.ToString("dd MMM yyyy HH:mm")
+                                                @if (!string.IsNullOrWhiteSpace(SelectedItem.LockedBy))
+                                                {
+                                                    <span> by @SelectedItem.LockedBy</span>
+                                                }
+                                            </div>
+                                        </div>
+                                    </div>
+                                }
+                                @if (SelectedItem.CloseStatus == "Reversed")
+                                {
+                                    <div class="vb-tl-item">
+                                        <div class="vb-tl-dot" style="background: color-mix(in srgb, var(--primary) 12%, white);border-color:#dc2626;color:#dc2626;"><i class="ti ti-arrow-back-up"></i></div>
+                                        <div class="vb-tl-content">
+                                            <div class="vb-tl-title">Reversed</div>
+                                            <div class="vb-tl-meta">Closing balance has been reversed</div>
+                                        </div>
+                                    </div>
+                                }
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        </div>
+    </div>
+}
+
+@code {
+    [Parameter]
+    public Guid BalanceId { get; set; }
+
+    private bool isInitialized = false;
+    private ClosingBalanceModel? SelectedItem;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await AuthService.InitializeAsync();
+        if (!AuthService.IsAuthenticated)
+        {
+            Nav.NavigateTo("/Login");
+            return;
+        }
+
+        var items = MasterDataService.GetAllClosingBalances();
+        SelectedItem = items.FirstOrDefault(i => i.Id == BalanceId);
+        isInitialized = true;
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            await JS.InvokeVoidAsync("feather.replace");
+        }
+    }
+
+    private void GoBack()
+    {
+        Nav.NavigateTo("/closing-balances");
+    }
+
+    private string GetStatusBadge(string status) => status switch
+    {
+        "Calculated" => "bg-info-transparent text-info",
+        "Verified" => "bg-primary-transparent text-primary",
+        "Locked" => "bg-success-transparent text-success",
+        "Reversed" => "bg-warning-transparent text-warning",
+        _ => "bg-secondary-transparent text-secondary"
+    };
+
+    private string GetSideBadge(string side) => side switch
+    {
+        "Debit" => "bg-success-transparent text-success",
+        "Credit" => "bg-info-transparent text-info",
+        "Zero" => "bg-secondary-transparent text-secondary",
+        _ => "bg-secondary-transparent text-secondary"
+    };
+}

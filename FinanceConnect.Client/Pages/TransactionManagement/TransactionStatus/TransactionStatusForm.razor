@@ -1,0 +1,444 @@
+﻿@page "/transaction-status/create"
+@page "/transaction-status/{Id:guid}"
+
+@using FinanceConnect.Client.ViewModels
+@using FinanceConnect.Client.Services
+
+<div class="content Accordion-form">
+
+    <!-- PAGE HEADER -->
+    <div class="page-header">
+        <div class="add-item d-flex">
+            <div class="page-title">
+                <h4 class="fw-bold">@PageTitle</h4>
+                <h6>@PageSubTitle</h6>
+            </div>
+        </div>
+
+        <div class="page-btn mt-0">
+            <button type="button"
+                    class="btn btn btn-outline-secondary"
+                    @onclick="BackToList">
+                <i class="ti ti-arrow-left"></i> Back
+            </button>
+        </div>
+    </div>
+
+    <EditForm EditContext="_editContext" OnSubmit="HandleSubmit">
+        <DataAnnotationsValidator />
+
+        <div class="add-product" style="background:#f4f7fb; padding:24px 14px;">
+            <div class="tl-accordion">
+
+                @* ---------- LEFT PANEL – Fixed Sidebar ---------- *@
+                <div class="tl-left-panel">
+
+                    <!-- Identity -->
+                    <div class="tl-label @(ShowIdentity ? "active accent-orange" : "")"
+                         @onclick="@(() => ToggleAccordion("identity"))">
+                        <div class="tl-label-icon ico-orange"><i data-feather="flag"></i></div>
+                        <div class="tl-label-text">
+                            <div class="tl-label-title">Identity & Ownership</div>
+                            <div class="tl-label-sub">Code, name, scope & classification</div>
+                        </div>
+                        <span class="tl-label-chevron @(ShowIdentity ? "open" : "")">
+                            <i data-feather="chevron-right"></i>
+                        </span>
+                    </div>
+
+                    <!-- Controls -->
+                    <div class="tl-label @(ShowControls ? "active accent-blue" : "")"
+                         @onclick="@(() => ToggleAccordion("controls"))">
+                        <div class="tl-label-icon ico-blue"><i data-feather="settings"></i></div>
+                        <div class="tl-label-text">
+                            <div class="tl-label-title">Control Flags</div>
+                            <div class="tl-label-sub">Allowed actions in this status</div>
+                        </div>
+                        <span class="tl-label-chevron @(ShowControls ? "open" : "")">
+                            <i data-feather="chevron-right"></i>
+                        </span>
+                    </div>
+
+                    <!-- Display -->
+                    <div class="tl-label @(ShowDisplay ? "active accent-purple" : "")"
+                         @onclick="@(() => ToggleAccordion("display"))">
+                        <div class="tl-label-icon ico-purple"><i data-feather="monitor"></i></div>
+                        <div class="tl-label-text">
+                            <div class="tl-label-title">UI Display</div>
+                            <div class="tl-label-sub">Badge & ordering</div>
+                        </div>
+                        <span class="tl-label-chevron @(ShowDisplay ? "open" : "")">
+                            <i data-feather="chevron-right"></i>
+                        </span>
+                    </div>
+
+                    <!-- System -->
+                    <div class="tl-label @(ShowSystem ? "active accent-green" : "")"
+                         @onclick="@(() => ToggleAccordion("system"))">
+                        <div class="tl-label-icon ico-green"><i data-feather="shield"></i></div>
+                        <div class="tl-label-text">
+                            <div class="tl-label-title">System & Activation</div>
+                            <div class="tl-label-sub">Protection & availability</div>
+                        </div>
+                        <span class="tl-label-chevron @(ShowSystem ? "open" : "")">
+                            <i data-feather="chevron-right"></i>
+                        </span>
+                    </div>
+
+                </div>
+
+                @* ---------- RIGHT AREA – Timeline Cards ------------*@
+                <div class="tl-right-area">
+
+                    <!-- Identity & Ownership -->
+                    <div class="tl-card-row @(ShowIdentity ? "row-active" : "")">
+                        <div class="tl-dot-col">
+                            <div class="tl-dot" @onclick="@(() => ToggleAccordion("identity"))"></div>
+                        </div>
+                        <div class="tl-card-col">
+                            <div class="tl-card @(ShowIdentity ? "card-active border-orange" : "")">
+                                <div class="tl-card-header"
+                                     @onclick="@(() => ToggleAccordion("identity"))">
+                                    <div class="tl-card-header-title">
+                                        <span class="tl-card-step step-orange">01</span>
+                                        Identity & Ownership
+                                    </div>
+                                    <span class="tl-card-toggle @(ShowIdentity ? "toggle-open" : "")">
+                                        <i data-feather="chevron-down"></i>
+                                    </span>
+                                </div>
+
+                                <div class="tl-collapse @(ShowIdentity ? "tl-open" : "")">
+                                    <div class="tl-card-body">
+                                        <div class="tl-card-body-inner @(IdentityTouched ? "touched" : "")">
+
+                                            <div class="row">
+
+                                                <div class="col-sm-4 mb-3">
+                                                    <label class="form-label">Status Code <span class="text-danger">*</span></label>
+                                                    <input class="@($"form-control text-uppercase {GetValidationClass(() => status.Code)}")"
+                                                           @bind="StatusCodeInput"
+                                                           disabled="@IsEdit"
+                                                           maxlength="30"
+                                                           placeholder="DRAFT / POSTED / CANCELLED"
+                                                           @oninput="TouchIdentity" />
+                                                    <ValidationMessage For="@(() => status.Code)" />
+                                                </div>
+
+                                                <div class="col-sm-5 mb-3">
+                                                    <label class="form-label">Status Name <span class="text-danger">*</span></label>
+                                                    <input class="@($"form-control {GetValidationClass(() => status.Name)}")"
+                                                           @bind="status.Name"
+                                                           @bind:after="OnStatusNameChanged"
+                                                           maxlength="100"
+                                                           placeholder="Draft / Posted"
+                                                           @oninput="TouchIdentity" />
+                                                    <ValidationMessage For="@(() => status.Name)" />
+                                                </div>
+
+                                                <div class="col-sm-3 mb-3">
+                                                    <label class="form-label">Stage Category <span class="text-danger">*</span></label>
+                                                    <select class="@($"form-select {GetValidationClass(() => status.StageCategory)}")"
+                                                            @bind="status.StageCategory"
+                                                            @oninput="TouchIdentity">
+                                                        @foreach (var v in Enum.GetValues<StageCategory>())
+                                                        {
+                                                            <option value="@v">@v</option>
+                                                        }
+                                                    </select>
+                                                    <ValidationMessage For="@(() => status.StageCategory)" />
+                                                </div>
+
+                                                <div class="col-sm-4 mb-3">
+                                                    <label class="form-label">Company Scope</label>
+                                                    <select class="form-select"
+                                                            @bind="status.CompanyScopeMode"
+                                                            @oninput="TouchIdentity">
+                                                        @foreach (var v in Enum.GetValues<CompanyScopeMode>())
+                                                        {
+                                                            <option value="@v">@v</option>
+                                                        }
+                                                    </select>
+                                                </div>
+
+                                                @if (status.CompanyScopeMode == CompanyScopeMode.PerCompany)
+                                                {
+                                                    <div class="col-sm-4 mb-3">
+                                                        <label class="form-label">Company <span class="text-danger">*</span></label>
+                                                        <select class="form-select"
+                                                                @bind="status.CompanyId"
+                                                                @oninput="TouchIdentity">
+                                                            <option value="">-- Select Company --</option>
+                                                            @foreach (var c in Companies)
+                                                            {
+                                                                <option value="@c.Id">@c.LegalName</option>
+                                                            }
+                                                        </select>
+                                                    </div>
+                                                }
+                                                @* maxlength="1000" *@
+                                                <div class="col-sm-12 mb-3">
+                                                    <label class="form-label">Description</label>
+                                                    <RichTextEditor @ref="_descriptionEditor"
+                                                                    Value="@status.Description"
+                                                                        MaxHeight="200" MinHeight="80"
+                                                                    placeholder="Explain purpose of this status" />
+                                                </div>
+
+                                            </div>
+
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Control Flags -->
+                    <div class="tl-card-row @(ShowControls ? "row-active" : "")">
+                        <div class="tl-dot-col">
+                            <div class="tl-dot" @onclick="@(() => ToggleAccordion("controls"))"></div>
+                        </div>
+                        <div class="tl-card-col">
+                            <div class="tl-card @(ShowControls ? "card-active border-blue" : "")">
+
+                                <div class="tl-card-header"
+                                     @onclick="@(() => ToggleAccordion("controls"))">
+                                    <div class="tl-card-header-title">
+                                        <span class="tl-card-step step-blue">02</span>
+                                        Control Flags
+                                    </div>
+                                    <span class="tl-card-toggle @(ShowControls ? "toggle-open" : "")">
+                                        <i data-feather="chevron-down"></i>
+                                    </span>
+                                </div>
+
+                                <div class="tl-collapse @(ShowControls ? "tl-open" : "")">
+                                    <div class="tl-card-body">
+                                        <div class="tl-card-body-inner @(ControlsTouched ? "touched" : "")">
+
+                                            <div class="row">
+
+                                                <div class="col-sm-4 mt-3">
+                                                    <div class="form-check form-switch">
+                                                        <input class="form-check-input" type="checkbox"
+                                                               @bind="status.AllowHeaderEdit" id="AllowHeaderEdit"
+                                                               @oninput="TouchControls" />
+                                                        <label class="form-check-label" for="AllowHeaderEdit">Allow Header Edit</label>
+                                                    </div>
+                                                </div>
+
+                                                <div class="col-sm-4 mt-3">
+                                                    <div class="form-check form-switch">
+                                                        <input class="form-check-input" type="checkbox"
+                                                               @bind="status.AllowLineEdit" id="AllowLineEdit"
+                                                               @oninput="TouchControls" />
+                                                        <label class="form-check-label" for="AllowLineEdit">Allow Line Edit</label>
+                                                    </div>
+                                                </div>
+
+                                                <div class="col-sm-4 mt-3">
+                                                    <div class="form-check form-switch">
+                                                        <input class="form-check-input" type="checkbox"
+                                                               @bind="status.AllowDelete" id="AllowDelete"
+                                                               @oninput="TouchControls" />
+                                                        <label class="form-check-label" for="AllowDelete">Allow Delete</label>
+                                                    </div>
+                                                </div>
+
+                                                <div class="col-sm-4 mt-3">
+                                                    <div class="form-check form-switch">
+                                                        <input class="form-check-input" type="checkbox"
+                                                               @bind="status.AllowSubmit" id="AllowSubmit"
+                                                               @oninput="TouchControls" />
+                                                        <label class="form-check-label" for="AllowSubmit">Allow Submit</label>
+                                                    </div>
+                                                </div>
+
+                                                <div class="col-sm-4 mt-3">
+                                                    <div class="form-check form-switch">
+                                                        <input class="form-check-input" type="checkbox"
+                                                               @bind="status.AllowApproveReject" id="AllowApproveReject"
+                                                               @oninput="TouchControls" />
+                                                        <label class="form-check-label" for="AllowApproveReject">Allow Approve / Reject</label>
+                                                    </div>
+                                                </div>
+
+                                                <div class="col-sm-4 mt-3">
+                                                    <div class="form-check form-switch">
+                                                        <input class="form-check-input" type="checkbox"
+                                                               @bind="status.AllowPost" id="AllowPost"
+                                                               @oninput="TouchControls" />
+                                                        <label class="form-check-label" for="AllowPost">Allow Post</label>
+                                                    </div>
+                                                </div>
+
+                                                <div class="col-sm-4 mt-3">
+                                                    <div class="form-check form-switch">
+                                                        <input class="form-check-input" type="checkbox"
+                                                               @bind="status.AllowReverse" id="AllowReverse"
+                                                               @oninput="TouchControls" />
+                                                        <label class="form-check-label" for="AllowReverse">Allow Reverse</label>
+                                                    </div>
+                                                </div>
+
+                                                <div class="col-sm-4 mt-3">
+                                                    <div class="form-check form-switch">
+                                                        <input class="form-check-input" type="checkbox"
+                                                               @bind="status.AllowCancel" id="AllowCancel"
+                                                               @oninput="TouchControls" />
+                                                        <label class="form-check-label" for="AllowCancel">Allow Cancel / Void</label>
+                                                    </div>
+                                                </div>
+
+                                                <div class="col-sm-4 mt-3">
+                                                    <div class="form-check form-switch">
+                                                        <input class="form-check-input" type="checkbox"
+                                                               @bind="status.IsFinal" id="IsFinal"
+                                                               @oninput="TouchControls" />
+                                                        <label class="form-check-label" for="IsFinal">Final / Locked State</label>
+                                                    </div>
+                                                </div>
+
+                                            </div>
+
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- UI Display -->
+                    <div class="tl-card-row @(ShowDisplay ? "row-active" : "")">
+                        <div class="tl-dot-col">
+                            <div class="tl-dot" @onclick="@(() => ToggleAccordion("display"))"></div>
+                        </div>
+                        <div class="tl-card-col">
+                            <div class="tl-card @(ShowDisplay ? "card-active border-purple" : "")">
+
+                                <div class="tl-card-header"
+                                     @onclick="@(() => ToggleAccordion("display"))">
+                                    <div class="tl-card-header-title">
+                                        <span class="tl-card-step step-purple">03</span>
+                                        UI Display
+                                    </div>
+                                    <span class="tl-card-toggle @(ShowDisplay ? "toggle-open" : "")">
+                                        <i data-feather="chevron-down"></i>
+                                    </span>
+                                </div>
+
+                                <div class="tl-collapse @(ShowDisplay ? "tl-open" : "")">
+                                    <div class="tl-card-body">
+                                        <div class="row">
+
+                                            <div class="col-sm-4 mb-3">
+                                                <label class="form-label">Display Order</label>
+                                                <input type="number"
+                                                       min="0"
+                                                       class="form-control"
+                                                       @bind="status.DisplayOrder" />
+                                            </div>
+
+                                            <div class="col-sm-4 mb-3">
+                                                <label class="form-label">Badge Label</label>
+                                                <input class="form-control"
+                                                       maxlength="30"
+                                                       placeholder="Pending Approval"
+                                                       @bind="status.BadgeLabel" />
+                                            </div>
+
+                                            <div class="col-sm-4 mb-3">
+                                                <label class="form-label">Badge Tone</label>
+                                                <select class="form-select"
+                                                        @bind="status.BadgeTone">
+                                                    <option value="">Default</option>
+                                                    @foreach (var v in Enum.GetValues<BadgeTone>())
+                                                    {
+                                                        <option value="@v">@v</option>
+                                                    }
+                                                </select>
+                                            </div>
+
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- System & Activation -->
+                    <div class="tl-card-row @(ShowSystem ? "row-active" : "")">
+                        <div class="tl-dot-col">
+                            <div class="tl-dot" @onclick="@(() => ToggleAccordion("system"))"></div>
+                        </div>
+                        <div class="tl-card-col">
+                            <div class="tl-card @(ShowSystem ? "card-active border-green" : "")">
+
+                                <div class="tl-card-header"
+                                     @onclick="@(() => ToggleAccordion("system"))">
+                                    <div class="tl-card-header-title">
+                                        <span class="tl-card-step step-green">04</span>
+                                        System & Activation
+                                    </div>
+                                    <span class="tl-card-toggle @(ShowSystem ? "toggle-open" : "")">
+                                        <i data-feather="chevron-down"></i>
+                                    </span>
+                                </div>
+
+                                <div class="tl-collapse @(ShowSystem ? "tl-open" : "")">
+                                    <div class="tl-card-body">
+                                        <div class="tl-card-body-inner @(SystemTouched ? "touched" : "")">
+
+                                            <div class="row">
+
+                                                <div class="col-sm-4 mt-3">
+                                                    <div class="form-check form-switch">
+                                                        <input class="form-check-input"
+                                                               type="checkbox" id="IsActive"
+                                                               @bind="status.IsActive"
+                                                               @oninput="TouchSystem" />
+                                                        <label class="form-check-label" for="IsActive">Is Active</label>
+                                                    </div>
+                                                </div>
+
+                                                <div class="col-sm-4 mt-3">
+                                                    <div class="form-check form-switch">
+                                                        <input class="form-check-input"
+                                                               type="checkbox" id="IsSystemDefined"
+                                                               @bind="status.IsSystemDefined"
+                                                               @oninput="TouchSystem" />
+                                                        <label class="form-check-label" for="IsSystemDefined">System Defined (Protected)</label>
+                                                    </div>
+                                                </div>
+
+                                            </div>
+
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+        </div>
+
+        <!-- ACTIONS -->
+        <div class="d-flex justify-content-end mb-4">
+            <button type="button"
+                    class="btn btn btn-outline-secondary me-2"
+                    @onclick="BackToList">
+                <i class="ti ti-x"></i> Cancel
+            </button>
+
+            <button type="submit"
+                    class="btn btn-primary">
+                <i class="ti ti-device-floppy"></i> @(IsEdit ? "Update" : "Save")
+            </button>
+        </div>
+
+    </EditForm>
+
+</div>

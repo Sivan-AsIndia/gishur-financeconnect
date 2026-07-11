@@ -1,0 +1,462 @@
+@page "/vendor-bills/{Id:guid}/view"
+@using FinanceConnect.Client.ViewModels
+
+@if (!isInitialized)
+{
+    <div class="page-loading-overlay">
+        <div class="whirly-loader"></div>
+    </div>
+}
+else if (Bill == null)
+{
+    <div class="vb-root">
+        <div class="content">
+            <div class="alert alert-danger">
+                <i class="ti ti-alert-circle me-2"></i>
+                Bill not found.
+                <a href="/vendor-bills" class="alert-link ms-2">Return to list</a>
+            </div>
+        </div>
+    </div>
+}
+else
+{
+    <div class="vb-root">
+        <div class="content">
+            
+            <div>
+            <!-- ═══ PROFILE HEADER CARD ═══ -->
+            <div class="vb-header-card">
+                <div class="vb-cover">
+                    <div class="vb-cover-orb vb-orb-1"></div>
+                    <div class="vb-cover-orb vb-orb-2"></div>
+                    <div class="vb-cover-orb vb-orb-3"></div>
+                </div>
+                <div class="vb-header-body">
+                    <div class="vb-avatar">
+                        @Bill.BillNumber?.Substring(0, Math.Min(2, Bill.BillNumber?.Length ?? 0)).ToUpper()
+                    </div>
+                    <div class="vb-header-meta">
+                        <div>
+                            <p class="vb-bill-number">@Bill.BillNumber</p>
+                            <p class="vb-bill-sub">@Bill.VendorName &nbsp;·&nbsp; @Bill.CompanyName &nbsp;·&nbsp; @Bill.BranchName</p>
+                            <div class="vb-badges">
+                                <span class="badge @GetStatusBadgeClass(Bill.BillStatus)">@Bill.BillStatus</span>
+                                <span class="badge @GetSettlementBadgeClass(Bill.SettlementStatus)">@SettlementStatuses.GetDisplayName(Bill.SettlementStatus)</span>
+                                @if (IsOverdue)
+                                {
+                                    <span class="badge badge-red">⚠ Overdue</span>
+                                }
+                                @if (Bill.IsRecurringBill)
+                                {
+                                    <span class="badge badge-purple">↻ Recurring</span>
+                                }
+                            </div>
+                        </div>
+                            <div class="vb-header-actions">
+                                <a href="/vendor-bills" class="btn btn-outline-secondary">
+                                    <i class="ti ti-arrow-left me-1"></i> Back
+                                </a>
+                                <a @onclick="PrintPage" class="btn btn-primary">
+                                    <i class="bi bi-printer"></i> Print
+                                </a>
+                            </div>
+                    </div>
+                </div>
+            </div>
+
+
+            <!-- Bill Summary -->
+            <div class="vb-card" style="background: transparent;border: none;box-shadow: none;">
+        @*         <div class="vb-card-header" style="border-bottom:none">
+                    <h6>
+                        <i class="ti ti-calculator" style="    background: var(--primary);
+        padding: 9px;
+        color: white;
+        font-size: 18px;
+        border-radius: 7px;"></i> Bill Summary
+                    </h6>
+                </div> *@
+                <div class="vb-summary-grid mb-4 mt-2">
+                    <div class="vb-tile">
+                        <div class="vb-tile-label">Subtotal</div>
+                        <div class="vb-tile-value">@Bill.SubTotalAmount.ToString("N2")</div>
+                    </div>
+                    <div class="vb-tile">
+                        <div class="vb-tile-label">Discount</div>
+                        <div class="vb-tile-value danger">-@Bill.DiscountTotalAmount.ToString("N2")</div>
+                    </div>
+                    <div class="vb-tile">
+                        <div class="vb-tile-label">Tax</div>
+                        <div class="vb-tile-value">@Bill.TaxTotalAmount.ToString("N2")</div>
+                    </div>
+                    <div class="vb-tile-wide">
+                        <div class="vb-tile-label">Outstanding Balance</div>
+                        <div class="vb-tile-value @(Bill.OutstandingAmount > 0 ? "danger" : "success")" style="font-size:26px;">
+                          @Bill.OutstandingAmount.ToString("N2")
+                        </div>
+                    </div>
+                    <div class="vb-tile">
+                        <div class="vb-tile-label">Round Off</div>
+                        <div class="vb-tile-value">@Bill.RoundOffAmount.ToString("N2")</div>
+                    </div>
+                    <div class="vb-tile">
+                        <div class="vb-tile-label">Grand Total</div>
+                        <div class="vb-tile-value primary">@Bill.CurrencyCode @Bill.GrandTotalAmount.ToString("N2")</div>
+                    </div>
+                    <div class="vb-tile">
+                        <div class="vb-tile-label">Paid</div>
+                        <div class="vb-tile-value success">@Bill.PaidAmount.ToString("N2")</div>
+                    </div>
+                   
+                </div>
+            </div>
+
+
+            <!-- ═══ END HEADER ═══ -->
+
+            <div class="vb-two-col mb-4">
+
+                <!-- ════════ SIDEBAR ════════ -->
+                <aside class="vb-sidebar">
+
+                    <!-- Bill Identity -->
+                    <div class="vb-card">
+                        <div class="vb-card-header">
+                            <h6><i class="ti ti-file-invoice"></i> Bill Identity</h6>
+                        </div>
+                        <div class="vb-card-body">
+                            <div class="vb-row">
+                                <span class="vb-label">Bill Number</span>
+                                <span class="vb-val">@Bill.BillNumber</span>
+                            </div>
+                            <div class="vb-row">
+                                <span class="vb-label">Bill Type</span>
+                                <span class="vb-val">@BillTypes.GetDisplayName(Bill.BillType)</span>
+                            </div>
+                            <div class="vb-row">
+                                <span class="vb-label">Entry Date</span>
+                                <span class="vb-val">@Bill.BillDate.ToString("dd MMM yyyy")</span>
+                            </div>
+                            <div class="vb-row">
+                                <span class="vb-label">Due Date</span>
+                                <span class="vb-val @(IsOverdue ? "text-danger" : "")">
+                                    @Bill.DueDate.ToString("dd MMM yyyy")
+                                </span>
+                            </div>
+                            <div class="vb-row">
+                                <span class="vb-label">Payment Terms</span>
+                                <span class="vb-val">@(Bill.PaymentTermName ?? "N/A")</span>
+                            </div>
+                            @if (Bill.PostingDate.HasValue)
+                            {
+                                <div class="vb-row">
+                                    <span class="vb-label">Posting Date</span>
+                                    <span class="vb-val">@Bill.PostingDate.Value.ToString("dd MMM yyyy")</span>
+                                </div>
+                            }
+                        </div>
+                    </div>
+
+                    <!-- Vendor Invoice -->
+                    <div class="vb-card">
+                        <div class="vb-card-header">
+                            <h6><i class="ti ti-file-description"></i> Vendor Invoice</h6>
+                        </div>
+                        <div class="vb-card-body">
+                            <div class="vb-row">
+                                <span class="vb-label">Invoice #</span>
+                                <span class="vb-val">@Bill.VendorInvoiceNumber</span>
+                            </div>
+                            <div class="vb-row">
+                                <span class="vb-label">Invoice Date</span>
+                                <span class="vb-val">@Bill.VendorInvoiceDate.ToString("dd MMM yyyy")</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Tax & Compliance -->
+                    <div class="vb-card">
+                        <div class="vb-card-header">
+                            <h6><i class="ti ti-receipt-tax"></i> Tax &amp; Compliance</h6>
+                        </div>
+                        <div class="vb-card-body">
+                            <div class="vb-row">
+                                <span class="vb-label">GST</span>
+                                <span class="vb-val">
+                                    @if (Bill.IsGSTApplicable)
+                                    {
+                                        <span class="badge badge-green">Applicable</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="badge badge-gray">N/A</span>
+                                    }
+                                </span>
+                            </div>
+                            <div class="vb-row">
+                                <span class="vb-label">RCM</span>
+                                <span class="vb-val">
+                                    @if (Bill.IsReverseChargeApplicable)
+                                    {
+                                        <span class="badge badge-amber">Yes</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="badge badge-gray">No</span>
+                                    }
+                                </span>
+                            </div>
+                            <div class="vb-row">
+                                <span class="vb-label">TDS</span>
+                                <span class="vb-val">
+                                    @if (Bill.IsTDSApplicable)
+                                    {
+                                        <span class="badge badge-blue">Applicable</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="badge badge-gray">N/A</span>
+                                    }
+                                </span>
+                            </div>
+                            @if (Bill.IsGSTApplicable && !string.IsNullOrWhiteSpace(Bill.PlaceOfSupplyStateName))
+                            {
+                                <div class="vb-row">
+                                    <span class="vb-label">Place of Supply</span>
+                                    <span class="vb-val">@Bill.PlaceOfSupplyStateCode – @Bill.PlaceOfSupplyStateName</span>
+                                </div>
+                            }
+                        </div>
+                    </div>
+
+                    <!-- Audit -->
+                    <div class="vb-card">
+                        <div class="vb-card-header">
+                            <h6><i class="ti ti-history"></i> History</h6>
+                        </div>
+                        <div class="vb-card-body">
+                            <div class="vb-row">
+                                <span class="vb-label">Created</span>
+                                <span class="vb-val">@Bill.CreatedAt.ToString("dd MMM yyyy")</span>
+                            </div>
+                            @if (!string.IsNullOrWhiteSpace(Bill.CreatedBy))
+                            {
+                                <div class="vb-row">
+                                    <span class="vb-label">Created By</span>
+                                    <span class="vb-val">@Bill.CreatedBy</span>
+                                </div>
+                            }
+                            @if (Bill.UpdatedAt.HasValue)
+                            {
+                                <div class="vb-row">
+                                    <span class="vb-label">Updated</span>
+                                    <span class="vb-val">@Bill.UpdatedAt.Value.ToString("dd MMM yyyy")</span>
+                                </div>
+                            }
+                            @if (!string.IsNullOrWhiteSpace(Bill.UpdatedBy))
+                            {
+                                <div class="vb-row">
+                                    <span class="vb-label">Updated By</span>
+                                    <span class="vb-val">@Bill.UpdatedBy</span>
+                                </div>
+                            }
+                        </div>
+                    </div>
+
+                </aside>
+                <!-- ════════ END SIDEBAR ════════ -->
+                <!-- ════════ MAIN CONTENT ════════ -->
+                <div class="vb-main">
+
+                    <!-- Company & Vendor Details -->
+                    <div class="vb-card">
+                        <div class="vb-card-header">
+                            <h6><i class="ti ti-building"></i> Company &amp; Vendor Details</h6>
+                            @* <i class="ti ti-pencil text-muted" style="cursor:pointer;"></i> *@
+                        </div>
+                        <div class="vb-card-body">
+                            <div style="display:grid; grid-template-columns:1fr 1fr; gap:0 32px;">
+                                <div class="vb-row"><span class="vb-label">Company</span><span class="vb-val">@Bill.CompanyName</span></div>
+                                <div class="vb-row"><span class="vb-label">Currency</span><span class="vb-val">@Bill.CurrencyCode – @Bill.CurrencyName</span></div>
+                                <div class="vb-row"><span class="vb-label">Branch</span><span class="vb-val">@Bill.BranchName</span></div>
+                                @if (Bill.ExchangeRate != 1)
+                                {
+                                    <div class="vb-row"><span class="vb-label">Exchange Rate</span><span class="vb-val">@Bill.ExchangeRate.ToString("N4")</span></div>
+                                }
+                                <div class="vb-row"><span class="vb-label">Vendor</span><span class="vb-val">@Bill.VendorCode – @Bill.VendorName</span></div>
+                                @if (!string.IsNullOrWhiteSpace(Bill.VendorGSTINSnapshot))
+                                {
+                                    <div class="vb-row"><span class="vb-label">Vendor GSTIN</span><span class="vb-val">@Bill.VendorGSTINSnapshot</span></div>
+                                }
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- TDS Details -->
+                    @if (Bill.IsTDSApplicable)
+                    {
+                        <div class="vb-card">
+                            <div class="vb-card-header">
+                                <h6><i class="ti ti-receipt-tax"></i> TDS / Withholding Details</h6>
+                            </div>
+                            <div class="vb-card-body">
+                                <div style="display:grid; grid-template-columns:1fr 1fr; gap:0 32px;">
+                                    @if (!string.IsNullOrWhiteSpace(Bill.TDSSectionCodeSnapshot))
+                                    {
+                                        <div class="vb-row"><span class="vb-label">TDS Section</span><span class="vb-val">@Bill.TDSSectionCodeSnapshot</span></div>
+                                    }
+                                    @if (Bill.TDSRatePercentSnapshot.HasValue && Bill.TDSRatePercentSnapshot > 0)
+                                    {
+                                        <div class="vb-row"><span class="vb-label">TDS Rate</span><span class="vb-val">@Bill.TDSRatePercentSnapshot.Value.ToString("N2")%</span></div>
+                                    }
+                                    <div class="vb-row"><span class="vb-label">TDS Base</span><span class="vb-val">@Bill.TDSBaseAmount.ToString("N2")</span></div>
+                                    <div class="vb-row"><span class="vb-label">TDS Amount</span><span class="vb-val fw-bold">@Bill.TDSAmount.ToString("N2")</span></div>
+                                </div>
+                            </div>
+                        </div>
+                    }
+
+                    <!-- Notes -->
+                    @if (!string.IsNullOrWhiteSpace(Bill.BillNarration))
+                    {
+                        <div class="vb-card">
+                            <div class="vb-card-header">
+                                <h6><i class="ti ti-notes"></i> Notes</h6>
+                            </div>
+                            <div class="vb-card-body">
+                                <p style="margin:0; font-size:13.5px; color:var(--gray-600); line-height:1.7; font-style:italic; border-left: 3px solid color-mix(in srgb, var(--primary) 70%, white); padding-left:14px;">
+                                    @((MarkupString)(Bill.BillNarration ?? string.Empty))
+                                </p>
+                            </div>
+                        </div>
+                    }
+
+                    <!-- Bill Lines Table -->
+                    <div class="vb-card">
+                        <div class="vb-card-header">
+                            <h6><i class="ti ti-list-details"></i> Bill Lines &nbsp;<span class="badge badge-blue">@Bill.Lines.Count items</span></h6>
+                        </div>
+                        <div style="overflow-x:auto;">
+                            <table class="vb-table">
+                                <thead class="bg-light">
+                                    <tr>
+                                        <th style="width:40px;">#</th>
+                                        <th style="width:90px;">Type</th>
+                                        <th>Description</th>
+                                        <th>Account</th>
+                                        <th class="text-end">Qty</th>
+                                        <th class="text-end">Rate</th>
+                                        <th class="text-end">Gross</th>
+                                        <th class="text-end">Disc.</th>
+                                        <th class="text-end">Tax %</th>
+                                        <th class="text-end">Tax</th>
+                                        <th class="text-end">Total</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach (var line in Bill.Lines.OrderBy(l => l.LineNumber))
+                                    {
+                                        <tr>
+                                            <td>@line.LineNumber</td>
+                                            <td>
+                                                <span class="badge @GetLineTypeBadgeClass(line.LineType)">
+                                                    @VendorBillLineTypes.GetDisplayName(line.LineType)
+                                                </span>
+                                            </td>
+                                            <td>@line.Description</td>
+                                            <td>
+                                                <span class="small text-muted">@line.ExpenseOrAssetAccountCode</span><br />
+                                                <span style="font-size:12.5px;">@line.ExpenseOrAssetAccountName</span>
+                                            </td>
+                                            <td class="text-end">@line.Quantity.ToString("N2")</td>
+                                            <td class="text-end">@line.UnitRate.ToString("N2")</td>
+                                            <td class="text-end">@line.GrossAmount.ToString("N2")</td>
+                                            <td class="text-end text-danger">@(line.DiscountAmount > 0 ? $"-{line.DiscountAmount:N2}" : "–")</td>
+                                            <td class="text-end">@line.TaxRatePercentSnapshot.ToString("N1")%</td>
+                                            <td class="text-end">@line.LineTaxAmount.ToString("N2")</td>
+                                            <td class="text-end fw-bold text-orange">@line.LineTotalAmount.ToString("N2")</td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                 
+                    <!-- Workflow History -->
+                    @if (Bill.BillStatus != VendorBillStatuses.Draft)
+                    {
+                        <div class="vb-card">
+                            <div class="vb-card-header">
+                                <h6><i class="ti ti-git-branch"></i> Workflow History</h6>
+                            </div>
+                            <div class="vb-card-body">
+                                <div class="vb-timeline">
+                                    @if (Bill.SubmittedOn.HasValue)
+                                    {
+                                        <div class="vb-tl-item">
+                                            <div class="vb-tl-dot"><i class="ti ti-send"></i></div>
+                                            <div class="vb-tl-content">
+                                                <div class="vb-tl-title">Submitted</div>
+                                                <div class="vb-tl-meta">@Bill.SubmittedOn.Value.ToString("dd MMM yyyy HH:mm") @(!string.IsNullOrWhiteSpace(Bill.SubmittedByUserName) ? $"by {Bill.SubmittedByUserName}" : "")</div>
+                                            </div>
+                                        </div>
+                                    }
+                                    @if (Bill.ApprovedOn.HasValue)
+                                    {
+                                        <div class="vb-tl-item">
+                                            <div class="vb-tl-dot" style="background: color-mix(in srgb, var(--primary) 12%, white);;border-color:#16a34a;color:#16a34a;"><i class="ti ti-check"></i></div>
+                                            <div class="vb-tl-content">
+                                                <div class="vb-tl-title">Approved</div>
+                                                <div class="vb-tl-meta">@Bill.ApprovedOn.Value.ToString("dd MMM yyyy HH:mm") @(!string.IsNullOrWhiteSpace(Bill.ApprovedByUserName) ? $"by {Bill.ApprovedByUserName}" : "")</div>
+                                            </div>
+                                        </div>
+                                    }
+                                    @if (Bill.PostedOn.HasValue)
+                                    {
+                                        <div class="vb-tl-item">
+                                            <div class="vb-tl-dot" style="background: color-mix(in srgb, var(--primary) 12%, white);;border-color:var(--orange);color:var(--orange-d);"><i class="ti ti-book"></i></div>
+                                            <div class="vb-tl-content">
+                                                <div class="vb-tl-title">Posted</div>
+                                                <div class="vb-tl-meta">@Bill.PostedOn.Value.ToString("dd MMM yyyy HH:mm") @(!string.IsNullOrWhiteSpace(Bill.PostedByUserName) ? $"by {Bill.PostedByUserName}" : "")</div>
+                                            </div>
+                                        </div>
+                                    }
+                                    @if (Bill.CancelledOn.HasValue)
+                                    {
+                                        <div class="vb-tl-item">
+                                            <div class="vb-tl-dot" style="background: color-mix(in srgb, var(--primary) 12%, white);;border-color:#dc2626;color:#dc2626;"><i class="ti ti-x"></i></div>
+                                            <div class="vb-tl-content">
+                                                <div class="vb-tl-title">Cancelled</div>
+                                                <div class="vb-tl-meta">@Bill.CancelledOn.Value.ToString("dd MMM yyyy HH:mm") @(!string.IsNullOrWhiteSpace(Bill.CancelledByUserName) ? $"by {Bill.CancelledByUserName}" : "")</div>
+                                                @if (!string.IsNullOrWhiteSpace(Bill.CancellationReason))
+                                                {
+                                                    <div class="text-danger" style="font-size:12px;margin-top:2px;">@Bill.CancellationReason</div>
+                                                }
+                                            </div>
+                                        </div>
+                                    }
+                                    @if (!string.IsNullOrWhiteSpace(Bill.RejectionReason))
+                                    {
+                                        <div class="vb-tl-item">
+                                            <div class="vb-tl-dot" style="background:#fee2e2;border-color:#dc2626;color:#dc2626;"><i class="ti ti-thumb-down"></i></div>
+                                            <div class="vb-tl-content">
+                                                <div class="vb-tl-title">Rejected</div>
+                                                <div class="text-danger" style="font-size:12px;">@Bill.RejectionReason</div>
+                                            </div>
+                                        </div>
+                                    }
+                                </div>
+                            </div>
+                        </div>
+                    }
+
+                </div>
+                <!-- ════════ END MAIN ════════ -->
+
+            </div>
+        </div>
+        </div>
+    </div>
+}

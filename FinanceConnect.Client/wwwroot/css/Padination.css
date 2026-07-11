@@ -1,0 +1,127 @@
+﻿
+.pagination {
+    --bs-pagination-box-shadow-color: var(--bs-primary-rgb);
+    --bs-pagination-waves-effect-color: var(--bs-primary-rgb)
+}
+
+
+    .pagination[class*=pagination-outline-] .page-item.active .page-link {
+        box-shadow: none
+    }
+
+        .pagination[class*=pagination-outline-] .page-item.active .page-link.waves-effect .waves-ripple {
+            background: radial-gradient(rgba(var(--bs-pagination-waves-effect-color), 0.2) 0, rgba(var(--bs-pagination-waves-effect-color), 0.3) 40%, rgba(var(--bs-pagination-waves-effect-color), 0.4) 50%, rgba(var(--bs-pagination-waves-effect-color), 0.5) 60%, rgba(47, 43, 61, 0) 70%)
+        }
+
+    .pagination[class*=pagination-outline-] .page-item:not(.active) .page-link,
+    .pagination[class*=pagination-outline-] li > a:not(.page-link) {
+        --bs-pagination-bg: transparent;
+        --bs-pagination-hover-bg: #eaeaec;
+        --bs-pagination-hover-color: var(--bs-pagination-color);
+        --bs-pagination-hover-border-color: rgba(47, 43, 61, 0.22);
+        --bs-pagination-focus-bg: #eaeaec;
+        --bs-pagination-focus-color: var(--bs-pagination-color)
+    }
+
+    .pagination.pagination-lg {
+        --bs-pagination-font-size: 1rem
+    }
+
+    .pagination.pagination-sm {
+        --bs-pagination-font-size: 0.8125rem
+    }
+
+    .pagination .page-item:not(.disabled, .active) .page-link:focus,
+    .pagination li > a:not(.page-link):focus {
+        color: var(--bs-pagination-focus-color)
+    }
+
+    .pagination .page-item.active .page-link,
+    .pagination li.active > a:not(.page-link) {
+        box-shadow: 0 .125rem .25rem 0 rgba(var(--bs-pagination-box-shadow-color), 0.4);
+        color: var(--bs-pagination-active-color)
+    }
+
+    .pagination:not([class*=pagination-outline-]) .page-link {
+        border-color: rgba(0, 0, 0, 0)
+    }
+
+    .pagination:not([class*=pagination-outline-]) .page-item .page-link.waves-effect:not(.waves-light) .waves-ripple,
+    .pagination:not([class*=pagination-outline-]) li > a:not(.page-link).waves-effect:not(.waves-light) .waves-ripple {
+        background: radial-gradient(rgba(var(--bs-pagination-waves-effect-color), 0.2) 0, rgba(var(--bs-pagination-waves-effect-color), 0.3) 40%, rgba(var(--bs-pagination-waves-effect-color), 0.4) 50%, rgba(var(--bs-pagination-waves-effect-color), 0.5) 60%, rgba(47, 43, 61, 0) 70%)
+    }
+
+    .pagination.pagination-square .page-item a {
+        border-radius: 0
+    }
+
+    .pagination.pagination-round .page-item a {
+        border-radius: 50%
+    }
+
+    .pagination.pagination-rounded .page-item a {
+        border-radius: .375rem
+    }
+
+    .pagination.pagination-sm.pagination-rounded .page-item a {
+        border-radius: .25rem
+    }
+
+    .pagination.pagination-lg.pagination-rounded .page-item a {
+        border-radius: .5rem
+    }
+
+.page-item.disabled .page-link,
+.page-item[disabled] .page-link {
+    opacity: .45;
+    pointer-events: none
+}
+
+.page-link,
+.page-link > a {
+    border-radius: .375rem;
+    display: inline-flex !important;
+    align-items: center;
+    justify-content: center;
+    min-block-size: calc(2.2508625rem + calc(1px * 2));
+    min-inline-size: calc(2.2505625rem + calc(1px * 2))
+}
+
+.pagination-lg .page-link,
+.pagination-lg > li > a:not(.page-link) {
+    min-block-size: calc(2.8757925rem + calc(1px * 2));
+    min-inline-size: calc(2.8759615rem + calc(1px * 2))
+}
+
+.pagination-lg > .page-item.first .page-link,
+.pagination-lg > .page-item.last .page-link,
+.pagination-lg > .page-item.next .page-link,
+.pagination-lg > .page-item.prev .page-link,
+.pagination-lg > .page-item.previous .page-link {
+    padding-inline: .5965rem
+}
+
+.pagination-sm .page-link,
+.pagination-sm > li > a:not(.page-link) {
+    min-block-size: calc(1.7501875rem + calc(1px * 2));
+    min-inline-size: calc(1.7509515rem + calc(1px * 2))
+}
+
+.pagination-sm > .page-item.first .page-link,
+.pagination-sm > .page-item.last .page-link,
+.pagination-sm > .page-item.next .page-link,
+.pagination-sm > .page-item.prev .page-link,
+.pagination-sm > .page-item.previous .page-link {
+    padding-block: .211rem;
+    padding-inline: .211rem
+}
+
+.pagination-sm .page-item + .page-item .page-link,
+.pagination-sm .pagination li + li > a:not(.page-link) {
+    margin-inline-start: .25rem
+}
+
+.pagination-lg .page-item + .page-item .page-link,
+.pagination-lg .pagination li + li > a:not(.page-link) {
+    margin-inline-start: .5rem
+}

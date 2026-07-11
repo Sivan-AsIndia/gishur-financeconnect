@@ -1,0 +1,148 @@
+@page "/prepayments/{Id:guid}/view"
+@using static FinanceConnect.Client.ViewModels.PrepaymentViewModel
+
+
+
+@if (!isInitialized) { <div class="page-loading-overlay"><div class="whirly-loader"></div></div> }
+else if (Item == null) { <div class="content"><div class="alert alert-danger"><i class="ti ti-alert-circle me-2"></i>Prepayment not found. <a href="/prepayments" class="alert-link ms-2">Return to list</a></div></div> }
+else {
+    <div class="content view-screen mb-4">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <div><h4 class="fw-bold mb-1">Prepayment Details</h4><p class="text-muted mb-0 small">Advance-paid expense timing and release information</p></div>
+        <div class="d-flex gap-2 page-btn align-items-center">
+            @if (Item.PrepaymentStatus == PrepaymentStatusEnum.Draft) { <a href="/prepayments/edit/@Item.PrepaymentId" class="btn btn-primary"><i class="ti ti-edit me-1"></i> Edit</a> }
+            <a class="btn btn-outline-secondary" href="/prepayments"><i class="ti ti-arrow-left me-1"></i> Back</a>
+        </div>
+    </div>
+    <div class="card">
+        <div class="header-card"><div class="header-inner">
+            <div class="header-left1">
+                <div class="company-logo"><span class="logo-initials">@Item.PrepaymentCode?.Substring(0, Math.Min(2, Item.PrepaymentCode?.Length ?? 0)).ToUpper()</span></div>
+                <div class="header-meta">
+                    <h2 class="company-title">@Item.PrepaymentCode – @Item.PrepaymentTitle</h2>
+                    <div class="company-subtitle">
+                        <span>@Item.SourceType</span><span class="dot">·</span><span>@Item.ReleaseMethod</span>
+                        @if (!string.IsNullOrWhiteSpace(Item.BranchName)) { <span class="dot">·</span><span>@Item.BranchName</span> }
+                    </div>
+                    <div class="header-tags">
+                        <span class="tag tag-default" style="border:1px solid #0081ff;background:#e9f3ff;color:#1420ff;">@Item.PrepaymentStatus</span>
+                        @if (Item.IsLocked) { <span class="tag tag-default" style="border:1px solid #dc2626;background:#fef2f2;color:#dc2626;">🔒 Locked</span> }
+                        @if (Item.PolicyExceptionFlag) { <span class="tag tag-default" style="border:1px solid #9333ea;background:#faf5ff;color:#9333ea;">⚠ Policy Exception</span> }
+                    </div>
+                </div>
+            </div>
+        </div></div>
+    </div>
+
+    <!-- Summary Cards -->
+        <div class="row g-3 mb-4 mt-0">
+        <div class="col-md-2"><div class="card p-3 text-center"><small class="text-muted">Original Amount</small><div class="fw-bold text-primary fs-16">@Item.OriginalPrepaidAmount.ToString("N2")</div></div></div>
+        <div class="col-md-2"><div class="card p-3 text-center"><small class="text-muted">Released To Date</small><div class="fw-bold fs-16">@Item.ReleasedAmountToDate.ToString("N2")</div></div></div>
+        <div class="col-md-2"><div class="card p-3 text-center"><small class="text-muted">Remaining</small><div class="fw-bold fs-16 @(Item.RemainingPrepaidBalance > 0 ? "text-danger" : "text-success")">@Item.RemainingPrepaidBalance.ToString("N2")</div></div></div>
+        <div class="col-md-2"><div class="card p-3 text-center"><small class="text-muted">Coverage Days</small><div class="fw-bold fs-16">@Item.CoverageDays</div></div></div>
+        <div class="col-md-2"><div class="card p-3 text-center"><small class="text-muted">Release Status</small><div class="fw-bold fs-16">@Item.ReleaseStatus</div></div></div>
+        <div class="col-md-2"><div class="card p-3 text-center"><small class="text-muted">Posting Status</small><div class="fw-bold fs-16">@Item.PostingStatus</div></div></div>
+    </div>
+
+    <div class="row g-4">
+        <div class="col-lg-6">
+                <div class="profile-card">
+                    <div class="card">
+                        <div class="card-header py-2 text-primary fw-bold"><i class="ti ti-id me-2"></i> Core Identity</div><div class="card-body">
+                <table class="table table-borderless mb-0"><tbody>
+                    <tr><td class="text-muted" style="width:40%">Code</td><td class="fw-medium">@Item.PrepaymentCode</td></tr>
+                    <tr><td class="text-muted">Title</td><td>@Item.PrepaymentTitle</td></tr>
+                    <tr><td class="text-muted">Source Type</td><td>@Item.SourceType</td></tr>
+                    <tr><td class="text-muted">Document No.</td><td>@(Item.SourceDocumentNumber ?? "–")</td></tr>
+                    <tr><td class="text-muted">Supplier</td><td>@(Item.SupplierName ?? "–")</td></tr>
+                    <tr><td class="text-muted">Contract</td><td>@(Item.ContractName ?? "–")</td></tr>
+                    <tr><td class="text-muted">Expense Category</td><td>@(Item.ExpenseCategoryName ?? "–")</td></tr>
+                    <tr><td class="text-muted">Basis Reference</td><td>@Item.BasisReferenceText</td></tr>
+                    @if (!string.IsNullOrWhiteSpace(Item.Description)) { <tr><td class="text-muted">Description</td><td style="font-style:italic">@Item.Description</td></tr> }
+                </tbody></table>
+            </div></div>
+                </div>
+                <div class="profile-card mt-3">
+                    <div class="card">
+                        <div class="card-header py-2 text-primary fw-bold"><i class="ti ti-calendar me-2"></i> Coverage & Release</div><div class="card-body">
+                <table class="table table-borderless mb-0"><tbody>
+                    <tr><td class="text-muted" style="width:40%">Coverage Start</td><td>@Item.PrepaymentStartDate?.ToString("dd MMM yyyy")</td></tr>
+                    <tr><td class="text-muted">Coverage End</td><td>@Item.PrepaymentEndDate?.ToString("dd MMM yyyy")</td></tr>
+                    <tr><td class="text-muted">Release Method</td><td>@Item.ReleaseMethod</td></tr>
+                    <tr><td class="text-muted">Frequency</td><td>@(Item.ReleaseFrequency?.ToString() ?? "–")</td></tr>
+                    <tr><td class="text-muted">Release Start</td><td>@Item.ReleaseStartDate?.ToString("dd MMM yyyy")</td></tr>
+                    <tr><td class="text-muted">Release End</td><td>@(Item.ReleaseEndDate?.ToString("dd MMM yyyy") ?? "–")</td></tr>
+                    <tr><td class="text-muted">Next Due</td><td>@(Item.NextReleaseDueDate?.ToString("dd MMM yyyy") ?? "–")</td></tr>
+                    <tr><td class="text-muted">Last Release</td><td>@(Item.LastReleaseDate?.ToString("dd MMM yyyy") ?? "–")</td></tr>
+                    <tr><td class="text-muted">Schedule Generated</td><td>@(Item.IsScheduleGenerated ? "Yes" : "No")</td></tr>
+                    <tr><td class="text-muted">Coverage Proof Required</td><td>@(Item.CoverageProofRequiredFlag ? "Yes" : "No")</td></tr>
+                </tbody></table>
+            </div></div>
+                </div>
+        </div>
+        <div class="col-lg-6">
+                <div class="profile-card">
+            <div class="card">
+                    <div class="card-header py-2 text-primary fw-bold"><i class="ti ti-building-bank me-2"></i> Accounting & GL</div><div class="card-body">
+                <table class="table table-borderless mb-0"><tbody>
+                    <tr><td class="text-muted" style="width:40%">Fiscal Year</td><td>FY 2025-26</td></tr>
+                    <tr><td class="text-muted">Accounting Period</td><td>@(Item.CurrentAccountingPeriodName ?? "–")</td></tr>
+                    <tr><td class="text-muted">Expense GL</td><td>@(Item.ExpenseGLAccountName ?? "–")</td></tr>
+                    <tr><td class="text-muted">Prepaid Asset GL</td><td>@(Item.PrepaymentAssetGLName ?? "–")</td></tr>
+                    <tr><td class="text-muted">Branch</td><td>@(Item.BranchName ?? "–")</td></tr>
+                    <tr><td class="text-muted">Cost Center</td><td>@(Item.CostCenterName ?? "–")</td></tr>
+                    <tr><td class="text-muted">Department</td><td>@(Item.DepartmentName ?? "–")</td></tr>
+                    <tr><td class="text-muted">Project</td><td>@(Item.ProjectName ?? "–")</td></tr>
+                    <tr><td class="text-muted">Expense Owner</td><td>@(Item.ExpenseOwnerName ?? "–")</td></tr>
+                    <tr><td class="text-muted">Materiality</td><td>@(Item.MaterialityLevel?.ToString() ?? "–")</td></tr>
+                </tbody></table>
+            </div></div>
+                </div>
+                <div class="profile-card mt-3">
+            <div class="card">
+                    <div class="card-header py-2 text-primary fw-bold"><i class="ti ti-user me-2"></i> Workflow</div><div class="card-body">
+                <table class="table table-borderless mb-0"><tbody>
+                    <tr><td class="text-muted" style="width:40%">Prepared By</td><td>@(Item.PreparedByUserId ?? "–")</td></tr>
+                    <tr><td class="text-muted">Submitted On</td><td>@(Item.SubmittedOn?.ToString("dd MMM yyyy") ?? "–")</td></tr>
+                    <tr><td class="text-muted">Reviewed By</td><td>@(Item.ReviewedByUserId ?? "–")</td></tr>
+                    <tr><td class="text-muted">Reviewed On</td><td>@(Item.ReviewedOn?.ToString("dd MMM yyyy") ?? "–")</td></tr>
+                    <tr><td class="text-muted">Approved By</td><td>@(Item.ApprovedByUserId ?? "–")</td></tr>
+                    <tr><td class="text-muted">Approved On</td><td>@(Item.ApprovedOn?.ToString("dd MMM yyyy") ?? "–")</td></tr>
+                    <tr><td class="text-muted">Locked</td><td>@(Item.IsLocked ? "Yes" : "No")</td></tr>
+                    @if (Item.IsLocked)
+                    {
+                        <tr><td class="text-muted">Locked By</td><td>@(Item.LockedBy ?? "–")</td></tr>
+                        <tr><td class="text-muted">Locked On</td><td>@(Item.LockedOn?.ToString("dd MMM yyyy") ?? "–")</td></tr>
+                    }
+                </tbody></table>
+            </div></div>
+                </div>
+                <div class="profile-card mt-3">
+            <div class="card">
+                    <div class="card-header py-2 text-primary fw-bold"><i class="ti ti-notes me-2"></i> Notes</div><div class="card-body">
+                <table class="table table-borderless mb-0"><tbody>
+                    <tr><td class="text-muted">Assumption</td><td>@(Item.AssumptionText ?? "–")</td></tr>
+                    <tr><td class="text-muted">Finance Notes</td><td>@(Item.FinanceNotes ?? "–")</td></tr>
+                    <tr><td class="text-muted">Attachments</td><td>@Item.AttachmentCount</td></tr>
+                    @if (Item.PolicyExceptionFlag) { <tr><td class="text-muted">Policy Exception</td><td class="text-warning">@(Item.PolicyExceptionReason ?? "Yes")</td></tr> }
+                    @if (!string.IsNullOrWhiteSpace(Item.CancellationReason)) { <tr><td class="text-muted">Cancellation</td><td class="text-danger">@Item.CancellationReason</td></tr> }
+                </tbody></table>
+            </div></div>
+                </div>
+        </div>
+    </div>
+
+    @if (Item.ReleaseLines.Any())
+    {
+            <div class="profile-card">
+            <div class="card mt-4">
+                <div class="card-header py-2 text-primary fw-bold"><i class="ti ti-list-details me-2"></i> Release Schedule Lines</div><div class="card-body p-0">
+        <table class="table align-middle mb-0"><thead><tr><th>#</th><th>Schedule Date</th><th>Scheduled</th><th>Released</th><th>Remaining</th><th>Status</th></tr></thead><tbody>
+            @foreach (var l in Item.ReleaseLines.OrderBy(x => x.LineNumber)) {
+                <tr><td>@l.LineNumber</td><td>@l.ScheduleDate?.ToString("dd MMM yyyy")</td><td>@l.ScheduledReleaseAmount.ToString("N2")</td><td>@l.ReleasedAmount.ToString("N2")</td><td>@l.RemainingLineBalance.ToString("N2")</td><td><span class="badge @(l.ReleaseLineStatus == ReleaseLineStatusEnum.Released ? "bg-success-transparent" : "bg-info-transparent")">@l.ReleaseLineStatus</span></td></tr> }
+        </tbody></table>
+    </div></div> 
+            </div>
+    }
+</div>
+}

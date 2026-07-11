@@ -1,0 +1,821 @@
+@page "/vendor-payments/create"
+@page "/vendor-payments/{Id:guid}"
+
+@using FinanceConnect.Client.ViewModels
+
+<style>
+    .form-select option:checked {
+        color: #fff;
+        background: var(--primary);
+    }
+
+    .form-select:focus {
+        border-color: var(--primary);
+        box-shadow: none;
+    }
+
+    .validation-message {
+        color: #dc3545;
+        font-size: 11px;
+        margin-top: 2px;
+    }
+
+    /* ===== RESPONSIVE ALLOCATION GRID ===== */
+    .allocation-item {
+        background: #fff;
+        border: 1px solid #e9ecef;
+        border-radius: 10px;
+        margin-bottom: 12px;
+        padding: 16px;
+        transition: all 0.2s ease;
+    }
+
+    .allocation-item:hover {
+        border-color: #dc3545;
+        box-shadow: 0 4px 12px rgba(220, 53, 69, 0.1);
+    }
+
+    .allocation-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 12px;
+        padding-bottom: 10px;
+        border-bottom: 1px solid #e9ecef;
+    }
+
+    .allocation-bill-info {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+    }
+
+    .bill-badge {
+        background: linear-gradient(135deg, #dc3545 0%, var(--primary) 100%);
+        color: #fff;
+        font-weight: 700;
+        font-size: 11px;
+        padding: 4px 10px;
+        border-radius: 20px;
+    }
+
+    .allocation-fields-grid {
+        display: grid;
+        grid-template-columns: repeat(12, 1fr);
+        gap: 12px;
+        align-items: end;
+    }
+
+    .alloc-field {
+        display: flex;
+        flex-direction: column;
+    }
+
+    .alloc-field-label {
+        font-size: 11px;
+        text-transform: uppercase;
+        color: #6c757d;
+        font-weight: 600;
+        margin-bottom: 4px;
+        letter-spacing: 0.3px;
+    }
+
+    .alloc-field input,
+    .alloc-field select {
+        width: 100%;
+        padding: 8px 10px;
+        font-size: 13px;
+        border-radius: 6px;
+        border: 1px solid #ced4da;
+        background-color: #fff;
+        transition: all 0.2s ease;
+    }
+
+    .alloc-field input:focus,
+    .alloc-field select:focus {
+        border-color: #dc3545;
+        outline: none;
+        box-shadow: 0 0 0 2px rgba(220, 53, 69, 0.15);
+    }
+
+    .alloc-field input.text-end {
+        text-align: right;
+    }
+
+    .col-bill { grid-column: span 3; }
+    .col-bill-date { grid-column: span 2; }
+    .col-due-date { grid-column: span 2; }
+    .col-outstanding { grid-column: span 2; }
+    .col-allocate { grid-column: span 2; }
+    .col-action { grid-column: span 1; }
+
+    .allocation-actions {
+        display: flex;
+        justify-content: flex-end;
+        align-items: center;
+    }
+
+    .action-btn {
+        padding: 6px 12px;
+        border-radius: 6px;
+        font-size: 13px;
+        transition: all 0.2s ease;
+    }
+
+    /* .is-invalid {
+        border-color: #dc3545 !important;
+        background-color: #fff5f5 !important;
+    } */
+
+    .field-validation-error {
+        color: #dc3545;
+        font-size: 10px;
+        margin-top: 2px;
+    }
+
+    .empty-allocations-state {
+        text-align: center;
+        padding: 40px 20px;
+        color: #6c757d;
+    }
+
+    .empty-allocations-state i {
+        font-size: 48px;
+        margin-bottom: 12px;
+        opacity: 0.5;
+    }
+
+    .amounts-summary {
+        background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+        border-radius: 12px;
+        padding: 20px;
+    }
+
+    .amounts-grid {
+        display: grid;
+        grid-template-columns: repeat(6, 1fr);
+        gap: 16px;
+    }
+
+    .amount-item {
+        text-align: center;
+        padding: 12px;
+        background: #fff;
+        border-radius: 8px;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+    }
+
+    .amount-item-label {
+        font-size: 11px;
+        text-transform: uppercase;
+        color: #6c757d;
+        font-weight: 600;
+        margin-bottom: 4px;
+    }
+
+    .amount-item-value {
+        font-size: 18px;
+        font-weight: 700;
+        color: #212529;
+    }
+
+    .amount-item-value.paid { color: #dc3545; }
+    .amount-item-value.allocated { color: #0d6efd; }
+
+        .amount-item-value.advance {
+            color: var(--primary);
+        }
+    .amount-item-value.tds { color: #6f42c1; }
+    .amount-item-value.net { color: #198754; }
+
+    .currency-badge {
+        background: var(--primary);
+        color: white;
+        font-weight: 700;
+        padding: 4px 12px;
+        border-radius: 20px;
+        font-size: 14px;
+    }
+
+    .allocation-warning {
+        background: rgba(220,53,69,0.1);
+        border: 1px solid rgba(220,53,69,0.3);
+        color: #dc3545;
+        padding: 10px 15px;
+        border-radius: 8px;
+        font-size: 13px;
+        display: flex;
+        align-items: center;
+    }
+
+    .amounts-summary-error {
+        border: 2px solid #dc3545;
+    }
+
+    .amount-item-error {
+        background: #fff5f5;
+        border: 1px solid #dc3545;
+    }
+
+    .allocation-item-error {
+        border-color: #dc3545 !important;
+        background: #fff5f5;
+    }
+
+    /* TDS Section Styling */
+    .tds-section {
+        background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+        border-radius: 10px;
+        padding: 20px;
+        margin-bottom: 20px;
+    }
+
+    .tds-toggle {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+
+    .tds-fields {
+        margin-top: 15px;
+        padding-top: 15px;
+        border-top: 1px solid #dee2e6;
+    }
+
+    /* Mobile Responsive */
+    @@media (max-width: 991px) {
+        .allocation-fields-grid {
+            grid-template-columns: 1fr;
+        }
+        .col-bill, .col-bill-date, .col-due-date,
+        .col-outstanding, .col-allocate, .col-action {
+            grid-column: span 1;
+        }
+        .amounts-grid {
+            grid-template-columns: repeat(3, 1fr);
+        }
+    }
+
+    @@media (max-width: 575px) {
+        .amounts-grid {
+            grid-template-columns: repeat(2, 1fr);
+        }
+    }
+</style>
+
+@if (!isInitialized)
+{
+    <div class="page-loading-overlay">
+        <div class="whirly-loader"></div>
+    </div>
+}
+else
+{
+    <div class="content py-4">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <div>
+                <h4 class="fw-bold mb-1">Vendor Payment Details</h4>
+                <p class="text-muted mb-0 small">Create Vendor Payment</p>
+            </div>
+            <a href="/vendor-payments" class="btn btn-outline-secondary">
+                <i class="ti ti-arrow-left me-1"></i> Back
+            </a>
+        </div>
+        <EditForm Model="Payment" OnValidSubmit="HandleSubmit" OnInvalidSubmit="HandleInvalidSubmit">
+            <DataAnnotationsValidator />
+
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0 text-primary">
+                        <i class="ti ti-credit-card me-2 "></i>
+                        @(IsEdit ? "Edit Vendor Payment" : "Create Vendor Payment")
+                    </h5>
+                    <div class="d-flex gap-2">
+                        @if (IsEdit)
+                        {
+                            <span class="badge @GetStatusBadge(Payment.PaymentStatus)">@VendorPaymentStatuses.GetDisplayName(Payment.PaymentStatus)</span>
+                        }
+                        @if (!string.IsNullOrEmpty(Payment.PaymentNumber))
+                        {
+                            <span class="badge bg-secondary">@Payment.PaymentNumber</span>
+                        }
+                    </div>
+                </div>
+
+                <div class="card-body">
+
+                    <!-- Validation Summary -->
+                    @if (HeaderValidationErrors.Any())
+                    {
+                        <div class="alert alert-danger py-2 mb-3">
+                            <i class="ti ti-alert-circle me-2"></i>
+                            <span>Please correct the errors below.</span>
+                        </div>
+                    }
+
+                    <!-- Header Fields -->
+                    <div class="row g-3 mb-4">
+                        <!-- Branch -->
+                        <div class="col-md-4">
+                            <label class="form-label">Branch <span class="text-danger">*</span></label>
+                            <select class="form-select @GetHeaderValidationClass("BranchId")"
+                                    value="@Payment.BranchId"
+                                    @onchange="OnBranchChanged"
+                                    disabled="@IsReadOnly">
+                                <option value="">--Select Branch--</option>
+                                @foreach (var branch in Branches)
+                                {
+                                    <option value="@branch.Id">@branch.BranchCode - @branch.BranchName</option>
+                                }
+                            </select>
+                            @if (HasHeaderError("BranchId"))
+                            {
+                                <div class="validation-message">@GetHeaderError("BranchId")</div>
+                            }
+                        </div>
+
+                        <!-- Vendor -->
+                        <div class="col-md-4">
+                            <label class="form-label">Vendor <span class="text-danger">*</span></label>
+                            <SearchDropdown TItem="VendorViewModel"
+                                            Items="Vendors"
+                                            TextSelector="@(v => v.VendorCode + " - " + v.VendorName)"
+                                            ValueSelector="@(v => v.Id)"
+                                            @bind-Value="Payment.VendorId"
+                                            @bind-Value:after="OnVendorChanged"
+                                            Class="@GetHeaderValidationClass("VendorId")"
+                                            Placeholder="-- Select Customer --"
+                                            Disabled="@IsReadOnly" />
+                            @if (HasHeaderError("VendorId"))
+                            {
+                                <div class="validation-message">@GetHeaderError("VendorId")</div>
+                            }
+                        </div>
+
+                        <!-- Payment Date -->
+                        <div class="col-md-4">
+                            <label class="form-label">Payment Date <span class="text-danger">*</span></label>
+                            <InputDate class=@($"form-control {GetHeaderValidationClass("PaymentDate")}")
+                                       @bind-Value="Payment.PaymentDate"
+                                       disabled="@IsReadOnly" />
+                            @if (HasHeaderError("PaymentDate"))
+                            {
+                                <div class="validation-message">@GetHeaderError("PaymentDate")</div>
+                            }
+                        </div>
+
+                        <!-- Payment Method -->
+                        <div class="col-md-4">
+                            <label class="form-label">Payment Method <span class="text-danger">*</span></label>
+                            <select class="form-select @GetHeaderValidationClass("PaymentMethod")"
+                                    value="@Payment.PaymentMethod"
+                                    @onchange="OnPaymentMethodChanged"
+                                    disabled="@IsReadOnly">
+                                <option value="">--Select Payment Method--</option>
+                                @foreach (var method in VendorPaymentMethods.All)
+                                {
+                                    <option value="@method">@VendorPaymentMethods.GetDisplayName(method)</option>
+                                }
+                            </select>
+                            @if (HasHeaderError("PaymentMethod"))
+                            {
+                                <div class="validation-message">@GetHeaderError("PaymentMethod")</div>
+                            }
+                        </div>
+
+                        <!-- Payment Account -->
+                        <div class="col-md-4">
+                            <label class="form-label">Paying Account <span class="text-danger">*</span></label>
+                            <select class="form-select @GetHeaderValidationClass("PaymentAccountId")"
+                                    value="@Payment.PaymentAccountId"
+                                    @onchange="OnPaymentAccountChanged"
+                                    disabled="@IsReadOnly">
+                                <option value="">--Select Paying Account--</option>
+                                @foreach (var account in PaymentAccounts)
+                                {
+                                    <option value="@account.Id">@account.AccountCode - @account.AccountName</option>
+                                }
+                            </select>
+                            @if (HasHeaderError("PaymentAccountId"))
+                            {
+                                <div class="validation-message">@GetHeaderError("PaymentAccountId")</div>
+                            }
+                        </div>
+
+                        <!-- Payment Amount -->
+                        <div class="col-md-4">
+                            <label class="form-label">Payment Amount <span class="text-danger">*</span></label>
+                            <InputNumber class=@($"form-control text-end {GetHeaderValidationClass("PaymentGrossAmount")}")
+                                         @bind-Value="Payment.PaymentGrossAmount"
+                                         @bind-Value:after="OnAmountChanged"
+                                         min="0"
+                                         disabled="@IsReadOnly" />
+                            @if (HasHeaderError("PaymentGrossAmount"))
+                            {
+                                <div class="validation-message">@GetHeaderError("PaymentGrossAmount")</div>
+                            }
+                        </div>
+
+                        <!-- Currency -->
+                        <div class="col-md-4">
+                            <label class="form-label">Currency</label>
+                            <div class="d-flex align-items-center" style="height: 38px;">
+                                <span class="currency-badge">@(Payment.CurrencyCode ?? "INR")</span>
+                                @if (!string.IsNullOrEmpty(Payment.CurrencyName))
+                                {
+                                    <small class="ms-2 text-muted">@Payment.CurrencyName</small>
+                                }
+                            </div>
+                        </div>
+
+                        @if (Payment.CurrencyCode != "INR" && Payment.CurrencyCode != null)
+                        {
+                            <!-- Exchange Rate -->
+                            <div class="col-md-4">
+                                <label class="form-label">Exchange Rate</label>
+                                <InputNumber class="form-control text-end"
+                                             @bind-Value="Payment.ExchangeRate"
+                                             disabled="@IsReadOnly" />
+                            </div>
+                        }
+                    </div>
+
+                    <!-- Bank Charges Section -->
+                    <div class="card mb-4">
+                        <div class="card-header py-2">
+                            <i class="ti ti-cash-banknote me-2"></i> Bank Charges (Optional)
+                        </div>
+                        <div class="card-body py-3">
+                            <div class="row g-3">
+                                <div class="col-md-4">
+                                    <label class="form-label">Bank Charges Amount</label>
+                                    <InputNumber class="form-control text-end"
+                                                 @bind-Value="Payment.BankChargesAmount"
+                                                 @bind-Value:after="OnAmountChanged"
+                                                 min="0"
+                                                 disabled="@IsReadOnly" />
+                                </div>
+                                <div class="col-md-4">
+                                    <label class="form-label">Bank Charges Account</label>
+                                    <select class="form-select"
+                                            value="@Payment.BankChargesAccountId"
+                                            @onchange="OnBankChargesAccountChanged"
+                                            disabled="@IsReadOnly">
+                                        <option value="">--Select Bank Charges Account--</option>
+                                        @foreach (var account in PaymentAccounts)
+                                        {
+                                            <option value="@account.Id">@account.AccountCode - @account.AccountName</option>
+                                        }
+                                    </select>
+                                </div>
+                                @if (IsEdit && Payment.PaymentStatus != VendorPaymentStatuses.Draft)
+                                {
+                                    <div class="col-md-4">
+                                        <label class="form-label">Instrument Status</label>
+                                        <div>
+                                            <span class="badge bg-secondary">@VendorInstrumentStatuses.GetDisplayName(Payment.InstrumentStatus)</span>
+                                        </div>
+                                    </div>
+                                }
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Instrument Details (Conditional) -->
+                    @if (Payment.PaymentMethod != VendorPaymentMethods.Cash)
+                    {
+                        <div class="card mb-4">
+                            <div class="card-header py-2">
+                                <i class="ti ti-file-barcode me-2"></i> Instrument Details
+                            </div>
+                            <div class="card-body py-3">
+                                <div class="row g-3">
+                                    <!-- Reference Number -->
+                                    <div class="col-md-4">
+                                        <label class="form-label">
+                                            @GetReferenceLabel()
+                                            @if (VendorPaymentMethods.RequiresReference(Payment.PaymentMethod))
+                                            {
+                                                <span class="text-danger">*</span>
+                                            }
+                                        </label>
+                                        <InputText class=@($"form-control {GetHeaderValidationClass("PaymentReferenceNumber")}")
+                                                   @bind-Value="Payment.PaymentReferenceNumber"
+                                                   placeholder="Enter reference number"
+                                                   disabled="@IsReadOnly" />
+                                        @if (HasHeaderError("PaymentReferenceNumber"))
+                                        {
+                                            <div class="validation-message">@GetHeaderError("PaymentReferenceNumber")</div>
+                                        }
+                                    </div>
+
+                                    <!-- Reference Date -->
+                                    <div class="col-md-4">
+                                        <label class="form-label">Reference Date</label>
+                                        <InputDate class="form-control"
+                                                   @bind-Value="Payment.ReferenceDate"
+                                                   disabled="@IsReadOnly" />
+                                    </div>
+
+                                    <!-- Bank Name -->
+                                    @if (Payment.PaymentMethod == VendorPaymentMethods.Cheque ||
+                                         Payment.PaymentMethod == VendorPaymentMethods.BankTransfer)
+                                    {
+                                        <div class="col-md-4">
+                                            <label class="form-label">Bank Name</label>
+                                            <InputText class="form-control"
+                                                       @bind-Value="Payment.BankNameSnapshot"
+                                                       placeholder="Enter bank name"
+                                                       disabled="@IsReadOnly" />
+                                        </div>
+                                    }
+                                </div>
+                            </div>
+                        </div>
+                    }
+
+                    <!-- TDS Section (India-ready) -->
+                    <div class="tds-section">
+                        <div class="tds-toggle">
+                            <div class="form-check form-switch">
+                                <input class="form-check-input" type="checkbox" role="switch" id="tdsToggle"
+                                       checked="@Payment.IsTDSApplicable"
+                                       @onchange="OnTDSToggleChanged"
+                                       disabled="@IsReadOnly">
+                                <label class="form-check-label fw-medium" for="tdsToggle">
+                                    <i class="ti ti-receipt-tax me-1 text-purple"></i> TDS Applicable
+                                </label>
+                            </div>
+                            @if (Payment.IsTDSApplicable && Payment.TDSWithheldAmount > 0)
+                            {
+                                <span class="badge bg-purple ms-2">TDS: @Payment.TDSWithheldAmount.ToString("N2")</span>
+                            }
+                        </div>
+
+                        @if (Payment.IsTDSApplicable)
+                        {
+                            <div class="tds-fields">
+                                <div class="row g-3">
+                                    <div class="col-md-3">
+                                        <label class="form-label">TDS Section <span class="text-danger">*</span></label>
+                                        <select class="form-select @GetHeaderValidationClass("TDSSectionCodeSnapshot")"
+                                                value="@Payment.TDSSectionCodeSnapshot"
+                                                @onchange="OnTDSSectionChanged"
+                                                disabled="@IsReadOnly">
+                                            <option value="">--Select TDS Section--</option>
+                                            <option value="194C">194C - Contractor</option>
+                                            <option value="194J">194J - Professional</option>
+                                            <option value="194H">194H - Commission</option>
+                                            <option value="194I">194I - Rent</option>
+                                            <option value="194A">194A - Interest</option>
+                                            <option value="194Q">194Q - Purchase</option>
+                                        </select>
+                                        @if (HasHeaderError("TDSSectionCodeSnapshot"))
+                                        {
+                                            <div class="validation-message">@GetHeaderError("TDSSectionCodeSnapshot")</div>
+                                        }
+                                    </div>
+
+                                    <div class="col-md-3">
+                                        <label class="form-label">TDS Rate % <span class="text-danger">*</span></label>
+                                        <InputNumber class=@($"form-control text-end {GetHeaderValidationClass("TDSRatePercentSnapshot")}")
+                                                     @bind-Value="Payment.TDSRatePercentSnapshot"
+                                                     @bind-Value:after="OnTDSRateChanged"
+                                                     min="0"
+                                                     disabled="@IsReadOnly" />
+                                        @if (HasHeaderError("TDSRatePercentSnapshot"))
+                                        {
+                                            <div class="validation-message">@GetHeaderError("TDSRatePercentSnapshot")</div>
+                                        }
+                                    </div>
+
+                                    <div class="col-md-3">
+                                        <label class="form-label">TDS Base Amount</label>
+                                        <input type="text" class="form-control text-end" value="@Payment.TDSBaseAmount.ToString("N2")" readonly />
+                                    </div>
+
+                                    <div class="col-md-3">
+                                        <label class="form-label">TDS Withheld</label>
+                                        <input type="text" class="form-control text-end fw-bold text-purple" value="@Payment.TDSWithheldAmount.ToString("N2")" readonly />
+                                    </div>
+                                </div>
+                            </div>
+                        }
+                    </div>
+
+                    <!-- Narration -->
+                    <div class="mb-4">
+                        <label class="form-label">Narration</label>
+                        @if (IsReadOnly)
+                        {
+                            <div class="form-control bg-light" style="min-height:60px">@((MarkupString)(Payment.PaymentNarration ?? ""))</div>
+                        }
+                        else
+                        {
+                            <RichTextEditor @ref="narrationEditor" Value="@Payment.PaymentNarration" Placeholder="Enter payment narration..." MinHeight="60" MaxHeight="150" />
+                        }
+                    </div>
+
+                </div>
+            </div>
+
+            <!-- Allocations Section -->
+            <div class="card mt-4">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h6 class="mb-0 text-primary">
+                        <i class="ti ti-link me-2"></i>Bill Allocations
+                        @if (Payment.Allocations.Any())
+                        {
+                            <span class="badge bg-danger ms-2">@Payment.Allocations.Count</span>
+                        }
+                    </h6>
+                    @if (!IsReadOnly && Payment.VendorId != Guid.Empty)
+                    {
+                        <button type="button" class="btn btn-sm btn-outline-danger" @onclick="AddAllocation">
+                            <i class="ti ti-plus me-1"></i> Add Allocation
+                        </button>
+                    }
+                </div>
+                <div class="card-body">
+                    <div class="allocations-container">
+                        @if (Payment.VendorId == Guid.Empty)
+                        {
+                            <div class="empty-allocations-state">
+                                <i class="ti ti-user-search d-block"></i>
+                                <div class="fw-semibold mb-1">Select a vendor first</div>
+                                <small>Vendor selection will load their open bills</small>
+                            </div>
+                        }
+                        else if (!Payment.Allocations.Any())
+                        {
+                            <div class="empty-allocations-state">
+                                <i class="ti ti-file-invoice d-block"></i>
+                                <div class="fw-semibold mb-1">No allocations</div>
+                                <small>Click "Add Allocation" to allocate payment to bills, or leave empty for advance payment</small>
+                            </div>
+                        }
+                        else
+                        {
+                            @for (int i = 0; i < Payment.Allocations.Count; i++)
+                            {
+                                var allocIndex = i;
+                                var alloc = Payment.Allocations[allocIndex];
+                                <div class="allocation-item @(HasAllocationValidationError(allocIndex, "AllocatedToBillAmount") ? "allocation-item-error" : "")">
+                                    <div class="allocation-header">
+                                        <div class="allocation-bill-info">
+                                            <span class="bill-badge">@(allocIndex + 1)</span>
+                                            <span class="fw-medium">@(string.IsNullOrEmpty(alloc.BillNumberSnapshot) ? "Select Bill" : alloc.BillNumberSnapshot)</span>
+                                        </div>
+                                        <div class="text-end">
+                                            <small class="text-muted">Allocated:</small>
+                                            <span class="fw-bold @(alloc.AllocatedToBillAmount > alloc.BillOutstandingSnapshot && alloc.BillOutstandingSnapshot > 0 ? "text-danger" : "text-success") ms-1">@alloc.AllocatedToBillAmount.ToString("N2")</span>
+                                        </div>
+                                    </div>
+
+                                    <div class="allocation-fields-grid">
+                                        <!-- Bill Selection -->
+                                        <div class="alloc-field col-bill">
+                                            <label class="alloc-field-label">Bill <span class="text-danger">*</span></label>
+                                            <select class="@GetAllocationValidationClass(allocIndex, "VendorBillId")"
+                                                    value="@alloc.VendorBillId"
+                                                    @onchange="e => OnBillSelected(alloc, e)"
+                                                    disabled="@IsReadOnly">
+                                                <option value="">--Select Bill--</option>
+                                                @foreach (var bill in GetAvailableBills(alloc))
+                                                {
+                                                    <option value="@bill.Id">@bill.BillNumber - @bill.TotalAmount.ToString("N2")</option>
+                                                }
+                                            </select>
+                                            @if (HasAllocationValidationError(allocIndex, "VendorBillId"))
+                                            {
+                                                <div class="field-validation-error">@GetAllocationValidationError(allocIndex, "VendorBillId")</div>
+                                            }
+                                        </div>
+
+                                        <!-- Bill Date -->
+                                        <div class="alloc-field col-bill-date">
+                                            <label class="alloc-field-label">Bill Date</label>
+                                            <input type="text" class="form-control-plaintext"
+                                                   value="@(alloc.BillDateSnapshot?.ToString("dd-MMM-yy") ?? "-")" readonly />
+                                        </div>
+
+                                        <!-- Due Date -->
+                                        <div class="alloc-field col-due-date">
+                                            <label class="alloc-field-label">Due Date</label>
+                                            <input type="text" class="form-control-plaintext @(alloc.BillDueDateSnapshot < DateTime.Today ? "text-danger" : "")"
+                                                   value="@(alloc.BillDueDateSnapshot?.ToString("dd-MMM-yy") ?? "-")" readonly />
+                                        </div>
+
+                                        <!-- Outstanding -->
+                                        <div class="alloc-field col-outstanding">
+                                            <label class="alloc-field-label">Outstanding</label>
+                                            <input type="text" class="form-control-plaintext text-end fw-medium"
+                                                   value="@alloc.BillOutstandingSnapshot.ToString("N2")" readonly />
+                                        </div>
+
+                                        <!-- Allocate Amount -->
+                                        <div class="alloc-field col-allocate">
+                                            <label class="alloc-field-label">Allocate <span class="text-danger">*</span></label>
+                                            <input type="number" step="0.01"
+                                                   class="text-end @GetAllocationValidationClass(allocIndex, "AllocatedToBillAmount")"
+                                                   value="@alloc.AllocatedToBillAmount"
+                                                   @onchange="e => OnAllocationAmountChanged(alloc, e)"
+                                                   disabled="@IsReadOnly"
+                                                   max="@alloc.BillOutstandingSnapshot" />
+                                            @if (HasAllocationValidationError(allocIndex, "AllocatedToBillAmount"))
+                                            {
+                                                <div class="field-validation-error">@GetAllocationValidationError(allocIndex, "AllocatedToBillAmount")</div>
+                                            }
+                                        </div>
+
+                                        <!-- Delete Button -->
+                                        @if (!IsReadOnly)
+                                        {
+                                            <div class="alloc-field col-action allocation-actions">
+                                                <button type="button" class="btn btn-sm btn-outline-danger"
+                                                        @onclick="() => RemoveAllocation(alloc)"
+                                                        title="Remove allocation">
+                                                    <i class="ti ti-trash"></i>
+                                                </button>
+                                            </div>
+                                        }
+                                    </div>
+                                </div>
+                            }
+                        }
+                    </div>
+                </div>
+            </div>
+
+            <!-- Amounts Summary -->
+            <div class="card mt-4">
+                <div class="card-body">
+                    <div class="amounts-summary @(Payment.AllocatedAmount > Payment.PaymentGrossAmount ? "amounts-summary-error" : "")">
+                        @if (Payment.AllocatedAmount > Payment.PaymentGrossAmount)
+                        {
+                            <div class="allocation-warning mb-3">
+                                <i class="ti ti-alert-triangle me-2"></i>
+                                <span>Total allocated (@Payment.AllocatedAmount.ToString("N2")) exceeds payment amount (@Payment.PaymentGrossAmount.ToString("N2"))</span>
+                            </div>
+                        }
+                        <div class="amounts-grid">
+                            <div class="amount-item">
+                                <div class="amount-item-label">Payment Amount</div>
+                                <div class="amount-item-value paid">@Payment.PaymentGrossAmount.ToString("N2")</div>
+                            </div>
+                            <div class="amount-item @(Payment.AllocatedAmount > Payment.PaymentGrossAmount ? "amount-item-error" : "")">
+                                <div class="amount-item-label">Allocated</div>
+                                <div class="amount-item-value @(Payment.AllocatedAmount > Payment.PaymentGrossAmount ? "text-danger" : "allocated")">@Payment.AllocatedAmount.ToString("N2")</div>
+                            </div>
+                            <div class="amount-item">
+                                <div class="amount-item-label">Advance</div>
+                                <div class="amount-item-value advance">@Payment.UnallocatedAdvanceAmount.ToString("N2")</div>
+                            </div>
+                            <div class="amount-item">
+                                <div class="amount-item-label">TDS Withheld</div>
+                                <div class="amount-item-value tds">@Payment.TDSWithheldAmount.ToString("N2")</div>
+                            </div>
+                            <div class="amount-item">
+                                <div class="amount-item-label">Net Outflow</div>
+                                <div class="amount-item-value net">@Payment.NetBankOutflowAmount.ToString("N2")</div>
+                            </div>
+                            <div class="amount-item">
+                                <div class="amount-item-label">Currency</div>
+                                <div><span class="currency-badge">@Payment.CurrencyCode</span></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Action Buttons -->
+            <div class="d-flex flex-wrap justify-content-end gap-2 mt-4 mb-4">
+                <button type="button" class="btn btn-outline-secondary" @onclick="Cancel">
+                    <i class="ti ti-x"></i> Cancel
+                </button>
+
+                @if (!IsReadOnly)
+                {
+                    <button type="submit" class="btn btn-primary">
+                        <i class="ti ti-device-floppy"></i> @(IsEdit ? "Update" : "Save")
+                    </button>
+
+                    @if (Payment.PaymentStatus == VendorPaymentStatuses.Draft)
+                    {
+                        <button type="button" class="btn btn-success" @onclick="SubmitForApproval">
+                            <i class="ti ti-send me-1"></i> Submit
+                        </button>
+                    }
+                }
+
+                @if (Payment.CanPost && IsEdit)
+                {
+                    <button type="button" class="btn btn-success" @onclick="PostPayment">
+                        <i class="ti ti-check me-1"></i> Post
+                    </button>
+                }
+            </div>
+
+        </EditForm>
+    </div>
+}

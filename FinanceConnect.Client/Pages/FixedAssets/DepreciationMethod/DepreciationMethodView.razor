@@ -1,0 +1,150 @@
+@page "/depreciation-methods/{Id:guid}/view"
+@using FinanceConnect.Client.ViewModels
+@inject IJSRuntime JS
+@inject FinanceConnect.Client.Services.DepreciationMethodService methodService
+@inject NavigationManager navigation
+
+@if (!isInitialized)
+{
+    <div class="page-loading-overlay"><div class="whirly-loader"></div></div>
+}
+else if (Item == null)
+{
+    <div class="content py-4"><div class="alert alert-danger"><i class="ti ti-alert-circle me-2"></i>Method not found. <a href="/depreciation-methods" class="alert-link ms-2">Return to list</a></div></div>
+}
+else
+{
+    <div class="content py-4 view-screen">
+
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <div>
+                <h4 class="fw-bold mb-1">Depreciation Method Details</h4>
+                <p class="text-muted mb-0 small">Method configuration and calculation rules</p>
+            </div>
+            <div class="d-flex gap-2 page-btn">
+                @if (!Item.IsLockedForChanges)
+                { <a href="/depreciation-methods/edit/@Item.DepreciationMethodId" class="btn btn-primary"><i class="ti ti-edit me-1"></i> Edit</a> }
+                <a class="btn btn-outline-secondary" href="/depreciation-methods"><i class="ti ti-arrow-left me-1"></i> Back</a>
+            </div>
+        </div>
+
+        <div class="row g-4">
+
+            <!-- HEADER PANEL -->
+            <div class="col-lg-12">
+                <div class="profile-list-card">
+                    <div class="profile-left">
+                        <div class="avatar letter-avatar">@Item.MethodCode?.Substring(0, Math.Min(3, Item.MethodCode?.Length ?? 0)).ToUpper()</div>
+                    </div>
+                    <div class="profile-center">
+                        <div class="top-row"><h5>@Item.MethodCode – @Item.MethodName</h5></div>
+                        <div class="sub-text">
+                            <span class="d-flex gap-1 mt-1"><i class="ti ti-math-function"></i>@FormatEnumName(Item.MethodType?.ToString()) &nbsp;·&nbsp; @Item.InputMode &nbsp;·&nbsp; @Item.TimeBasis</span>
+                        </div>
+                        <div class="mt-2">
+                            <span class="badge @GetStatusBadgeClass(Item.MethodStatus)">@Item.MethodStatus</span>
+                            @if (Item.IsLockedForChanges)
+                            { <span class="badge bg-danger-transparent ms-1">Locked</span> }
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- LEFT PANEL (col-8) -->
+            <div class="col-lg-8">
+                <div class="profile-card">
+
+                    <div class="card mb-0">
+                        <div class="card-header py-2"><i class="ti ti-id me-2"></i> General</div>
+                        <div class="card-body py-2">
+                            <div class="row">
+                                <div class="col-md-4 mb-2"><small class="text-muted">Method Code</small><div class="fw-medium">@Item.MethodCode</div></div>
+                                <div class="col-md-4 mb-2"><small class="text-muted">Method Name</small><div>@Item.MethodName</div></div>
+                                <div class="col-md-4 mb-2"><small class="text-muted">Description</small><div>@(Item.Description ?? "—")</div></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="card mt-3 mb-0">
+                        <div class="card-header py-2"><i class="ti ti-math-function me-2"></i> Calculation Rules</div>
+                        <div class="card-body py-2">
+                            <div class="row">
+                                <div class="col-md-4 mb-2"><small class="text-muted">Method Type</small><div>@FormatEnumName(Item.MethodType?.ToString())</div></div>
+                                <div class="col-md-4 mb-2"><small class="text-muted">Time Basis</small><div>@Item.TimeBasis</div></div>
+                                <div class="col-md-4 mb-2"><small class="text-muted">Depreciation Base</small><div>@FormatEnumName(Item.DepreciationBase?.ToString())</div></div>
+                                <div class="col-md-4 mb-2"><small class="text-muted">Input Mode</small><div>@Item.InputMode</div></div>
+                                <div class="col-md-4 mb-2"><small class="text-muted">Residual Handling</small><div>@FormatEnumName(Item.ResidualHandlingMode?.ToString())</div></div>
+                                @if (Item.InputMode == DepreciationMethodViewModel.InputModeEnum.RateBased)
+                                { <div class="col-md-4 mb-2"><small class="text-muted">Default Rate %</small><div class="fw-semibold">@(Item.DefaultRatePercent?.ToString("N3"))%</div></div> }
+                            </div>
+                            <div class="d-flex flex-wrap gap-2 mt-2">
+                                <span class="badge @(Item.IsApplicableToTangibles ? "bg-success-transparent" : "bg-secondary-transparent text-secondary")">Tangibles: @(Item.IsApplicableToTangibles ? "Yes" : "No")</span>
+                                <span class="badge @(Item.IsApplicableToIntangibles ? "bg-success-transparent" : "bg-secondary-transparent text-secondary")">Intangibles: @(Item.IsApplicableToIntangibles ? "Yes" : "No")</span>
+                                <span class="badge @(Item.IsDepreciationAllowedInCWIP ? "bg-warning-transparent" : "bg-secondary-transparent text-secondary")">CWIP: @(Item.IsDepreciationAllowedInCWIP ? "Yes" : "No")</span>
+                                <span class="badge @(Item.AllowResidualOverrideAtAsset ? "bg-info-transparent" : "bg-secondary-transparent text-secondary")">Residual Override: @(Item.AllowResidualOverrideAtAsset ? "Yes" : "No")</span>
+                                <span class="badge @(Item.AllowRateOverrideAtCategory ? "bg-info-transparent" : "bg-secondary-transparent text-secondary")">Rate Override at Category: @(Item.AllowRateOverrideAtCategory ? "Yes" : "No")</span>
+                                <span class="badge @(Item.AllowRateOverrideAtAsset ? "bg-info-transparent" : "bg-secondary-transparent text-secondary")">Rate Override at Asset: @(Item.AllowRateOverrideAtAsset ? "Yes" : "No")</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="card mt-3 mb-0">
+                        <div class="card-header py-2"><i class="ti ti-calendar me-2"></i> Conventions</div>
+                        <div class="card-body py-2">
+                            <div class="row">
+                                <div class="col-md-4 mb-2"><small class="text-muted">Start Convention</small><div>@FormatEnumName(Item.StartConvention?.ToString())</div></div>
+                                @if (Item.FullMonthCutoffDay.HasValue)
+                                { <div class="col-md-4 mb-2"><small class="text-muted">Cutoff Day</small><div>@Item.FullMonthCutoffDay</div></div> }
+                                <div class="col-md-4 mb-2"><small class="text-muted">End Convention</small><div>@FormatEnumName(Item.EndConvention?.ToString())</div></div>
+                            </div>
+                            <div class="d-flex flex-wrap gap-2 mt-2">
+                                <span class="badge @(Item.SkipDepreciationIfDisposedInPeriod ? "bg-success-transparent" : "bg-secondary-transparent text-secondary")">Skip If Disposed: @(Item.SkipDepreciationIfDisposedInPeriod ? "Yes" : "No")</span>
+                                <span class="badge @(Item.AllowCatchUpDepreciation ? "bg-warning-transparent" : "bg-secondary-transparent text-secondary")">Catch-Up: @(Item.AllowCatchUpDepreciation ? "Yes" : "No")</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="card mt-3 mb-0">
+                        <div class="card-header py-2"><i class="ti ti-adjustments me-2"></i> Rounding &amp; Precision</div>
+                        <div class="card-body py-2">
+                            <div class="row">
+                                <div class="col-md-3 mb-2"><small class="text-muted">Decimals</small><div>@Item.RoundingPrecisionDecimals</div></div>
+                                <div class="col-md-3 mb-2"><small class="text-muted">Rounding Rule</small><div>@FormatEnumName(Item.RoundingRule.ToString())</div></div>
+                                <div class="col-md-3 mb-2"><small class="text-muted">Rounding At</small><div>@FormatEnumName(Item.RoundingAt.ToString())</div></div>
+                                <div class="col-md-3 mb-2"><small class="text-muted">Min Depreciation</small><div>@(Item.MinDepreciationAmount?.ToString("N2") ?? "—")</div></div>
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+
+            <!-- RIGHT PANEL (col-4) -->
+            <div class="col-lg-4">
+                <div class="profile-card">
+
+                    <div class="card mb-0">
+                        <div class="card-header py-2"><i class="ti ti-circle-check me-2"></i> Status &amp; Governance</div>
+                        <div class="card-body py-2">
+                            <div class="mb-2"><small class="text-muted">Status</small><div><span class="badge @GetStatusBadgeClass(Item.MethodStatus)">@Item.MethodStatus</span></div></div>
+                            <div class="mb-2"><small class="text-muted">Locked</small><div>@(Item.IsLockedForChanges ? "Yes" : "No")</div></div>
+                            @if (Item.IsLockedForChanges)
+                            { <div class="mb-2"><small class="text-muted">Lock Reason</small><div>@Item.LockReason</div></div> }
+                            <div class="mb-2"><small class="text-muted">Used Assets</small><div>@Item.UsedAssetCount</div></div>
+                            <div class="mb-2"><small class="text-muted">Used in Posted Runs</small><div>@(Item.UsedInPostedRunsFlag ? "Yes" : "No")</div></div>
+                        </div>
+                    </div>
+
+                    <div class="card mt-3 mb-0">
+                        <div class="card-header py-2"><i class="ti ti-clock me-2"></i> Audit</div>
+                        <div class="card-body py-2">
+                            <div class="mb-2"><small class="text-muted">Created At</small><div>@Item.CreatedAt.ToString("dd MMM yyyy")</div></div>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+
+        </div>
+    </div>
+}

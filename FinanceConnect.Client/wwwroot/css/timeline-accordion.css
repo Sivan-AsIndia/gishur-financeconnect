@@ -1,0 +1,544 @@
+/* ============================================================
+   ============================================================ */
+
+/* ── Outer wrapper: 2-column – Left Panel | Right Area ───── */
+.tl-accordion {
+    display: grid;
+    grid-template-columns: 260px 1fr;
+    gap: 0;
+    position: relative;
+    padding: 6px 0;
+    align-items: start; /* KEY: left panel won't stretch */
+}
+
+/* ══════════════════════════════════════════════════════════
+   LEFT PANEL – Single connected sidebar (never expands)
+   ══════════════════════════════════════════════════════════ */
+.tl-left-panel {
+    background: #fff;
+    border-radius: 14px;
+    overflow: hidden;
+    border: 1.5px solid #e8ecf2;
+    box-shadow: 0 2px 12px rgba(0,0,0,0.04);
+    align-self: start; /* stays at top, never stretches */
+    position: sticky;
+    top: 80px;
+    z-index: 5;
+}
+
+.tl-label {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 16px 14px;
+    cursor: pointer;
+    user-select: none;
+    position: relative;
+    transition: all 0.3s ease;
+    border-left: 3.5px solid transparent;
+    border-bottom: 1px solid #f0f3f7;
+}
+
+.tl-label:last-child {
+    border-bottom: none;
+}
+
+.tl-label:hover {
+    background: #f8fafc;
+}
+
+/* Active state – colored left border + tinted bg */
+    .tl-label.active {
+        background: linear-gradient(90deg, rgba(254, 159, 67, 0.06), transparent);
+    }
+
+        .tl-label.active.accent-orange {
+            border-left-color: var(--primary);
+        }
+.tl-label.active.accent-blue    { border-left-color: #3b82f6; }
+.tl-label.active.accent-purple  { border-left-color: #8b5cf6; }
+.tl-label.active.accent-green   { border-left-color: #10b981; }
+.tl-label.active.accent-rose    { border-left-color: #f43f5e; }
+.tl-label.active.accent-teal    { border-left-color: #14b8a6; }
+
+/* ── Icon Circles ──────────────────────────────────────────── */
+.tl-label-icon {
+    width: 38px;
+    height: 38px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    transition: all 0.3s ease;
+}
+
+.tl-label-icon i,
+.tl-label-icon svg {
+    width: 17px;
+    height: 17px;
+}
+
+/* Light background variants */
+    .tl-label-icon.ico-orange {
+        background: rgba(var(--primary-rgb), 0.12);
+    }
+.tl-label-icon.ico-orange i, .tl-label-icon.ico-orange svg { color: #e8860a; stroke: #e8860a; }
+
+.tl-label-icon.ico-blue { background: rgba(59,130,246,0.10); }
+.tl-label-icon.ico-blue i, .tl-label-icon.ico-blue svg { color: #2563eb; stroke: #2563eb; }
+
+.tl-label-icon.ico-purple { background: rgba(139,92,246,0.10); }
+.tl-label-icon.ico-purple i, .tl-label-icon.ico-purple svg { color: #7c3aed; stroke: #7c3aed; }
+
+.tl-label-icon.ico-green { background: rgba(16,185,129,0.10); }
+.tl-label-icon.ico-green i, .tl-label-icon.ico-green svg { color: #059669; stroke: #059669; }
+
+.tl-label-icon.ico-rose { background: rgba(244,63,94,0.10); }
+.tl-label-icon.ico-rose i, .tl-label-icon.ico-rose svg { color: #e11d48; stroke: #e11d48; }
+
+.tl-label-icon.ico-teal { background: rgba(20,184,166,0.10); }
+.tl-label-icon.ico-teal i, .tl-label-icon.ico-teal svg { color: #0d9488; stroke: #0d9488; }
+
+/* Active: solid colored icon with white inner */
+.tl-label.active .tl-label-icon.ico-orange { background: var(--primary); }
+.tl-label.active .tl-label-icon.ico-blue   { background: #3b82f6; }
+.tl-label.active .tl-label-icon.ico-purple  { background: #8b5cf6; }
+.tl-label.active .tl-label-icon.ico-green   { background: #10b981; }
+.tl-label.active .tl-label-icon.ico-rose    { background: #f43f5e; }
+.tl-label.active .tl-label-icon.ico-teal    { background: #14b8a6; }
+
+.tl-label.active .tl-label-icon i,
+.tl-label.active .tl-label-icon svg {
+    color: #fff !important;
+    stroke: #fff !important;
+}
+
+/* ── Text ──────────────────────────────────────────────────── */
+.tl-label-text {
+    flex: 1;
+    min-width: 0;
+}
+
+.tl-label-title {
+    font-weight: 700;
+    font-size: 13px;
+    color: #1e293b;
+    line-height: 1.3;
+}
+
+.tl-label.active .tl-label-title {
+    color: #092C4C;
+}
+
+.tl-label-sub {
+    font-size: 11px;
+    color: #94a3b8;
+    line-height: 1.3;
+    margin-top: 2px;
+}
+
+/* ── Chevron ───────────────────────────────────────────────── */
+.tl-label-chevron {
+    color: #cbd5e1;
+    display: flex;
+    align-items: center;
+    transition: all 0.35s ease;
+    flex-shrink: 0;
+}
+
+.tl-label-chevron i,
+.tl-label-chevron svg {
+    width: 15px;
+    height: 15px;
+}
+
+.tl-label-chevron.open {
+    transform: rotate(90deg);
+}
+
+.tl-label.active .tl-label-chevron {
+    color: #FE9F43;
+}
+.tl-label.active .tl-label-chevron i,
+.tl-label.active .tl-label-chevron svg {
+    color: #FE9F43;
+    stroke: #FE9F43;
+}
+
+/* ══════════════════════════════════════════════════════════
+   RIGHT AREA – Timeline spine + Cards (independent column)
+   ══════════════════════════════════════════════════════════ */
+.tl-right-area {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+    position: relative;
+}
+
+/* ── Each card row: dot column + card ────────────────────── */
+.tl-card-row {
+    display: grid;
+    grid-template-columns: 56px 1fr;
+    align-items: start;
+    position: relative;
+    min-height: 52px;
+}
+
+/* Vertical timeline line */
+.tl-card-row::before {
+    content: '';
+    position: absolute;
+    left: 27px;
+    top: 0;
+    bottom: 0;
+    width: 2.5px;
+    background: #e2e8f0;
+    z-index: 0;
+    transition: background 0.4s ease;
+}
+
+.tl-card-row:first-child::before {
+    top: 28px;
+}
+
+.tl-card-row:last-child::before {
+    height: 28px;
+    bottom: auto;
+}
+
+/* Active row line */
+    .tl-card-row.row-active::before {
+        background: linear-gradient(180deg, var(--primary), var(--primary));
+    }
+
+/* ── Timeline Dot ────────────────────────────────────────── */
+.tl-dot-col {
+    display: flex;
+    align-items: flex-start;
+    justify-content: center;
+    padding-top: 16px;
+    position: relative;
+    z-index: 2;
+}
+
+.tl-dot {
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    background: #fff;
+    border: 2.5px solid #d1d5db;
+    transition: all 0.35s cubic-bezier(.4,0,.2,1);
+    flex-shrink: 0;
+    position: relative;
+    z-index: 3;
+    cursor: pointer;
+}
+
+/* Horizontal connector from dot to card */
+.tl-dot::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 100%;
+    width: 20px;
+    height: 2px;
+    background: #e2e8f0;
+    transform: translateY(-50%);
+}
+
+/* Active dot */
+.tl-card-row.row-active .tl-dot {
+    border-color: var(--primary);
+    background: var(--primary);
+    transform: scale(1.15);
+    box-shadow: 0 0 0 0.2rem rgba(var(--primary-rgb), 0.15) !important;
+}
+
+    .tl-card-row.row-active .tl-dot::after {
+        background: var(--primary);
+    }
+
+/* Hover on inactive */
+.tl-card-row:not(.row-active) .tl-dot:hover {
+    border-color: #FE9F43;
+    box-shadow: 0 0 0 4px rgba(254,159,67,0.08);
+    transform: scale(1.1);
+}
+
+/* ══════════════════════════════════════════════════════════
+   CARD – Right side content
+   ══════════════════════════════════════════════════════════ */
+.tl-card-col {
+    padding: 6px 0;
+}
+
+.tl-card {
+    background: #fff;
+    border-radius: 14px;
+    border: 1.5px solid #e8ecf2;
+    overflow: hidden;
+    transition: all 0.35s cubic-bezier(.4,0,.2,1);
+    box-shadow: 0 1px 4px rgba(0,0,0,0.03);
+}
+
+.tl-card:hover {
+    box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+}
+
+.tl-card.card-active {
+    box-shadow: 0 6px 28px rgba(0,0,0,0.07);
+    border-color: transparent;
+}
+
+/* Left color accent stripe on active cards */
+    .tl-card.card-active.border-orange {
+        border-left: 2px solid var(--primary);
+        border-top-color: 2px solid var(--primary);
+        border-right-color: 2px solid var(--primary);
+        border-bottom-color: 2px solid var(--primary);
+        background: linear-gradient( 135deg, rgba(var(--primary-rgb), 0.08) 0%, #ffffff 60% );
+    }
+.tl-card.card-active.border-blue {
+    border-left: 2px solid #3b82f6;
+    border-top-color: #dbeafe;
+    border-right-color: #dbeafe;
+    border-bottom-color: #dbeafe;
+    background: linear-gradient(135deg, #f0f7ff 0%, #fff 50%);
+}
+.tl-card.card-active.border-purple {
+    border-left: 2px solid #8b5cf6;
+    border-top-color: #ede9fe;
+    border-right-color: #ede9fe;
+    border-bottom-color: #ede9fe;
+    background: linear-gradient(135deg, #f5f3ff 0%, #fff 50%);
+}
+.tl-card.card-active.border-green {
+    border-left: 2px solid #10b981;
+    border-top-color: #d1fae5;
+    border-right-color: #d1fae5;
+    border-bottom-color: #d1fae5;
+    background: linear-gradient(135deg, #f0fdf4 0%, #fff 50%);
+}
+.tl-card.card-active.border-rose {
+    border-left: 2px solid #f43f5e;
+    border-top-color: #ffe4e6;
+    border-right-color: #ffe4e6;
+    border-bottom-color: #ffe4e6;
+    background: linear-gradient(135deg, #fff5f5 0%, #fff 50%);
+}
+.tl-card.card-active.border-teal {
+    border-left: 2px solid #14b8a6;
+    border-top-color: #ccfbf1;
+    border-right-color: #ccfbf1;
+    border-bottom-color: #ccfbf1;
+    background: linear-gradient(135deg, #f0fdfa 0%, #fff 50%);
+}
+
+/* ── Card Header ──────────────────────────────────────────── */
+.tl-card-header {
+    padding: 16px 20px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    cursor: pointer;
+    transition: background 0.2s ease;
+    user-select: none;
+}
+
+.tl-card-header:hover {
+    background: rgba(0,0,0,0.01);
+}
+
+.tl-card-header-title {
+    font-weight: 700;
+    font-size: 15px;
+    color: #1e293b;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex: 1;
+}
+
+/* Step badge */
+.tl-card-step {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 30px;
+    height: 30px;
+    border-radius: 10px;
+    font-size: 12px;
+    font-weight: 800;
+    flex-shrink: 0;
+    letter-spacing: 0.5px;
+    transition: all 0.35s ease;
+}
+
+.step-orange {
+    background: rgba(var(--primary-rgb), 0.12);
+    color: var(--primary);
+}
+.step-blue   { background: rgba(59,130,246,0.10);  color: #2563eb; }
+.step-purple { background: rgba(139,92,246,0.10);  color: #7c3aed; }
+.step-green  { background: rgba(16,185,129,0.10);  color: #059669; }
+.step-rose   { background: rgba(244,63,94,0.10);   color: #e11d48; }
+.step-teal   { background: rgba(20,184,166,0.10);  color: #0d9488; }
+
+.tl-card.card-active .step-orange {
+    background: var(--primary);
+    color: #fff;
+}
+.tl-card.card-active .step-blue   { background: #3b82f6; color: #fff; }
+.tl-card.card-active .step-purple { background: #8b5cf6; color: #fff; }
+.tl-card.card-active .step-green  { background: #10b981; color: #fff; }
+.tl-card.card-active .step-rose   { background: #f43f5e; color: #fff; }
+.tl-card.card-active .step-teal   { background: #14b8a6; color: #fff; }
+
+/* Toggle chevron button */
+.tl-card-toggle {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background: #f1f5f9;
+    color: #94a3b8;
+    transition: all 0.35s cubic-bezier(.4,0,.2,1);
+    flex-shrink: 0;
+}
+
+.tl-card-toggle i,
+.tl-card-toggle svg {
+    width: 16px;
+    height: 16px;
+    transition: transform 0.35s cubic-bezier(.4,0,.2,1);
+}
+
+.tl-card-toggle.toggle-open {
+    background: #092C4C;
+    color: #fff;
+    box-shadow: 0 2px 8px rgba(9,44,76,0.2);
+}
+
+.tl-card-toggle.toggle-open i,
+.tl-card-toggle.toggle-open svg {
+    transform: rotate(180deg);
+    color: #fff;
+    stroke: #fff;
+}
+
+/* ── Collapsible Body ────────────────────────────────────── */
+.tl-collapse {
+    max-height: 0;
+    overflow: hidden;
+    opacity: 0;
+    transition: max-height 0.45s cubic-bezier(.4,0,.2,1),
+                opacity 0.35s ease;
+}
+
+.tl-collapse.tl-open {
+    max-height: 2000px;
+    opacity: 1;
+}
+
+.tl-card-body {
+    padding: 0 20px 20px 20px;
+    border-top: 1px solid #f1f5f9;
+}
+
+.tl-card-body-inner {
+    border-radius: 10px;
+    padding: 16px 4px 4px;
+    transition: all 0.3s ease;
+}
+
+.tl-card-body-inner.touched {
+    background: rgba(254,159,67,0.03);
+    padding: 16px;
+    border: 1px dashed rgba(254,159,67,0.2);
+    border-radius: 12px;
+}
+
+/* ── Form Fields ─────────────────────────────────────────── */
+.tl-card-body .form-label {
+    font-size: 12.5px;
+    font-weight: 600;
+    color: #475569;
+    margin-bottom: 5px;
+}
+
+.tl-card-body .form-control,
+.tl-card-body .form-select {
+    border-radius: 8px;
+    border: 1.5px solid #e2e8f0;
+    font-size: 13px;
+    padding: 9px 12px;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+    background: #fff;
+}
+
+.tl-card-body .form-check-input:checked {
+    background-color: var(--primary);
+    border-color: #FE9F43;
+}
+
+.tl-card-body .form-check-input:focus {
+    box-shadow: 0 0 0 3px rgba(254,159,67,0.15);
+    border-color: #FE9F43;
+}
+
+/* ── Action Bar ──────────────────────────────────────────── */
+.tl-action-bar {
+    display: flex;
+    justify-content: flex-end;
+    gap: 12px;
+    padding: 20px 0 8px 0;
+}
+
+.tl-action-bar .btn {
+    border-radius: 10px;
+    padding: 10px 28px;
+    font-weight: 600;
+    font-size: 14px;
+}
+
+/* ── Responsive ──────────────────────────────────────────── */
+@media (max-width: 1100px) {
+    .tl-accordion {
+        grid-template-columns: 220px 1fr;
+    }
+}
+
+@media (max-width: 900px) {
+    .tl-accordion {
+        grid-template-columns: 1fr;
+    }
+
+    .tl-left-panel {
+        display: none;
+    }
+
+    .tl-card-row {
+        grid-template-columns: 40px 1fr;
+    }
+
+    .tl-card-row::before {
+        left: 19px;
+    }
+}
+
+@media (max-width: 576px) {
+    .tl-card-row {
+        grid-template-columns: 1fr;
+    }
+
+    .tl-dot-col {
+        display: none;
+    }
+
+    .tl-card-row::before {
+        display: none;
+    }
+}

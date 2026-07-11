@@ -1,0 +1,232 @@
+@page "/financial-plans/{Id:guid}/view"
+@using FinanceConnect.Client.ViewModels
+@using static FinanceConnect.Client.ViewModels.FinancialPlanViewModel
+
+@if (!isInitialized)
+{
+    <div class="page-loading-overlay">
+        <div class="whirly-loader"></div>
+    </div>
+}
+else if (Item == null)
+{
+    <div class="vb-root">
+        <div class="content">
+            <div class="alert alert-danger"><i class="ti ti-alert-circle me-2"></i>Financial Plan not found. <a href="/financial-plans" class="alert-link ms-2">Return to list</a></div>
+        </div>
+    </div>
+}
+else
+{
+    <div class="vb-root">
+        <div class="content">
+
+            <!-- ═══ HEADER ═══ -->
+            <div class="vb-header-card">
+                <div class="vb-cover"><div class="vb-cover-orb vb-orb-1"></div><div class="vb-cover-orb vb-orb-2"></div><div class="vb-cover-orb vb-orb-3"></div></div>
+                <div class="vb-header-body">
+                    <div class="vb-avatar">@Item.PlanCode?.Substring(0, Math.Min(2, Item.PlanCode?.Length ?? 0)).ToUpper()</div>
+                    <div class="vb-header-meta">
+                        <div>
+                            <p class="vb-bill-number">@Item.PlanCode – @Item.PlanName</p>
+                            <p class="vb-bill-sub">@Item.PlanType · @Item.PlanNature · @Item.PlanningScopeLevel</p>
+                            <div class="vb-badges">
+                                <span class="badge @GetStatusBadge(Item.PlanStatus)">@Item.PlanStatus</span>
+                                <span class="badge bg-info-transparent">@Item.ScenarioType</span>
+                                @if (Item.IsOfficialApprovedVersion) { <span class="badge bg-success-transparent">✓ Official</span> }
+                                @if (Item.IsLocked) { <span class="badge badge-red">🔒 Locked</span> }
+                            </div>
+                        </div>
+                        <div class="vb-header-actions">
+                            @if (!Item.IsLocked) { <a href="/financial-plans/edit/@Item.FinancialPlanId" class="btn btn-primary"><i class="ti ti-pencil me-1"></i> Edit</a> }
+                            <a href="/financial-plans" class="btn btn-outline-secondary"><i class="ti ti-arrow-left me-1"></i> Back</a>
+
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ═══ STRATEGIC TARGETS TILES ═══ -->
+            <div class="vb-summary-grid mb-4 mt-2" style="background:transparent;border:none;box-shadow:none;">
+                <div class="vb-tile"><div class="vb-tile-label">Revenue Target</div><div class="vb-tile-value primary">@(Item.TargetRevenueAmount?.ToString("N0") ?? "–")</div></div>
+                <div class="vb-tile"><div class="vb-tile-label">Expense Target</div><div class="vb-tile-value">@(Item.TargetExpenseAmount?.ToString("N0") ?? "–")</div></div>
+                <div class="vb-tile"><div class="vb-tile-label">Net Profit</div><div class="vb-tile-value text-success">@(Item.TargetNetProfitAmount?.ToString("N0") ?? "–")</div></div>
+                <div class="vb-tile"><div class="vb-tile-label">Capex Envelope</div><div class="vb-tile-value">@(Item.TargetCapexAmount?.ToString("N0") ?? "–")</div></div>
+                <div class="vb-tile"><div class="vb-tile-label">Growth %</div><div class="vb-tile-value">@(Item.TargetGrowthPercent?.ToString("N1") ?? "–")%</div></div>
+                <div class="vb-tile"><div class="vb-tile-label">Headcount</div><div class="vb-tile-value">@(Item.TargetHeadcount?.ToString() ?? "–")</div></div>
+            </div>
+
+            <!-- ═══ TWO-COLUMN BODY ═══ -->
+            <div class="ac-layout mb-5">
+
+                <!-- ══ LEFT SIDEBAR ══ -->
+                <div class="ac-left">
+
+                    <!-- Planning Classification -->
+                    <div class="vb-card">
+                        <div class="vb-card-header"><h6><i class="ti ti-category me-1"></i> Planning Classification</h6></div>
+                        <div class="vb-card-body">
+                            <div class="vb-row"><span class="vb-label">Plan Type</span><span class="vb-val">@Item.PlanType</span></div>
+                            <div class="vb-row"><span class="vb-label">Scenario</span><span class="vb-val">@Item.ScenarioType</span></div>
+                            <div class="vb-row"><span class="vb-label">Nature</span><span class="vb-val">@Item.PlanNature</span></div>
+                            <div class="vb-row"><span class="vb-label">Scope Level</span><span class="vb-val">@Item.PlanningScopeLevel</span></div>
+                        </div>
+                    </div>
+
+                    <!-- Horizon & Scope -->
+                    <div class="vb-card">
+                        <div class="vb-card-header"><h6><i class="ti ti-calendar me-1"></i> Horizon & Scope</h6></div>
+                        <div class="vb-card-body">
+                            <div class="vb-row"><span class="vb-label">Start Date</span><span class="vb-val">@Item.FromDate?.ToString("dd MMM yyyy")</span></div>
+                            <div class="vb-row"><span class="vb-label">End Date</span><span class="vb-val">@Item.ToDate?.ToString("dd MMM yyyy")</span></div>
+                            <div class="vb-row"><span class="vb-label">Horizon Mode</span><span class="vb-val">@Item.PlanHorizonMode</span></div>
+                            <div class="vb-row"><span class="vb-label">Version / Revision</span><span class="vb-val">v@(Item.VersionNumber).@(Item.RevisionNumber)</span></div>
+                            @if (!string.IsNullOrWhiteSpace(Item.BusinessUnitCode))
+                            {
+                                <div class="vb-row"><span class="vb-label">Business Unit</span><span class="vb-val">@Item.BusinessUnitCode</span></div>
+                            }
+                            @if (!string.IsNullOrWhiteSpace(Item.RegionCode))
+                            {
+                                <div class="vb-row"><span class="vb-label">Region</span><span class="vb-val">@Item.RegionCode</span></div>
+                            }
+                            @if (!string.IsNullOrWhiteSpace(Item.BranchGroupCode))
+                            {
+                                <div class="vb-row"><span class="vb-label">Branch Group</span><span class="vb-val">@Item.BranchGroupCode</span></div>
+                            }
+                        </div>
+                    </div>
+
+                    <!-- Status -->
+                    <div class="vb-card">
+                        <div class="vb-card-header"><h6><i class="ti ti-toggle-right me-1"></i> Status & Lifecycle</h6></div>
+                        <div class="vb-card-body">
+                            <div class="vb-row">
+                                <span class="vb-label">Plan Status</span>
+                                <span class="vb-val"><span class="badge @GetStatusBadge(Item.PlanStatus)">@Item.PlanStatus</span></span>
+                            </div>
+                            <div class="vb-row">
+                                <span class="vb-label">Locked</span>
+                                <span class="vb-val">@(Item.IsLocked ? "🔒 Yes" : "Unlocked")</span>
+                            </div>
+                            <div class="vb-row">
+                                <span class="vb-label">Official Approved</span>
+                                <span class="vb-val">@(Item.IsOfficialApprovedVersion ? "✓ Yes" : "No")</span>
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+                <!-- ══ END LEFT SIDEBAR ══ -->
+
+                <!-- ══ RIGHT MAIN ══ -->
+                <div class="ac-right">
+
+                    <!-- Financial Targets (Detail) -->
+                    <div class="vb-card">
+                        <div class="vb-card-header"><h6><i class="ti ti-target me-1"></i> Financial Targets (Detail)</h6></div>
+                        <div class="vb-card-body">
+                            <div class="ac-2col">
+                                <div class="vb-row"><span class="vb-label">Gross Profit</span><span class="vb-val">@(Item.TargetGrossProfitAmount?.ToString("N2") ?? "–")</span></div>
+                                <div class="vb-row"><span class="vb-label">Operating Profit</span><span class="vb-val">@(Item.TargetOperatingProfitAmount?.ToString("N2") ?? "–")</span></div>
+                                <div class="vb-row"><span class="vb-label">Cash Position</span><span class="vb-val">@(Item.TargetCashPositionAmount?.ToString("N2") ?? "–")</span></div>
+                                <div class="vb-row"><span class="vb-label">Working Capital</span><span class="vb-val">@(Item.TargetWorkingCapitalAmount?.ToString("N2") ?? "–")</span></div>
+                                <div class="vb-row"><span class="vb-label">EBITDA %</span><span class="vb-val">@(Item.TargetEBITDAPercent?.ToString("N1") ?? "–")%</span></div>
+                                <div class="vb-row"><span class="vb-label">Margin %</span><span class="vb-val">@(Item.TargetMarginPercent?.ToString("N1") ?? "–")%</span></div>
+                                <div class="vb-row"><span class="vb-label">Investment Amount</span><span class="vb-val">@(Item.TargetInvestmentAmount?.ToString("N2") ?? "–")</span></div>
+                                <div class="vb-row"><span class="vb-label">Linked Budgets</span><span class="vb-val">@Item.LinkedBudgetCount</span></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Strategic Assumptions -->
+                    @if (HasAssumptions())
+                    {
+                        <div class="vb-card">
+                            <div class="vb-card-header"><h6><i class="ti ti-bulb me-1"></i> Strategic Assumptions</h6></div>
+                            <div class="vb-card-body">
+                                @if (!string.IsNullOrWhiteSpace(Item.RevenueAssumptionText))
+                                {
+                                    <div class="vb-row" style="flex-direction:column;gap:4px;"><span class="vb-label">Revenue</span><span class="vb-val" style="font-style:italic;color:var(--gray-600);">@Item.RevenueAssumptionText</span></div>
+                                }
+                                @if (!string.IsNullOrWhiteSpace(Item.ExpenseAssumptionText))
+                                {
+                                    <div class="vb-row" style="flex-direction:column;gap:4px;"><span class="vb-label">Expense</span><span class="vb-val" style="font-style:italic;color:var(--gray-600);">@Item.ExpenseAssumptionText</span></div>
+                                }
+                                @if (!string.IsNullOrWhiteSpace(Item.CapexAssumptionText))
+                                {
+                                    <div class="vb-row" style="flex-direction:column;gap:4px;"><span class="vb-label">Capex</span><span class="vb-val" style="font-style:italic;color:var(--gray-600);">@Item.CapexAssumptionText</span></div>
+                                }
+                                @if (!string.IsNullOrWhiteSpace(Item.MarketAssumptionText))
+                                {
+                                    <div class="vb-row" style="flex-direction:column;gap:4px;"><span class="vb-label">Market</span><span class="vb-val" style="font-style:italic;color:var(--gray-600);">@Item.MarketAssumptionText</span></div>
+                                }
+                                @if (!string.IsNullOrWhiteSpace(Item.RiskAssumptionText))
+                                {
+                                    <div class="vb-row" style="flex-direction:column;gap:4px;"><span class="vb-label">Risk</span><span class="vb-val" style="font-style:italic;color:var(--gray-600);">@Item.RiskAssumptionText</span></div>
+                                }
+                                @if (!string.IsNullOrWhiteSpace(Item.OpportunityAssumptionText))
+                                {
+                                    <div class="vb-row" style="flex-direction:column;gap:4px;"><span class="vb-label">Opportunity</span><span class="vb-val" style="font-style:italic;color:var(--gray-600);">@Item.OpportunityAssumptionText</span></div>
+                                }
+                                @if (!string.IsNullOrWhiteSpace(Item.StrategicNarrative))
+                                {
+                                    <div class="vb-row" style="flex-direction:column;gap:4px;"><span class="vb-label">Strategic Narrative</span><span class="vb-val" style="font-style:italic;color:var(--gray-600);">@Item.StrategicNarrative</span></div>
+                                }
+                            </div>
+                        </div>
+                    }
+
+                    <!-- Governance & Notes -->
+                    @if (!string.IsNullOrWhiteSpace(Item.RevisionReason) || !string.IsNullOrWhiteSpace(Item.BoardApprovalReference) || !string.IsNullOrWhiteSpace(Item.ApprovalNotes) || !string.IsNullOrWhiteSpace(Item.ManagementNotes))
+                    {
+                        <div class="vb-card">
+                            <div class="vb-card-header"><h6><i class="ti ti-shield-check me-1"></i> Governance & Notes</h6></div>
+                            <div class="vb-card-body">
+                                @if (!string.IsNullOrWhiteSpace(Item.RevisionReason))
+                                {
+                                    <div class="vb-row" style="flex-direction:column;gap:4px;"><span class="vb-label">Revision Reason</span><span class="vb-val" style="font-style:italic;color:var(--gray-600);">@Item.RevisionReason</span></div>
+                                }
+                                @if (!string.IsNullOrWhiteSpace(Item.BoardApprovalReference))
+                                {
+                                    <div class="vb-row"><span class="vb-label">Board Approval Ref</span><span class="vb-val">@Item.BoardApprovalReference</span></div>
+                                }
+                                @if (!string.IsNullOrWhiteSpace(Item.ApprovalNotes))
+                                {
+                                    <div class="vb-row" style="flex-direction:column;gap:4px;"><span class="vb-label">Approval Notes</span><span class="vb-val" style="font-style:italic;color:var(--gray-600);">@Item.ApprovalNotes</span></div>
+                                }
+                                @if (!string.IsNullOrWhiteSpace(Item.ManagementNotes))
+                                {
+                                    <div class="vb-row" style="flex-direction:column;gap:4px;"><span class="vb-label">Management Notes</span><span class="vb-val" style="font-style:italic;color:var(--gray-600);">@Item.ManagementNotes</span></div>
+                                }
+                            </div>
+                        </div>
+                    }
+
+                    <!-- Audit Trail -->
+                    <div class="vb-card">
+                        <div class="vb-card-header"><h6><i class="ti ti-history me-1"></i> Audit Trail</h6></div>
+                        <div class="vb-card-body">
+                            <div class="ac-2col">
+                                <div class="vb-row"><span class="vb-label">Prepared On</span><span class="vb-val">@(Item.PreparedOn?.ToString("dd MMM yyyy HH:mm") ?? "–")</span></div>
+                                <div class="vb-row"><span class="vb-label">Reviewed On</span><span class="vb-val">@(Item.ReviewedOn?.ToString("dd MMM yyyy HH:mm") ?? "–")</span></div>
+                                <div class="vb-row"><span class="vb-label">Approved On</span><span class="vb-val">@(Item.ApprovedOn?.ToString("dd MMM yyyy HH:mm") ?? "–")</span></div>
+                                <div class="vb-row"><span class="vb-label">Created At</span><span class="vb-val">@Item.CreatedAt.ToString("dd MMM yyyy HH:mm")</span></div>
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+                <!-- ══ END RIGHT MAIN ══ -->
+
+            </div>
+
+        </div>
+    </div>
+}
+
+<style>
+    .ac-layout { display: grid; grid-template-columns: 300px 1fr; gap: 16px; align-items: start; }
+    .ac-left, .ac-right { display: flex; flex-direction: column; gap: 16px; }
+    .ac-2col { display: grid; grid-template-columns: repeat(auto-fit, minmax(204px, 1fr)); gap: 0 32px; }
+    @@media (max-width: 900px) { .ac-layout { grid-template-columns: 1fr; } .ac-2col { grid-template-columns: 1fr; } }
+</style>

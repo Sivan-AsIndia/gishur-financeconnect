@@ -1,0 +1,592 @@
+﻿@page "/depreciation-runs/{RunId:guid}/lines"
+
+@using FinanceConnect.Client.ViewModels
+@using FinanceConnect.Client.Services
+
+@inject DepreciationRunService RunService
+@inject DepreciationRunLineService LineService
+@inject ToastService ToastService
+@inject NavigationManager Nav
+@inject IJSRuntime JS
+
+<style>
+    .modal .btn-close::before{
+        background:white
+    }
+</style>
+
+<PageTitle>Depreciation Run Lines</PageTitle>
+
+@if (!isInitialized)
+{
+    <div class="content">
+        <div class="text-center p-5">
+            <div class="spinner-border"></div>
+            <div class="mt-2">Loading run lines...</div>
+        </div>
+    </div>
+}
+else if (Run == null)
+{
+    <div class="content">
+        <div class="alert alert-warning">
+            Depreciation run not found
+        </div>
+
+        <a href="/depreciation-runs" class="btn btn-secondary">
+            <i class="ti ti-arrow-left"></i> Back
+        </a>
+    </div>
+}
+else
+{
+
+    <div class="content">
+
+        <!-- PAGE HEADER -->
+
+        <div class="page-header">
+
+            <div class="page-title">
+                <h4>Depreciation Run Lines</h4>
+                <h6>Asset depreciation breakdown for the selected period</h6>
+            </div>
+
+            <div>
+                <a href="/depreciation-runs" class="btn btn-outline-secondary">
+                    <i class="ti ti-arrow-left"></i> Back
+                </a>
+            </div>
+
+        </div>
+
+
+        <!-- RUN SUMMARY -->
+
+        <div class="card mb-3">
+
+            <div class="card-body">
+
+                <div class="row">
+
+                    <div class="col-md-3">
+
+                        <div class="field-label">Run Number</div>
+                        <div class="field-value">@Run.RunNumber</div>
+
+                    </div>
+
+                    <div class="col-md-3">
+
+                        <div class="field-label">Accounting Period</div>
+                        <div class="field-value">@Run.AccountingPeriodName</div>
+
+                    </div>
+
+                    <div class="col-md-3">
+
+                        <div class="field-label">Run Type</div>
+                        <div class="field-value">@Run.RunType</div>
+
+                    </div>
+
+                    <div class="col-md-3">
+
+                        <div class="field-label">Status</div>
+
+                        <span class="badge @GetRunStatusBadge(Run.RunStatus)">
+                            @Run.RunStatus
+                        </span>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+        </div>
+
+
+
+        <!-- FILTERS -->
+
+        <div class="card">
+
+            <div class="card-header d-flex justify-content-between">
+
+                <div style="width:250px">
+
+                    <input type="search"
+                           class="form-control form-control-sm"
+                           placeholder="Search asset..."
+                           @bind="searchText"
+                           @oninput="OnSearch" />
+
+                </div>
+
+                <select class="form-select form-select-sm"
+                        style="width:200px"
+                        @bind="SelectedStatus">
+        
+                    <option value="">All Status</option>
+
+                    @foreach (var s in Enum.GetValues<DepreciationRunLineStatus>())
+                    {
+                        <option value="@s">@s</option>
+                    }
+
+                </select>
+
+            </div>
+
+
+
+            <div class="card-body p-0">
+                <div>
+                    <table class="table align-middle table-fixed w-100">
+
+                        <thead class="thead-light">
+
+                        <tr>
+                                <th class="d-xl-none" style="width:40px"></th>
+                            <th style="width:70px">Line</th>
+                                <th class="d-none d-md-table-cell">Asset</th>
+                                <th class="d-none d-md-table-cell">Category</th>
+                                <th class="d-none d-md-table-cell">Method</th>
+
+                                <th class="text-end d-none d-l-table-cell">Planned</th>
+                                <th class="text-end d-none d-xl-table-cell">Actual</th>
+
+                                <th class="text-end d-none d-xl-table-cell">NBV Before</th>
+                                <th class="text-end d-none d-xl-table-cell">NBV After</th>
+
+                                <th class="d-none d-xxl-table-cell">Status</th>
+                                <th class="d-none d-xxl-table-cell">Exception</th>
+
+                            <th>Actions</th>
+
+                        </tr>
+
+                    </thead>
+
+                    <tbody>
+
+                        @if (PagedRunLines.Any())
+                        {
+                            @foreach (var line in Lines)
+                            {
+
+                                <tr>
+                                        <!-- PLUS ICON -->
+                                        <td class="d-xl-none text-center" style="padding-left: 15px;">
+                                            <a href="javascript:void(0);" class="TablePlus"
+                                                   data-bs-toggle="modal"
+                                                   data-bs-target="#rowDetailsModal"
+                                                   @onclick="() => ViewRunLine(line)">
+                                                <i class="ti ti-plus"></i>
+                                            </a>
+                                        </td>
+
+                                    <td>@line.LineNumber</td>
+
+                                        <td class="d-none d-md-table-cell">
+                                        <div>@line.AssetNumberSnapshot</div>
+                                        <small class="text-muted">@line.AssetNameSnapshot</small>
+                                    </td>
+
+                                        <td class="d-none d-md-table-cell">@line.CategoryCodeSnapshot</td>
+
+                                        <td class="d-none d-md-table-cell">@line.MethodTypeSnapshot</td>
+
+                                        <td class="text-end d-none d-l-table-cell">
+                                        ₹@line.PlannedDepreciationAmount.ToString("N2")
+                                    </td>
+
+                                        <td class="text-end d-none d-xl-table-cell">
+                                        ₹@line.ActualDepreciationAmount.ToString("N2")
+                                    </td>
+
+                                        <td class="text-end d-none d-xl-table-cell">
+                                        ₹@line.NBVBeforeAmountSnapshot?.ToString("N2")
+                                    </td>
+
+                                        <td class="text-end d-none d-xl-table-cell">
+                                        ₹@line.NBVAfterAmountSnapshot?.ToString("N2")
+                                    </td>
+
+                                        <td class="d-none d-xxl-table-cell">
+
+                                        <span class="badge @GetLineStatusBadge(line.LineStatus)">
+                                            @line.LineStatus
+                                        </span>
+
+                                    </td>
+
+                                        <td class="d-none d-xxl-table-cell">
+
+                                        @if (line.LineStatus == DepreciationRunLineStatus.Excluded)
+                                        {
+                                            <span class="text-danger">
+                                                @line.ExclusionReasonCode
+                                            </span>
+                                        }
+
+                                        @if (line.LineStatus == DepreciationRunLineStatus.Error)
+                                        {
+                                            <span class="text-warning">
+                                                @line.ErrorCode
+                                            </span>
+                                        }
+
+                                    </td>
+
+                                        <td class="action-table-data">
+
+                                        <div class="edit-delete-action">
+
+                                            @if (line.LineStatus == DepreciationRunLineStatus.Generated)
+                                            {
+
+                                                    <a class="me-2 delete-icon p-1"
+                                                       title="Exclude"
+                                                       @onclick="() => ExcludeLine(line)">
+                                                    <i class="ti ti-ban"></i>
+                                                </a>
+
+                                            }
+
+                                            @if (line.LineStatus == DepreciationRunLineStatus.Excluded)
+                                            {
+
+                                                    <a class="me-2 check-icon p-1"
+                                                       title="Include"
+                                                       @onclick="() => IncludeLine(line)">
+                                                    <i class="ti ti-check"></i>
+                                                </a>
+
+                                            }
+
+                                                <a class="me-2 view-icon p-1"
+                                                   title="View Details"
+                                                       data-bs-toggle="modal"
+                                                       data-bs-target="#rowDetailsModal"
+                                                       @onclick="() => ViewRunLine(line)">
+                                                <i class="ti ti-eye"></i>
+                                            </a>
+
+                                        </div>
+
+                                    </td>
+
+                                </tr>
+
+                            }
+                        }
+                        else
+                        {
+
+                            <tr>
+
+                                <td colspan="11" class="text-center p-4">
+
+                                    <i class="ti ti-database-off fs-32 d-block mb-2"></i>
+                                    No depreciation lines found
+
+                                </td>
+
+                            </tr>
+
+                        }
+
+                    </tbody>
+
+                </table>
+                    @if (PagedRunLines.Any())
+                    {
+                        <!-- Pagination -->
+                        <div class="d-flex justify-content-between align-items-center p-3">
+
+                            <div class="d-flex align-items-center fs-13">
+                                <span class="me-2">Rows Per Page</span>
+                                <select class="form-select form-select-sm w-auto"
+                                        @onchange="OnPageSizeChange">
+                                    <option value="5">5</option>
+                                    <option value="10" selected>10</option>
+                                    <option value="25">25</option>
+                                </select>
+                                <span class="ms-2">Entries</span>
+                            </div>
+
+                            <nav>
+                                <ul class="pagination pagination-sm mb-0">
+
+                                    <li class="page-item @(CurrentPage == 1 ? "disabled" : "")">
+                                        <a class="page-link" href="#"
+                                               @onclick="PreviousPage"
+                                               @onclick:preventDefault>
+                                            <i class="ti ti-chevron-left"></i>
+                                        </a>
+                                    </li>
+
+                                    @foreach (var pageNumber in VisiblePages)
+                                    {
+                                        <li class="page-item @(pageNumber == CurrentPage ? "active" : "")">
+                                            <button class="page-link"
+                                                    @onclick="() => GoToPage(pageNumber)">
+                                                @pageNumber
+                                            </button>
+                                        </li>
+                                    }
+
+                                    <li class="page-item @(CurrentPage == TotalPages ? "disabled" : "")">
+                                        <a class="page-link" href="#"
+                                               @onclick="NextPage"
+                                               @onclick:preventDefault>
+                                            <i class="ti ti-chevron-right"></i>
+                                        </a>
+                                    </li>
+
+                                </ul>
+                            </nav>
+                        </div>
+                    }
+                </div>
+            </div>
+
+        </div>
+
+    </div>
+
+    <!-- ROW DETAILS MODAL -->
+
+    <div class="modal fade" id="rowDetailsModal" tabindex="-1"  data-bs-backdrop="static">
+
+        <div class="modal-dialog modal-xl modal-dialog-centered">
+
+            <div class="modal-content">
+
+                <div class="modal-header">
+
+                    <h5 class="modal-title">
+                        <i class="ti ti-calculator me-2 text-primary"></i>
+                        Depreciation Line Details
+                    </h5>
+
+                    <button type="button"
+                            class="btn-close"
+                            data-bs-dismiss="modal" style="padding: 0;
+        transform: none;
+        right: 26px;">
+                    </button>
+
+                </div>
+
+                <div class="modal-body">
+
+                    @if (SelectedRunLine != null)
+                    {
+
+                        <!-- ASSET SNAPSHOT -->
+
+                        <div class="card mb-3">
+
+                            <div class="card-header text-primary">
+                                <strong>Asset Snapshot</strong>
+                            </div>
+
+                            <div class="card-body">
+
+                                <div class="row">
+
+                                    <div class="col-md-4">
+                                        <div class="field-label">Asset No</div>
+                                        <div class="field-value">@SelectedRunLine.AssetNumberSnapshot</div>
+                                    </div>
+
+                                    <div class="col-md-4">
+                                        <div class="field-label">Asset Name</div>
+                                        <div class="field-value">@SelectedRunLine.AssetNameSnapshot</div>
+                                    </div>
+
+                                    <div class="col-md-4">
+                                        <div class="field-label">Category</div>
+                                        <div class="field-value">@SelectedRunLine.CategoryCodeSnapshot</div>
+                                    </div>
+
+                                </div>
+
+                            </div>
+
+                        </div>
+
+
+                        <!-- DEPRECIATION AMOUNTS -->
+
+                        <div class="card mb-3">
+
+                            <div class="card-header text-primary">
+                                <strong>Depreciation Amounts</strong>
+                            </div>
+
+                            <div class="card-body">
+
+                                <div class="row">
+
+                                    <div class="col-md-3">
+
+                                        <div class="field-label">NBV Before</div>
+
+                                        <div class="field-value">
+                                            ₹@SelectedRunLine.NBVBeforeAmountSnapshot?.ToString("N2")
+                                        </div>
+
+                                    </div>
+
+                                    <div class="col-md-3">
+
+                                        <div class="field-label">Planned Amount</div>
+
+                                        <div class="field-value">
+                                            ₹@SelectedRunLine.PlannedDepreciationAmount.ToString("N2")
+                                        </div>
+
+                                    </div>
+
+                                    <div class="col-md-3">
+
+                                        <div class="field-label">Actual Amount</div>
+
+                                        <div class="field-value">
+                                            ₹@SelectedRunLine.ActualDepreciationAmount.ToString("N2")
+                                        </div>
+
+                                    </div>
+
+                                    <div class="col-md-3">
+
+                                        <div class="field-label">NBV After</div>
+
+                                        <div class="field-value">
+                                            ₹@SelectedRunLine.NBVAfterAmountSnapshot?.ToString("N2")
+                                        </div>
+
+                                    </div>
+
+                                </div>
+
+                            </div>
+
+                        </div>
+
+
+                        <!-- METHOD SNAPSHOT -->
+
+                        <div class="card mb-3">
+
+                            <div class="card-header text-primary">
+                                <strong>Method Snapshot</strong>
+                            </div>
+
+                            <div class="card-body">
+
+                                <div class="row">
+
+                                    <div class="col-md-3">
+
+                                        <div class="field-label">Method</div>
+                                        <div class="field-value">@SelectedRunLine.MethodTypeSnapshot</div>
+
+                                    </div>
+
+                                    <div class="col-md-3">
+
+                                        <div class="field-label">Rate %</div>
+                                        <div class="field-value">@SelectedRunLine.RatePercentSnapshot</div>
+
+                                    </div>
+
+                                    <div class="col-md-3">
+
+                                        <div class="field-label">Useful Life</div>
+                                        <div class="field-value">
+                                            @SelectedRunLine.UsefulLifeMonthsSnapshot months
+                                        </div>
+
+                                    </div>
+
+                                    <div class="col-md-3">
+
+                                        <div class="field-label">Start Convention</div>
+                                        <div class="field-value">
+                                            @SelectedRunLine.StartConventionSnapshot
+                                        </div>
+
+                                    </div>
+
+                                </div>
+
+                            </div>
+
+                        </div>
+
+
+                        <!-- STATUS & EXCEPTIONS -->
+
+                        <div class="card">
+
+                            <div class="card-header text-primary">
+                                <strong>Status & Exceptions</strong>
+                            </div>
+
+                            <div class="card-body">
+
+                                <div class="row">
+
+                                    <div class="col-md-3">
+
+                                        <div class="field-label">Line Status</div>
+
+                                        <span class="badge @GetLineStatusBadge(SelectedRunLine.LineStatus)">
+                                            @SelectedRunLine.LineStatus
+                                        </span>
+
+                                    </div>
+
+                                    <div class="col-md-4">
+
+                                        <div class="field-label">Exclusion Reason</div>
+
+                                        <div class="field-value text-danger">
+                                            @SelectedRunLine.ExclusionReasonCode
+                                        </div>
+
+                                    </div>
+
+                                    <div class="col-md-5">
+
+                                        <div class="field-label">Error Message</div>
+
+                                        <div class="field-value text-warning">
+                                            @SelectedRunLine.ErrorMessage
+                                        </div>
+
+                                    </div>
+
+                                </div>
+
+                            </div>
+
+                        </div>
+
+                    }
+
+                </div>
+
+
+            </div>
+
+        </div>
+
+    </div>
+
+}

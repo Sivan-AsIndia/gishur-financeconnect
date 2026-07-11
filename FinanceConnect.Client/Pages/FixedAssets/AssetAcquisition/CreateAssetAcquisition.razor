@@ -1,0 +1,274 @@
+@page "/asset-acquisitions/create"
+@page "/asset-acquisitions/edit/{Id:guid}"
+@inject NavigationManager Nav
+@using FinanceConnect.Client.ViewModels
+@using FinanceConnect.Client.Services
+
+<style>
+    .validation-message { color: #dc3545; font-size: 12px; }
+    .gl-error { color: #dc3545; font-size: 12px; display: block; margin-top: 2px; }
+    .field-invalid { border-color: #dc3545 !important; box-shadow: none !important; }
+</style>
+
+<div class="content flat-form">
+
+    <div class="page-header">
+        <div class="page-title">
+            <h4 class="fw-bold">@(IsEdit ? "Edit Asset Acquisition" : "Create Asset Acquisition")</h4>
+            <h6>Record asset capitalization &amp; cost details</h6>
+        </div>
+        <div class="page-btn">
+            <a href="/asset-acquisitions" class="btn btn-outline-secondary">
+                <i class="ti ti-arrow-left"></i> Back
+            </a>
+        </div>
+    </div>
+
+    <EditForm EditContext="_editContext" OnSubmit="Save">
+        <DataAnnotationsValidator />
+
+        <!-- SECTION 1 – HEADER -->
+        <div class="card mt-4">
+            <div class="card-body">
+                <h5 class="text-primary mb-3 d-flex align-items-center">
+                    <i class="ti ti-file-text me-2" style="margin-bottom: 3px;    font-size: 22px;
+"></i> Header Information
+                </h5>
+                <div class="row g-3">
+                    <div class="col-md-3">
+                        <label class="form-label">Acquisition No</label>
+                        <input class="form-control" value="@(IsEdit ? Model.AcquisitionNumber : "Auto-generated")" disabled />
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">Acquisition Type <span class="text-danger">*</span></label>
+                        <InputSelect class="form-select" @bind-Value="Model.AcquisitionType">
+                            <option value="">-- Select Type --</option>
+                            <option value="@AssetAcquisitionViewModel.AcquisitionTypeEnum.InitialCapitalization">Initial Capitalization</option>
+                            <option value="@AssetAcquisitionViewModel.AcquisitionTypeEnum.CapitalImprovement">Capital Improvement</option>
+                            <option value="@AssetAcquisitionViewModel.AcquisitionTypeEnum.OpeningBalance">Opening Balance</option>
+                            <option value="@AssetAcquisitionViewModel.AcquisitionTypeEnum.Donation">Donation</option>
+                            <option value="@AssetAcquisitionViewModel.AcquisitionTypeEnum.SelfConstructed">Self Constructed</option>
+                            <option value="@AssetAcquisitionViewModel.AcquisitionTypeEnum.TransferIn">Transfer In</option>
+                        </InputSelect>
+                        <ValidationMessage For="@(() => Model.AcquisitionType)" />
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">Acquisition Date <span class="text-danger">*</span></label>
+                        <InputDate class="form-control" @bind-Value="Model.AcquisitionDate" />
+                        <ValidationMessage For="@(() => Model.AcquisitionDate)" />
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">Capitalization Date <span class="text-danger">*</span></label>
+                        <InputDate class="form-control" @bind-Value="Model.CapitalizationDate" />
+                        <ValidationMessage For="@(() => Model.CapitalizationDate)" />
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">Status</label>
+                        <input class="form-control" value="@Model.AcquisitionStatus" disabled />
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- SECTION 2 – ASSET LINKAGE -->
+        <div class="card mt-3">
+            <div class="card-body">
+                <h5 class="text-primary mb-3 d-flex align-items-center">
+                    <i class="ti ti-link me-2" style="margin-bottom: 3px;    font-size: 22px;
+"></i> Asset Linkage
+                </h5>
+                <div class="row g-3">
+                    <div class="col-md-4">
+                        <label class="form-label">Fixed Asset <span class="text-danger">*</span></label>
+                        <InputSelect class="form-select" @bind-Value="Model.FixedAssetId" @bind-Value:after="OnAssetChanged">
+                            <option value="">-- Select Asset --</option>
+                            @foreach (var asset in FixedAssets)
+                            {
+                                <option value="@asset.FixedAssetId">@asset.AssetCode – @asset.AssetName</option>
+                            }
+                        </InputSelect>
+                        <ValidationMessage For="@(() => Model.FixedAssetId)" />
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">Asset Number</label>
+                        <input class="form-control" value="@Model.AssetNumberSnapshot" disabled />
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">Asset Name</label>
+                        <input class="form-control" value="@Model.AssetNameSnapshot" disabled />
+                    </div>
+                    <div class="col-md-2">
+                        <label class="form-label">Asset Status</label>
+                        <input class="form-control" value="@Model.AssetStatusSnapshot" disabled />
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- SECTION 3 – SOURCE & REFERENCES -->
+        <div class="card mt-3">
+            <div class="card-body">
+                <h5 class="text-primary mb-3 d-flex align-items-center">
+                    <i class="ti ti-receipt me-2" style="margin-bottom: 3px;    font-size: 22px;
+"></i> Source &amp; References
+                </h5>
+                <div class="row g-3">
+                    <div class="col-md-3">
+                        <label class="form-label">Source Module <span class="text-danger">*</span></label>
+                        <InputSelect class="form-select" @bind-Value="Model.SourceModule">
+                            <option value="">-- Select Source --</option>
+                            <option value="@AssetAcquisitionViewModel.SourceModuleEnum.AP">AP</option>
+                            <option value="@AssetAcquisitionViewModel.SourceModuleEnum.CashBank">Cash / Bank</option>
+                            <option value="@AssetAcquisitionViewModel.SourceModuleEnum.Manual">Manual</option>
+                            <option value="@AssetAcquisitionViewModel.SourceModuleEnum.System">System</option>
+                        </InputSelect>
+                        <ValidationMessage For="@(() => Model.SourceModule)" />
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">Vendor Invoice No</label>
+                        <InputText class="form-control" @bind-Value="Model.VendorInvoiceNumber" placeholder="e.g. INV-2024-001" />
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">Vendor Invoice Date</label>
+                        <InputDate class="form-control" @bind-Value="Model.VendorInvoiceDate" />
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">Purchase Order Ref</label>
+                        <InputText class="form-control" @bind-Value="Model.PurchaseOrderRef" placeholder="e.g. PO-2024-100" />
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">Reference Text</label>
+                        <InputText class="form-control" @bind-Value="Model.ReferenceText" placeholder="GRN / Delivery note reference" />
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">Posting Route <span class="text-danger">*</span></label>
+                        <InputSelect class="form-select" @bind-Value="Model.PostingRoute">
+                            <option value="">-- Select Route --</option>
+                            <option value="@AssetAcquisitionViewModel.PostingRouteEnum.DirectToAsset">Direct To Asset</option>
+                            <option value="@AssetAcquisitionViewModel.PostingRouteEnum.ToCWIP">To CWIP</option>
+                            <option value="@AssetAcquisitionViewModel.PostingRouteEnum.CWIPToAsset">CWIP To Asset</option>
+                        </InputSelect>
+                        <ValidationMessage For="@(() => Model.PostingRoute)" />
+                    </div>
+                    <div class="col-md-12">
+                        <label class="form-label">Narration</label>
+                        <InputTextArea class="form-control" rows="2" @bind-Value="Model.Narration"
+                                       placeholder="Describe the acquisition purpose for audit trail..." />
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- SECTION 4 – COST LINES -->
+        <div class="card mt-3">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h5 class="text-primary mb-3 d-flex align-items-center">
+                        <i class="ti ti-list-details me-2" style="margin-bottom: 3px;    font-size: 22px;
+"></i> Cost Lines
+                    </h5>
+                    <button type="button" class="btn btn-sm btn-outline-primary" @onclick="AddCostLine">
+                        <i class="ti ti-plus me-1"></i> Add Line
+                    </button>
+                </div>
+
+                @if (!string.IsNullOrEmpty(CostLineError))
+                {
+                    <div class="text-danger fs-12 mb-2">@CostLineError</div>
+                }
+
+                <div class="table-responsive">
+                    <table class="table table-bordered align-middle mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th style="width:60px">#</th>
+                                <th style="width:200px">Cost Type <span class="text-danger">*</span></th>
+                                <th>Description</th>
+                                <th style="width:150px">Amount <span class="text-danger">*</span></th>
+                                <th style="width:100px">Tax</th>
+                                <th style="width:120px">Line Total</th>
+                                <th style="width:100px">Capitalizable</th>
+                                <th style="width:60px"></th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @for (int i = 0; i < Model.CostLines.Count; i++)
+                            {
+                                var line = Model.CostLines[i];
+                                var idx = i;
+                                <tr>
+                                    <td class="text-center">@line.LineNumber</td>
+                                    <td>
+                                        <InputSelect class="form-select form-select-sm" @bind-Value="line.CostComponentType">
+                                            <option value="">-- Select --</option>
+                                            <option value="@AssetAcquisitionViewModel.CostComponentTypeEnum.BaseCost">Base Cost</option>
+                                            <option value="@AssetAcquisitionViewModel.CostComponentTypeEnum.Freight">Freight</option>
+                                            <option value="@AssetAcquisitionViewModel.CostComponentTypeEnum.Installation">Installation</option>
+                                            <option value="@AssetAcquisitionViewModel.CostComponentTypeEnum.CustomsDuty">Customs Duty</option>
+                                            <option value="@AssetAcquisitionViewModel.CostComponentTypeEnum.NonRecoverableTax">Non-Recoverable Tax</option>
+                                            <option value="@AssetAcquisitionViewModel.CostComponentTypeEnum.ProfessionalFee">Professional Fee</option>
+                                            <option value="@AssetAcquisitionViewModel.CostComponentTypeEnum.OtherCapitalizable">Other Capitalizable</option>
+                                            <option value="@AssetAcquisitionViewModel.CostComponentTypeEnum.NonCapitalizable">Non-Capitalizable</option>
+                                        </InputSelect>
+                                    </td>
+                                    <td>
+                                        <InputText class="form-control form-control-sm" @bind-Value="line.LineDescription" placeholder="Line description" />
+                                    </td>
+                                    <td>
+                                        <InputNumber class="form-control form-control-sm text-end" @bind-Value="line.LineAmount" />
+                                    </td>
+                                    <td>
+                                        <InputNumber class="form-control form-control-sm text-end" @bind-Value="line.TaxAmount" />
+                                    </td>
+                                    <td class="text-end fw-semibold">@line.LineTotalAmount.ToString("N2")</td>
+                                    <td class="text-center">
+                                        <InputCheckbox @bind-Value="line.IsCapitalizable" />
+                                    </td>
+                                    <td class="text-center">
+                                        <button type="button" class="btn btn-sm btn-outline-danger" title="Remove line" @onclick="() => RemoveCostLine(idx)">
+                                            <i class="ti ti-x"></i>
+                                        </button>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- SECTION 5 – TOTALS -->
+        <div class="card mt-3">
+            <div class="card-body">
+                <h5 class="text-primary mb-3 d-flex align-items-center">
+                    <i class="ti ti-calculator me-2" style="margin-bottom: 3px;    font-size: 22px;
+"></i> Totals (System Derived)
+                </h5>
+                <div class="row g-3">
+                    <div class="col-md-3">
+                        <label class="form-label">Sub Total (Capitalizable)</label>
+                        <input class="form-control text-end fw-bold" value="@Model.SubTotalAmount.ToString("N2")" disabled />
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">Total Tax</label>
+                        <input class="form-control text-end" value="@Model.TotalTaxAmount.ToString("N2")" disabled />
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">Round Off</label>
+                        <InputNumber class="form-control text-end" @bind-Value="Model.RoundOffAmount" />
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label fw-bold">Total Capitalized Amount</label>
+                        <input class="form-control text-end fw-bold text-success" value="@Model.TotalCapitalizedAmount.ToString("N2")" disabled />
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- SUBMIT -->
+        <div class="d-flex justify-content-end gap-3 mt-3 mb-4">
+            <a href="/asset-acquisitions" class="btn btn-outline-secondary"><i class="ti ti-x me-1"></i>Cancel</a>
+            <button type="submit" class="btn btn-primary"><i class="ti ti-device-floppy me-1"></i>@(IsEdit ? "Update" : "Save")</button>
+        </div>
+    </EditForm>
+</div>

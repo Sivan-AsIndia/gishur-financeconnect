@@ -1,0 +1,627 @@
+﻿@page "/tds-config/{Id:guid}/view"
+@using static FinanceConnect.Client.ViewModels.TDSConfigViewModel
+
+<PageTitle>TDS Config Details - FinanceConnect</PageTitle>
+<style>
+    .modal .btn-close::before{
+        background:white
+    }
+    /* Common badge style */
+    .fc-status-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        font-size: 12px;
+        font-weight: 600;
+    }
+
+    /* Dot */
+    .fc-badge-dot {
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        background: currentColor;
+    }
+
+    /* 🟢 Active */
+    .fc-status-active {
+        background-color: #e6f7ee;
+        color: #16a34a;
+    }
+
+    /* 🟡 Inactive */
+    .fc-status-pending {
+        background-color: #fff4e5;
+        color: #d97706;
+    }
+
+    /* 🔴 Archived */
+    .fc-status-cancelled {
+        background-color: #ffeaea;
+        color: #dc2626;
+    }
+
+    /* ⚪ Default */
+    .fc-status-draft {
+        background-color: #f3f4f6;
+        color: #6b7280;
+    }
+</style>
+@if (!isInitialized)
+{
+    <div class="fc-loading-overlay">
+        <div class="fc-spinner">
+            <div class="fc-spinner-ring"></div>
+            <span class="fc-spinner-label">Loading TDS config...</span>
+        </div>
+    </div>
+}
+else if (Entry == null)
+{
+    <div class="content fc-empty-state">
+        <div class="fc-empty-icon"><i class="ti ti-file-off"></i></div>
+        <h4>TDS Config Not Found</h4>
+        <p>The requested TDS configuration could not be located.</p>
+        <a href="/tds-config" class="fc-btn fc-btn-secondary">
+            <i class="ti ti-arrow-left"></i> Back to Configs
+        </a>
+    </div>
+}
+else
+{
+    <div class="content mb-4">
+
+        <!-- BREADCRUMB + HEADER -->
+        <div class="fc-page-header">
+            <div class="fc-breadcrumb">
+                <a href="/tds-config" class="fc-breadcrumb-link">
+                    <i class="ti ti-layout-list"></i> TDS Config
+                </a>
+                <span class="fc-breadcrumb-sep"><i class="ti ti-chevron-right"></i></span>
+                <span class="fc-breadcrumb-current">Config Details</span>
+            </div>
+            <div class="d-flex gap-2 page-btn">
+                @if (!Entry.IsLockedForChanges)
+                {
+                    <a href="/tds-config/@Entry.TDSConfigId/edit" class="btn btn-primary">
+                        <i class="ti ti-edit"></i> Edit
+                    </a>
+                }
+                <a @onclick="PrintPage" class="btn btn-primary"><i class="bi bi-printer"></i> Print</a>
+
+                <a href="/tds-config" class="btn btn-outline-secondary">
+                    <i class="ti ti-arrow-left"></i> Back
+                </a>
+            </div>
+        </div>
+
+        <!-- HERO BANNER -->
+        <div class="fc-hero">
+            <div class="fc-hero-accent"></div>
+            <div class="fc-hero-body">
+                <div class="fc-hero-icon-wrap">
+                    <div class="fc-hero-icon">
+                        <i class="ti ti-receipt-tax"></i>
+                    </div>
+                </div>
+                <div class="fc-hero-info">
+                    <div class="fc-hero-title-row">
+                        <h2 class="fc-hero-title">@Entry.ConfigCode</h2>
+                        @if (Entry.IsLockedForChanges)
+                        {
+                            <span class="badge bg-warning-transparent ms-2" style="font-size:11px;">
+                                <i class="ti ti-lock me-1"></i>Locked
+                            </span>
+                        }
+                    </div>
+                    <div class="fc-hero-meta">
+                        <span class="fc-meta-item">
+                            <i class="ti ti-tag"></i> @Entry.ConfigName
+                        </span>
+                        <span class="fc-meta-divider"></span>
+                        <span class="fc-meta-item">
+                            <i class="ti ti-file-certificate"></i>
+                            Section: <strong>@Entry.SectionCode</strong>
+                        </span>
+                        <span class="fc-meta-divider"></span>
+                        <span class="fc-meta-item">
+                            <i class="ti ti-calendar"></i>
+                            @Entry.EffectiveFrom.ToString("dd MMM yyyy")
+                            @if (Entry.EffectiveTo.HasValue)
+                            {
+                                <span class="ms-1">– @Entry.EffectiveTo.Value.ToString("dd MMM yyyy")</span>
+                            }
+                            else
+                            {
+
+                                <span class="ms-1 badge bg-warning-transparent" style="font-size:10px;">Open-ended</span>
+                            }
+                        </span>
+                    </div>
+                    <div class="mt-2 d-flex gap-2 flex-wrap">
+                        <span class="badge fc-status-badge @GetStatusBadgeClass(Entry.ConfigStatus)">
+                            <span class="fc-badge-dot"></span>
+                            @TDSConfigHelper.GetStatusLabel(Entry.ConfigStatus)
+                        </span>
+                        <span class="badge bg-primary-transparent">
+                            Section @Entry.SectionCode
+                        </span>
+                        <span class="badge bg-secondary-transparent text-secondary">
+                            Priority @Entry.Priority
+                        </span>
+                        <span class="badge @(Entry.IsExpired ? "bg-danger-transparent" : "bg-info-transparent")">
+                            @(Entry.IsExpired ? "Expired" : "Effective")
+                        </span>
+                    </div>
+                </div>
+                <!-- Hero Right: Rate -->
+                <div class="fc-hero-amount">
+                    <div class="fc-amount-label">
+                        @TDSConfigHelper.GetRateSourceLabel(Entry.RateSourceMode)
+                    </div>
+                    @if (Entry.DefaultRatePercent.HasValue)
+                    {
+                        <div class="fc-amount-value" style="font-size:2.2rem;">
+                            @Entry.DefaultRatePercent.Value.ToString("G")<span style="font-size:1.2rem;">%</span>
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="fc-amount-value" style="font-size:1.2rem;font-weight:700;">
+                            From Rate Version
+                        </div>
+                    }
+                    <div class="fc-amount-sub">@TDSConfigHelper.GetTriggerLabel(Entry.DeductionTriggerBasis)</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- MAIN GRID -->
+        <div class="fc-grid">
+
+            <!-- LEFT COLUMN -->
+            <div class="fc-col-main">
+
+                <!-- CORE IDENTITY -->
+                <div class="fc-card">
+                    <div class="fc-card-header">
+                        <span class="fc-card-header-icon fc-icon-blue text-primary bg-primary-transparent"><i class="ti ti-id"></i></span>
+                        <h3 class="text-primary">Core Identity</h3>
+                    </div>
+                    <div class="fc-card-body">
+                        <div class="row g-4">
+                            <div class="col-md-4">
+                                <div class="fc-field">
+                                    <label>Config Code</label>
+                                    <div class="fc-field-value fc-mono fw-bold">@Entry.ConfigCode</div>
+                                </div>
+                            </div>
+                            <div class="col-md-5">
+                                <div class="fc-field">
+                                    <label>Config Name</label>
+                                    <div class="fc-field-value">@Entry.ConfigName</div>
+                                </div>
+                            </div>
+                            @* <div class="col-md-2">
+                                <div class="fc-field">
+                                    <label>Status</label>
+                                    <div class="fc-field-value">
+                                        <span class="fc-status-badge @GetStatusBadgeClass(Entry.ConfigStatus)">
+                                            <span class="fc-badge-dot"></span>
+                                            @TDSConfigHelper.GetStatusLabel(Entry.ConfigStatus)
+                                        </span>
+                                    </div>
+                                </div>
+                            </div> *@
+                            <div class="col-md-3">
+                                <div class="fc-field d-flex flex-column align-items-start">
+                                    <label>TDS Section</label>
+                                    <div class="fc-field-value">
+                                        <span class="badge bg-primary-transparent" style="font-size:13px;">@Entry.SectionCode</span>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="fc-field">
+                                    <label>Priority</label>
+                                    <div class="fc-field-value fw-bold text-primary" style="font-size:20px;">@Entry.Priority</div>
+                                </div>
+                            </div>
+                            <div class="col-md-5">
+                                <div class="fc-field">
+                                    <label>Effective From</label>
+                                    <div class="fc-field-value fw-medium">@Entry.EffectiveFrom.ToString("dd MMM yyyy")</div>
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="fc-field">
+                                    <label>Effective To</label>
+                                    <div class="fc-field-value">
+                                        @(Entry.EffectiveTo.HasValue? Entry.EffectiveTo.Value.ToString("dd MMM yyyy") : "Open-ended")
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="fc-field">
+                                    <label>Locked</label>
+                                    <div class="fc-field-value">
+                                        @if (Entry.IsLockedForChanges)
+                                        {
+                                            <span class="badge bg-warning-transparent"><i class="ti ti-lock me-1"></i>Locked</span>
+                                        }
+                                        else
+                                        {
+
+                                            <span class="text-muted">No</span>
+                                        }
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- APPLICABILITY -->
+                <div class="fc-card">
+                    <div class="fc-card-header">
+                        <span class="fc-card-header-icon fc-icon-blue text-primary bg-primary-transparent"><i class="ti ti-users"></i></span>
+                        <h3 class="text-primary">Applicability Scope</h3>
+                    </div>
+                    <div class="fc-card-body">
+                        <div class="fc-field-grid">
+                            <div class="fc-field">
+                                <label>Party Applicability</label>
+                                <div class="fc-field-value">
+                                    <span class="fc-tag fc-tag-blue">@Entry.PartyApplicability</span>
+                                </div>
+                            </div>
+                            <div class="fc-field">
+                                <label>Vendor Type Filter</label>
+                                <div class="fc-field-value">@Entry.VendorTypeFilter</div>
+                            </div>
+                            <div class="fc-field">
+                                <label>Expense Nature Filter</label>
+                                <div class="fc-field-value">@Entry.ExpenseNatureFilter</div>
+                            </div>
+                            <div class="fc-field">
+                                <label>AP Document Context</label>
+                                <div class="fc-field-value">
+                                    <span class="fc-tag fc-tag-neutral">@Entry.APDocumentContext</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- THRESHOLD & TRIGGER -->
+                <div class="fc-card">
+                    <div class="fc-card-header">
+                        <span class="fc-card-header-icon fc-icon-blue text-primary bg-primary-transparent"><i class="ti ti-settings"></i></span>
+                        <h3 class="text-primary">Threshold &amp; Trigger</h3>
+                    </div>
+                    <div class="fc-card-body">
+                        <div class="fc-field-grid">
+                            <div class="fc-field">
+                                <label>Deduction Trigger</label>
+                                <div class="fc-field-value">
+                                    <span class="fc-tag fc-tag-blue">
+                                        @TDSConfigHelper.GetTriggerLabel(Entry.DeductionTriggerBasis)
+                                    </span>
+                                </div>
+                            </div>
+                            <div class="fc-field">
+                                <label>Base Amount Mode</label>
+                                <div class="fc-field-value">@Entry.BaseAmountMode</div>
+                            </div>
+                            <div class="fc-field">
+                                <label>Threshold Mode</label>
+                                <div class="fc-field-value">
+                                    @TDSConfigHelper.GetThresholdLabel(Entry.ThresholdEvaluationMode)
+                                </div>
+                            </div>
+                            @if (Entry.ThresholdAmount.HasValue)
+                            {
+                                <div class="fc-field">
+                                    <label>Threshold Amount</label>
+                                    <div class="fc-field-value fw-bold">₹@Entry.ThresholdAmount.Value.ToString("N0")</div>
+                                </div>
+                            }
+                            <div class="fc-field">
+                                <label>Apply on Advance Payments</label>
+                                <div class="fc-field-value">@(Entry.DeductionTriggerBasis == DeductionTriggerBasis.OnPayment ? "Yes" : "—")</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- RATE BEHAVIOR -->
+                <div class="fc-card">
+                    <div class="fc-card-header">
+                        <span class="fc-card-header-icon fc-icon-blue text-primary bg-primary-transparent"><i class="ti ti-percentage"></i></span>
+                        <h3 class="text-primary">Rate Behavior</h3>
+                    </div>
+                    <div class="fc-card-body">
+                        <div class="fc-field-grid">
+                            <div class="fc-field">
+                                <label>Rate Source</label>
+                                <div class="fc-field-value">
+                                    <span class="fc-tag fc-tag-neutral">
+                                        @TDSConfigHelper.GetRateSourceLabel(Entry.RateSourceMode)
+                                    </span>
+                                </div>
+                            </div>
+                            @if (Entry.DefaultRatePercent.HasValue)
+                            {
+                                <div class="fc-field">
+                                    <label>Default Rate</label>
+                                    <div class="fc-field-value fw-bold text-primary" style="font-size:18px;">
+                                        @Entry.DefaultRatePercent.Value.ToString("G")%
+                                    </div>
+                                </div>
+                            }
+                            <div class="fc-field">
+                                <label>PAN Validation Mode</label>
+                                <div class="fc-field-value">@Entry.PanValidationMode</div>
+                            </div>
+                        </div>
+                        @if (Entry.DefaultRatePercent.HasValue)
+                        {
+                            <!-- TDS Rate breakdown visual -->
+                            <div class="fc-card fc-card-tds mt-3 mb-0" style="border:1px solid #e9d5ff;background:#faf5ff;">
+                                <div class="fc-card-body">
+                                    <div class="fc-tds-grid" style="grid-template-columns: repeat(2, 1fr);">
+                                        <div class="fc-tds-item">
+                                            <label>Standard Rate</label>
+                                            <div class="fc-tds-value fc-rate">@Entry.DefaultRatePercent.Value.ToString("G")<sup>%</sup></div>
+                                        </div>
+                                        @if (Entry.PanValidationMode != PanValidationMode.NotRequired)
+                                        {
+                                            <div class="fc-tds-item fc-tds-withheld">
+                                                <label>Rate if PAN Missing</label>
+                                                <div class="fc-tds-value fc-withheld">20<sup>%</sup></div>
+                                                <div class="small text-muted">(IT Act default)</div>
+                                            </div>
+                                        }
+                                        @if (Entry.ThresholdAmount.HasValue)
+                                        {
+                                            <div class="fc-tds-item">
+                                                <label>Threshold</label>
+                                                <div class="fc-tds-value">₹@Entry.ThresholdAmount.Value.ToString("N0")</div>
+                                            </div>
+                                        }
+                                    </div>
+                                </div>
+                            </div>
+                        }
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- RIGHT COLUMN -->
+            <div class="fc-col-side">
+
+                <!-- QUICK ACTIONS -->
+                <div class="fc-card">
+                    <div class="fc-card-header">
+                        <span class="fc-card-header-icon fc-icon-blue text-primary bg-primary-transparent"><i class="ti ti-bolt"></i></span>
+                        <h3 class="text-primary">Quick Actions</h3>
+                    </div>
+                    <div class="fc-card-body d-flex flex-wrap gap-2">
+                        @if (!Entry.IsLockedForChanges)
+                        {
+                            <a href="/tds-config/@Entry.TDSConfigId/edit" class="btn btn-outline-primary">
+                                <i class="ti ti-edit me-1"></i> Edit Config
+                            </a>
+                        }
+                        @if (Entry.ConfigStatus == ConfigStatus.Active)
+                        {
+                            <button class="btn btn-outline-warning" @onclick="OnInactivate">
+                                <i class="ti ti-player-pause me-1"></i> Inactivate
+                            </button>
+                        }
+                        @if (Entry.ConfigStatus == ConfigStatus.Inactive)
+                        {
+                            <button class="btn btn-outline-success" @onclick="OnActivate">
+                                <i class="ti ti-player-play me-1"></i> Activate
+                            </button>
+                        }
+                        @if (Entry.ConfigStatus != ConfigStatus.Archived)
+                        {
+                            <button class="btn btn-outline-secondary" @onclick="OnArchive">
+                                <i class="ti ti-archive me-1"></i> Archive
+                            </button>
+                        }
+                        @if (!Entry.IsLockedForChanges)
+                        {
+                            <button class="btn btn-outline-danger"
+                                    @onclick="() => { showLockModal = true; showLockError = false; }">
+                                <i class="ti ti-lock me-1"></i> Lock Config
+                            </button>
+                        }
+                        else
+                        {
+                            <button class="btn btn-outline-secondary btn-sm" @onclick="OnUnlock">
+                                <i class="ti ti-lock-open me-1"></i> Unlock Config
+                            </button>
+                        }
+                    </div>
+                </div>
+
+                <!-- CONFIG SUMMARY (amount-card style) -->
+                <div class="fc-card fc-amount-card">
+                    <div class="fc-card-header">
+                        <span class="fc-card-header-icon fc-icon-blue text-primary bg-primary-transparent"><i class="ti ti-list-check"></i></span>
+                        <h3 class="text-primary">Config Summary</h3>
+                    </div>
+                    <div class="fc-card-body fc-no-padding">
+                        <div class="fc-amount-list">
+                            <div class="fc-amount-row">
+                                <span class="fc-amount-row-label">Section</span>
+                                <span class="fc-amount-row-value fw-bold">@Entry.SectionCode</span>
+                            </div>
+                            <div class="fc-amount-row">
+                                <span class="fc-amount-row-label">Trigger</span>
+                                <span class="fc-amount-row-value" style="font-size:11px;">
+                                    @TDSConfigHelper.GetTriggerLabel(Entry.DeductionTriggerBasis)
+                                </span>
+                            </div>
+                            <div class="fc-amount-row">
+                                <span class="fc-amount-row-label">Threshold</span>
+                                <span class="fc-amount-row-value" style="font-size:11px;">
+                                    @TDSConfigHelper.GetThresholdLabel(Entry.ThresholdEvaluationMode)
+                                </span>
+                            </div>
+                            @if (Entry.ThresholdAmount.HasValue)
+                            {
+                                <div class="fc-amount-row">
+                                    <span class="fc-amount-row-label">Threshold Amt</span>
+                                    <span class="fc-amount-row-value">₹@Entry.ThresholdAmount.Value.ToString("N0")</span>
+                                </div>
+                            }
+                            <div class="fc-amount-row">
+                                <span class="fc-amount-row-label">Party Scope</span>
+                                <span class="fc-amount-row-value">@Entry.PartyApplicability</span>
+                            </div>
+                            <div class="fc-amount-row fc-amount-net">
+                                <span class="fc-amount-row-label">Priority</span>
+                                <span class="fc-amount-row-value fc-amount-net-value fw-bold">@Entry.Priority</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- ACCOUNTING -->
+                <div class="fc-card">
+                    <div class="fc-card-header">
+                        <span class="fc-card-header-icon fc-icon-blue text-primary bg-primary-transparent"><i class="ti ti-book"></i></span>
+                        <h3 class="text-primary">Accounting</h3>
+                    </div>
+                    <div class="fc-card-body">
+                        <div class="fc-field-grid">
+                            <div class="fc-field fc-field-span2">
+                                <label>TDS Payable GL</label>
+                                <div class="fc-field-value fc-mono">@Entry.TDSPayableGLAccountDisplay</div>
+                            </div>
+                            @if (!string.IsNullOrEmpty(Entry.SettlementCategoryTag))
+                            {
+                                <div class="fc-field fc-field-span2">
+                                    <label>Settlement Category Tag</label>
+                                    <div class="fc-field-value">
+                                        <span class="fc-tag fc-tag-neutral">@Entry.SettlementCategoryTag</span>
+                                    </div>
+                                </div>
+                            }
+                        </div>
+                    </div>
+                </div>
+
+                <!-- HISTORY TIMELINE -->
+                <div class="fc-card">
+                    <div class="fc-card-header">
+                        <span class="fc-card-header-icon fc-icon-blue text-primary bg-primary-transparent"><i class="ti ti-history"></i></span>
+                        <h3 class="text-primary">History</h3>
+                    </div>
+                    <div class="fc-card-body fc-no-padding">
+                        <div class="fc-timeline">
+                            <div class="fc-timeline-item fc-tl-created">
+                                <div class="fc-tl-dot"></div>
+                                <div class="fc-tl-content">
+                                    <div class="fc-tl-label">Created</div>
+                                    <div class="fc-tl-time">@Entry.CreatedAt.ToString("dd MMM yyyy")</div>
+                                </div>
+                            </div>
+                            @if (Entry.UpdatedAt.HasValue)
+                            {
+                                <div class="fc-timeline-item fc-tl-updated">
+                                    <div class="fc-tl-dot"></div>
+                                    <div class="fc-tl-content">
+                                        <div class="fc-tl-label">Last Updated</div>
+                                        <div class="fc-tl-time">@Entry.UpdatedAt.Value.ToString("dd MMM yyyy")</div>
+                                    </div>
+                                </div>
+                            }
+                            <div class="fc-timeline-item @(Entry.ConfigStatus == ConfigStatus.Active ? "fc-tl-posted" : "fc-tl-updated")">
+                                <div class="fc-tl-dot"></div>
+                                <div class="fc-tl-content">
+                                    <div class="fc-tl-label">Status: @TDSConfigHelper.GetStatusLabel(Entry.ConfigStatus)</div>
+                                    <div class="fc-tl-time">
+                                        @(Entry.ConfigStatus == ConfigStatus.Active
+                                            ? "Active — selected by AP engine during posting"
+                                            : Entry.ConfigStatus == ConfigStatus.Inactive
+                                                ? "Inactive — not evaluated during posting"
+                                                : "Archived — historical record only")
+                                    </div>
+                                </div>
+                            </div>
+                            @if (Entry.IsLockedForChanges)
+                            {
+                                <div class="fc-timeline-item fc-tl-reversed">
+                                    <div class="fc-tl-dot"></div>
+                                    <div class="fc-tl-content">
+                                        <div class="fc-tl-label">Locked</div>
+                                        <div class="fc-tl-time fc-danger-text">No further edits permitted</div>
+                                    </div>
+                                </div>
+                            }
+                            @if (Entry.EffectiveTo.HasValue && Entry.EffectiveTo.Value < DateTime.Today)
+                            {
+                                <div class="fc-timeline-item fc-tl-cancelled">
+                                    <div class="fc-tl-dot"></div>
+                                    <div class="fc-tl-content">
+                                        <div class="fc-tl-label">Expired</div>
+                                        <div class="fc-tl-time fc-warning-text">
+                                            Expired on @Entry.EffectiveTo.Value.ToString("dd MMM yyyy")
+                                        </div>
+                                    </div>
+                                </div>
+                            }
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </div>
+}
+
+<!-- Lock Modal -->
+@if (showLockModal)
+{
+    <div class="modal fade show d-block" style="background:rgba(0,0,0,.4);" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered modal-sm">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title text-danger"><i class="ti ti-lock me-2"></i>Lock Config</h5>
+                    <button class="btn-close" style="transform: none;
+                        width: 7px;
+                        height: 7px;
+                        right: 24px;
+                        top: 27px;"
+                            @onclick="() => { showLockModal = false; showLockError = false; lockReason = string.Empty; }">
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <p class="text-muted small mb-3">Locking prevents any further edits. Only Controller/CFO can unlock.</p>
+                    <label class="form-label">Lock Reason <span class="text-danger">*</span></label>
+                    <textarea class="form-control @(showLockError ? "is-invalid" : "")"
+                              rows="3" @bind="lockReason"
+                              placeholder="Reason for locking..."></textarea>
+                    @if (showLockError)
+                    {
+                        <div class="invalid-feedback d-block">Lock reason is required.</div>
+                    }
+                </div>
+                <div class="modal-footer gap-2">
+                    <button class="btn btn-outline-secondary"
+                            @onclick="() => { showLockModal = false; showLockError = false; lockReason = string.Empty; }">
+                        <i class="ti ti-x"></i> Cancel
+                    </button>
+                    <button class="btn btn-danger" @onclick="OnLock">
+                        <i class="ti ti-lock me-1"></i> Confirm Lock
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+}

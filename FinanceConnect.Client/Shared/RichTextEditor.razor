@@ -1,0 +1,144 @@
+@inject IJSRuntime JS
+@implements IAsyncDisposable
+
+<style>
+    .rich-editor-wrapper {
+        border: 1px solid #dee2e6;
+        border-radius: 8px;
+        overflow: hidden;
+        transition: border-color 0.2s ease, box-shadow 0.2s ease;
+        width: 100%;
+        max-width: 100%;
+        box-sizing: border-box;
+    }
+
+    .rich-editor-wrapper:focus-within {
+            border-color: var(--primary);
+            box-shadow: 0 0 0 2px rgba(var(--primary), 0.4);
+    }
+
+    .rich-editor-wrapper .ql-toolbar.ql-snow {
+        border: none;
+        border-bottom: 1px solid #eef2f7;
+        background: #f9fafb;
+        padding: 6px 8px;
+    }
+
+    .rich-editor-wrapper .ql-container.ql-snow {
+        border: none;
+        font-size: 14px;
+        font-family: inherit;
+        width: 100%;
+        max-width: 100%;
+        overflow: hidden;
+    }
+
+    .rich-editor-wrapper .ql-editor {
+        min-height: @(MinHeight)px;
+        max-height: @(MaxHeight)px;
+        overflow-y: auto;
+        overflow-x: hidden;
+        padding: 10px 14px;
+        color: #111827;
+        word-break: break-all;
+        overflow-wrap: break-word;
+        white-space: pre-wrap;
+    }
+
+    .rich-editor-wrapper .ql-editor.ql-blank::before {
+        color: #9ca3af;
+        font-style: normal;
+        font-size: 14px;
+    }
+
+    .rich-editor-wrapper .ql-snow .ql-stroke {
+        stroke: #6b7280;
+    }
+
+    .rich-editor-wrapper .ql-snow .ql-fill {
+        fill: #6b7280;
+    }
+
+    .rich-editor-wrapper .ql-snow button:hover .ql-stroke {
+        stroke: #ff9f43;
+    }
+
+    .rich-editor-wrapper .ql-snow button:hover .ql-fill {
+        fill: #ff9f43;
+    }
+
+    .rich-editor-wrapper .ql-snow button.ql-active .ql-stroke {
+        stroke: #ff9f43;
+    }
+
+    .rich-editor-wrapper .ql-snow button.ql-active .ql-fill {
+        fill: #ff9f43;
+    }
+</style>
+
+<div class="rich-editor-wrapper">
+    <!-- Toolbar -->
+    <div id="@_toolbarId">
+        <span class="ql-formats">
+            <button class="ql-bold" title="Bold"></button>
+            <button class="ql-italic" title="Italic"></button>
+            <button class="ql-underline" title="Underline"></button>
+        </span>
+        <span class="ql-formats">
+            <button class="ql-list" value="ordered" title="Numbered List"></button>
+            <button class="ql-list" value="bullet" title="Bullet List"></button>
+        </span>
+        <span class="ql-formats">
+            <button class="ql-clean" title="Clear Formatting"></button>
+        </span>
+    </div>
+
+    <!-- Editor -->
+    <div id="@_editorId"></div>
+</div>
+
+@code {
+    [Parameter] public string? Value { get; set; }
+    [Parameter] public EventCallback<string> ValueChanged { get; set; }
+    [Parameter] public string Placeholder { get; set; } = "Type here...";
+    [Parameter] public int MinHeight { get; set; } = 80;
+    [Parameter] public int MaxHeight { get; set; } = 200;
+
+    private string _editorId = $"quill-editor-{Guid.NewGuid():N}";
+    private string _toolbarId = $"quill-toolbar-{Guid.NewGuid():N}";
+    private bool _initialized;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            await Task.Delay(100); // Allow DOM to settle
+            await JS.InvokeVoidAsync("quillInterop.create", _editorId, _toolbarId, Placeholder);
+            _initialized = true;
+
+            if (!string.IsNullOrEmpty(Value))
+            {
+                await JS.InvokeVoidAsync("quillInterop.setHtml", _editorId, Value);
+            }
+        }
+    }
+
+    public async Task<string> GetHtmlAsync()
+    {
+        if (!_initialized) return Value ?? "";
+        return await JS.InvokeAsync<string>("quillInterop.getHtml", _editorId);
+    }
+
+    public async Task SetHtmlAsync(string html)
+    {
+        if (_initialized)
+        {
+            await JS.InvokeVoidAsync("quillInterop.setHtml", _editorId, html);
+        }
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        // No explicit cleanup needed for Quill
+    }
+}

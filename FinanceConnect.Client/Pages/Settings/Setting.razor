@@ -1,0 +1,646 @@
+@page "/Setting"
+@inject AuthService AuthService
+@inject NavigationManager Navigation
+@inject ToastService ToastService
+@inject IJSRuntime JSRuntime
+@implements IDisposable
+
+<style>
+    body {
+        background: #f6f7fb;
+    }
+
+    .settings-card {
+        margin: 40px 33px;
+        background: #fff;
+        border-radius: 12px;
+        padding: 24px 28px 32px;
+    }
+
+    .settings-tabs {
+        display: flex;
+        gap: 10px;
+        position: relative;
+        border-bottom: 1px solid #e5e7eb;
+        margin-bottom: 28px;
+        flex-wrap: wrap;
+    }
+
+    .settings-tabs a {
+        padding: 7px 14px;
+        text-decoration: none;
+        background: #80808005;
+        font-weight: 500;
+        color: #6b7280;
+        position: relative;
+        transition: color 0.3s ease, font-weight 0.3s ease;
+        cursor: pointer;
+    }
+
+    .settings-tabs a::after {
+        content: "";
+        position: absolute;
+        left: 50%;
+        bottom: -2px;
+        width: 0;
+        height: 3px;
+        background: #fe9f43;
+        transition: width 0.35s ease, left 0.35s ease;
+    }
+
+    .settings-tabs a.active {
+        color: #fe9f43;
+        font-weight: 700;
+    }
+
+    .settings-tabs a.active::after {
+        width: 100%;
+        left: 0;
+    }
+
+    .settings-tabs a:hover {
+        color: #fe9f43;
+    }
+
+    /* Compact Profile Photo Section */
+    .profile-photo-compact {
+        display: flex;
+        align-items: center;
+        gap: 16px;
+        padding: 16px 20px;
+        border: 1px solid #e6e8ef;
+        border-radius: 10px;
+        background: #fafbfc;
+        margin-bottom: 20px;
+    }
+
+    .photo-wrapper {
+        position: relative;
+        flex-shrink: 0;
+    }
+
+    .photo-avatar {
+        width: 72px;
+        height: 72px;
+        border-radius: 50%;
+        border: 3px solid #fe9f43;
+        object-fit: cover;
+        background: #f3f4f6;
+    }
+
+    .photo-placeholder {
+        width: 72px;
+        height: 72px;
+        border-radius: 50%;
+        border: 3px dashed #d1d5db;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: #f9fafb;
+        color: #9ca3af;
+        font-size: 28px;
+    }
+
+    .photo-edit-btn {
+        position: absolute;
+        bottom: -2px;
+        right: -2px;
+        width: 28px;
+        height: 28px;
+        background: #fe9f43;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        border: 2px solid #fff;
+        transition: all 0.2s ease;
+        box-shadow: 0 2px 6px rgba(0,0,0,0.15);
+    }
+
+    .photo-edit-btn:hover {
+        background: #e8890a;
+        transform: scale(1.08);
+    }
+
+    .photo-edit-btn i {
+        color: #fff;
+        font-size: 13px;
+    }
+
+    .photo-info {
+        flex: 1;
+        min-width: 0;
+    }
+
+    .photo-info h6 {
+        color: #374151;
+        font-weight: 600;
+        font-size: 14px;
+        margin-bottom: 4px;
+    }
+
+    .photo-info p {
+        color: #9ca3af;
+        font-size: 12px;
+        margin: 0;
+    }
+
+    .photo-actions-inline {
+        display: flex;
+        gap: 8px;
+        flex-shrink: 0;
+    }
+
+    .btn-photo {
+        padding: 6px 14px;
+        border-radius: 6px;
+        font-size: 12px;
+        font-weight: 500;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+    }
+
+    .btn-photo-upload {
+        background: #fe9f43;
+        color: #fff;
+        border: none;
+    }
+
+    .btn-photo-upload:hover {
+        background: #e8890a;
+    }
+
+    .btn-photo-remove {
+        background: #fff;
+        color: #ef4444;
+        border: 1px solid #fecaca;
+    }
+
+    .btn-photo-remove:hover {
+        background: #fef2f2;
+        border-color: #ef4444;
+    }
+
+    /* Loading spinner for photo */
+    .photo-loading-overlay {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 72px;
+        height: 72px;
+        border-radius: 50%;
+        background: rgba(255, 255, 255, 0.85);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .photo-loading-overlay .spinner-border {
+        width: 24px;
+        height: 24px;
+    }
+
+    /* Profile card */
+    .profile-card {
+        border: 1px solid #e6e8ef;
+        border-radius: 12px;
+        padding: 20px;
+    }
+
+    label {
+        font-size: 13px;
+        color: #6b7280;
+        font-weight: 500;
+    }
+
+    .form-control {
+        border-radius: 8px;
+        font-size: 14px;
+    }
+
+    .verified {
+        font-size: 12px;
+        color: #22c55e;
+        font-weight: 600;
+    }
+
+    .update-btn {
+        margin-top: 24px;
+    }
+
+    /* Hidden file input */
+    .hidden-file-input {
+        display: none;
+    }
+
+    /* Responsive adjustments */
+    @@media (max-width: 576px) {
+        .profile-photo-compact {
+            flex-direction: column;
+            text-align: center;
+        }
+        
+        .photo-info {
+            text-align: center;
+        }
+        
+        .photo-actions-inline {
+            justify-content: center;
+        }
+    }
+    /* Workspace Section */
+
+    .workspace-section {
+        margin-bottom: 20px;
+    }
+
+    .section-header {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        margin-bottom: 18px;
+    }
+
+        .section-header h6 {
+            margin: 0;
+            font-size: 15px;
+            font-weight: 600;
+            color: #374151;
+        }
+
+        .section-header i {
+            font-size: 18px;
+            color: #fe9f43;
+        }
+
+    /* Layout row */
+    .workspace-row {
+        display: flex;
+        align-items: center;
+        gap: 24px;
+    }
+
+    /* Item */
+    .workspace-item {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        flex: 1;
+    }
+
+    /* Icon */
+    .workspace-icon {
+        width: 36px;
+        height: 36px;
+        border-radius: 10px;
+        background: #f3f4f6;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .company-icon {
+        color: #3b82f6;
+    }
+
+    .branch-icon {
+        color: #ef4444;
+    }
+
+    /* Text */
+    .workspace-meta {
+        display: flex;
+        flex-direction: column;
+        gap: 3px;
+    }
+
+    .workspace-label {
+        font-size: 11px;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        color: #9ca3af;
+    }
+
+    .workspace-value {
+        font-size: 14px;
+        font-weight: 500;
+        color: #374151;
+    }
+
+    /* Divider */
+    .workspace-divider {
+        width: 1px;
+        height: 38px;
+        background: #e5e7eb;
+    }
+    .workspace-select {
+    border: none;
+    background: transparent;
+    font-size: 14px;
+    font-weight: 500;
+    color: #374151;
+    outline: none;
+    appearance: none;
+    cursor: pointer;
+    padding: 0;
+    margin-top: 2px;
+}
+
+/* Add subtle dropdown arrow */
+.workspace-meta {
+    position: relative;
+}
+
+.workspace-meta::after {
+    /* content: "▾"; */
+    position: absolute;
+    right: -14px;
+    top: 22px;
+    font-size: 12px;
+    color: #9ca3af;
+    pointer-events: none;
+}
+
+/* ===== MOBILE FIX ===== */
+
+@@media (max-width: 768px) {
+
+    .workspace-row {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 18px;
+    }
+
+    .workspace-divider {
+        display: none;
+    }
+
+    .workspace-item {
+        width: 100%;
+    }
+
+    .workspace-meta {
+        width: 100%;
+    }
+
+    .workspace-select {
+        width: 100%;
+        padding: 8px 0;
+        font-size: 15px;
+    }
+
+    /* Remove fake arrow positioning */
+    .workspace-meta::after {
+        right: 0;
+        top: 28px;
+    }
+}
+</style>
+
+<div class="settings-card">
+    <div class="row g-4">
+        <div class="col-lg-12 col-md-7">
+            <!-- Tabs -->
+            <div class="settings-tabs">
+                <a class="@(ActiveTab == 1 ? "active" : "")" @onclick="() => ActiveTab = 1">Account Settings</a>
+                <a class="@(ActiveTab == 2 ? "active" : "")" @onclick="() => ActiveTab = 2">Change Password</a>
+                <a class="@(ActiveTab == 3 ? "active" : "")" @onclick="() => ActiveTab = 3">Notification Settings</a>
+            </div>
+
+            @if (ActiveTab == 1)
+            {
+                <div class="row">
+                    <div class="col-12">
+                        <!-- Compact Profile Photo Section -->
+                        <div class="profile-photo-compact">
+                            <div class="photo-wrapper">
+                                @if (isUploadingPhoto)
+                                {
+                                    <div class="photo-placeholder">
+                                        <div class="photo-loading-overlay">
+                                            <div class="spinner-border text-primary" role="status">
+                                                <span class="visually-hidden">Loading...</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                }
+                                else if (!string.IsNullOrEmpty(profilePhotoBase64))
+                                {
+                                    <img src="@profilePhotoBase64" alt="Profile" class="photo-avatar" />
+                                }
+                                else
+                                {
+                                    <div class="photo-placeholder">
+                                        <i class="ti ti-user"></i>
+                                    </div>
+                                }
+                                <label for="profilePhotoInput" class="photo-edit-btn">
+                                    <i class="ti ti-camera"></i>
+                                </label>
+                            </div>
+                            
+                            <div class="photo-info">
+                                <h6>Profile Photo</h6>
+                                <p>JPG, PNG or GIF. Max size 2MB</p>
+                            </div>
+
+                            <div class="photo-actions-inline">
+                                <label for="profilePhotoInput" class="btn-photo btn-photo-upload">
+                                    <i class="ti ti-upload"></i> Upload
+                                </label>
+                                @if (!string.IsNullOrEmpty(profilePhotoBase64))
+                                {
+                                    <button type="button" class="btn-photo btn-photo-remove" @onclick="RemovePhoto" disabled="@isUploadingPhoto">
+                                        <i class="ti ti-trash"></i> Remove
+                                    </button>
+                                }
+                            </div>
+                        </div>
+                        
+                        <InputFile id="profilePhotoInput" OnChange="HandlePhotoUpload" accept="image/*" class="hidden-file-input" />
+                    </div>
+
+                    <!-- Workspace Section -->
+                    <div class="col-12">
+                    <div class="profile-card workspace-section">
+
+                        <div class="section-header">
+                            <i class="ti ti-building-bank"></i>
+                            <h6>Organization & Workspace</h6>
+                        </div>
+
+                        <div class="workspace-row">
+
+                            <!-- Company -->
+                            <div class="workspace-item">
+
+                                <div class="workspace-icon company-icon">
+                                    <i class="ti ti-building"></i>
+                                </div>
+
+                                <div class="workspace-meta">
+                                    <div class="workspace-label">Company</div>
+
+                                    <select class="workspace-select form-select"
+                                            @bind="SelectedCompanyId"
+                                            @bind:after="OnCompanyChanged">
+
+                                        @foreach (var c in Companies)
+                                        {
+                                            <option value="@c.Id">@c.LegalName</option>
+                                        }
+                                    </select>
+                                </div>
+
+                            </div>
+
+                            <div class="workspace-divider"></div>
+
+                            <!-- Branch -->
+                            <div class="workspace-item">
+
+                                <div class="workspace-icon branch-icon">
+                                    <i class="ti ti-map-pin"></i>
+                                </div>
+
+                                <div class="workspace-meta">
+                                    <div class="workspace-label">Branch</div>
+
+                                    <select class="workspace-select form-select"
+                                            @bind="SelectedBranchId"
+                                            @bind:after="OnBranchChanged">
+
+                                        @foreach (var b in FilteredBranches)
+                                        {
+                                            <option value="@b.Id">@b.BranchName</option>
+                                        }
+                                    </select>
+                                </div>
+
+                            </div>
+
+                        </div>
+
+                    </div>
+
+                    </div>
+                    <!-- Profile Information Section -->
+                    <div class="col-12">
+                        <div class="profile-card">
+                            <div class="d-flex align-items-center mb-4">
+                                <i class="ti ti-user me-2" style="font-size: 20px; color: #fe9f43;"></i>
+                                <h6 class="mb-0" style="color: #374151; font-weight: 600;">Profile Information</h6>
+                            </div>
+                            
+                            <EditForm Model="@profileModel" OnValidSubmit="HandleUpdateProfile">
+                                <div class="row g-3">
+                                    <div class="col-md-6">
+                                        <label class="form-label">Full name</label>
+                                        <InputText class="form-control" @bind-Value="profileModel.FullName" placeholder="Enter your full name" />
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label class="form-label">Email address</label>
+                                        <InputText class="form-control" @bind-Value="profileModel.Email" placeholder="Email" disabled />
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label class="form-label">Username</label>
+                                        <InputText class="form-control" @bind-Value="profileModel.Username" placeholder="Username" />
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label class="form-label">Phone number <span class="verified"><i class="ti ti-circle-check-filled"></i> Verified</span></label>
+                                        <InputText class="form-control" @bind-Value="profileModel.PhoneNumber" placeholder="+1 000-000-0000" />
+                                    </div>
+                                </div>
+                                <div class="d-flex gap-2 update-btn">
+                                    <button type="submit" class="btn btn-primary" disabled="@isUpdatingProfile">
+                                        @if (isUpdatingProfile)
+                                        {
+                                            <span class="spinner-border spinner-border-sm me-1" role="status"></span>
+                                        }
+                                        <i class="ti ti-check me-1"></i>Update Profile
+                                    </button>
+                                    <a href="/" class="btn btn-outline-secondary">
+                                        <i class="ti ti-arrow-left me-1"></i>Back to Dashboard
+                                    </a>
+                                </div>
+                            </EditForm>
+                        </div>
+                    </div>
+                </div>
+            }
+
+            @if (ActiveTab == 2)
+            {
+                <div class="row">
+                    <div class="col-lg-6 col-md-12">
+                        <div class="profile-card">
+                            <div class="d-flex align-items-center mb-4">
+                                <i class="ti ti-lock me-2" style="font-size: 20px; color: #fe9f43;"></i>
+                                <h6 class="mb-0" style="color: #374151; font-weight: 600;">Change Password</h6>
+                            </div>
+                            
+                            <EditForm Model="@changeModel" OnValidSubmit="HandleChangePassword">
+                                <div class="row g-3">
+                                    <div class="col-12">
+                                        <label class="form-label">Current Password</label>
+                                        <div class="input-group">
+                                            <InputText type="@(showCurrentPassword ? "text" : "password")" class="form-control" @bind-Value="changeModel.CurrentPassword" placeholder="Enter current password" />
+                                            <button type="button" class="btn btn-outline-secondary" @onclick="ToggleCurrentPasswordVisibility">
+                                                <i class="ti @(showCurrentPassword ? "ti-eye-off" : "ti-eye")"></i>
+                                            </button>
+                                        </div>
+                                    </div>
+                                    <div class="col-12">
+                                        <label class="form-label">New Password</label>
+                                        <div class="input-group">
+                                            <InputText type="@(showNewPassword ? "text" : "password")" class="form-control" @bind-Value="changeModel.NewPassword" placeholder="Enter new password" />
+                                            <button type="button" class="btn btn-outline-secondary" @onclick="ToggleNewPasswordVisibility">
+                                                <i class="ti @(showNewPassword ? "ti-eye-off" : "ti-eye")"></i>
+                                            </button>
+                                        </div>
+                                    </div>
+                                    <div class="col-12">
+                                        <label class="form-label">Confirm New Password</label>
+                                        <div class="input-group">
+                                            <InputText type="@(showConfirmPassword ? "text" : "password")" class="form-control" @bind-Value="changeModel.ConfirmNewPassword" placeholder="Confirm new password" />
+                                            <button type="button" class="btn btn-outline-secondary" @onclick="ToggleConfirmPasswordVisibility">
+                                                <i class="ti @(showConfirmPassword ? "ti-eye-off" : "ti-eye")"></i>
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="d-flex gap-2 update-btn">
+                                    <button type="submit" class="btn btn-primary" disabled="@isLoading">
+                                        @if (isLoading)
+                                        {
+                                            <span class="spinner-border spinner-border-sm me-1" role="status"></span>
+                                        }
+                                        <i class="ti ti-check me-1"></i>Change Password
+                                    </button>
+                                    <a href="/" class="btn btn-outline-secondary">
+                                        <i class="ti ti-arrow-left me-1"></i>Back to Dashboard
+                                    </a>
+                                </div>
+                            </EditForm>
+                        </div>
+                    </div>
+                </div>
+            }
+
+            @if (ActiveTab == 3)
+            {
+                <div class="empty-state" style="justify-items: center;">
+                    <i class="ti ti-bell-off" style="font-size: 138px; color: #fe9f4347; display: flex; align-items: center; justify-content: center;"></i>
+                    <h6>There are no notifications</h6>
+                    <p>You don't have any notifications at the moment.</p>
+                </div>
+            }
+        </div>
+    </div>
+</div>
+

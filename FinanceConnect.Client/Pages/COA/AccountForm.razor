@@ -1,0 +1,697 @@
+@page "/gl-accounts/create"
+@page "/gl-accounts/{Id:guid}"
+@using FinanceConnect.Client.ViewModels
+@using FinanceConnect.Client.Services
+
+<style>
+    .form-select option:checked {
+        color: white;
+        background-color: var(--primary);
+    }
+
+    
+    .validation-message {
+        color: #dc3545;
+        font-size: 12px;
+    }
+
+    .form-select.is-invalid {
+        border-color: #dc3545;
+    }
+
+    .field-validation-error {
+        color: #dc3545;
+        font-size: 12px;
+        display: block;
+        margin-top: 4px;
+    }
+</style>
+
+@if (isLoading)
+{
+    <div class="page-loading-overlay"><div class="whirly-loader"></div></div>
+}
+else
+{
+    <div class="content Accordion-form">
+
+        <div class="page-header">
+            <div class="add-item d-flex">
+                <div class="page-title">
+                    <h4 class="fw-bold">@PageTitle</h4>
+                    <h6>@PageSubTitle</h6>
+                </div>
+            </div>
+
+            <div class="page-btn mt-0">
+                <a href="/gl-accounts" class="btn btn-outline-secondary">
+                    <i class="ti ti-arrow-left"></i> Back
+                </a>
+            </div>
+        </div>
+
+        <EditForm Model="@Model" OnSubmit="@HandleSubmit">
+            <DataAnnotationsValidator />
+
+            @if (!string.IsNullOrEmpty(errorMessage))
+            {
+                <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                    <i class="ti ti-alert-circle me-2"></i>@errorMessage
+                    <button type="button" class="btn-close" @onclick="() => errorMessage = null"></button>
+                </div>
+            }
+
+            <div class="add-product" style="background:#f4f7fb; padding:24px 14px;">
+                <div class="tl-accordion">
+
+                    <!--  LEFT PANEL  -->
+                    <div class="tl-left-panel">
+
+                        <!-- Account Identity -->
+                        <div class="tl-label @(ShowIdentity ? "active accent-orange" : "")"
+                             @onclick="@(() => ToggleAccordion("identity"))">
+                            <div class="tl-label-icon ico-orange"><i data-feather="book"></i></div>
+                            <div class="tl-label-text">
+                                <div class="tl-label-title">Account Identity</div>
+                                <div class="tl-label-sub">Basic account identification</div>
+                            </div>
+                            <span class="tl-label-chevron @(ShowIdentity ? "open" : "")">
+                                <i data-feather="chevron-right"></i>
+                            </span>
+                        </div>
+
+                        <!-- Classification -->
+                        <div class="tl-label @(ShowClassification ? "active accent-blue" : "")"
+                             @onclick="@(() => ToggleAccordion("classification"))">
+                            <div class="tl-label-icon ico-blue"><i data-feather="layers"></i></div>
+                            <div class="tl-label-text">
+                                <div class="tl-label-title">Classification & Reporting</div>
+                                <div class="tl-label-sub">Nature and reporting structure</div>
+                            </div>
+                            <span class="tl-label-chevron @(ShowClassification ? "open" : "")">
+                                <i data-feather="chevron-right"></i>
+                            </span>
+                        </div>
+
+                        <!-- Posting Rules -->
+                        <div class="tl-label @(ShowBehavior ? "active accent-purple" : "")"
+                             @onclick="@(() => ToggleAccordion("behavior"))">
+                            <div class="tl-label-icon ico-purple"><i data-feather="settings"></i></div>
+                            <div class="tl-label-text">
+                                <div class="tl-label-title">Posting Rules & Controls</div>
+                                <div class="tl-label-sub">Posting and control settings</div>
+                            </div>
+                            <span class="tl-label-chevron @(ShowBehavior ? "open" : "")">
+                                <i data-feather="chevron-right"></i>
+                            </span>
+                        </div>
+
+                        <!-- Special Types -->
+                        <div class="tl-label @(ShowSpecial ? "active accent-rose" : "")"
+                             @onclick="@(() => ToggleAccordion("special"))">
+                            <div class="tl-label-icon ico-rose"><i data-feather="tag"></i></div>
+                            <div class="tl-label-text">
+                                <div class="tl-label-title">Special Types & Tax</div>
+                                <div class="tl-label-sub">Bank, cash and tax flags</div>
+                            </div>
+                            <span class="tl-label-chevron @(ShowSpecial ? "open" : "")">
+                                <i data-feather="chevron-right"></i>
+                            </span>
+                        </div>
+
+                        <!-- Status -->
+                        <div class="tl-label @(ShowStatus ? "active accent-teal" : "")"
+                             @onclick="@(() => ToggleAccordion("status"))">
+                            <div class="tl-label-icon ico-teal"><i data-feather="check-circle"></i></div>
+                            <div class="tl-label-text">
+                                <div class="tl-label-title">Status & Governance</div>
+                                <div class="tl-label-sub">Lifecycle and effective dates</div>
+                            </div>
+                            <span class="tl-label-chevron @(ShowStatus ? "open" : "")">
+                                <i data-feather="chevron-right"></i>
+                            </span>
+                        </div>
+
+                    </div>
+
+
+                    <!-- RIGHT TIMELINE AREA -->
+                    <div class="tl-right-area">
+
+                        <!-- ACCOUNT IDENTITY -->
+                        <div class="tl-card-row @(ShowIdentity ? "row-active" : "")">
+                            <div class="tl-dot-col">
+                                <div class="tl-dot" @onclick="@(() => ToggleAccordion("identity"))"></div>
+                            </div>
+                            <div class="tl-card-col">
+                                <div class="tl-card @(ShowIdentity ? "card-active border-orange" : "")">
+
+                                    <div class="tl-card-header" @onclick="@(() => ToggleAccordion("identity"))">
+                                        <div class="tl-card-header-title">
+                                            <span class="tl-card-step step-orange">01</span>
+                                            Account Identity
+                                        </div>
+                                        <span class="tl-card-toggle @(ShowIdentity ? "toggle-open" : "")">
+                                            <i data-feather="chevron-down"></i>
+                                        </span>
+                                    </div>
+
+                                    <div class="tl-collapse @(ShowIdentity ? "tl-open" : "")">
+                                        <div class="tl-card-body">
+                                            <div class="tl-card-body-inner @(IdentityTouched ? "touched" : "")">
+                                                <div class="row">
+                                                    <div class="col-sm-6 col-md-4 mb-3">
+                                                        <label class="form-label">Account Code <span class="text-danger ms-1">*</span></label>
+                                                        <InputText class=@($"form-control text-uppercase {(codeError != null ? "is-invalid" : "")}")
+                                                                   @bind-Value="CodeWrapper" @bind-Value:after="OnCodeChanged"
+                                                                   placeholder="Enter account code" maxlength="20" />
+                                                        @if (codeError != null)
+                                                        {
+                                                            <span class="field-validation-error">@codeError</span>
+                                                        }
+                                                    </div>
+                                                    <div class="col-sm-6 col-md-4 mb-3">
+                                                        <label class="form-label">Account Name <span class="text-danger ms-1">*</span></label>
+                                                        <InputText class=@($"form-control {(nameError != null ? "is-invalid" : "")}")
+                                                                   @bind-Value="NameWrapper" @bind-Value:after="OnNameChanged"
+                                                                   placeholder="Enter account name" maxlength="200" />
+                                                        @if (nameError != null)
+                                                        {
+                                                            <span class="field-validation-error">@nameError</span>
+                                                        }
+                                                    </div>
+                                                    <div class="col-sm-6 col-md-4 mb-3">
+                                                        <label class="form-label">Chart of Accounts <span class="text-danger ms-1">*</span></label>
+                                                        <select class="form-select @(chartError != null ? "is-invalid" : "")"
+                                                                value="@ChartIdWrapper"
+                                                                @onchange="OnChartChanged">
+                                                            <option value="">--Select Chart of Accounts--</option>
+                                                            @foreach (var chart in ChartOfAccountsList)
+                                                            {
+                                                                <option value="@chart.Id">@chart.ChartName</option>
+                                                            }
+                                                        </select>
+                                                        @if (chartError != null)
+                                                        {
+                                                            <span class="field-validation-error">@chartError</span>
+                                                        }
+                                                    </div>
+                                                    <div class="col-sm-6 col-md-4 mb-3">
+                                                        <label class="form-label">Account Group <span class="text-danger ms-1">*</span></label>
+                                                        <select class="form-select @(groupError != null ? "is-invalid" : "")"
+                                                                value="@GroupIdWrapper"
+                                                                @onchange="OnGroupChanged"
+                                                                disabled="@(!Model.ChartOfAccountsId.HasValue || Model.ChartOfAccountsId == Guid.Empty)">
+                                                            <option value="">--Select Account Group--</option>
+                                                            @foreach (var group in FilteredGroups)
+                                                            {
+                                                                <option value="@group.Id">@group.GroupName (@group.AccountNature)</option>
+                                                            }
+                                                        </select>
+                                                        @if (groupError != null)
+                                                        {
+                                                            <span class="field-validation-error">@groupError</span>
+                                                        }
+                                                    </div>
+                                                    <div class="col-sm-6 col-md-4 mb-3">
+                                                        <label class="form-label">Parent Account <small class="text-muted">(Optional)</small></label>
+                                                        <select class="form-select"
+                                                                value="@ParentAccountIdWrapper"
+                                                                @onchange="OnParentAccountChanged"
+                                                                disabled="@(!Model.ChartOfAccountsId.HasValue || Model.ChartOfAccountsId == Guid.Empty)">
+                                                            <option value="">-- None --</option>
+                                                            @foreach (var acct in HeaderAccounts)
+                                                            {
+                                                                <option value="@acct.Id">@acct.AccountCode - @acct.AccountName</option>
+                                                            }
+                                                        </select>
+                                                    </div>
+                                                    <div class="col-sm-6 col-md-4 mb-3">
+                                                        <label class="form-label">Alias (Short Name)</label>
+                                                        <InputText class="form-control"
+                                                                   @bind-Value="Model.AccountAlias"
+                                                                   placeholder="Optional short name" />
+                                                    </div>
+                                                    <div class="col-sm-6 col-md-4 mb-3">
+                                                        <label class="form-label">Display Order</label>
+                                                        <InputNumber class="form-control"
+                                                                     @bind-Value="Model.DisplayOrder"
+                                                                     placeholder="0" min="0" />
+                                                    </div>
+                                                    @* maxlength="500" *@
+
+                                                    <div class="col-sm-6 col-md-8 mb-3">
+                                                        <label class="form-label">Notes / Description</label>
+                                                        <RichTextEditor @ref="_descriptionEditor"
+                                                                        Value="@Model.Description"
+                                                                        MaxHeight="200" MinHeight="80"
+                                                                       placeholder="Account description (optional)" />
+                                                    </div>
+                                                </div>
+
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                </div>
+                            </div>
+                        </div>
+
+
+                        <!-- CLASSIFICATION -->
+                        <div class="tl-card-row @(ShowClassification ? "row-active" : "")">
+                            <div class="tl-dot-col">
+                                <div class="tl-dot" @onclick="@(() => ToggleAccordion("classification"))"></div>
+                            </div>
+                            <div class="tl-card-col">
+                                <div class="tl-card @(ShowClassification ? "card-active border-blue" : "")">
+
+                                    <div class="tl-card-header" @onclick="@(() => ToggleAccordion("classification"))">
+                                        <div class="tl-card-header-title">
+                                            <span class="tl-card-step step-blue">02</span>
+                                            Classification & Reporting
+                                        </div>
+                                        <span class="tl-card-toggle @(ShowClassification ? "toggle-open" : "")">
+                                            <i data-feather="chevron-down"></i>
+                                        </span>
+                                    </div>
+
+                                    <div class="tl-collapse @(ShowClassification ? "tl-open" : "")">
+                                        <div class="tl-card-body">
+                                            <div class="tl-card-body-inner @(ClassificationTouched ? "touched" : "")">
+
+                                                <div class="row">
+                                                    <div class="col-sm-6 col-md-3 mb-3">
+                                                        <label class="form-label">Account Nature <span class="text-danger ms-1">*</span></label>
+                                                        <input type="text" class="form-control" value="@Model.AccountNature" readonly
+                                                               placeholder="Auto-filled from group" />
+                                                        <small class="text-muted">Derived from Account Group</small>
+                                                    </div>
+                                                    <div class="col-sm-6 col-md-3 mb-3">
+                                                        <label class="form-label">Statement Type</label>
+                                                        <input type="text" class="form-control" value="@(GetStatementTypeDisplay())" readonly
+                                                               placeholder="Auto-derived" />
+                                                        <small class="text-muted">Derived from Account Nature</small>
+                                                    </div>
+                                                    <div class="col-sm-6 col-md-3 mb-3">
+                                                        <label class="form-label">Normal Balance</label>
+                                                        <input type="text" class="form-control" value="@(GetNormalBalanceDisplay())" readonly
+                                                               placeholder="Auto-derived" />
+                                                        <small class="text-muted">Derived from Account Nature</small>
+                                                    </div>
+                                                    <div class="col-sm-6 col-md-3 mb-3">
+                                                        <label class="form-label">Reporting Category</label>
+                                                        <InputSelect class="form-select" @bind-Value="Model.ReportingCategory">
+                                                            <option value="">-- None --</option>
+                                                            @foreach (var cat in ReportingCategories.All)
+                                                            {
+                                                                <option value="@cat">@ReportingCategories.GetDisplayName(cat)</option>
+                                                            }
+                                                        </InputSelect>
+                                                        <small class="text-muted">P&L layout customization</small>
+                                                    </div>
+                                                </div>
+
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                </div>
+                            </div>
+                        </div>
+
+
+                        <!-- POSTING RULES -->
+                        <div class="tl-card-row @(ShowBehavior ? "row-active" : "")">
+                            <div class="tl-dot-col">
+                                <div class="tl-dot" @onclick="@(() => ToggleAccordion("behavior"))"></div>
+                            </div>
+                            <div class="tl-card-col">
+                                <div class="tl-card @(ShowBehavior ? "card-active border-purple" : "")">
+
+                                    <div class="tl-card-header" @onclick="@(() => ToggleAccordion("behavior"))">
+                                        <div class="tl-card-header-title">
+                                            <span class="tl-card-step step-purple">03</span>
+                                            Posting Rules & Controls
+                                        </div>
+                                        <span class="tl-card-toggle @(ShowBehavior ? "toggle-open" : "")">
+                                            <i data-feather="chevron-down"></i>
+                                        </span>
+                                    </div>
+
+                                    <div class="tl-collapse @(ShowBehavior ? "tl-open" : "")">
+                                        <div class="tl-card-body">
+                                            <div class="tl-card-body-inner @(BehaviorTouched ? "touched" : "")">
+                                                <div class="row">
+                                                    <div class="col-sm-6 col-md-3 mb-3">
+                                                        <div class="form-check form-switch">
+                                                            <InputCheckbox class="form-check-input" id="isPostable"
+                                                                           @bind-Value="Model.IsPostable" />
+                                                            <label class="form-check-label" for="isPostable">
+                                                                <strong>Postable</strong> <span class="text-danger ms-1">*</span>
+                                                                <br /><small class="text-muted">ON = can receive journal entries, OFF = header only</small>
+                                                            </label>
+                                                        </div>
+                                                    </div>
+                                                    <div class="col-sm-6 col-md-3 mb-3">
+                                                        <div class="form-check form-switch">
+                                                            <InputCheckbox class="form-check-input" id="isControlAccount"
+                                                                           @bind-Value="Model.IsControlAccount"
+                                                                           @bind-Value:after="OnControlAccountChanged" />
+                                                            <label class="form-check-label" for="isControlAccount">
+                                                                <strong>Control Account</strong>
+                                                                <br /><small class="text-muted">Sub-ledger controlled (e.g., AR/AP)</small>
+                                                            </label>
+                                                        </div>
+                                                    </div>
+                                                    <div class="col-sm-6 col-md-3 mb-3">
+                                                        <div class="form-check form-switch">
+                                                            <InputCheckbox class="form-check-input" id="allowManualJournal"
+                                                                           @bind-Value="Model.AllowManualJournal" />
+                                                            <label class="form-check-label" for="allowManualJournal">
+                                                                <strong>Allow Manual Journal</strong>
+                                                                <br /><small class="text-muted">OFF = only system posting via approved modules</small>
+                                                            </label>
+                                                        </div>
+                                                    </div>
+                                                    <div class="col-sm-6 col-md-3 mb-3">
+                                                        <div class="form-check form-switch">
+                                                            <InputCheckbox class="form-check-input" id="requiresBranch"
+                                                                           @bind-Value="Model.RequiresBranch" />
+                                                            <label class="form-check-label" for="requiresBranch">
+                                                                <strong>Branch Mandatory</strong>
+                                                                <br /><small class="text-muted">BranchId required for posting</small>
+                                                            </label>
+                                                        </div>
+                                                    </div>
+                                                </div>
+
+                                                @if (Model.IsControlAccount)
+                                                {
+                                                    <div class="row mt-2">
+                                                        <div class="col-sm-6 col-md-4 mb-3">
+                                                            <label class="form-label">Control Account Type <span class="text-danger ms-1">*</span></label>
+                                                            <InputSelect class=@($"form-select {(controlTypeError != null ? "is-invalid" : "")}") @bind-Value="Model.ControlAccountType">
+                                                                <option value="">--Select Control Account Type--</option>
+                                                                @foreach (var ct in ControlAccountTypes.All)
+                                                                {
+                                                                    <option value="@ct">@ControlAccountTypes.GetDisplayName(ct)</option>
+                                                                }
+                                                            </InputSelect>
+                                                            @if (controlTypeError != null)
+                                                            {
+                                                                <span class="field-validation-error">@controlTypeError</span>
+                                                            }
+                                                        </div>
+                                                    </div>
+                                                }
+
+                                                <div class="row mt-2">
+                                                    <div class="col-sm-6 col-md-3 mb-3">
+                                                        <div class="form-check form-switch">
+                                                            <InputCheckbox class="form-check-input" id="requiresCostCenter"
+                                                                           @bind-Value="Model.RequiresCostCenter" />
+                                                            <label class="form-check-label" for="requiresCostCenter">
+                                                                <strong>Cost Center Mandatory</strong>
+                                                                <br /><small class="text-muted">Future: when CostCenter model is active</small>
+                                                            </label>
+                                                        </div>
+                                                    </div>
+                                                    <div class="col-sm-6 col-md-3 mb-3">
+                                                        <div class="form-check form-switch">
+                                                            <InputCheckbox class="form-check-input" id="allowBackdatedPosting"
+                                                                           @bind-Value="Model.AllowBackdatedPostingOverride" />
+                                                            <label class="form-check-label" for="allowBackdatedPosting">
+                                                                <strong>Allow Backdated Posting</strong>
+                                                                <br /><small class="text-muted">Special backdated posting by controller only</small>
+                                                            </label>
+                                                        </div>
+                                                    </div>
+                                                    <div class="col-sm-6 col-md-3 mb-3">
+                                                        <div class="form-check form-switch">
+                                                            <InputCheckbox class="form-check-input" id="isReconcilable"
+                                                                           @bind-Value="Model.IsReconcilable" />
+                                                            <label class="form-check-label" for="isReconcilable">
+                                                                <strong>Reconcilable</strong>
+                                                                <br /><small class="text-muted">Requires reconciliation</small>
+                                                            </label>
+                                                        </div>
+                                                    </div>
+                                                </div>
+
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                </div>
+                            </div>
+                        </div>
+
+
+                        <!-- SPECIAL TYPES -->
+                        <div class="tl-card-row @(ShowSpecial ? "row-active" : "")">
+                            <div class="tl-dot-col">
+                                <div class="tl-dot" @onclick="@(() => ToggleAccordion("special"))"></div>
+                            </div>
+                            <div class="tl-card-col">
+                                <div class="tl-card @(ShowSpecial ? "card-active border-rose" : "")">
+
+                                    <div class="tl-card-header" @onclick="@(() => ToggleAccordion("special"))">
+                                        <div class="tl-card-header-title">
+                                            <span class="tl-card-step step-rose">04</span>
+                                            Special Types & Tax
+                                        </div>
+                                        <span class="tl-card-toggle @(ShowSpecial ? "toggle-open" : "")">
+                                            <i data-feather="chevron-down"></i>
+                                        </span>
+                                    </div>
+
+                                    <div class="tl-collapse @(ShowSpecial ? "tl-open" : "")">
+                                        <div class="tl-card-body">
+                                            <div class="tl-card-body-inner @(SpecialTouched ? "touched" : "")">
+
+                                                <div class="row">
+                                                    <div class="col-sm-6 col-md-4 mb-3">
+                                                        <div class="form-check form-switch">
+                                                            <InputCheckbox class="form-check-input" id="isBankAccount"
+                                                                           @bind-Value="Model.IsBankAccount" />
+                                                            <label class="form-check-label" for="isBankAccount">
+                                                                <i class="ti ti-building-bank me-1 text-info"></i>
+                                                                <strong>Bank Account</strong>
+                                                                <br /><small class="text-muted">Linked to bank for reconciliation</small>
+                                                            </label>
+                                                        </div>
+                                                    </div>
+                                                    <div class="col-sm-6 col-md-4 mb-3">
+                                                        <div class="form-check form-switch">
+                                                            <InputCheckbox class="form-check-input" id="isCashAccount"
+                                                                           @bind-Value="Model.IsCashAccount" />
+                                                            <label class="form-check-label" for="isCashAccount">
+                                                                <i class="ti ti-cash me-1 text-success"></i>
+                                                                <strong>Cash Account</strong>
+                                                                <br /><small class="text-muted">Physical cash tracking</small>
+                                                            </label>
+                                                        </div>
+                                                    </div>
+                                                    <div class="col-sm-6 col-md-4 mb-3">
+                                                        <div class="form-check form-switch">
+                                                            <InputCheckbox class="form-check-input" id="isTaxAccount"
+                                                                           @bind-Value="Model.IsTaxAccount" />
+                                                            <label class="form-check-label" for="isTaxAccount">
+                                                                <i class="ti ti-percentage me-1 text-warning"></i>
+                                                                <strong>Tax Account</strong>
+                                                                <br /><small class="text-muted">Tax liability/asset account</small>
+                                                            </label>
+                                                        </div>
+                                                    </div>
+                                                </div>
+
+                                                @if (Model.IsBankAccount)
+                                                {
+                                                    <hr class="my-3" />
+                                                    <h6 class="text-muted mb-3"><i class="ti ti-building-bank me-2"></i>Bank Details</h6>
+                                                    <div class="row">
+                                                        <div class="col-sm-6 col-md-4 mb-3">
+                                                            <label class="form-label">Bank Name</label>
+                                                            <InputText class="form-control" @bind-Value="Model.BankName"
+                                                                       placeholder="Enter bank name" />
+                                                        </div>
+                                                        <div class="col-sm-6 col-md-4 mb-3">
+                                                            <label class="form-label">Bank Account Number</label>
+                                                            <InputText class="form-control" @bind-Value="Model.BankAccountNumber"
+                                                                       placeholder="Enter account number" />
+                                                        </div>
+                                                        <div class="col-sm-6 col-md-4 mb-3">
+                                                            <label class="form-label">Bank Branch</label>
+                                                            <InputText class="form-control" @bind-Value="Model.BankBranch"
+                                                                       placeholder="Enter branch name" />
+                                                        </div>
+                                                        <div class="col-sm-6 col-md-4 mb-3">
+                                                            <label class="form-label">SWIFT Code</label>
+                                                            <InputText class="form-control" @bind-Value="Model.SwiftCode"
+                                                                       placeholder="e.g., HDFCINBB" />
+                                                        </div>
+                                                        <div class="col-sm-6 col-md-4 mb-3">
+                                                            <label class="form-label">IBAN</label>
+                                                            <InputText class="form-control" @bind-Value="Model.IBAN"
+                                                                       placeholder="International Bank Account Number" />
+                                                        </div>
+                                                        <div class="col-sm-6 col-md-4 mb-3">
+                                                            <label class="form-label">Routing Number</label>
+                                                            <InputText class="form-control" @bind-Value="Model.RoutingNumber"
+                                                                       placeholder="ABA routing number" />
+                                                        </div>
+                                                    </div>
+                                                }
+
+                                                @if (Model.IsTaxAccount)
+                                                {
+                                                    <hr class="my-3" />
+                                                    <h6 class="text-muted mb-3"><i class="ti ti-percentage me-2"></i>Tax Details</h6>
+                                                    <div class="row">
+                                                        <div class="col-sm-6 col-md-4 mb-3">
+                                                            <label class="form-label">Tax Type <span class="text-danger ms-1">*</span></label>
+                                                            <InputSelect class=@($"form-select {(taxTypeError != null ? "is-invalid" : "")}") @bind-Value="Model.TaxType">
+                                                                <option value="">--Select Tax Type--</option>
+                                                                @foreach (var tt in AccountTaxTypes.All)
+                                                                {
+                                                                    <option value="@tt">@AccountTaxTypes.GetDisplayName(tt)</option>
+                                                                }
+                                                            </InputSelect>
+                                                            @if (taxTypeError != null)
+                                                            {
+                                                                <span class="field-validation-error">@taxTypeError</span>
+                                                            }
+                                                        </div>
+                                                        <div class="col-sm-6 col-md-4 mb-3">
+                                                            <label class="form-label">Tax Rate (%)</label>
+                                                            <InputNumber class="form-control" @bind-Value="Model.TaxRate"
+                                                                         placeholder="e.g., 18" />
+                                                        </div>
+                                                        <div class="col-sm-6 col-md-4 mb-3">
+                                                            <label class="form-label">Tax Registration Number</label>
+                                                            <InputText class="form-control" @bind-Value="Model.TaxRegistrationNumber"
+                                                                       placeholder="e.g., GSTIN, VAT No." />
+                                                        </div>
+                                                    </div>
+                                                }
+
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                </div>
+                            </div>
+                        </div>
+
+
+                        <!-- STATUS -->
+                        <div class="tl-card-row @(ShowStatus ? "row-active" : "")">
+                            <div class="tl-dot-col">
+                                <div class="tl-dot" @onclick="@(() => ToggleAccordion("status"))"></div>
+                            </div>
+                            <div class="tl-card-col">
+                                <div class="tl-card @(ShowStatus ? "card-active border-teal" : "")">
+
+                                    <div class="tl-card-header" @onclick="@(() => ToggleAccordion("status"))">
+                                        <div class="tl-card-header-title">
+                                            <span class="tl-card-step step-teal">05</span>
+                                            Status & Governance
+                                        </div>
+                                        <span class="tl-card-toggle @(ShowStatus ? "toggle-open" : "")">
+                                            <i data-feather="chevron-down"></i>
+                                        </span>
+                                    </div>
+
+                                    <div class="tl-collapse @(ShowStatus ? "tl-open" : "")">
+                                        <div class="tl-card-body">
+                                            <div class="tl-card-body-inner @(StatusTouched ? "touched" : "")">
+                                                <div class="row">
+                                                    <div class="col-sm-6 col-md-3 mb-3">
+                                                        <label class="form-label">Status <span class="text-danger ms-1">*</span></label>
+                                                        <InputSelect class=@($"form-select {(statusError != null ? "is-invalid" : "")}") @bind-Value="Model.Status">
+                                                            <option value="">--Select Status--</option>
+                                                            <option value="@AccountStatuses.Draft">Draft</option>
+                                                            <option value="@AccountStatuses.Active">Active</option>
+                                                            <option value="@AccountStatuses.Inactive">Inactive</option>
+                                                            <option value="@AccountStatuses.Suspended">Suspended</option>
+                                                            <option value="@AccountStatuses.Closed">Closed</option>
+                                                        </InputSelect>
+                                                        @if (statusError != null)
+                                                        {
+                                                            <span class="field-validation-error">@statusError</span>
+                                                        }
+                                                    </div>
+                                                    <div class="col-sm-6 col-md-3 mb-3">
+                                                        <label class="form-label">Lock Status</label>
+                                                        <input type="text" class="form-control"
+                                                               value="@(string.IsNullOrEmpty(Model.LockStatus) ? "Unlocked" : LockStatuses.GetDisplayName(Model.LockStatus))"
+                                                               readonly />
+                                                        <small class="text-muted">System-managed after posting</small>
+                                                    </div>
+                                                    <div class="col-sm-6 col-md-3 mb-3">
+                                                        <label class="form-label">Effective From</label>
+                                                        <InputDate class="form-control" @bind-Value="Model.EffectiveFrom" />
+                                                    </div>
+                                                    <div class="col-sm-6 col-md-3 mb-3">
+                                                        <label class="form-label">Effective To</label>
+                                                        <InputDate class=@($"form-control {(dateError != null ? "is-invalid" : "")}") @bind-Value="Model.EffectiveTo" />
+                                                        @if (dateError != null)
+                                                        {
+                                                            <span class="field-validation-error">@dateError</span>
+                                                        }
+                                                    </div>
+                                                </div>
+                                                                         @* maxlength="300" *@
+
+                                                <div class="row">
+                                                    <div class="col-12 mb-3">
+                                                        <label class="form-label">Lock / Inactivation Reason</label>
+                                                        <RichTextEditor @ref="_lockReasonEditor"
+                                                                        Value="@Model.LockReason"
+                                                                        MaxHeight="200" MinHeight="80"
+                                                                        placeholder="Reason for locking or inactivating the account (required if locked/inactive)" />
+                                                        @if (lockReasonError != null)
+                                                        {
+                                                            <span class="field-validation-error">@lockReasonError</span>
+                                                        }
+                                                    </div>
+                                                </div>
+
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                </div>
+                            </div>
+                        </div>
+
+                    </div>
+
+                </div>
+
+                <!-- FORM ACTIONS -->
+                <div class="page-btn mb-3">
+                    <div class="d-flex justify-content-end gap-2">
+                        <a href="/gl-accounts" class="btn btn-outline-secondary fs-13 fw-medium p-2 px-4">
+                           <i class="ti ti-x"></i> Cancel
+                        </a>
+                        <button type="submit" class="btn btn-primary fs-13 fw-medium p-2 px-4" disabled="@isSaving">
+                            @if (isSaving)
+                            {
+                                <span class="spinner-border spinner-border-sm me-1"></span>
+                                <span>Saving...</span>
+                            }
+                            else
+                            {
+                                <i class="ti ti-device-floppy me-1"></i>
+                                <span>@(IsEditMode ? "Update" : "Save")</span>
+                            }
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+        </EditForm>
+    </div>
+}

@@ -1,0 +1,362 @@
+@page "/ar-adjustments/{Id:guid}/view"
+@using FinanceConnect.Client.ViewModels
+@using FinanceConnect.Client.Services
+
+<PageTitle>AR Adjustment Details - FinanceConnect</PageTitle>
+
+@if (!isInitialized)
+{
+    <div class="page-loading-overlay">
+        <div class="whirly-loader"></div>
+    </div>
+}
+else if (Adjustment == null)
+{
+    <div class="container view-screen py-4">
+        <div class="alert alert-warning">
+            <i class="ti ti-alert-triangle me-2"></i>
+            AR Adjustment not found.
+        </div>
+        <a href="/ar-adjustments" class="btn btn-secondary">
+            <i class="ti ti-arrow-left me-1"></i> Back to List
+        </a>
+    </div>
+}
+else
+{
+    <div class="content">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <div>
+                <h4 class="fw-bold mb-1">AR Adjustment Details</h4>
+                <p class="text-muted mb-0 small">View adjustment information and status</p>
+            </div>
+            <a class="btn btn-secondary btn-sm" href="/ar-adjustments">
+                <i class="ti ti-arrow-left me-1"></i> Back
+            </a>
+        </div>
+
+        <div class="card">
+
+            <!-- TOP HEADER CARD -->
+            <div class="header-card">
+                <div class="header-inner">
+                    <div class="header-left1">
+                        <div class="company-logo" style="background: linear-gradient(135deg, var(--primary) 0%, #f08a2c 100%);">
+                            <span class="logo-initials" style="color: #fff; font-size: 18px;">
+                                <i class="ti ti-adjustments-horizontal"></i>
+                            </span>
+                        </div>
+                        <div class="header-meta">
+                            <h2 class="company-title">@Adjustment.AdjustmentNumber</h2>
+                            <div class="company-subtitle">
+                                <span><i class="ti ti-user me-1"></i>@Adjustment.CustomerCode - @Adjustment.CustomerName</span>
+                                <span class="dot">&middot;</span>
+                                <span><i class="ti ti-calendar me-1"></i>@Adjustment.AdjustmentDate.ToString("dd MMM yyyy")</span>
+                                <span class="dot">&middot;</span>
+                                <span><i class="ti ti-currency-rupee me-1"></i>@Adjustment.TotalAdjustmentAmount.ToString("N2") @Adjustment.CurrencyCode</span>
+                            </div>
+                            <div class="header-tags">
+                                <span class="tag" style="border:1px solid @GetTypeTagBorder(Adjustment.AdjustmentType); background:@GetTypeTagBg(Adjustment.AdjustmentType); color:@GetTypeTagFg(Adjustment.AdjustmentType);">
+                                    @AdjustmentTypes.GetDisplayName(Adjustment.AdjustmentType)
+                                </span>
+                                <span class="tag" style="border:1px solid @(Adjustment.AdjustmentDirection == AdjustmentDirections.ReduceAR ? "#12e141" : "#ff9800"); background:@(Adjustment.AdjustmentDirection == AdjustmentDirections.ReduceAR ? "#daffde61" : "#fff3e0"); color:@(Adjustment.AdjustmentDirection == AdjustmentDirections.ReduceAR ? "#00ce3f" : "#e65100");">
+                                    <i class="ti @(Adjustment.AdjustmentDirection == AdjustmentDirections.ReduceAR ? "ti-arrow-down" : "ti-arrow-up") me-1"></i>
+                                    @AdjustmentDirections.GetDisplayName(Adjustment.AdjustmentDirection)
+                                </span>
+                                @if (Adjustment.IsSystemGenerated)
+                                {
+                                    <span class="tag" style="border:1px solid #0081ff; background:#e9f3ff; color:#1420ff;">
+                                        <i class="ti ti-robot me-1"></i>System
+                                    </span>
+                                }
+                            </div>
+                        </div>
+                    </div>
+                    <div class="header-right">
+                        @{ var sLow = Adjustment.AdjustmentStatus?.ToLower(); }
+                        @if (sLow == "posted") { <span class="status-badge status-active">&#9679; POSTED</span> }
+                        else if (sLow == "draft") { <span class="status-badge status-draft">&#9679; DRAFT</span> }
+                        else if (sLow == "submitted") { <span class="status-badge" style="background:#e3f2fd;color:#1565c0;border:1px solid #42a5f5;">&#9679; SUBMITTED</span> }
+                        else if (sLow == "approved") { <span class="status-badge" style="background:#ede7f6;color:#7b1fa2;border:1px solid #ab47bc;">&#9679; APPROVED</span> }
+                        else if (sLow == "cancelled") { <span class="status-badge" style="background:#fff3e0;color:#e65100;border:1px solid #ff9800;">&#9679; CANCELLED</span> }
+                        else if (sLow == "reversed") { <span class="status-badge status-inactive">&#9679; REVERSED</span> }
+                        else { <span class="status-badge status-draft">&#9679; @Adjustment.AdjustmentStatus?.ToUpper()</span> }
+                        <div class="created-info">Created @Adjustment.CreatedAt.ToString("dd MMM yyyy")</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- SCROLLABLE BODY -->
+            <div class="details-body">
+
+                <!-- CORE INFORMATION -->
+                <div class="section-block">
+                    <div class="section-header">
+                        <span class="section-icon" style="background:#fe6dde36;padding:2px 6px 0 6px;border-radius:5px;border:1px solid #ff79f2;color:#eb0091;"><i class="ti ti-id"></i></span>
+                        <span class="section-title">CORE INFORMATION</span>
+                        <div class="line"></div>
+                    </div>
+                    <div class="section-content">
+                        <div class="fields-grid fields-grid-3">
+                            <div class="field-item"><div class="field-label">ADJUSTMENT NUMBER</div><div class="field-value fw">@Adjustment.AdjustmentNumber</div></div>
+                            <div class="field-item"><div class="field-label">ADJUSTMENT TYPE</div><div class="field-value"><span class="badge @GetTypeBadgeClass(Adjustment.AdjustmentType)">@AdjustmentTypes.GetDisplayName(Adjustment.AdjustmentType)</span></div></div>
+                            <div class="field-item"><div class="field-label">ADJUSTMENT DATE</div><div class="field-value fw">@Adjustment.AdjustmentDate.ToString("dd MMM yyyy")</div></div>
+                            <div class="field-item"><div class="field-label">BRANCH</div><div class="field-value">@(Adjustment.BranchName ?? Adjustment.BranchCode ?? "-")</div></div>
+                            <div class="field-item"><div class="field-label">CURRENCY</div><div class="field-value fw">@Adjustment.CurrencyCode</div></div>
+                            <div class="field-item"><div class="field-label">DIRECTION</div><div class="field-value"><span class="badge @GetDirectionBadgeClass(Adjustment.AdjustmentDirection)"><i class="ti @(Adjustment.AdjustmentDirection == AdjustmentDirections.ReduceAR ? "ti-arrow-down" : "ti-arrow-up") me-1"></i>@AdjustmentDirections.GetDisplayName(Adjustment.AdjustmentDirection)</span></div></div>
+                            <div class="field-item"><div class="field-label">POSTING DATE</div><div class="field-value">@if(Adjustment.PostingDate.HasValue){<span class="text-success">@Adjustment.PostingDate.Value.ToString("dd MMM yyyy")</span>}else{<span class="text-muted fst-italic">Not set</span>}</div></div>
+                            <div class="field-item"><div class="field-label">CUSTOMER ACCOUNT</div><div class="field-value">@(Adjustment.CustomerAccountName ?? "Auto-resolved")</div></div>
+                            <div class="field-item"><div class="field-label">SYSTEM GENERATED</div><div class="field-value">@if(Adjustment.IsSystemGenerated){<span class="pill pill-yes"><i class="ti ti-robot me-1"></i>Yes</span>}else{<span class="pill pill-no"><i class="ti ti-user me-1"></i>No</span>}</div></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- REASON & CLASSIFICATION -->
+                <div class="section-block">
+                    <div class="section-header">
+                        <span class="section-icon" style="background:#dae4ff6e;padding:2px 6px 0 6px;border-radius:5px;border:1px solid #3741ff;color:#0037ff;"><i class="ti ti-tag"></i></span>
+                        <span class="section-title">REASON &amp; CLASSIFICATION</span>
+                        <div class="line"></div>
+                    </div>
+                    <div class="section-content">
+                        <div class="fields-grid fields-grid-3">
+                            <div class="field-item"><div class="field-label">REASON CODE</div><div class="field-value fw">@Adjustment.ReasonCode</div></div>
+                            <div class="field-item field-span-2"><div class="field-label">REASON DESCRIPTION</div><div class="field-value">@Adjustment.ReasonDescription</div></div>
+                        </div>
+                        @if (!string.IsNullOrEmpty(Adjustment.AdjustmentNarration))
+                        {
+                            <div class="notes-box"><div class="field-label">NOTES / NARRATION</div><div class="notes-text">@Adjustment.AdjustmentNarration</div></div>
+                        }
+                    </div>
+                </div>
+
+                <!-- CUSTOMER DETAILS -->
+                <div class="section-block">
+                    <div class="section-header">
+                        <span class="section-icon" style="background:#daffde61;padding:3px 6px 2px 6px;border-radius:5px;border:1px solid #12e141;color:#00ce3f;"><i class="ti ti-user"></i></span>
+                        <span class="section-title">CUSTOMER DETAILS</span>
+                        <div class="line"></div>
+                    </div>
+                    <div class="section-content">
+                        <div class="fields-grid fields-grid-3">
+                            <div class="field-item"><div class="field-label">CUSTOMER CODE</div><div class="field-value fw">@Adjustment.CustomerCode</div></div>
+                            <div class="field-item"><div class="field-label">CUSTOMER NAME</div><div class="field-value">@Adjustment.CustomerName</div></div>
+                            @if (!string.IsNullOrEmpty(Adjustment.CustomerAccountName))
+                            {<div class="field-item"><div class="field-label">ACCOUNT</div><div class="field-value">@Adjustment.CustomerAccountName</div></div>}
+                        </div>
+                    </div>
+                </div>
+
+                <!-- ADJUSTMENT LINES -->
+                <div class="section-block">
+                    <div class="section-header">
+                        <span class="section-icon" style="background:#6debfe2b;padding:2px 6px 0 6px;border-radius:5px;border:1px solid #00a785;color:#008f9c;"><i class="ti ti-list-details"></i></span>
+                        <span class="section-title">ADJUSTMENT LINES (@Adjustment.Lines.Count LINES)</span>
+                        <div class="line"></div>
+                    </div>
+                    <div class="section-content" style="padding:0;overflow:hidden;">
+                        <div class="table-responsive">
+                            <table class="table table-sm align-middle mb-0">
+                                <thead style="background:#f9fafb;">
+                                    <tr>
+                                        <th style="width:50px;padding:10px 16px;">#</th>
+                                        <th style="width:110px;padding:10px 8px;">Line Type</th>
+                                        <th style="padding:10px 8px;">Invoice</th>
+                                        <th class="text-end" style="width:130px;padding:10px 8px;">Amount</th>
+                                        <th style="padding:10px 8px;">Offset Account</th>
+                                        <th style="padding:10px 8px;">Notes</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach (var line in Adjustment.Lines.OrderBy(l => l.LineNumber))
+                                    {
+                                        <tr>
+                                            <td class="text-center" style="padding:10px 16px;">@line.LineNumber</td>
+                                            <td style="padding:10px 8px;"><span class="badge @GetLineTypeBadgeClass(line.LineType)">@AdjustmentLineTypes.GetDisplayName(line.LineType)</span></td>
+                                            <td style="padding:10px 8px;">@if(!string.IsNullOrEmpty(line.CustomerInvoiceNumber)){<span class="text-primary fw-medium"><i class="ti ti-link me-1"></i>@line.CustomerInvoiceNumber</span>}else{<span class="text-muted">Customer Level</span>}</td>
+                                            <td class="text-end fw-medium" style="padding:10px 8px;">@line.AdjustmentAmount.ToString("N2")</td>
+                                            <td style="padding:10px 8px;"><span class="fw-medium">@line.OffsetAccountCode</span>@if(!string.IsNullOrEmpty(line.OffsetAccountName)){<small class="text-muted d-block">@line.OffsetAccountName</small>}</td>
+                                            <td style="padding:10px 8px;">@if(!string.IsNullOrEmpty(line.LineNarration)){<small class="ql-rendered">@((MarkupString)line.LineNarration)</small>}else{<span class="text-muted">-</span>}</td>
+                                        </tr>
+                                    }
+                                </tbody>
+                                <tfoot style="background:#f9fafb;">
+                                    <tr>
+                                        <td colspan="3" class="text-end fw-bold" style="padding:12px 8px;">Total:</td>
+                                        <td class="text-end fw-bold text-primary" style="padding:12px 8px;font-size:15px;">@Adjustment.TotalAdjustmentAmount.ToString("N2")</td>
+                                        <td colspan="2"></td>
+                                    </tr>
+                                </tfoot>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- ADJUSTMENT SUMMARY -->
+                <div class="section-block">
+                    <div class="section-header">
+                        <span class="section-icon" style="background:#fff3e024;padding:2px 6px 0 6px;border-radius:5px;border:1px solid #ff9800;color:#e65100;"><i class="ti ti-calculator"></i></span>
+                        <span class="section-title">ADJUSTMENT SUMMARY</span>
+                        <div class="line"></div>
+                    </div>
+                    <div class="section-content">
+                        <div class="fields-grid fields-grid-3">
+                            <div class="field-item"><div class="field-label">TOTAL LINES</div><div class="field-value fw">@Adjustment.Lines.Count</div></div>
+                            <div class="field-item"><div class="field-label">DIRECTION</div><div class="field-value"><span class="badge @GetDirectionBadgeClass(Adjustment.AdjustmentDirection)">@AdjustmentDirections.GetDisplayName(Adjustment.AdjustmentDirection)</span></div></div>
+                            <div class="field-item"><div class="field-label">TOTAL ADJUSTMENT</div><div class="field-value fw" style="font-size:18px;color:var(--primary);">@Adjustment.CurrencyCode @Adjustment.TotalAdjustmentAmount.ToString("N2")</div></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- APPROVAL INFORMATION -->
+                @if (Adjustment.RequiresApproval)
+                {
+                    <div class="section-block">
+                        <div class="section-header">
+                            <span class="section-icon" style="background:#ede7f624;padding:2px 6px 0 6px;border-radius:5px;border:1px solid #ab47bc;color:#7b1fa2;"><i class="ti ti-user-check"></i></span>
+                            <span class="section-title">APPROVAL INFORMATION</span>
+                            <div class="line"></div>
+                        </div>
+                        <div class="section-content">
+                            <div class="fields-grid fields-grid-3">
+                                <div class="field-item"><div class="field-label">APPROVAL REQUIRED</div><div class="field-value"><span class="pill" style="background:#fff3cd;color:#856404;">Yes</span></div></div>
+                                <div class="field-item"><div class="field-label">APPROVAL STATUS</div><div class="field-value"><span class="badge @GetApprovalBadgeClass(Adjustment.ApprovalStatus)">@ARAdjustmentApprovalStatuses.GetDisplayName(Adjustment.ApprovalStatus)</span></div></div>
+                                @if(Adjustment.ApprovedOn.HasValue){
+                                    <div class="field-item"><div class="field-label">APPROVED ON</div><div class="field-value text-success">@Adjustment.ApprovedOn.Value.ToString("dd MMM yyyy HH:mm")</div></div>
+                                    <div class="field-item"><div class="field-label">APPROVED BY</div><div class="field-value">@Adjustment.ApprovedByUserName</div></div>
+                                }
+                                @if(!string.IsNullOrEmpty(Adjustment.ApprovalComment)){
+                                    <div class="field-item field-span-2"><div class="field-label">APPROVAL COMMENT</div><div class="field-value">@Adjustment.ApprovalComment</div></div>
+                                }
+                            </div>
+                        </div>
+                    </div>
+                }
+
+                <!-- EVIDENCE & ATTACHMENTS -->
+                <div class="section-block">
+                    <div class="section-header">
+                        <span class="section-icon" style="background:#e3f2fd24;padding:2px 6px 0 6px;border-radius:5px;border:1px solid #42a5f5;color:#1565c0;"><i class="ti ti-paperclip"></i></span>
+                        <span class="section-title">EVIDENCE &amp; ATTACHMENTS</span>
+                        <div class="line"></div>
+                    </div>
+                    <div class="section-content">
+                        <div class="fields-grid fields-grid-3">
+                            <div class="field-item"><div class="field-label">EVIDENCE REQUIRED</div><div class="field-value">@if(Adjustment.EvidenceRequired){<span class="pill" style="background:#fff3cd;color:#856404;">Yes</span>}else{<span class="pill pill-no">No</span>}</div></div>
+                            <div class="field-item"><div class="field-label">ATTACHMENTS</div><div class="field-value">@if(Adjustment.EvidenceAttachmentCount > 0){<span class="pill pill-yes">@Adjustment.EvidenceAttachmentCount file(s)</span>}else if(Adjustment.EvidenceRequired){<span class="pill pill-no">0 - Required</span>}else{<span class="text-muted">None</span>}</div></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- GL POSTING -->
+                @if (Adjustment.AdjustmentStatus == AdjustmentStatuses.Posted)
+                {
+                    <div class="section-block">
+                        <div class="section-header">
+                            <span class="section-icon" style="background:#e8f5e924;padding:2px 6px 0 6px;border-radius:5px;border:1px solid #4caf50;color:#2e7d32;"><i class="ti ti-book"></i></span>
+                            <span class="section-title">GL POSTING</span>
+                            <div class="line"></div>
+                        </div>
+                        <div class="section-content">
+                            <div class="fields-grid fields-grid-3">
+                                @if(!string.IsNullOrEmpty(Adjustment.ReceivableAccountCode)){<div class="field-item field-span-2"><div class="field-label">AR CONTROL ACCOUNT</div><div class="field-value fw">@Adjustment.ReceivableAccountCode - @Adjustment.ReceivableAccountName</div></div>}
+                                @if(!string.IsNullOrEmpty(Adjustment.DefaultWriteOffAccountCode)){<div class="field-item"><div class="field-label">DEFAULT WRITE-OFF ACCOUNT</div><div class="field-value fw">@Adjustment.DefaultWriteOffAccountCode - @Adjustment.DefaultWriteOffAccountName</div></div>}
+                            </div>
+                            <div style="margin:12px 16px 16px;padding:8px 14px;background:#e8f9f0;border-radius:6px;font-size:12px;color:#14a85a;"><i class="ti ti-circle-check me-1"></i>GL entries have been posted successfully</div>
+                        </div>
+                    </div>
+                }
+
+                <!-- ACTIONS -->
+                <div class="section-block">
+                    <div class="section-header">
+                        <span class="section-icon" style="background:#fff3e024;padding:2px 6px 0 6px;border-radius:5px;border:1px solid #ff9800;color:#e65100;"><i class="ti ti-settings"></i></span>
+                        <span class="section-title">ACTIONS</span>
+                        <div class="line"></div>
+                    </div>
+                    <div class="section-content" style="padding:16px;">
+                        <div class="d-flex flex-wrap gap-2">
+                            @if(Adjustment.CanEdit){<a href="/ar-adjustments/@Adjustment.Id" class="btn btn-primary btn-sm"><i class="ti ti-edit me-1"></i> Edit</a>}
+                            @if(Adjustment.AdjustmentStatus == AdjustmentStatuses.Draft){<button type="button" class="btn btn-info btn-sm" @onclick="SubmitAdjustment"><i class="ti ti-send me-1"></i> Submit</button>}
+                            @if(Adjustment.CanApprove && Adjustment.RequiresApproval){
+                                <button type="button" class="btn btn-success btn-sm" data-bs-toggle="modal" data-bs-target="#approveModal"><i class="ti ti-check me-1"></i> Approve</button>
+                                <button type="button" class="btn btn-outline-danger btn-sm" data-bs-toggle="modal" data-bs-target="#rejectModal"><i class="ti ti-x me-1"></i> Reject</button>
+                            }
+                            @if(Adjustment.CanPost){<button type="button" class="btn btn-success btn-sm" data-bs-toggle="modal" data-bs-target="#postModal"><i class="ti ti-check me-1"></i> Post</button>}
+                            @if(Adjustment.CanCancel){<button type="button" class="btn btn-outline-warning btn-sm" data-bs-toggle="modal" data-bs-target="#cancelModal"><i class="ti ti-ban me-1"></i> Cancel</button>}
+                            @if(Adjustment.CanReverse){<button type="button" class="btn btn-outline-danger btn-sm" data-bs-toggle="modal" data-bs-target="#reverseModal"><i class="ti ti-arrow-back-up me-1"></i> Reverse</button>}
+                        </div>
+                    </div>
+                </div>
+
+                <!-- AUDIT TRAIL -->
+                <div class="section-block">
+                    <div class="section-header">
+                        <span class="section-icon" style="background:#f8c5051f;padding:2px 6px 0 6px;border-radius:5px;border:1px solid #a7b500;color:#c0a700;"><i class="ti ti-history"></i></span>
+                        <span class="section-title">History</span>
+                        <div class="line"></div>
+                    </div>
+                    <div class="section-content">
+                        <div class="fields-grid fields-grid-3">
+                            <div class="field-item"><div class="field-label">STATUS</div><div class="field-value">@if(sLow == "posted"){<span class="pill pill-yes">&#9679; POSTED</span>}else if(sLow == "draft"){<span class="pill pill-draft">&#9679; DRAFT</span>}else{<span class="pill" style="background:#eee;color:#555;">&#9679; @Adjustment.AdjustmentStatus?.ToUpper()</span>}</div></div>
+                            <div class="field-item"><div class="field-label">CREATED</div><div class="field-value">@Adjustment.CreatedAt.ToString("dd MMM yyyy HH:mm")</div></div>
+                            <div class="field-item"><div class="field-label">CREATED BY</div><div class="field-value">@(Adjustment.CreatedBy ?? "-")</div></div>
+                            @if(Adjustment.UpdatedAt.HasValue){<div class="field-item"><div class="field-label">LAST UPDATED</div><div class="field-value">@Adjustment.UpdatedAt.Value.ToString("dd MMM yyyy HH:mm") by @(Adjustment.UpdatedBy ?? "-")</div></div>}
+                            @if(Adjustment.PostedOn.HasValue){<div class="field-item"><div class="field-label">POSTED ON</div><div class="field-value text-success">@Adjustment.PostedOn.Value.ToString("dd MMM yyyy HH:mm") by @(Adjustment.PostedByUserName ?? "-")</div></div>}
+                            @if(Adjustment.CancelledOn.HasValue){
+                                <div class="field-item"><div class="field-label">CANCELLED ON</div><div class="field-value text-warning">@Adjustment.CancelledOn.Value.ToString("dd MMM yyyy HH:mm") by @(Adjustment.CancelledByUserName ?? "-")</div></div>
+                                <div class="field-item field-span-2"><div class="field-label">CANCELLATION REASON</div><div class="field-value text-warning">@(Adjustment.CancellationReason ?? "-")</div></div>
+                            }
+                            @if(Adjustment.ReversedOn.HasValue){
+                                <div class="field-item"><div class="field-label">REVERSED ON</div><div class="field-value text-danger">@Adjustment.ReversedOn.Value.ToString("dd MMM yyyy HH:mm") by @(Adjustment.ReversedByUserName ?? "-")</div></div>
+                                <div class="field-item field-span-2"><div class="field-label">REVERSAL REASON</div><div class="field-value text-danger">@(Adjustment.ReversalReason ?? "-")</div></div>
+                            }
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </div>
+
+    <!-- Approve Modal -->
+    <div class="modal fade" id="approveModal" tabindex="-1"><div class="modal-dialog modal-dialog-centered"><div class="modal-content"><div class="modal-body text-center p-4">
+        <span class="rounded-circle d-inline-flex p-2 bg-success-transparent mb-2"><i class="ti ti-check fs-24 text-success"></i></span>
+        <h5 class="mb-2">Approve Adjustment</h5><p class="text-muted">Do you want to approve <strong>@Adjustment.AdjustmentNumber</strong>?</p>
+        <div class="text-start mb-3"><label class="form-label">Approval Comment (Optional)</label><textarea class="form-control" rows="2" @bind="approvalCommentInput" placeholder="Enter comment..."></textarea></div>
+        <div class="d-flex justify-content-center gap-2 mt-3"><button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button><button type="button" class="btn btn-success" @onclick="ApproveAdjustment" data-bs-dismiss="modal"><i class="ti ti-check me-1"></i>Yes, Approve</button></div>
+    </div></div></div></div>
+
+    <!-- Reject Modal -->
+    <div class="modal fade" id="rejectModal" tabindex="-1"><div class="modal-dialog modal-dialog-centered"><div class="modal-content"><div class="modal-body text-center p-4">
+        <span class="rounded-circle d-inline-flex p-2 bg-danger-transparent mb-2"><i class="ti ti-x fs-24 text-danger"></i></span>
+        <h5 class="mb-2">Reject Adjustment</h5><p class="text-muted">Reject <strong>@Adjustment.AdjustmentNumber</strong></p>
+        <div class="text-start mb-3"><label class="form-label">Rejection Reason <span class="text-danger">*</span></label><textarea class="form-control" rows="3" @bind="rejectionReasonInput" placeholder="Enter reason..."></textarea></div>
+        <div class="d-flex justify-content-center gap-2"><button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button><button type="button" class="btn btn-danger" @onclick="RejectAdjustment" data-bs-dismiss="modal"><i class="ti ti-x me-1"></i>Yes, Reject</button></div>
+    </div></div></div></div>
+
+    <!-- Post Modal -->
+    <div class="modal fade" id="postModal" tabindex="-1"><div class="modal-dialog modal-dialog-centered"><div class="modal-content"><div class="modal-body text-center p-4">
+        <span class="rounded-circle d-inline-flex p-2 bg-success-transparent mb-2"><i class="ti ti-check fs-24 text-success"></i></span>
+        <h5 class="mb-2">Post Adjustment</h5><p class="text-muted">Do you want to post <strong>@Adjustment.AdjustmentNumber</strong>?</p>
+        <div class="alert alert-warning small text-start"><i class="ti ti-alert-triangle me-1"></i>Once posted, the adjustment cannot be edited. Any corrections must be made via reversal.</div>
+        <div class="d-flex justify-content-center gap-2 mt-3"><button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button><button type="button" class="btn btn-success" @onclick="PostAdjustment" data-bs-dismiss="modal"><i class="ti ti-check me-1"></i>Yes, Post</button></div>
+    </div></div></div></div>
+
+    <!-- Cancel Modal -->
+    <div class="modal fade" id="cancelModal" tabindex="-1"><div class="modal-dialog modal-dialog-centered"><div class="modal-content"><div class="modal-body text-center p-4">
+        <span class="rounded-circle d-inline-flex p-2 bg-warning-transparent mb-2"><i class="ti ti-ban fs-24 text-warning"></i></span>
+        <h5 class="mb-2">Cancel Adjustment</h5><p class="text-muted">Cancel <strong>@Adjustment.AdjustmentNumber</strong></p>
+        <div class="text-start mb-3"><label class="form-label">Cancellation Reason <span class="text-danger">*</span></label><textarea class="form-control" rows="3" @bind="cancelReasonInput" placeholder="Enter reason..."></textarea></div>
+        <div class="d-flex justify-content-center gap-2"><button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button><button type="button" class="btn btn-warning" @onclick="CancelAdjustment" data-bs-dismiss="modal"><i class="ti ti-ban me-1"></i>Yes, Cancel</button></div>
+    </div></div></div></div>
+
+    <!-- Reverse Modal -->
+    <div class="modal fade" id="reverseModal" tabindex="-1"><div class="modal-dialog modal-dialog-centered"><div class="modal-content"><div class="modal-body text-center p-4">
+        <span class="rounded-circle d-inline-flex p-2 bg-danger-transparent mb-2"><i class="ti ti-arrow-back-up fs-24 text-danger"></i></span>
+        <h5 class="mb-2">Reverse Adjustment</h5><p class="text-muted">Reverse posted adjustment <strong>@Adjustment.AdjustmentNumber</strong></p>
+        <div class="alert alert-danger small text-start"><i class="ti ti-alert-triangle me-1"></i>This will create a reversal entry in the GL. The adjustment effect will be nullified.</div>
+        <div class="text-start mb-3"><label class="form-label">Reversal Reason <span class="text-danger">*</span></label><textarea class="form-control" rows="3" @bind="reverseReasonInput" placeholder="Enter reason..."></textarea></div>
+        <div class="d-flex justify-content-center gap-2"><button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button><button type="button" class="btn btn-danger" @onclick="ReverseAdjustment" data-bs-dismiss="modal"><i class="ti ti-arrow-back-up me-1"></i>Yes, Reverse</button></div>
+    </div></div></div></div>
+}

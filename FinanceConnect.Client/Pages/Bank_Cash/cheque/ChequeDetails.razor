@@ -1,0 +1,409 @@
+@page "/cheques/{ChequeId:guid}/view"
+@using FinanceConnect.Client.ViewModels
+@using FinanceConnect.Client.Services
+@inject ChequeService Service
+@inject NavigationManager Nav
+@inject IJSRuntime JS
+
+@if (SelectedCheque != null)
+{
+    <div class="content view-screen py-3">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <div>
+                <h4 class="fw-bold mb-1">Cheque Details</h4>
+                <p class="text-muted mb-0 small">View cheque information and lifecycle status</p>
+            </div>
+            <div class="d-flex gap-2">
+                <a class="btn btn-outline-primary" href="/cheques/edit/@SelectedCheque.Id">
+                    <i class="ti ti-edit me-1"></i> Edit
+                </a>
+                <a class="btn btn-outline-secondary" @onclick="GoBack">
+                    <i class="ti ti-arrow-left me-1"></i> Back
+                </a>
+            </div>
+        </div>
+
+        <div class="row g-3">
+
+            <!-- TOP PANEL : CHEQUE HEADER -->
+            <div class="col-lg-12">
+                <div class="card mb-0">
+                    <div class="header-card">
+                        <div class="header-inner">
+                            <div class="header-left1">
+                                <div class="company-logo">
+                                    <span class="logo-initials">
+                                        <i class="ti ti-file-invoice" style="font-size: 24px;"></i>
+                                    </span>
+                                </div>
+
+                                <div class="header-meta">
+                                    <h2 class="company-title">@SelectedCheque.ChequeNumber</h2>
+                                    <div class="company-subtitle">
+                                        <span>@SelectedCheque.CounterpartyName</span>
+                                        <span class="dot">·</span>
+                                        <span>@SelectedCheque.Currency @IndianNumberFormatter.Format(SelectedCheque.Amount)</span>
+                                    </div>
+                                    <div class="header-tags">
+                                        <span class="tag tag-default" style="border: 1px solid var(--primary); background: rgba(var(--primary-rgb), 0.08); color: var(--primary);">
+                                            @SelectedCheque.Direction
+                                        </span>
+                                        @if (!string.IsNullOrEmpty(SelectedCheque.CrossingType) && SelectedCheque.CrossingType != "None")
+                                        {
+                                            <span class="tag tag-default" style="border: 1px solid #6c757d; background: #f8f9fa; color: #6c757d;">
+                                                @SelectedCheque.CrossingType
+                                            </span>
+                                        }
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="header-right">
+                                <span class="status-badge @GetStatusHeaderClass(SelectedCheque.Status)">
+                                    ● @SelectedCheque.Status.ToString().ToUpper()
+                                </span>
+                                <div class="created-info">Created @SelectedCheque.CreatedAt.ToString("dd MMM yyyy")</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- LEFT PANEL : CHEQUE DETAILS -->
+            <div class="col-lg-8">
+                <div class="profile-card">
+
+                    <!-- Core Information -->
+                    <div class="card mb-3">
+                        <div class="card-header py-2">
+                            <i class="ti ti-info-circle me-2"></i> Core Information
+                        </div>
+                        <div class="card-body py-2">
+                            <div class="row">
+                                <div class="col-md-3">
+                                    <small class="text-muted">Cheque No</small>
+                                    <div class="fw-medium">@SelectedCheque.ChequeNumber</div>
+                                </div>
+                                <div class="col-md-3">
+                                    <small class="text-muted">Direction</small>
+                                    <div class="fw-medium">@SelectedCheque.Direction</div>
+                                </div>
+                                <div class="col-md-3">
+                                    <small class="text-muted">Branch</small>
+                                    <div>@(SelectedCheque.Branch ?? "-")</div>
+                                </div>
+                                <div class="col-md-3">
+                                    <small class="text-muted">Cheque Date</small>
+                                    <div>@SelectedCheque.ChequeDate.ToString("dd MMM yyyy")</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Instrument Details -->
+                    <div class="card mb-3">
+                        <div class="card-header py-2">
+                            <i class="ti ti-file-invoice me-2"></i> Instrument Details
+                        </div>
+                        <div class="card-body py-2">
+                            <div class="row">
+                                <div class="col-md-3">
+                                    <small class="text-muted">Amount</small>
+                                    <div class="fw-medium">@SelectedCheque.Currency @IndianNumberFormatter.Format(SelectedCheque.Amount)</div>
+                                </div>
+                                <div class="col-md-3">
+                                    <small class="text-muted">Currency</small>
+                                    <div>@SelectedCheque.Currency</div>
+                                </div>
+                                <div class="col-md-3">
+                                    <small class="text-muted">Payee Name</small>
+                                    <div>@(SelectedCheque.PayeeName ?? "-")</div>
+                                </div>
+                                <div class="col-md-3">
+                                    <small class="text-muted">Crossing Type</small>
+                                    <div>@(SelectedCheque.CrossingType ?? "-")</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Counterparty -->
+                    <div class="card mb-3">
+                        <div class="card-header py-2">
+                            <i class="ti ti-users me-2"></i> Counterparty
+                        </div>
+                        <div class="card-body py-2">
+                            <div class="row">
+                                <div class="col-md-4">
+                                    <small class="text-muted">Type</small>
+                                    <div>@(SelectedCheque.CounterpartyType ?? "-")</div>
+                                </div>
+                                <div class="col-md-4">
+                                    <small class="text-muted">Name</small>
+                                    <div class="fw-medium">@(SelectedCheque.CounterpartyName ?? "-")</div>
+                                </div>
+                                <div class="col-md-4">
+                                    <small class="text-muted">Contact</small>
+                                    <div>@(SelectedCheque.CounterpartyContact ?? "-")</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Bank Details -->
+                    <div class="card mb-3">
+                        <div class="card-header py-2">
+                            <i class="ti ti-building-bank me-2"></i> Bank Details
+                        </div>
+                        <div class="card-body py-2">
+                            <div class="row">
+                                <div class="col-md-3">
+                                    <small class="text-muted">Our Bank Account</small>
+                                    <div class="fw-medium">@(SelectedCheque.OurBankAccount ?? "-")</div>
+                                </div>
+                                <div class="col-md-3">
+                                    <small class="text-muted">Drawer Bank</small>
+                                    <div>@(SelectedCheque.DrawerBankName ?? "-")</div>
+                                </div>
+                                <div class="col-md-3">
+                                    <small class="text-muted">Drawer Branch</small>
+                                    <div>@(SelectedCheque.DrawerBankBranch ?? "-")</div>
+                                </div>
+                                <div class="col-md-3">
+                                    <small class="text-muted">Drawer Account (Masked)</small>
+                                    <div>@(SelectedCheque.DrawerAccountMasked ?? "-")</div>
+                                </div>
+                                <div class="col-md-3">
+                                    <small class="text-muted">MICR / IFSC</small>
+                                    <div>@(SelectedCheque.MICR_IFSC ?? "-")</div>
+                                </div>
+                                <div class="col-md-3 ledger-info">
+                                    <small class="text-muted">CTS Compliant:</small>
+                                    <span class="ms-2">
+                                        @if (SelectedCheque.IsCTSCompliant)
+                                        {
+                                            <i class="ti ti-checks text-success"></i>
+                                        }
+                                        else
+                                        {
+                                            <i class="ti ti-x text-danger"></i>
+                                        }
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Linkage -->
+                    <div class="card mb-3">
+                        <div class="card-header py-2">
+                            <i class="ti ti-link me-2"></i> Linkage
+                        </div>
+                        <div class="card-body py-2">
+                            <div class="row">
+                                <div class="col-md-4">
+                                    <small class="text-muted">Source Module</small>
+                                    <div>@(string.IsNullOrEmpty(SelectedCheque.SourceModule) ? "-" : SelectedCheque.SourceModule)</div>
+                                </div>
+                                <div class="col-md-4">
+                                    <small class="text-muted">Source Document Type</small>
+                                    <div>@(string.IsNullOrEmpty(SelectedCheque.SourceDocumentType) ? "-" : SelectedCheque.SourceDocumentType)</div>
+                                </div>
+                                <div class="col-md-4">
+                                    <small class="text-muted">Source Document No</small>
+                                    <div>@(SelectedCheque.SourceDocumentNo ?? "-")</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Bounce Details (conditional) -->
+                    @if (!string.IsNullOrEmpty(SelectedCheque.BounceReason))
+                    {
+                        <div class="card mb-3">
+                            <div class="card-header py-2">
+                                <i class="ti ti-alert-triangle me-2"></i> Bounce Details
+                            </div>
+                            <div class="card-body py-2">
+                                <div class="row">
+                                    <div class="col-md-4">
+                                        <small class="text-muted">Bounce Reason</small>
+                                        <div class="text-danger fw-medium">@SelectedCheque.BounceReason</div>
+                                    </div>
+                                    @if (!string.IsNullOrEmpty(SelectedCheque.BounceReasonText))
+                                    {
+                                        <div class="col-md-4">
+                                            <small class="text-muted">Bounce Details</small>
+                                            <div>@SelectedCheque.BounceReasonText</div>
+                                        </div>
+                                    }
+                                    <div class="col-md-4">
+                                        <small class="text-muted">Bounce Charges</small>
+                                        <div>@(SelectedCheque.BounceCharges?.ToString("N2") ?? "-")</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    }
+
+                    <!-- Narration (conditional) -->
+                    @if (!string.IsNullOrEmpty(SelectedCheque.Narration))
+                    {
+                        <div class="card mb-0">
+                            <div class="card-header py-2">
+                                <i class="ti ti-notes me-2"></i> Narration
+                            </div>
+                            <div class="card-body py-2">
+                                <div>@((MarkupString)SelectedCheque.Narration)</div>
+                            </div>
+                        </div>
+                    }
+
+                </div>
+            </div>
+
+            <!-- RIGHT PANEL : STATUS & LIFECYCLE -->
+            <div class="col-lg-4">
+                <div class="profile-card mb-3">
+                    <div class="card mb-0">
+                        <div class="card-header py-2">
+                            <i class="ti ti-settings me-2"></i> Status
+                        </div>
+                        <div class="card-body py-2">
+                            <div class="row">
+                                <div class="col-12">
+                                    <small class="text-muted">Current Status</small>
+                                    <div>
+                                        <span class="badge @GetStatusBadge(SelectedCheque.Status)">
+                                            <i class="@GetStatusIcon(SelectedCheque.Status) me-1"></i>
+                                            @SelectedCheque.Status
+                                        </span>
+                                    </div>
+                                </div>
+                                <div class="col-12">
+                                    <small class="text-muted">Direction</small>
+                                    <div class="fw-medium">@SelectedCheque.Direction</div>
+                                </div>
+                                <div class="col-12">
+                                    <small class="text-muted">Created</small>
+                                    <div>@SelectedCheque.CreatedAt.ToString("dd MMM yyyy HH:mm")</div>
+                                </div>
+                                @if (SelectedCheque.UpdatedAt.HasValue)
+                                {
+                                    <div class="col-12">
+                                        <small class="text-muted">Last Updated</small>
+                                        <div>@SelectedCheque.UpdatedAt.Value.ToString("dd MMM yyyy HH:mm")</div>
+                                    </div>
+                                }
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="profile-card">
+                    <div class="card mb-0">
+                        <div class="card-header py-2">
+                            <i class="ti ti-git-branch me-2"></i> Lifecycle Dates
+                        </div>
+                        <div class="card-body py-2">
+                            <div class="row">
+                                @if (SelectedCheque.PreparedOn.HasValue)
+                                {
+                                    <div class="col-12">
+                                        <small class="text-muted">Prepared On</small>
+                                        <div>@SelectedCheque.PreparedOn.Value.ToString("dd MMM yyyy HH:mm")</div>
+                                    </div>
+                                }
+                                @if (SelectedCheque.PrintedOn.HasValue)
+                                {
+                                    <div class="col-12">
+                                        <small class="text-muted">Printed On</small>
+                                        <div>@SelectedCheque.PrintedOn.Value.ToString("dd MMM yyyy HH:mm")</div>
+                                    </div>
+                                }
+                                @if (SelectedCheque.IssuedOrReceivedOn.HasValue)
+                                {
+                                    <div class="col-12">
+                                        <small class="text-muted">Issued/Received On</small>
+                                        <div>@SelectedCheque.IssuedOrReceivedOn.Value.ToString("dd MMM yyyy")</div>
+                                    </div>
+                                }
+                                @if (SelectedCheque.DepositedOn.HasValue)
+                                {
+                                    <div class="col-12">
+                                        <small class="text-muted">Deposited On</small>
+                                        <div>@SelectedCheque.DepositedOn.Value.ToString("dd MMM yyyy")</div>
+                                    </div>
+                                }
+                                @if (SelectedCheque.PresentedOn.HasValue)
+                                {
+                                    <div class="col-12">
+                                        <small class="text-muted">Presented On</small>
+                                        <div>@SelectedCheque.PresentedOn.Value.ToString("dd MMM yyyy")</div>
+                                    </div>
+                                }
+                                @if (SelectedCheque.ClearedOn.HasValue)
+                                {
+                                    <div class="col-12">
+                                        <small class="text-muted">Cleared On</small>
+                                        <div>@SelectedCheque.ClearedOn.Value.ToString("dd MMM yyyy")</div>
+                                    </div>
+                                }
+                                @if (SelectedCheque.BouncedOn.HasValue)
+                                {
+                                    <div class="col-12">
+                                        <small class="text-muted">Bounced On</small>
+                                        <div class="text-danger">@SelectedCheque.BouncedOn.Value.ToString("dd MMM yyyy")</div>
+                                    </div>
+                                }
+                                @if (SelectedCheque.StoppedOn.HasValue)
+                                {
+                                    <div class="col-12">
+                                        <small class="text-muted">Stopped On</small>
+                                        <div>@SelectedCheque.StoppedOn.Value.ToString("dd MMM yyyy")</div>
+                                    </div>
+                                }
+                                @if (SelectedCheque.CancelledOn.HasValue)
+                                {
+                                    <div class="col-12">
+                                        <small class="text-muted">Cancelled On</small>
+                                        <div>@SelectedCheque.CancelledOn.Value.ToString("dd MMM yyyy")</div>
+                                    </div>
+                                }
+                                @if (SelectedCheque.StaleOn.HasValue)
+                                {
+                                    <div class="col-12">
+                                        <small class="text-muted">Stale On</small>
+                                        <div>@SelectedCheque.StaleOn.Value.ToString("dd MMM yyyy")</div>
+                                    </div>
+                                }
+                                @if (SelectedCheque.ExpectedClearBy.HasValue)
+                                {
+                                    <div class="col-12">
+                                        <small class="text-muted">Expected Clear By</small>
+                                        <div>@SelectedCheque.ExpectedClearBy.Value.ToString("dd MMM yyyy")</div>
+                                    </div>
+                                }
+                                @if (!SelectedCheque.PreparedOn.HasValue && !SelectedCheque.PrintedOn.HasValue &&
+                                    !SelectedCheque.IssuedOrReceivedOn.HasValue && !SelectedCheque.DepositedOn.HasValue &&
+                                    !SelectedCheque.ClearedOn.HasValue && !SelectedCheque.BouncedOn.HasValue)
+                                {
+                                    <div class="col-12">
+                                        <small class="text-muted">No lifecycle dates recorded yet</small>
+                                    </div>
+                                }
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+}
+else
+{
+    <div class="page-loading-overlay">
+        <div class="whirly-loader"></div>
+    </div>
+}

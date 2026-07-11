@@ -1,0 +1,487 @@
+@page "/vendors/{Id:guid}/view"
+@using FinanceConnect.Client.ViewModels
+@using FinanceConnect.Client.Services
+
+<PageTitle>Vendor Details - FinanceConnect</PageTitle>
+
+@if (!isInitialized)
+{
+    <div class="page-loading-overlay">
+        <div class="whirly-loader"></div>
+    </div>
+}
+else if (Vendor == null)
+{
+    <div class="container view-screen py-4">
+        <div class="alert alert-warning">
+            <i class="ti ti-alert-triangle me-2"></i>
+            Vendor not found.
+        </div>
+        <a href="/vendors" class="btn btn-secondary">
+            <i class="ti ti-arrow-left me-1"></i> Back to List
+        </a>
+    </div>
+}
+else
+{
+    <div class="content view-screen py-4">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <div>
+                <h4 class="fw-bold mb-1">Vendor Details</h4>
+                <p class="text-muted mb-0 small">View vendor profile and account information</p>
+            </div>
+            <a href="/vendors" class="btn btn-outline-secondary">
+                <i class="ti ti-arrow-left me-1"></i> Back
+            </a>
+        </div>
+        <div class="row g-4">
+
+            <!-- HEADER PANEL -->
+            <div class="col-lg-12">
+                <div class="profile-list-card">
+
+                    <!-- LEFT -->
+                    <div class="profile-left">
+                        <div class="avatar letter-avatar">
+                            @Vendor.VendorName?.Substring(0, 2).ToUpper()
+                        </div>
+                    </div>
+
+                    <!-- CENTER -->
+                    <div class="profile-center">
+                        <div class="top-row">
+                            <h5>@Vendor.VendorName</h5>
+                            @if (Vendor.VendorStatus == VendorStatuses.Active)
+                            {
+                                <span class="bg-success rounded-circle"
+                                      data-bs-toggle="tooltip" title="Active"
+                                      style="font-size: 10px; color: white; width: 16px; height: 16px; display: flex; align-items: center; justify-content: center;">
+                                    <i class="ti ti-checks"></i>
+                                </span>
+                            }
+                            @if (Vendor.VendorStatus == VendorStatuses.OnHold)
+                            {
+                                <span class="badge bg-warning ms-2">
+                                    <i class="ti ti-lock me-1"></i>On Hold
+                                </span>
+                            }
+                            @if (Vendor.VendorStatus == VendorStatuses.Blacklisted)
+                            {
+                                <span class="badge bg-danger ms-2">
+                                    <i class="ti ti-ban me-1"></i>Blacklisted
+                                </span>
+                            }
+                            @if (Vendor.IsPaymentBlocked)
+                            {
+                                <span class="badge bg-danger ms-2">
+                                    <i class="ti ti-credit-card-off me-1"></i>Payment Blocked
+                                </span>
+                            }
+                        </div>
+
+                        <div class="sub-text">
+                            <span style="display: flex; gap: 4px; margin-top: 7px;">
+                                <i class="ti ti-mail"></i> @(Vendor.PrimaryEmail ?? "-")
+                            </span>
+                            <span style="display: flex; gap: 4px; margin-top: 7px;">
+                                <i class="ti ti-phone"></i> @(Vendor.PrimaryPhone ?? "-")
+                            </span>
+                        </div>
+                    </div>
+
+                    <!-- RIGHT -->
+                    @* <div class="profile-right"> *@
+                        @* <a href="/create-vendor/@Vendor.Id" class="btn btn-primary btn-sm me-2">
+                            <i class="ti ti-edit"></i> Edit
+                        </a> *@
+                        @* <button class="btn btn-secondary btn-sm" @onclick="GoBack">
+                            <i class="ti ti-arrow-left"></i> Back
+                        </button> *@
+                    @* </div> *@
+
+                </div>
+            </div>
+
+            <!-- LEFT PANEL : VENDOR DETAILS -->
+            <div class="col-lg-8">
+
+                <div class="profile-card">
+
+                    @* <h5 class="mb-3">
+                        <i class="ti ti-building me-2"></i>Vendor Details
+                    </h5> *@
+
+                    <!-- Core Vendor Fields -->
+                    <div class="card mb-3">
+                        <div class="card-header py-2">
+                            <i class="ti ti-id me-2"></i> Core Information
+                        </div>
+                        <div class="card-body py-2">
+                            <div class="row">
+                                <div class="col-md-4 mb-2">
+                                    <small class="text-muted">Vendor Code</small>
+                                    <div class="fw-medium">@Vendor.VendorCode</div>
+                                </div>
+                                <div class="col-md-4 mb-2">
+                                    <small class="text-muted">Vendor Name</small>
+                                    <div class="fw-medium">@Vendor.VendorName</div>
+                                </div>
+                                <div class="col-md-4 mb-2">
+                                    <small class="text-muted">Legal Name</small>
+                                    <div>@(Vendor.LegalName ?? "-")</div>
+                                </div>
+                                <div class="col-md-4 mb-2 company-info" style="    display: flex;
+        align-items: baseline;
+            gap: 4px;
+        flex-direction: column;">
+                                    <small class="text-muted">Type </small>
+                                    <span class="badge @GetTypeBadgeClass(Vendor.VendorType)" data-bs-toggle="tooltip" title="@VendorTypes.GetDisplayName(Vendor.VendorType)">
+                                        @VendorTypes.GetDisplayName(Vendor.VendorType)
+                                    </span>
+                                </div>
+                                <div class="col-md-4 mb-2">
+                                    <small class="text-muted">Company</small>
+                                    <div>@Vendor.CompanyName</div>
+                                </div>
+                                <div class="col-md-4 mb-2">
+                                    <small class="text-muted">Category</small>
+                                    <div>@(Vendor.VendorCategoryName ?? "-")</div>
+                                </div>
+                                @if (!string.IsNullOrEmpty(Vendor.Notes))
+                                {
+                                    <div class="col-md-12 mb-2">
+                                        <small class="text-muted">Notes</small>
+                                        <div class="ql-rendered">@((MarkupString)(Vendor.Notes ?? string.Empty))</div>
+                                    </div>
+                                }
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Address Information -->
+                    <div class="card mb-3">
+                        <div class="card-header py-2">
+                            <i class="ti ti-map-pin me-2"></i> Address Information
+                        </div>
+                        <div class="card-body py-2">
+                            <div class="row">
+                                <div class="col-md-12 mb-2">
+                                    <small class="text-muted">Registered Address</small>
+                                    <div>@(Vendor.FullAddress ?? "-")</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Contact Information -->
+                    <div class="card mb-3">
+                        <div class="card-header py-2">
+                            <i class="ti ti-address-book me-2"></i> Contact Information
+                        </div>
+                        <div class="card-body py-2">
+                            <div class="row">
+                                <div class="col-md-4 mb-2">
+                                    <small class="text-muted">Primary Contact</small>
+                                    <div>@(Vendor.PrimaryContactName ?? "-")</div>
+                                </div>
+                                <div class="col-md-4 mb-2">
+                                    <small class="text-muted">Primary Phone</small>
+                                    <div>@(Vendor.PrimaryPhone ?? "-")</div>
+                                </div>
+                                <div class="col-md-4 mb-2">
+                                    <small class="text-muted">Alternate Phone</small>
+                                    <div>@(Vendor.AlternatePhone ?? "-")</div>
+                                </div>
+                                <div class="col-md-4 mb-2">
+                                    <small class="text-muted">Primary Email</small>
+                                    <div>@(Vendor.PrimaryEmail ?? "-")</div>
+                                </div>
+                                <div class="col-md-4 mb-2">
+                                    <small class="text-muted">Remittance Email</small>
+                                    <div>@(Vendor.RemittanceEmail ?? "-")</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Banking Information -->
+                    <div class="card mb-3">
+                        <div class="card-header py-2">
+                            <i class="ti ti-credit-card me-2"></i> Banking Information
+                            @if (Vendor.IsBankVerified)
+                            {
+                                <span class="badge bg-success ms-2">Verified</span>
+                            }
+                            else if (!string.IsNullOrEmpty(Vendor.BankAccountNumber))
+                            {
+                                <span class="badge bg-warning ms-2">Not Verified</span>
+                            }
+                        </div>
+                        <div class="card-body py-2">
+                            <div class="row">
+                                <div class="col-md-4 mb-2">
+                                    <small class="text-muted">Preferred Payment Method</small>
+                                    <div>@(Vendor.PreferredPaymentMethod != null ? VendorPaymentMethods.GetDisplayName(Vendor.PreferredPaymentMethod) : "-")</div>
+                                </div>
+                                <div class="col-md-4 mb-2">
+                                    <small class="text-muted">Bank Name</small>
+                                    <div>@(Vendor.BankName ?? "-")</div>
+                                </div>
+                                <div class="col-md-4 mb-2">
+                                    <small class="text-muted">Branch</small>
+                                    <div>@(Vendor.BranchName ?? "-")</div>
+                                </div>
+                                <div class="col-md-4 mb-2">
+                                    <small class="text-muted">Account Name</small>
+                                    <div>@(Vendor.BankAccountName ?? "-")</div>
+                                </div>
+                                <div class="col-md-4 mb-2">
+                                    <small class="text-muted">Account Number</small>
+                                    <div class="fw-medium">@Vendor.MaskedBankAccountNumber</div>
+                                </div>
+                                <div class="col-md-4 mb-2">
+                                    <small class="text-muted">IFSC</small>
+                                    <div>@(Vendor.IFSC ?? "-")</div>
+                                </div>
+                                @if (!string.IsNullOrEmpty(Vendor.UPIId))
+                                {
+                                    <div class="col-md-4 mb-2">
+                                        <small class="text-muted">UPI ID</small>
+                                        <div>@Vendor.UPIId</div>
+                                    </div>
+                                }
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- AP Defaults -->
+                    <div class="card mb-3">
+                        <div class="card-header py-2">
+                            <i class="ti ti-calculator me-2"></i> AP Defaults & Controls
+                        </div>
+                        <div class="card-body py-2">
+                            <div class="row">
+                                <div class="col-md-4 mb-2">
+                                    <small class="text-muted">Currency</small>
+                                    <div class="fw-medium">@(Vendor.DefaultCurrencyCode ?? "-")</div>
+                                </div>
+                                <div class="col-md-4 mb-2">
+                                    <small class="text-muted">Payment Terms</small>
+                                    <div>@(Vendor.PaymentTermsName ?? "-")</div>
+                                </div>
+                                <div class="col-md-4 mb-2">
+                                    <small class="text-muted">AP Control Account</small>
+                                    <div class="fw-medium">@(Vendor.DefaultPayableAccountName ?? "-")</div>
+                                </div>
+                                <div class="col-md-4 mb-2">
+                                    <small class="text-muted">Advance Account</small>
+                                    <div>@(Vendor.AdvanceToVendorAccountName ?? "-")</div>
+                                </div>
+                                <div class="col-md-4 mb-2">
+                                    <small class="text-muted">Default Expense Account</small>
+                                    <div>@(Vendor.DefaultExpenseAccountName ?? "-")</div>
+                                </div>
+                                <div class="col-md-4 mb-2">
+                                    <small class="text-muted">Default Tax Profile</small>
+                                    <div>@(Vendor.DefaultTaxProfileName ?? "-")</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+
+            </div>
+
+            <!-- RIGHT PANEL -->
+            <div class="col-lg-4">
+                <div class="profile-card">
+                    <!-- Tax & Compliance -->
+                    <div class="card mb-3">
+                        <div class="card-header py-2">
+                            <i class="ti ti-file-certificate me-2"></i> Tax & Compliance
+                        </div>
+                        <div class="card-body py-2">
+                            <div class="row">
+                                <div class="col-md-12 mb-2">
+                                    <small class="text-muted">GST Registered</small>
+                                    <div class="fw-medium">@(Vendor.IsGSTRegistered ? "Yes" : "No")</div>
+                                </div>
+                                @if (Vendor.IsGSTRegistered)
+                                {
+                                    <div class="col-md-12 mb-2">
+                                        <small class="text-muted">GSTIN</small>
+                                        <div class="fw-medium">@(Vendor.GSTIN ?? "-")</div>
+                                    </div>
+                                }
+                                <div class="col-md-12 mb-2">
+                                    <small class="text-muted">PAN</small>
+                                    <div class="fw-medium">@(Vendor.PAN ?? "-")</div>
+                                </div>
+                                @if (!string.IsNullOrEmpty(Vendor.MSMECategory))
+                                {
+                                    <div class="col-md-12 mb-2">
+                                        <small class="text-muted">MSME Category</small>
+                                        <div>@MSMECategories.GetDisplayName(Vendor.MSMECategory)</div>
+                                    </div>
+                                }
+                                <hr class="my-2" />
+                                <div class="col-md-12 mb-2">
+                                    <small class="text-muted">TDS Applicable</small>
+                                    <div>@(Vendor.IsTDSApplicable ? "Yes" : "No")</div>
+                                </div>
+                                @if (Vendor.IsTDSApplicable)
+                                {
+                                    <div class="col-md-12 mb-2">
+                                        <small class="text-muted">TDS Section</small>
+                                        <div>@Vendor.TDSSectionCode</div>
+                                    </div>
+                                    <div class="col-md-12 mb-2">
+                                        <small class="text-muted">TDS Rate</small>
+                                        <div>@(Vendor.TDSRatePercent?.ToString("N2") ?? "-")%</div>
+                                    </div>
+                                }
+                                <div class="col-md-12 mb-2">
+                                    <small class="text-muted">Residency Type</small>
+                                    <div>@VendorResidencyTypes.GetDisplayName(Vendor.VendorResidencyType)</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Status & Blocking -->
+                    <div class="card mb-3">
+                        <div class="card-header py-2">
+                            <i class="ti ti-shield-check me-2"></i> Status & Controls
+                        </div>
+                        <div class="card-body py-2">
+                            <div class="mb-2">
+                                <span class="badge @GetStatusBadgeClass(Vendor.VendorStatus)">
+                                    @VendorStatuses.GetDisplayName(Vendor.VendorStatus)
+                                </span>
+                            </div>
+                            @if (Vendor.VendorStatus == VendorStatuses.OnHold && !string.IsNullOrEmpty(Vendor.HoldReason))
+                            {
+                                <div class="mb-2 small">
+                                    <strong>Hold Reason:</strong> @Vendor.HoldReason
+                                </div>
+                            }
+                            @if (Vendor.VendorStatus == VendorStatuses.Blacklisted && !string.IsNullOrEmpty(Vendor.BlacklistReason))
+                            {
+                                <div class="mb-2 small">
+                                    <strong>Blacklist Reason:</strong> @Vendor.BlacklistReason
+                                </div>
+                            }
+                            <hr />
+                            <div class="mb-2">
+                                <span class="badge @(Vendor.IsPaymentBlocked ? "bg-danger-transparent" : "bg-success-transparent")">
+                                    <i class="ti ti-credit-card me-1"></i>Payment @(Vendor.IsPaymentBlocked ? "Blocked" : "Allowed")
+                                </span>
+                            </div>
+                            @if (Vendor.IsPaymentBlocked && !string.IsNullOrEmpty(Vendor.PaymentBlockReason))
+                            {
+                                <div class="mb-2 small">
+                                    <strong>Reason:</strong> @Vendor.PaymentBlockReason
+                                </div>
+                            }
+                            <div class="mb-2">
+                                <span class="badge @(Vendor.IsBillPostingBlocked ? "bg-danger-transparent" : "bg-success-transparent")">
+                                    <i class="ti ti-file-invoice me-1"></i>Bill Posting @(Vendor.IsBillPostingBlocked ? "Blocked" : "Allowed")
+                                </span>
+                            </div>
+                            @if (Vendor.IsBillPostingBlocked && !string.IsNullOrEmpty(Vendor.BillPostingBlockReason))
+                            {
+                                <div class="mb-2 small">
+                                    <strong>Reason:</strong> @Vendor.BillPostingBlockReason
+                                </div>
+                            }
+                        </div>
+                    </div>
+
+                    <!-- Attachments (Evidence / KYC) -->
+                    <div class="card mb-3">
+                        <div class="card-header py-2">
+                            <i class="ti ti-paperclip me-2"></i> Attachments (Evidence / KYC)
+                            @if (Vendor.HasAttachments)
+                            {
+                                <span class="badge bg-primary ms-2">@Vendor.AttachmentCount</span>
+                            }
+                        </div>
+                        <div class="card-body py-2">
+                            @if (Vendor.Attachments != null && Vendor.Attachments.Any())
+                            {
+                                <div class="attachments-list">
+                                    @foreach (var attachment in Vendor.Attachments)
+                                    {
+                                        <div class="attachment-item d-flex align-items-center p-2 mb-2" 
+                                             style="background: #f8f9fa; border-radius: 8px; border: 1px solid #e5e9f2;">
+                                            <div class="attachment-icon me-3" 
+                                                 style="width: 36px; height: 36px; border-radius: 6px; display: flex; align-items: center; justify-content: center; background: linear-gradient(135deg, #fe9f43, #ff6b00); color: white;">
+                                                <i class="ti @VendorAttachmentTypes.GetIcon(attachment.AttachmentType)"></i>
+                                            </div>
+                                            <div class="attachment-details flex-grow-1">
+                                                <div class="fw-medium" style="font-size: 13px;">@attachment.FileName</div>
+                                                <small class="text-muted">
+                                                    <span class="badge bg-light text-dark me-1">@VendorAttachmentTypes.GetDisplayName(attachment.AttachmentType)</span>
+                                                    <span class="badge bg-secondary-transparent text-secondary me-1">@attachment.FileExtension?.ToUpper().TrimStart('.')</span>
+                                                    <span class="me-2">@FormatFileSize(attachment.FileSizeBytes)</span>
+                                                    @if (attachment.IsVerified)
+                                                    {
+                                                        <span class="badge bg-success-transparent text-success">
+                                                            <i class="ti ti-check me-1"></i>Verified
+                                                        </span>
+                                                    }
+                                                </small>
+                                                @if (!string.IsNullOrEmpty(attachment.Notes))
+                                                {
+                                                    <div class="text-muted small mt-1">@attachment.Notes</div>
+                                                }
+                                            </div>
+                                        </div>
+                                    }
+                                </div>
+                            }
+                            else
+                            {
+                                <div class="text-center py-3">
+                                    <i class="ti ti-file-off text-muted" style="font-size: 24px;"></i>
+                                    <div class="text-muted small mt-2">No attachments uploaded</div>
+                                </div>
+                            }
+                        </div>
+                    </div>
+
+                    <!-- Audit Info -->
+                    <div class="card mb-0">
+                        <div class="card-header py-2">
+                            <i class="ti ti-history me-2"></i> History
+                        </div>
+                        <div class="card-body py-2 small">
+                            <div class="d-flex justify-content-between mb-2">
+                                <span class="text-secondary">Created</span>
+                                <span>@Vendor.CreatedAt.ToString("dd MMM yyyy HH:mm")</span>
+                            </div>
+                            <div class="d-flex justify-content-between mb-2">
+                                <span class="text-secondary">Created By</span>
+                                <span>@(Vendor.CreatedBy ?? "-")</span>
+                            </div>
+                            @if (Vendor.UpdatedAt.HasValue)
+                            {
+                                <div class="d-flex justify-content-between mb-2">
+                                    <span class="text-secondary">Updated</span>
+                                    <span>@Vendor.UpdatedAt.Value.ToString("dd MMM yyyy HH:mm")</span>
+                                </div>
+                                <div class="d-flex justify-content-between">
+                                    <span class="text-secondary">Updated By</span>
+                                    <span>@(Vendor.UpdatedBy ?? "-")</span>
+                                </div>
+                            }
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+
+        </div>
+    </div>
+}

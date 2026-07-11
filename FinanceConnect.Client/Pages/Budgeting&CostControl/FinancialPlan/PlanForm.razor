@@ -1,0 +1,134 @@
+@page "/financial-plans/create"
+@page "/financial-plans/edit/{Id:guid}"
+@using FinanceConnect.Client.ViewModels
+@using FinanceConnect.Client.Services
+@using static FinanceConnect.Client.ViewModels.FinancialPlanViewModel
+
+<style>.validation-message{color:#dc3545;font-size:12px;}.form-check-label{font-size:13px;}</style>
+
+<div class="content flat-form">
+    <div class="page-header">
+        <div class="page-title"><h4 class="fw-bold">@(IsEdit?"Edit Financial Plan":"Create Financial Plan")</h4><h6>Define strategic financial direction and targets</h6></div>
+        <div class="page-btn"><a href="/financial-plans" class="btn btn-outline-secondary"><i class="ti ti-arrow-left"></i> Back</a></div>
+    </div>
+
+    <EditForm EditContext="_editContext" OnSubmit="Save">
+        <DataAnnotationsValidator />
+
+        <!-- SECTION 1: CORE IDENTITY -->
+        <div class="card mt-4"><div class="card-body">
+                <h6 class="text-primary mb-3 d-flex align-items-center"><i class="ti ti-id me-2" style="font-size: 22px;"></i> Core Identity</h6>
+            <div class="row g-3">
+                <div class="col-md-3"><label class="form-label">Plan Code <span class="text-danger">*</span></label>
+                    @if (IsEdit)
+                    {
+                        <div class="fw-semibold fs-14 mt-1">@Model.PlanCode</div>
+                    }
+                    else
+                    {
+                        <InputText class="form-control text-uppercase" @bind-Value="Model.PlanCode" placeholder="e.g. FINPLAN-2026-001" title="Unique financial plan code" /><ValidationMessage For="@(()=>Model.PlanCode)" />
+                    }
+                </div>
+                <div class="col-md-5"><label class="form-label">Plan Name <span class="text-danger">*</span></label>
+                    <InputText class="form-control" @bind-Value="Model.PlanName" placeholder="e.g. FY 2026 Strategic Financial Plan" title="Descriptive plan name" /><ValidationMessage For="@(()=>Model.PlanName)" /></div>
+                <div class="col-md-4"><label class="form-label">Status</label>
+                    <InputSelect class="form-select" @bind-Value="Model.PlanStatus">@foreach(var s in Enum.GetValues<PlanStatusEnum>()){<option value="@s">@s</option>}</InputSelect></div>
+                <div class="col-md-12"><label class="form-label">Description</label>
+                    <InputTextArea class="form-control" rows="2" @bind-Value="Model.Description" placeholder="Strategic plan description..." title="Detailed description of the financial plan" /></div>
+            </div>
+        </div></div>
+
+        <!-- SECTION 2: PLANNING CLASSIFICATION -->
+        <div class="card mt-4"><div class="card-body">
+                <h6 class="text-primary mb-3 d-flex align-items-center"><i class="ti ti-category me-2" style="font-size: 22px;"></i> Planning Classification</h6>
+            <div class="row g-3">
+                <div class="col-md-3"><label class="form-label">Plan Type <span class="text-danger">*</span></label>
+                    <InputSelect class="form-select" @bind-Value="Model.PlanType" title="Type of strategic plan"><option value="">-- Select --</option>@foreach(var v in Enum.GetValues<PlanTypeEnum>()){<option value="@v">@v</option>}</InputSelect><ValidationMessage For="@(()=>Model.PlanType)" /></div>
+                <div class="col-md-3"><label class="form-label">Scenario <span class="text-danger">*</span></label>
+                    <InputSelect class="form-select" @bind-Value="Model.ScenarioType" title="Scenario classification"><option value="">-- Select --</option>@foreach(var v in Enum.GetValues<ScenarioTypeEnum>()){<option value="@v">@v</option>}</InputSelect><ValidationMessage For="@(()=>Model.ScenarioType)" /></div>
+                <div class="col-md-3"><label class="form-label">Nature <span class="text-danger">*</span></label>
+                    <InputSelect class="form-select" @bind-Value="Model.PlanNature" title="Focus area of the plan"><option value="">-- Select --</option>@foreach(var v in Enum.GetValues<PlanNatureEnum>()){<option value="@v">@v</option>}</InputSelect><ValidationMessage For="@(()=>Model.PlanNature)" /></div>
+                <div class="col-md-3"><label class="form-label">Scope Level <span class="text-danger">*</span></label>
+                    <InputSelect class="form-select" @bind-Value="Model.PlanningScopeLevel" title="Planning scope level"><option value="">-- Select --</option>@foreach(var v in Enum.GetValues<PlanningScopeLevelEnum>()){<option value="@v">@v</option>}</InputSelect><ValidationMessage For="@(()=>Model.PlanningScopeLevel)" /></div>
+            </div>
+        </div></div>
+
+        <!-- SECTION 3: HORIZON & SCOPE -->
+        <div class="card mt-4"><div class="card-body">
+                <h6 class="text-primary mb-3 d-flex align-items-center"><i class="ti ti-calendar me-2" style="font-size: 22px;"></i> Horizon & Scope</h6>
+            <div class="row g-3">
+                <div class="col-md-3"><label class="form-label">Start Date <span class="text-danger">*</span></label>
+                    <InputDate class="form-control" @bind-Value="Model.FromDate" title="Plan start date" /><ValidationMessage For="@(()=>Model.FromDate)" /></div>
+                <div class="col-md-3"><label class="form-label">End Date <span class="text-danger">*</span></label>
+                    <InputDate class="form-control" @bind-Value="Model.ToDate" title="Plan end date" /><ValidationMessage For="@(()=>Model.ToDate)" /></div>
+                <div class="col-md-3"><label class="form-label">Horizon Mode <span class="text-danger">*</span></label>
+                    <InputSelect class="form-select" @bind-Value="Model.PlanHorizonMode" title="Planning horizon mode"><option value="">-- Select --</option>@foreach(var v in Enum.GetValues<PlanHorizonModeEnum>()){<option value="@v">@v</option>}</InputSelect><ValidationMessage For="@(()=>Model.PlanHorizonMode)" /></div>
+                <div class="col-md-3"><label class="form-label">Business Unit Code</label>
+                    <InputText class="form-control" @bind-Value="Model.BusinessUnitCode" placeholder="e.g. BU-SOUTH" title="Optional business unit scope" /></div>
+                <div class="col-md-3"><label class="form-label">Region Code</label>
+                    <InputText class="form-control" @bind-Value="Model.RegionCode" placeholder="e.g. REG-WEST" title="Optional region scope" /></div>
+                <div class="col-md-3"><label class="form-label">Branch Group Code</label>
+                    <InputText class="form-control" @bind-Value="Model.BranchGroupCode" placeholder="e.g. BRC-TN" title="Optional branch cluster scope" /></div>
+            </div>
+        </div></div>
+
+        <!-- SECTION 4: STRATEGIC FINANCIAL TARGETS -->
+        <div class="card mt-4"><div class="card-body">
+                <h6 class="text-primary mb-3 d-flex align-items-center"><i class="ti ti-target me-2" style="font-size: 22px;"></i> Strategic Financial Targets</h6>
+            <div class="row g-3">
+                <div class="col-md-3"><label class="form-label">Revenue Target</label><InputNumber class="form-control" @bind-Value="Model.TargetRevenueAmount" placeholder="0.00" title="Target total revenue" /></div>
+                <div class="col-md-3"><label class="form-label">Expense Target</label><InputNumber class="form-control" @bind-Value="Model.TargetExpenseAmount" placeholder="0.00" title="Target total expenses" /></div>
+                <div class="col-md-3"><label class="form-label">Gross Profit Target</label><InputNumber class="form-control" @bind-Value="Model.TargetGrossProfitAmount" placeholder="0.00" title="Target gross profit" /></div>
+                <div class="col-md-3"><label class="form-label">Operating Profit Target</label><InputNumber class="form-control" @bind-Value="Model.TargetOperatingProfitAmount" placeholder="0.00" title="Target operating profit" /></div>
+                <div class="col-md-3"><label class="form-label">Net Profit Target</label><InputNumber class="form-control" @bind-Value="Model.TargetNetProfitAmount" placeholder="0.00" title="Target net profit" /></div>
+                <div class="col-md-3"><label class="form-label">Capex Envelope</label><InputNumber class="form-control" @bind-Value="Model.TargetCapexAmount" placeholder="0.00" title="Capital expenditure budget" /></div>
+                <div class="col-md-3"><label class="form-label">Cash Position Target</label><InputNumber class="form-control" @bind-Value="Model.TargetCashPositionAmount" placeholder="0.00" title="Target cash position" /></div>
+                <div class="col-md-3"><label class="form-label">Working Capital Target</label><InputNumber class="form-control" @bind-Value="Model.TargetWorkingCapitalAmount" placeholder="0.00" title="Target working capital" /></div>
+                <div class="col-md-2"><label class="form-label">Growth %</label><InputNumber class="form-control" @bind-Value="Model.TargetGrowthPercent" placeholder="0" title="Target growth percentage" /></div>
+                <div class="col-md-2"><label class="form-label">EBITDA %</label><InputNumber class="form-control" @bind-Value="Model.TargetEBITDAPercent" placeholder="0" title="Target EBITDA margin" /></div>
+                <div class="col-md-2"><label class="form-label">Margin %</label><InputNumber class="form-control" @bind-Value="Model.TargetMarginPercent" placeholder="0" title="Target profit margin" /></div>
+                <div class="col-md-2"><label class="form-label">Headcount</label><InputNumber class="form-control" @bind-Value="Model.TargetHeadcount" placeholder="0" title="Target headcount" /></div>
+                <div class="col-md-4"><label class="form-label">Investment Amount</label><InputNumber class="form-control" @bind-Value="Model.TargetInvestmentAmount" placeholder="0.00" title="Strategic investment amount" /></div>
+            </div>
+        </div></div>
+
+        <!-- SECTION 5: STRATEGIC ASSUMPTIONS -->
+        <div class="card mt-4"><div class="card-body">
+                <h6 class="text-primary mb-3 d-flex align-items-center"><i class="ti ti-bulb me-2" style="font-size: 22px;"></i> Strategic Assumptions</h6>
+            <div class="row g-3">
+                <div class="col-md-6"><label class="form-label">Revenue Assumptions</label><InputTextArea class="form-control" rows="2" @bind-Value="Model.RevenueAssumptionText" placeholder="Revenue growth drivers..." title="Key revenue assumptions" /></div>
+                <div class="col-md-6"><label class="form-label">Expense Assumptions</label><InputTextArea class="form-control" rows="2" @bind-Value="Model.ExpenseAssumptionText" placeholder="Cost management approach..." title="Key expense assumptions" /></div>
+                <div class="col-md-6"><label class="form-label">Capex Assumptions</label><InputTextArea class="form-control" rows="2" @bind-Value="Model.CapexAssumptionText" placeholder="Capital investment plans..." title="Capital expenditure assumptions" /></div>
+                <div class="col-md-6"><label class="form-label">Market Assumptions</label><InputTextArea class="form-control" rows="2" @bind-Value="Model.MarketAssumptionText" placeholder="Market outlook..." title="Market and industry assumptions" /></div>
+                <div class="col-md-6"><label class="form-label">Risk Assumptions</label><InputTextArea class="form-control" rows="2" @bind-Value="Model.RiskAssumptionText" placeholder="Key risk factors..." title="Risk factors considered" /></div>
+                <div class="col-md-6"><label class="form-label">Opportunity Assumptions</label><InputTextArea class="form-control" rows="2" @bind-Value="Model.OpportunityAssumptionText" placeholder="Growth opportunities..." title="Opportunity areas identified" /></div>
+                <div class="col-md-12"><label class="form-label">Strategic Narrative</label><InputTextArea class="form-control" rows="3" @bind-Value="Model.StrategicNarrative" placeholder="Overall strategic direction summary..." title="Management summary of the plan intent" /></div>
+            </div>
+        </div></div>
+
+        <!-- SECTION 6: VERSIONING & GOVERNANCE -->
+        <div class="card mt-4"><div class="card-body">
+                <h6 class="text-primary mb-3 d-flex align-items-center"><i class="ti ti-versions me-2" style="font-size: 22px;"></i> Versioning & Governance</h6>
+            <div class="row g-3">
+                <div class="col-md-2"><label class="form-label">Version <span class="text-danger">*</span></label><InputNumber class="form-control" @bind-Value="Model.VersionNumber" title="Plan version number" /><ValidationMessage For="@(()=>Model.VersionNumber)" /></div>
+                <div class="col-md-2"><label class="form-label">Revision</label><InputNumber class="form-control" @bind-Value="Model.RevisionNumber" title="Revision number (0 for original)" /></div>
+                <div class="col-md-4"><label class="form-label">Revision Reason</label><InputText class="form-control" @bind-Value="Model.RevisionReason" placeholder="Reason for revision..." title="Required for revised plans" /></div>
+                <div class="col-md-4"><label class="form-label">Board Approval Reference</label><InputText class="form-control" @bind-Value="Model.BoardApprovalReference" placeholder="Board ref..." title="Formal board approval reference number" /></div>
+                <div class="col-md-6"><label class="form-label">Approval Notes</label><InputTextArea class="form-control" rows="2" @bind-Value="Model.ApprovalNotes" placeholder="Approval notes..." title="Notes from approval process" /></div>
+                <div class="col-md-6"><label class="form-label">Management Notes</label><InputTextArea class="form-control" rows="2" @bind-Value="Model.ManagementNotes" placeholder="Management notes..." title="Additional management observations" /></div>
+            </div>
+        </div></div>
+
+        <!-- Action Buttons -->
+        <div class="d-flex justify-content-end mt-4 mb-5 gap-2">
+            <button type="button" class="btn btn-outline-secondary"
+                    @onclick='() => Nav.NavigateTo("/financial-plans")'>
+                <i class="ti ti-x"></i> Cancel
+            </button>
+            <button type="submit" class="btn btn-primary">
+                <i class="ti ti-device-floppy"></i>
+                @(IsEdit ? "Update" : "Create")
+            </button>
+        </div>
+    </EditForm>
+</div>

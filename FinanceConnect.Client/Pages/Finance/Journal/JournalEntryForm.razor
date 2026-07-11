@@ -1,0 +1,333 @@
+﻿@page "/journal-entries/create"
+@page "/journal-entries/{Id:guid}"
+
+@using FinanceConnect.Client.ViewModels
+@inject JournalEntryService Service
+@inject NavigationManager Nav
+@inject ToastService ToastService
+
+<style>
+    .form-select option:checked {
+        color: white;
+        background-color: var(--primary);
+    }
+
+   
+
+    .validation-message {
+        color: #dc3545;
+        font-size: 12px;
+    }
+</style>
+
+<div class="content flat-form">
+
+    <!-- ================= Page Header ================= -->
+    <div class="page-header">
+        <div class="page-title">
+            <h4 class="fw-bold">
+                @(IsEdit ? "Edit Journal Entry" : "Create Journal Entry")
+            </h4>
+            <h6>Accounting transaction entry and posting</h6>
+        </div>
+
+        <div class="page-btn mt-0">
+            <a href="/journal-entries" class="btn btn-outline-secondary">
+                <i class="ti ti-arrow-left me-1"></i> Back
+            </a>
+        </div>
+    </div>
+
+    <EditForm EditContext="_editContext" OnValidSubmit="SaveDraft">
+        <DataAnnotationsValidator />
+
+        <div class="mt-4">
+            <div class="card">
+
+                <!-- Header -->
+                @* <div class="card-header text-white" style="border-bottom: 1px solid #80808036;">
+                    <h5>
+                        <i class="ti ti-edit me-2"></i>
+                        Journal Entry
+                    </h5>
+                </div> *@
+
+                <div class="card-body">
+
+                    <!-- ================= ENTRY IDENTITY & CONTEXT ================= -->
+                    <h6 class="text-primary mb-3 mt-3">
+                        <i class="ti ti-id me-2"></i> Entry Identity & Context
+                    </h6>
+
+                    <div class="row g-3">
+
+                        <div class="col-md-4">
+                            <label class="form-label">Entry Number</label>
+                            <input class="form-control"
+                                   value="@entry.JournalEntryNumber"
+                                   readonly />
+                        </div>
+
+                        <div class="col-md-4">
+                            <label class="form-label">
+                                Company <span class="text-danger ms-1">*</span>
+                            </label>
+                            <select class="@($"form-select {GetValidationClass(() => entry.CompanyId)}")"
+                                    value="@entry.CompanyId"
+                                    @onchange="OnCompanyChanged"
+                                    disabled="@IsReadOnly">
+                                <option value="">-- Select Company --</option>
+                                @foreach (var c in Companies)
+                                {
+                                    <option value="@c.Id">@c.LegalName</option>
+                                }
+                            </select>
+                            <ValidationMessage For="@(() => entry.CompanyId)" />
+                        </div>
+
+                        <div class="col-md-4">
+                            <label class="form-label">
+                                Branch <span class="text-danger ms-1">*</span>
+                            </label>
+                            <select class="@($"form-select {GetValidationClass(() => entry.BranchId)}")"
+                                    @bind="entry.BranchId"
+                                    disabled="@IsReadOnly">
+                                <option value="">-- Select Branch --</option>
+                                @foreach (var b in Branches)
+                                {
+                                    <option value="@b.Id">@b.BranchCode - @b.BranchName</option>
+                                }
+                            </select>
+                            <ValidationMessage For="@(() => entry.BranchId)" />
+                        </div>
+
+                        <div class="col-md-4">
+                            <label class="form-label">
+                                Journal <span class="text-danger ms-1">*</span>
+                            </label>
+                            <select class="@($"form-select {GetValidationClass(() => entry.JournalId)}")"
+                                    value="@entry.JournalId"
+                                    @onchange="OnJournalChanged"
+                                    disabled="@IsReadOnly">
+                                <option value="">-- Select Journal --</option>
+                                @foreach (var j in Journals)
+                                {
+                                    <option value="@j.Id">@j.JournalName</option>
+                                }
+                            </select>
+                            <ValidationMessage For="@(() => entry.JournalId)" />
+                        </div>
+
+                        <div class="col-md-4">
+                            <label class="form-label">Ledger</label>
+                            <input class="form-control"
+                                   value="@LedgerName"
+                                   readonly />
+                        </div>
+
+                    </div>
+
+                    <!-- ================= DATES & PERIOD CONTROL ================= -->
+                    <h6 class="text-primary mb-3 mt-4">
+                        <i class="ti ti-calendar me-2"></i> Dates & Period Control
+                    </h6>
+
+                    <div class="row g-3">
+
+                        <div class="col-md-3">
+                            <label class="form-label">
+                                Entry Date <span class="text-danger ms-1">*</span>
+                            </label>
+                            <input type="date"
+                                   class="form-control"
+                                   @bind="entry.EntryDate"
+                                   @bind:after="OnEntryDateChange"
+                                   disabled="@IsReadOnly" />
+                            <ValidationMessage For="@(() => entry.EntryDate)" />
+                        </div>
+
+                        <div class="col-md-3">
+                            <label class="form-label">
+                                Posting Date <span class="text-danger ms-1">*</span>
+                            </label>
+                            <input type="date"
+                                   class="form-control"
+                                   @bind="entry.PostingDate"
+                                   min="@(entry.EntryDate.ToString("yyyy-MM-dd"))"
+                                   disabled="@IsReadOnly" @bind:after="OnPostDateCahnge" />
+                            <ValidationMessage For="@(() => entry.PostingDate)" />
+                        </div>
+
+                        <div class="col-md-3">
+                            <label class="form-label">Fiscal Year</label>
+                            <input class="form-control"
+                                   value="@FiscalYearName"
+                                   readonly />
+                            <ValidationMessage For="@(() => entry.FiscalYearId)" />
+                        </div>
+
+                        <div class="col-md-3">
+                            <label class="form-label">Accounting Period</label>
+                            <input class="form-control"
+                                   value="@PeriodName"
+                                   readonly />
+                            <ValidationMessage For="@(() => entry.AccountingPeriodId)" />
+                        </div>
+
+                      
+                        <div class="col-md-9">
+                            <label class="form-label">
+                                Override Reason
+                            </label>
+                            <RichTextEditor @ref="overrideReasonEditor"
+                                            Value="@entry.PostingPolicyOverrideReason"
+                                            Placeholder="Explain why posting policy is overridden..."
+                                            MinHeight="60"
+                                            MaxHeight="150" />
+                        </div>
+                        <!-- Backdated Indicator -->
+                        <div class="col-md-3">
+                            <label class="form-label">Backdated?</label>
+                            <div>
+                                <span class="badge @(entry.IsBackdated ? "bg-success-transparent text-success" : "bg-warning-transparent text-warning")">
+                                    @(entry.IsBackdated ? "Yes" : "No")
+                                </span>
+                            </div>
+                        </div>
+
+
+                    </div>
+
+                    <!-- ================= NARRATION & REFERENCES ================= -->
+                    <h6 class="text-primary mb-3 mt-4">
+                        <i class="ti ti-align-left me-2"></i> Narration & References
+                    </h6>
+
+                    <div class="row g-3">
+
+                        <div class="col-md-12">
+                            <label class="form-label">
+                                Narration 
+                                @if (NarrationRequired)
+                                {
+                                    <span class="text-danger ms-1">*</span>
+                                }
+                            </label>
+                            <RichTextEditor @ref="narrationEditor"
+                                            Value="@entry.Narration"
+                                            Placeholder="Describe the purpose of this transaction..."
+                                            MinHeight="80"
+                                            MaxHeight="200" />
+                            <ValidationMessage For="@(() => entry.Narration)" />
+                        </div>
+
+                        <div class="col-md-4">
+                            <label class="form-label">Reference Type</label>
+                            <select class="form-select"
+                                    @bind="entry.ReferenceType"
+                                    disabled="@IsReadOnly">
+                                <option value="">Select</option>
+                                @foreach (var r in Enum.GetValues<ReferenceType>())
+                                {
+                                    <option value="@r">@r</option>
+                                }
+                            </select>
+                        </div>
+
+                        <div class="col-md-4">
+                            <label class="form-label">External Reference No</label>
+                            <input class="form-control"
+                                   maxlength="50" placeholder="Enter the External Reference Number"
+                                   @bind="entry.ExternalReferenceNumber"
+                                   disabled="@IsReadOnly" />
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Attachments</label>
+                            <input type="number" min="0"
+                                   class="form-control" placeholder="e.g., 0"
+                                   @bind="entry.AttachmentCount" />
+                        </div>
+
+                        <div class="col-md-4 form-check form-switch">
+                            <input class="form-check-input"
+                                   type="checkbox"
+                                   @bind="entry.IsReversal" />
+                            <label class="form-check-label">
+                                Reversal Entry
+                            </label>
+                        </div>
+                    </div>
+
+                    <!-- ================= TOTALS SUMMARY ================= -->
+                    <h6 class="text-primary mb-3 mt-4">
+                        <i class="ti ti-chart-bar me-2"></i> Totals Summary
+                    </h6>
+
+                    <div class="alert d-flex justify-content-between align-items-center
+                    @(entry.Difference == 0 ? "alert-success" : "alert-danger")">
+
+                        <div>
+                            Debit:
+                            <strong>@entry.TotalDebit</strong>
+                        </div>
+
+                        <div>
+                            Credit:
+                            <strong>@entry.TotalCredit</strong>
+                        </div>
+
+                        <div>
+                            Difference:
+                            <strong>@entry.Difference</strong>
+                        </div>
+
+                        <div>
+                            Base Currency:
+                            <strong>@(SelectedCompany?.BaseCurrencyName ?? "-")</strong>
+                        </div>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+            <!-- ================= ACTIONS ================= -->
+            <div class="d-flex justify-content-end mb-4">
+
+                <button class="btn btn-outline-secondary me-2"
+                        type="button"
+                        @onclick="Cancel">
+                    <i class="ti ti-x me-1"></i> Cancel
+                </button>
+
+                @if (entry.Status == JournalEntryStatus.Draft)
+                {
+                    <button class="btn btn-primary"
+                            type="submit">
+                        <i class="ti ti-device-floppy me-1"></i> @(IsEdit ? "Update" : "Save")
+                    </button>
+                }
+                else if (entry.Status == JournalEntryStatus.Submitted)
+                {
+                    <button class="btn btn-success"
+                            type="button"
+                            @onclick="Approve">
+                        <i class="ti ti-check me-1"></i> Approve
+                    </button>
+                }
+                else if (entry.Status == JournalEntryStatus.Approved)
+                {
+                    <button class="btn btn-danger"
+                            type="button"
+                            @onclick="Post">
+                        <i class="ti ti-book me-1"></i> Post
+                    </button>
+                }
+
+            </div>
+
+        </div>
+    </EditForm>
+
+</div>

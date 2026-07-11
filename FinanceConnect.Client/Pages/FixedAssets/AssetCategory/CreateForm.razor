@@ -1,0 +1,521 @@
+﻿@page "/assets-category/create"
+@page "/assets-category/edit/{Id:guid}"
+@inject NavigationManager Nav
+@using FinanceConnect.Client.ViewModels
+@using FinanceConnect.Client.Services
+
+<style>
+    .validation-message {
+        color: #dc3545;
+        font-size: 12px;
+    }
+
+    .form-check-label {
+        font-size: 13px;
+    }
+
+    .gl-error {
+        color: #dc3545;
+        font-size: 12px;
+        display: block;
+        margin-top: 2px;
+    }
+
+    .field-invalid {
+        border-color: #dc3545 !important;
+        box-shadow: none !important;
+    }
+</style>
+
+<div class="content flat-form">
+
+    <div class="page-header">
+        <div class="page-title">
+            <h4 class="fw-bold">@(IsEdit ? "Edit Asset Category" : "Create Asset Category")</h4>
+            <h6>Define Asset Classification &amp; Accounting Rules</h6>
+        </div>
+        <div class="page-btn">
+            <a href="/assets-category" class="btn btn-outline-secondary">
+                <i class="ti ti-arrow-left"></i> Back
+            </a>
+        </div>
+    </div>
+
+    <EditForm EditContext="_editContext" OnSubmit="Save">
+        <DataAnnotationsValidator />
+
+        <!-- ═══ SECTION 1 – BASIC INFORMATION ═══ -->
+        <div class="card mt-4">
+          
+            <div class="card-body">
+                <h5 class="text-primary mb-3 d-flex align-items-center"><i class="ti ti-id me-2" style="margin-bottom: 1px;font-size: 22px;"></i> Basic Information</h5>
+                <div class="row g-3">
+
+                    <div class="col-md-3">
+                        <label class="form-label">Category Code <span class="text-danger">*</span></label>
+                        <InputText class="form-control text-uppercase"
+                                   @bind-Value="Model.CategoryCode"
+                                   @oninput="e => Model.CategoryCode = e.Value?.ToString()?.ToUpper() ?? string.Empty"
+                                   placeholder="e.g. LAPTOP-IT" />
+                        <ValidationMessage For="@(() => Model.CategoryCode)" />
+                    </div>
+
+                    <div class="col-md-5">
+                        <label class="form-label">Category Name <span class="text-danger">*</span></label>
+                        <InputText class="form-control" @bind-Value="Model.CategoryName"
+                                   placeholder="e.g. Laptop & Computers" />
+                        <ValidationMessage For="@(() => Model.CategoryName)" />
+                    </div>
+
+                    <div class="col-md-4">
+                        <label class="form-label">Asset Type <span class="text-danger">*</span></label>
+                        <InputSelect class="form-select" @bind-Value="Model.AssetType">
+                            <option value="">-- Select Type --</option>
+                            <option value="@AssetsCategoryViewModel.AssetType.Tangible">Tangible</option>
+                            <option value="@AssetsCategoryViewModel.AssetType.Intangible">Intangible</option>
+                            <option value="@AssetsCategoryViewModel.AssetType.LeaseAsset">Lease Asset</option>
+                            <option value="@AssetsCategoryViewModel.AssetType.Other">Other</option>
+                        </InputSelect>
+                        <ValidationMessage For="@(() => Model.AssetType)" />
+                    </div>
+
+                    <div class="col-md-3">
+                        <label class="form-label">Parent Category</label>
+                        <InputSelect class="form-select" @bind-Value="Model.ParentAssetCategoryId">
+                            <option value="">-- None --</option>
+                            @foreach (var cat in ParentCategories)
+                            {
+                                <option value="@cat.AssetCategoryId">@cat.CategoryName</option>
+                            }
+                        </InputSelect>
+                        <small class="text-muted">e.g. "IT Assets" → parent of "Laptop", "Server"</small>
+                    </div>
+
+                    <div class="col-md-3">
+                        <label class="form-label">Default Asset Status on Creation</label>
+                        <InputSelect class="form-select" @bind-Value="Model.DefaultAssetStatusOnCreation">
+                            <option value="@AssetsCategoryViewModel.DefaultAssetStatusOnCreation.Draft">Draft</option>
+                            <option value="@AssetsCategoryViewModel.DefaultAssetStatusOnCreation.UnderConstruction">Under Construction (CWIP)</option>
+                            <option value="@AssetsCategoryViewModel.DefaultAssetStatusOnCreation.InService">In Service</option>
+                        </InputSelect>
+                    </div>
+
+                    <div class="col-md-6">
+                        <label class="form-label">Description</label>
+                        <InputTextArea class="form-control" rows="2" @bind-Value="Model.Description"
+                                       placeholder="Optional description for this category..." />
+                    </div>
+
+                </div>
+           
+
+            </div>
+        </div>
+        <div class="card mt-4">
+
+            <div class="card-body">
+               
+                <h5 class="text-primary mb-3 d-flex align-items-center"><i class="ti ti-coin me-2" style="font-size: 22px;"></i> Capitalization Policy</h5>
+                <div class="row g-3">
+
+                    <div class="col-md-3 d-flex align-items-center gap-2 mt-2">
+                        <InputCheckbox class="form-check-input" id="cap" @bind-Value="Model.IsCapitalizable" />
+                        <label class="form-check-label" for="cap">Capitalize Assets in this Category?</label>
+                    </div>
+
+                    <div class="col-md-3">
+                        <label class="form-label">Capitalization Threshold <span class="text-danger">*</span></label>
+                        <InputNumber class="form-control" @bind-Value="Model.CapitalizationThresholdAmount"
+                                     placeholder="0 = no threshold" />
+                        <ValidationMessage For="@(() => Model.CapitalizationThresholdAmount)" />
+                        <small class="text-muted">Assets below this amount will be expensed</small>
+                    </div>
+
+                    <div class="col-md-4">
+                        <label class="form-label">Expense Account (Below Threshold)</label>
+                        <select class="form-select"
+                                @onchange="e => OnGLChanged(e, GLField.ExpenseAccountBelowThreshold)">
+                            <option value="">-- Select GL Account --</option>
+                            @foreach (var acc in GLAccountList)
+                            {
+                                <option value="@acc.Id"
+                                        selected="@(Model.ExpenseAccountIdForBelowThreshold == acc.Id)">
+                                    @($"{acc.Code} – {acc.Name}")
+                                </option>
+                            }
+                        </select>
+                    </div>
+
+                    <div class="col-md-2 d-flex align-items-center gap-2 mt-2">
+                        <InputCheckbox class="form-check-input" id="override" @bind-Value="Model.AllowManualOverrideThreshold" />
+                        <label class="form-check-label" for="override">Allow Threshold Override</label>
+                    </div>
+
+                    <div class="col-md-3 d-flex align-items-center gap-2">
+                        <InputCheckbox class="form-check-input" id="acqApproval" @bind-Value="Model.RequireAcquisitionApproval" />
+                        <label class="form-check-label" for="acqApproval">Require Acquisition Approval</label>
+                    </div>
+
+                </div>
+
+
+            </div>
+        </div>
+
+        <div class="card mt-4">
+
+            <div class="card-body">
+                <h5 class="text-primary mb-3 d-flex align-items-center"><i class="ti ti-chart-bar me-2" style="margin-bottom: 3px;font-size: 22px;"></i> Depreciation Defaults</h5>
+                <div class="row g-3 mt-3">
+                    <div class="col-md-3 d-flex align-items-center gap-2 mt-2">
+                        <InputCheckbox class="form-check-input" id="dep" @bind-Value="Model.IsDepreciable" />
+                        <label class="form-check-label" for="dep">Depreciable / Amortizable?</label>
+                    </div>
+                </div>
+
+                @if (Model.IsDepreciable)
+                {
+                    <div class="row g-3 mt-1">
+
+                        <div class="col-md-3">
+                            <label class="form-label">Depreciation Method <span class="text-danger">*</span></label>
+                            <select class="@($"form-select{(HasGLError(nameof(Model.DefaultDepreciationMethodId)) ? " field-invalid" : "")}")"
+                                    @onchange="e => OnDepMethodChanged(e)">
+                                <option value="">-- Select Method --</option>
+                                @foreach (var m in DepreciationMethods)
+                                {
+                                    <option value="@m.Id"
+                                            selected="@(Model.DefaultDepreciationMethodId == m.Id)">
+                                        @m.Name
+                                    </option>
+                                }
+                            </select>
+                            @if (HasGLError(nameof(Model.DefaultDepreciationMethodId)))
+                            {
+                                <span class="gl-error">@GetGLError(nameof(Model.DefaultDepreciationMethodId))</span>
+                            }
+                        </div>
+
+                        <div class="col-md-3">
+                            <label class="form-label">Useful Life (Months) <span class="text-danger">*</span></label>
+                            <InputNumber class="form-control" @bind-Value="Model.UsefulLifeMonths" placeholder="e.g. 36" />
+                            <ValidationMessage For="@(() => Model.UsefulLifeMonths)" />
+                        </div>
+
+                        <div class="col-md-3">
+                            <label class="form-label">Residual Value % <span class="text-danger">*</span></label>
+                            <InputNumber class="form-control" @bind-Value="Model.ResidualValuePercent" placeholder="0 – 100" />
+                            <ValidationMessage For="@(() => Model.ResidualValuePercent)" />
+                        </div>
+
+                        <div class="col-md-3">
+                            <label class="form-label">Start Convention <span class="text-danger">*</span></label>
+                            <InputSelect class="form-select" @bind-Value="Model.DepreciationStartConvention">
+                                <option value="">-- Select --</option>
+                                <option value="@AssetsCategoryViewModel.DepreciationStartConvention.FromInServiceDate">From In-Service Date (Pro-rata)</option>
+                                <option value="@AssetsCategoryViewModel.DepreciationStartConvention.NextMonthStart">Next Month Start</option>
+                                <option value="@AssetsCategoryViewModel.DepreciationStartConvention.FullMonthIfInServiceBeforeDayN">Full Month if In-Service Before Day N</option>
+                            </InputSelect>
+                        </div>
+
+                        <div class="col-md-3">
+                            <label class="form-label">Rounding Rule</label>
+                            <InputSelect class="form-select" @bind-Value="Model.DepreciationRoundingRule">
+                                <option value="@AssetsCategoryViewModel.DepreciationRoundingRule.RoundToNearest">Round to Nearest</option>
+                                <option value="@AssetsCategoryViewModel.DepreciationRoundingRule.RoundDown">Round Down</option>
+                                <option value="@AssetsCategoryViewModel.DepreciationRoundingRule.RoundUp">Round Up</option>
+                            </InputSelect>
+                        </div>
+
+                        <div class="col-md-3 d-flex align-items-center gap-2 mt-4">
+                            <InputCheckbox class="form-check-input" id="nonWork" @bind-Value="Model.AllowDepreciationOnNonWorkingDays" />
+                            <label class="form-check-label" for="nonWork">Allow on Non-Working Days</label>
+                        </div>
+
+                    </div>
+                }
+
+
+
+            </div>
+        </div>
+
+
+        <div class="card mt-4">
+
+            <div class="card-body"> 
+                <h5 class="text-primary mb-3 d-flex align-items-center"><i class="ti ti-building-bank me-2" style="margin-bottom: 4px;font-size: 22px;"></i> Accounting Mapping (GL Defaults)</h5>
+                <div class="row g-3 mt-3">
+
+                    <!-- Asset Cost Account -->
+                    <div class="col-md-4">
+                        <label class="form-label">
+                            Asset Cost Account (Balance Sheet)
+                            @if (Model.IsCapitalizable)
+                            {
+                                <span class="text-danger">*</span>
+                            }
+                        </label>
+                        <select class="@($"form-select{(HasGLError(nameof(Model.AssetCostGLAccountId)) ? " field-invalid" : "")}")"
+                                @onchange="e => OnGLChanged(e, GLField.AssetCost)">
+                            <option value="">-- Select GL Account --</option>
+                            @foreach (var acc in GLAccountList)
+                            {
+                                <option value="@acc.Id"
+                                        selected="@(Model.AssetCostGLAccountId == acc.Id)">
+                                    @($"{acc.Code} – {acc.Name}")
+                                </option>
+                            }
+                        </select>
+                        @if (HasGLError(nameof(Model.AssetCostGLAccountId)))
+                        {
+                            <span class="gl-error">@GetGLError(nameof(Model.AssetCostGLAccountId))</span>
+                        }
+                    </div>
+
+                    <!-- Accumulated Depreciation Account -->
+                    <div class="col-md-4">
+                        <label class="form-label">
+                            Accumulated Depreciation Account
+                            @if (Model.IsDepreciable)
+                            {
+                                <span class="text-danger">*</span>
+                            }
+                        </label>
+                        <select class="@($"form-select{(HasGLError(nameof(Model.AccumulatedDepreciationGLAccountId)) ? " field-invalid" : "")}")"
+                                @onchange="e => OnGLChanged(e, GLField.AccumDep)">
+                            <option value="">-- Select GL Account --</option>
+                            @foreach (var acc in GLAccountList)
+                            {
+                                <option value="@acc.Id"
+                                        selected="@(Model.AccumulatedDepreciationGLAccountId == acc.Id)">
+                                    @($"{acc.Code} – {acc.Name}")
+                                </option>
+                            }
+                        </select>
+                        @if (HasGLError(nameof(Model.AccumulatedDepreciationGLAccountId)))
+                        {
+                            <span class="gl-error">@GetGLError(nameof(Model.AccumulatedDepreciationGLAccountId))</span>
+                        }
+                    </div>
+
+                    <!-- Depreciation Expense Account -->
+                    <div class="col-md-4">
+                        <label class="form-label">
+                            Depreciation Expense Account
+                            @if (Model.IsDepreciable)
+                            {
+                                <span class="text-danger">*</span>
+                            }
+                        </label>
+                        <select class="@($"form-select{(HasGLError(nameof(Model.DepreciationExpenseGLAccountId)) ? " field-invalid" : "")}")"
+                                @onchange="e => OnGLChanged(e, GLField.DepExpense)">
+                            <option value="">-- Select GL Account --</option>
+                            @foreach (var acc in GLAccountList)
+                            {
+                                <option value="@acc.Id"
+                                        selected="@(Model.DepreciationExpenseGLAccountId == acc.Id)">
+                                    @($"{acc.Code} – {acc.Name}")
+                                </option>
+                            }
+                        </select>
+                        @if (HasGLError(nameof(Model.DepreciationExpenseGLAccountId)))
+                        {
+                            <span class="gl-error">@GetGLError(nameof(Model.DepreciationExpenseGLAccountId))</span>
+                        }
+                    </div>
+
+                    <!-- Gain on Disposal -->
+                    <div class="col-md-4">
+                        <label class="form-label">Gain on Disposal Account <span class="text-danger">*</span></label>
+                        <select class="@($"form-select{(HasGLError(nameof(Model.DisposalGainGLAccountId)) ? " field-invalid" : "")}")"
+                                @onchange="e => OnGLChanged(e, GLField.DisposalGain)">
+                            <option value="">-- Select GL Account --</option>
+                            @foreach (var acc in GLAccountList)
+                            {
+                                <option value="@acc.Id"
+                                        selected="@(Model.DisposalGainGLAccountId == acc.Id)">
+                                    @($"{acc.Code} – {acc.Name}")
+                                </option>
+                            }
+                        </select>
+                        @if (HasGLError(nameof(Model.DisposalGainGLAccountId)))
+                        {
+                            <span class="gl-error">@GetGLError(nameof(Model.DisposalGainGLAccountId))</span>
+                        }
+                    </div>
+
+                    <!-- Loss on Disposal -->
+                    <div class="col-md-4">
+                        <label class="form-label">Loss on Disposal Account <span class="text-danger">*</span></label>
+                        <select class="@($"form-select{(HasGLError(nameof(Model.DisposalLossGLAccountId)) ? " field-invalid" : "")}")"
+                                @onchange="e => OnGLChanged(e, GLField.DisposalLoss)">
+                            <option value="">-- Select GL Account --</option>
+                            @foreach (var acc in GLAccountList)
+                            {
+                                <option value="@acc.Id"
+                                        selected="@(Model.DisposalLossGLAccountId == acc.Id)">
+                                    @($"{acc.Code} – {acc.Name}")
+                                </option>
+                            }
+                        </select>
+                        @if (HasGLError(nameof(Model.DisposalLossGLAccountId)))
+                        {
+                            <span class="gl-error">@GetGLError(nameof(Model.DisposalLossGLAccountId))</span>
+                        }
+                    </div>
+
+                    <!-- Capitalization Clearing / GRIR (Optional) -->
+                    <div class="col-md-4">
+                        <label class="form-label">Capitalization Clearing / GRIR <span class="text-muted">(Optional)</span></label>
+                        <select class="form-select"
+                                @onchange="e => OnGLChanged(e, GLField.CapClearing)">
+                            <option value="">-- Select GL Account --</option>
+                            @foreach (var acc in GLAccountList)
+                            {
+                                <option value="@acc.Id"
+                                        selected="@(Model.CapitalizationClearingGLAccountId == acc.Id)">
+                                    @($"{acc.Code} – {acc.Name}")
+                                </option>
+                            }
+                        </select>
+                    </div>
+
+                    <!-- CWIP Account (Optional) -->
+                    <div class="col-md-4">
+                        <label class="form-label">CWIP Account <span class="text-muted">(Optional)</span></label>
+                        <select class="form-select"
+                                @onchange="e => OnGLChanged(e, GLField.CWIP)">
+                            <option value="">-- Select GL Account --</option>
+                            @foreach (var acc in GLAccountList)
+                            {
+                                <option value="@acc.Id"
+                                        selected="@(Model.CWIPGLAccountId == acc.Id)">
+                                    @($"{acc.Code} – {acc.Name}")
+                                </option>
+                            }
+                        </select>
+                        <small class="text-muted">Used when default status = Under Construction</small>
+                    </div>
+
+                    <!-- Impairment Loss Account (Optional) -->
+                    <div class="col-md-4">
+                        <label class="form-label">Impairment Loss Account <span class="text-muted">(Optional)</span></label>
+                        <select class="form-select"
+                                @onchange="e => OnGLChanged(e, GLField.Impairment)">
+                            <option value="">-- Select GL Account --</option>
+                            @foreach (var acc in GLAccountList)
+                            {
+                                <option value="@acc.Id"
+                                        selected="@(Model.ImpairmentLossGLAccountId == acc.Id)">
+                                    @($"{acc.Code} – {acc.Name}")
+                                </option>
+                            }
+                        </select>
+                    </div>
+
+                    <!-- Revaluation Reserve Account (Optional) -->
+                    <div class="col-md-4">
+                        <label class="form-label">Revaluation Reserve Account <span class="text-muted">(Optional)</span></label>
+                        <select class="form-select"
+                                @onchange="e => OnGLChanged(e, GLField.Revaluation)">
+                            <option value="">-- Select GL Account --</option>
+                            @foreach (var acc in GLAccountList)
+                            {
+                                <option value="@acc.Id"
+                                        selected="@(Model.RevaluationReserveGLAccountId == acc.Id)">
+                                    @($"{acc.Code} – {acc.Name}")
+                                </option>
+                            }
+                        </select>
+                    </div>
+
+                </div>
+
+
+            </div>
+        </div>
+
+        <div class="card mt-4">
+
+            <div class="card-body">
+                <h5 class="text-primary mb-3 d-flex align-items-center"><i class="ti ti-shield-lock me-2" style="margin-bottom: 3px;font-size: 22px;"></i> Asset Controls</h5>
+                <div class="row g-3 mt-3">
+                    <div class="col-md-3 d-flex align-items-center gap-2">
+                        <InputCheckbox class="form-check-input" id="tag" @bind-Value="Model.RequiresAssetTag" />
+                        <label class="form-check-label" for="tag">Asset Tag Required</label>
+                    </div>
+                    <div class="col-md-3 d-flex align-items-center gap-2">
+                        <InputCheckbox class="form-check-input" id="serial" @bind-Value="Model.RequiresSerialNumber" />
+                        <label class="form-check-label" for="serial">Serial Number Required</label>
+                    </div>
+                    <div class="col-md-3 d-flex align-items-center gap-2">
+                        <InputCheckbox class="form-check-input" id="cust" @bind-Value="Model.RequiresCustodian" />
+                        <label class="form-check-label" for="cust">Custodian Required</label>
+                    </div>
+                    <div class="col-md-3 d-flex align-items-center gap-2">
+                        <InputCheckbox class="form-check-input" id="loc" @bind-Value="Model.RequiresLocation" />
+                        <label class="form-check-label" for="loc">Location Required</label>
+                    </div>
+                    <div class="col-md-3 d-flex align-items-center gap-2">
+                        <InputCheckbox class="form-check-input" id="comp" @bind-Value="Model.AllowSplitIntoComponents" />
+                        <label class="form-check-label" for="comp">Allow Component Split</label>
+                    </div>
+                </div>
+
+
+            </div>
+        </div>
+        <div class="card mt-4">
+
+            <div class="card-body">
+
+                <h5 class="text-primary mb-3 d-flex align-items-center"><i class="ti ti-toggle-right me-2" style="margin-bottom: 1px;font-size: 22px;"></i> Status &amp; Lifecycle</h5>
+                <div class="row g-3 mt-3">
+
+                    <div class="col-md-3">
+                        <label class="form-label">Category Status</label>
+                        <InputSelect class="form-select" @bind-Value="Model.CategoryStatus">
+                            <option value="@AssetsCategoryViewModel.CategoryStatus.Active">Active</option>
+                            <option value="@AssetsCategoryViewModel.CategoryStatus.Inactive">Inactive</option>
+                            <option value="@AssetsCategoryViewModel.CategoryStatus.Archived">Archived</option>
+                        </InputSelect>
+                    </div>
+
+                    <div class="col-md-3 d-flex align-items-center gap-2 mt-4">
+                        <InputCheckbox class="form-check-input" id="lock" @bind-Value="Model.IsLockedForChanges"
+                                       disabled="@(!IsController)" />
+                        <label class="form-check-label" for="lock">Lock Category (Controller Only)</label>
+                    </div>
+
+                    @if (Model.IsLockedForChanges)
+                    {
+                        <div class="col-md-6">
+                            <label class="form-label">Lock Reason <span class="text-danger">*</span></label>
+                            <InputText class="form-control" @bind-Value="Model.LockReason"
+                                       placeholder="e.g. Locked during Q4 audit close" />
+                            <ValidationMessage For="@(() => Model.LockReason)" />
+                        </div>
+                    }
+
+                </div>
+
+
+            </div>
+        </div>
+
+
+        <!-- Action Buttons -->
+        <div class="d-flex justify-content-end mt-4 mb-5 gap-2">
+            <button type="button" class="btn btn-outline-secondary"
+                    @onclick='() => Nav.NavigateTo("/assets-category")'>
+                <i class="ti ti-x"></i> Cancel
+            </button>
+            <button type="submit" class="btn btn-primary">
+                <i class="ti ti-device-floppy"></i>
+                @(IsEdit ? "Update Category" : "Save Category")
+            </button>
+        </div>
+
+    </EditForm>
+</div>

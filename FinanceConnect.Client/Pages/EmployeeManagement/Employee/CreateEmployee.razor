@@ -1,0 +1,730 @@
+﻿@page "/employees/create"
+@page "/employees/{Id:guid}"
+
+@if (!isInitialized)
+{
+    <div class="page-loading-overlay">
+        <div class="whirly-loader"></div>
+    </div>
+}
+else
+{
+    <div class="content form-wizard">
+
+        <div class="page-header">
+            <div class="page-title">
+                <h4 class="fw-bold">@PageTitle</h4>
+                <h6>@PageSubTitle</h6>
+            </div>
+
+            <div class="d-flex gap-2">
+                @if (IsEdit)
+                {
+                <button type="button" class="btn btn-primary" @onclick="Save">
+                    <i class="ti ti-device-floppy"></i> @(IsEdit ? "Update" : "Save")
+                </button>
+                }
+                <a href="/employees" class="btn btn-outline-secondary">
+                    <i class="ti ti-arrow-left"></i> Back
+                </a>
+            </div>
+        </div>
+        <div class="wizard-overlay d-flex mb-4">
+            <EditForm EditContext="editContext" OnSubmit="Save" style="width: 100%;">
+            <div class="wizard-overlay">
+            <div class="wizard-modal">
+
+                <!-- LEFT STEPPER -->
+                <div class="wizard-steps">
+                            <div class="timeline-line"></div>
+                            <div class="timeline-indicator @(IsCurrentStepValid() ? "success" : "error")"
+                                 style="top:@IndicatorToppx"></div>
+                    @for (int i = 1; i <= Steps.Count; i++)
+                    {
+                        <div class="wizard-step @StepClass(i)">
+                            <div class="dot">
+                                @if (i < CurrentStep)
+                                {
+                                    <i class="ti ti-check text-white"></i>
+                                }
+                                else
+                                {
+                                    <i class="@Steps[i - 1].Icon"></i>
+                                }
+                            </div>
+                            <div class="label">
+                                <b>@Steps[i - 1].Title</b>
+                            </div>
+                        </div>
+                    }
+                </div>
+
+                <!-- RIGHT CONTENT -->
+                        <div class="wizard-content" style="padding-left: 65px;">
+
+                            <h2 style="font-size: 17px;
+                                margin-bottom: 10px;">
+                                @Steps[CurrentStep - 1].Title
+                            </h2>
+
+                    <!-- STEP 1 : BASIC -->
+                    @if (CurrentStep == 1)
+                    {
+                                <div class="row border-top pt-3 p-0">
+                            <div class="col-md-6 mb-3">
+                                        <label class="form-label">Employee ID <span class="text-danger ms-1">*</span></label>
+                                        <InputText class="@($"form-control text-uppercase {(ShowFieldError(1, "EmployeeId") || ShowFieldError(1, "EmployeeIdFormat") ? "is-invalid" : "")}")"
+                                                   maxlength="20" placeholder="e.g., EMP-001" @bind-Value="Employee.EmployeeId" />
+                                        @if (ShowFieldError(1, "EmployeeId"))
+                                        {
+                                            <small class="text-danger">Employee Id is required</small>
+                                        }
+                                        @if (ShowFieldError(1, "EmployeeIdFormat"))
+                                        {
+                                            <div class="text-danger small mt-1">Only letters, numbers, underscore (_) and hyphen (-) are allowed</div>
+                                        }
+                                    </div>
+
+                            <div class="col-md-6 mb-3">
+                                        <label class="form-label">Official Email *</label>
+                                        <InputText class="@($"form-control {(ShowFieldError(1, "OfficialEmail") || ShowFieldError(1, "EmailFormat") ? "is-invalid" : "")}")"
+                                                   placeholder="e.g., contact@company.com" maxlength="150" @bind-Value="Employee.OfficialEmail"
+                                           type="email" />
+                                        @if (ShowFieldError(1, "OfficialEmail"))
+                                        {
+                                            <small class="text-danger">Official Email is required</small>
+                                        }
+                                        @if (ShowFieldError(1, "EmailFormat"))
+                                        {
+                                            <div class="text-danger small mt-1">Invalid email format</div>
+                                        }
+                                    </div>
+
+                            <div class="col-md-6 mb-3">
+                                        <label class="form-label">First Name <span class="text-danger ms-1">*</span></label>
+                                        <InputText class="@($"form-control {(ShowFieldError(1, "FirstName") ? "is-invalid" : "")}")"
+                                                   oninput="this.value=this.value.replace(/[0-9]/g,'');" placeholder="e.g., Rajesh" maxlength="100" @bind-Value="Employee.FirstName" />
+                                        @if (ShowFieldError(1, "FirstName"))
+                                        {
+                                            <small class="text-danger">First Name is required</small>
+                                        }
+                            </div>
+
+                            <div class="col-md-6 mb-3">
+                                        <label class="form-label">Last Name <span class="text-danger ms-1">*</span></label>
+                                        <InputText class="@($"form-control {(ShowFieldError(1, "LastName") ? "is-invalid" : "")}")"
+                                                   oninput="this.value=this.value.replace(/[0-9]/g,'');" placeholder="e.g., Kumar" maxlength="100" @bind-Value="Employee.LastName" />
+                                        @if (ShowFieldError(1, "LastName"))
+                                        {
+                                            <small class="text-danger">Last Name is required</small>
+                                        }
+                            </div>
+                        </div>
+                    }
+
+                    <!-- STEP 2 : WORK -->
+                    @if (CurrentStep == 2)
+                    {
+                                <div class="row border-top pt-3 p-0">
+
+                            <div class="col-md-6 mb-3">
+                                        <label class="form-label">Department <span class="text-danger ms-1">*</span></label>
+                                        <InputSelect class="@($"form-select {(ShowFieldError(2, "DepartmentId") ? "is-invalid" : "")}")"
+                                             @bind-Value="Employee.DepartmentId">
+                                    <option value="">-- Select Department --</option>
+                                    @foreach (var dept in Departments)
+                                    {
+                                        <option value="@dept.Id">@dept.Name</option>
+                                    }
+                                </InputSelect>
+                                        @if (ShowFieldError(2, "DepartmentId"))
+                                        {
+                                            <small class="text-danger">Department is required</small>
+                                        }
+                            </div>
+
+
+                            <div class="col-md-6 mb-3">
+                                        <label class="form-label">Designation <span class="text-danger ms-1">*</span></label>
+                                        <InputSelect class="@($"form-select {(ShowFieldError(2, "DesignationId") ? "is-invalid" : "")}")"
+                                             @bind-Value="Employee.DesignationId">
+                                            <option value="">-- Select Designation--</option>
+                                    @foreach (var d in Designations)
+                                    {
+                                        <option value="@d.Id">@d.Name</option>
+                                    }
+                                </InputSelect>
+                                        @if (ShowFieldError(2, "DesignationId"))
+                                        {
+                                            <small class="text-danger">Designation is required</small>
+                                        }
+                            </div>
+
+                            <div class="col-md-6 mb-3">
+                                        <label class="form-label">Employment Type <span class="text-danger ms-1">*</span></label>
+                                        <InputSelect class="@($"form-select {(ShowFieldError(2, "EmploymentType") ? "is-invalid" : "")}")"
+                                             @bind-Value="Employee.EmploymentType">
+                                    <option value="">-- Select Type --</option>
+                                    @foreach (var type in Enum.GetValues<EmploymentType>())
+                                    {
+                                        <option value="@type">@type</option>
+                                    }
+                                </InputSelect>
+                                        @if (ShowFieldError(2, "EmploymentType"))
+                                        {
+                                            <small class="text-danger">Employment Type is required</small>
+                                        }
+                            </div>
+
+                                    <div class="col-md-6 mb-3">
+                                        <label class="form-label">Reporting Manager</label>
+                                        <InputSelect class="form-select"
+                                                     @bind-Value="Employee.ReportingManagerId">
+                                            <option value="">-- Select Reporting Manager--</option>
+                                            @foreach (var data in Managers)
+                                            {
+                                                <option value="@data.Id">@data.Name</option>
+                                            }
+                                        </InputSelect>
+                                    </div>
+
+                            <div class="col-md-6 mb-3">
+                                        <label class="form-label">Date of Joining <span class="text-danger ms-1">*</span></label>
+                                        <InputDate class="@($"form-control {(ShowFieldError(2, "DateOfJoining") ? "is-invalid" : "")}")"
+                                           @bind-Value="Employee.DateOfJoining" />
+                                        @if (ShowFieldError(2, "DateOfJoining"))
+                                        {
+                                            <small class="text-danger">Date Of Joining is required</small>
+                                        }
+                            </div>
+
+                                    <div class="col-md-6 mb-3">
+                                        <label class="form-label">Current Experience</label>
+                                        <InputNumber type="number" min="0" class="form-control"
+                                                   placeholder="e.g., 2" maxlength="100" @bind-Value="Employee.CurrentExperience" />
+                                    </div>
+                                    
+                                    <div class="col-md-6 mb-3">
+                                        <label class="form-label">Source Of Hire</label>
+                                        <InputText class="form-control"
+                                                   placeholder="e.g., LinkedIn" maxlength="100" @bind-Value="Employee.SourceOfHire" />
+                                    </div>
+
+                                    <div class="col-md-12 mb-3">
+                                        <label class="form-label">Expertise In</label>
+                                        <RichTextEditor @ref="_expertiseEditor"
+                                                        @bind-Value="Employee.Expertise"
+                                                        Placeholder="Expertise In..."
+                                                        MinHeight="80"
+                                                        MaxHeight="200" />
+
+                                    </div>
+
+                        </div>
+                    }
+                            
+                    <!-- STEP 3 : PERSONAL -->
+                    @if (CurrentStep == 3)
+                    {
+                                <div class="row border-top pt-3 p-0">
+                            <div class="col-md-6 mb-3">
+                                        <label class="form-label">Date of Birth <span class="text-danger ms-1">*</span></label>
+                                        <InputDate class="@($"form-control {(ShowFieldError(3, "DateOfBirth") ? "is-invalid" : "")}")"
+                                                   @bind-Value="Employee.DateOfBirth" />
+                                        @if (ShowFieldError(3, "DateOfBirth"))
+                                        {
+                                            <small class="text-danger">Date Of Birth is required</small>
+                                        }
+                            </div>
+
+                            <div class="col-md-6 mb-3">
+                                        <label class="form-label">Gender <span class="text-danger ms-1">*</span></label>
+                                        <InputSelect class="@($"form-select {(ShowFieldError(3, "Gender") ? "is-invalid" : "")}")"
+                                             @bind-Value="Employee.Gender">
+                                    <option value="">-- Select --</option>
+                                    @foreach (var g in Enum.GetValues<Gender>())
+                                    {
+                                        <option value="@g">@g</option>
+                                    }
+                                </InputSelect>
+                                        @if (ShowFieldError(3, "Gender"))
+                                        {
+                                            <small class="text-danger">Gender is required</small>
+                                        }
+                            </div>
+
+                            <div class="col-md-6 mb-3">
+                                        <label class="form-label">Marital Status <span class="text-danger ms-1">*</span></label>
+                                        <InputSelect class="@($"form-select {(ShowFieldError(3, "MaritalStatus") ? "is-invalid" : "")}")"
+                                             @bind-Value="Employee.MaritalStatus">
+                                    <option value="">-- Select --</option>
+                                    @foreach (var m in Enum.GetValues<MaritalStatus>())
+                                    {
+                                        <option value="@m">@m</option>
+                                    }
+                                </InputSelect>
+                                        @if (ShowFieldError(3, "MaritalStatus"))
+                                        {
+                                            <small class="text-danger">MaritalStatus is required</small>
+                                        }
+                            </div>
+
+                            <div class="col-md-12 mb-3">
+                                        <label class="form-label">About Me</label>
+                                        <RichTextEditor @ref="_notesEditor"
+                                                        @bind-Value="Employee.AboutMe"
+                                                        Placeholder="About Me..."
+                                                        MinHeight="80"
+                                                        MaxHeight="200" />
+
+                            </div>
+                        </div>
+                    }
+
+                    <!-- STEP 4 : CONTACT -->
+                    @if (CurrentStep == 4)
+                    {
+                                <div class="row border-top pt-3 p-0">
+
+                                    <div class="col-md-6 mb-3">
+                                        <label class="form-label">Mobile Number <span class="text-danger ms-1">*</span></label>
+                                        <InputText class="@($"form-control {(ShowFieldError(4, "PersonalMobileNumber") || ShowFieldError(4, "MobileNumberFormat") ? "is-invalid" : "")}")" inputmode="tel"
+                                                   pattern="[\+0-9\s\-\(\)]*" oninput="this.value=this.value.replace(/[^0-9+]/g,'');"
+                                                   title="Digits, +, -, spaces and parentheses only" placeholder="e.g., +91-44-12345678" maxlength="30"
+                                           @bind-Value="Employee.PersonalMobileNumber" />
+                                        @if (ShowFieldError(4, "PersonalMobileNumber"))
+                                        {
+                                            <div class="text-danger small mt-1">Mobile No is required</div>
+                                        }
+                                        @if (ShowFieldError(4, "MobileNumberFormat"))
+                                        {
+                                            <div class="text-danger small mt-1">Invalid Mobile No format</div>
+                                        }
+                            </div>
+
+                            <div class="col-md-6 mb-3">
+                                        <label class="form-label">Personal Email <span class="text-danger ms-1">*</span></label>
+                                        <InputText class="@($"form-control {(ShowFieldError(4, "PersonalEmail") || ShowFieldError(4, "PersonalEmailFormat") ? "is-invalid" : "")}")" placeholder="e.g., person@email.com" maxlength="150"
+                                        type="email" @bind-Value="Employee.PersonalEmail" />
+                                        @if (ShowFieldError(4, "PersonalEmail"))
+                                        {
+                                            <div class="text-danger small mt-1">Email is required</div>
+                                        }
+                                        @if (ShowFieldError(4, "PersonalEmailFormat"))
+                                        {
+                                            <div class="text-danger small mt-1">Invalid email format</div>
+                                        }
+                            </div>
+
+                            <div class="col-md-6 mb-3">
+                                        <label class="form-label">Address Line 1 <span class="text-danger ms-1">*</span></label>
+                                        <InputText class="@($"form-control {(ShowFieldError(4, "AddressLine1") ? "is-invalid" : "")}")" placeholder="e.g., 123, Anna Salai" maxlength="200"
+                                               @bind-Value="Employee.PresentAddress.AddressLine1" />
+                                        @if (ShowFieldError(4, "AddressLine1"))
+                                        {
+                                            <div class="text-danger small mt-1">AddressLine1 is required</div>
+                                        }
+                            </div>
+                                    <div class="col-md-6 mb-3">
+                                        <label class="form-label">Address Line 2</label>
+                                        <InputText class="form-control" @bind-Value="Employee.PresentAddress.AddressLine2"
+                                                   placeholder="e.g., Teynampet" maxlength="200" />
+                                    </div>
+
+                                    <div class="col-md-6 mb-3">
+                                        <label class="form-label">Country <span class="text-danger ms-1">*</span></label>
+                                        <InputSelect class="@($"form-select {(ShowFieldError(4, "CountryId") ? "is-invalid" : "")}")" @bind-Value="Employee.PresentAddress.CountryId"
+                                                     @oninput="OnAddressCountryChange">
+                                            <option value="@Guid.Empty">-- Select Country --</option>
+                                            @foreach (var country in Countries)
+                                            {
+                                                <option value="@country.Id">@country.CountryName</option>
+                                            }
+                                        </InputSelect>
+                                        @if (ShowFieldError(4, "CountryId"))
+                                        {
+                                            <div class="text-danger small mt-1">Country is required</div>
+                                        }
+                                    </div>
+
+                                    <div class="col-md-6 mb-3">
+                                        <label class="form-label">State/Province <span class="text-danger ms-1">*</span></label>
+                                        <InputSelect class="@($"form-select {(ShowFieldError(4, "StateProvinceId") ? "is-invalid" : "")}")" @bind-Value="Employee.PresentAddress.StateId"
+                                                     disabled="@(Employee.PresentAddress.CountryId == Guid.Empty)">
+                                            <option value="">-- Select State --</option>
+                                            @foreach (var state in AddressStates)
+                                            {
+                                                <option value="@state.Id">@state.StateProvinceName</option>
+                                            }
+                                        </InputSelect>
+                                        @if (ShowFieldError(4, "StateProvinceId"))
+                                        {
+                                            <div class="text-danger small mt-1">State/Province is required</div>
+                                        }
+                                        else if (Employee.PresentAddress.CountryId == Guid.Empty)
+                                        {
+                                            <div class="text-muted small mt-1">Select a country first</div>
+                                        }
+                                    </div>
+
+                                    <div class="col-md-6 mb-3">
+                                        <label class="form-label">City <span class="text-danger ms-1">*</span></label>
+                                        <InputText class="@($"form-control {(ShowFieldError(4, "City") ? "is-invalid" : "")}")" @bind-Value="Employee.PresentAddress.City" 
+                                                   oninput="this.value=this.value.replace(/[0-9]/g,'');" placeholder="e.g., Chennai" maxlength="20" />
+                                        @if (ShowFieldError(4, "City"))
+                                        {
+                                            <div class="text-danger small mt-1">City is required</div>
+                                        }
+                                    </div>
+
+                                    <div class="col-md-6 mb-3">
+                                        <label class="form-label">Postal Code <span class="text-danger ms-1">*</span></label>
+                                        <InputText class="@($"form-control {(ShowFieldError(4, "PostalCode") ? "is-invalid" : "")}")" @bind-Value="Employee.PresentAddress.PostalCode"
+                                                   placeholder="e.g., 600018" maxlength="20" />
+                                        @if (ShowFieldError(4, "PostalCode"))
+                                        {
+                                            <div class="text-danger small mt-1">Postal Code is required</div>
+                                        }
+                                    </div>
+
+                        </div>
+                    }
+
+                    <!-- STEP 5 : IDENTITY -->
+                    @if (CurrentStep == 5)
+                    {
+                                <div class="row border-top pt-3 p-0">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">PAN</label>
+                                        <InputText class="@($"form-control text-uppercase {(ShowFieldError(5, "PANNumber") ? "is-invalid" : "")}")"
+                                                   placeholder="e.g., AAAAA9999A" maxlength="10" @bind-Value="Employee.PAN" />
+                                        @if (ShowFieldError(5, "PANNumber"))
+                                        {
+                                            <div class="text-danger small mt-1">@PANError</div>
+                                        }
+                                    </div>
+
+                            <div class="col-md-6 mb-3">
+                                            <label class="form-label">Aadhaar</label>
+                                        <InputText class="form-control" maxlength="12" placeholder="XXXX XXXX XXXX"
+                                                   oninput="this.value=this.value.replace(/[^0-9]/g,'');"
+                                           @bind-Value="Employee.Aadhaar" />
+                            </div>
+
+                            <div class="col-md-6 mb-3">
+                                            <label class ="form-label">UAN</label>
+                                        <InputText class="form-control text-uppercase" placeholder="e.g., CHEM12345D12" maxlength="12"
+                                           @bind-Value="Employee.UAN" />
+                            </div>
+                        </div>
+                    }
+
+                    <!-- STEP 6 : EXPERIENCE -->
+                    @if (CurrentStep == 6)
+                            {
+                                <div class="row border-top pt-3 p-0">
+
+                                    <div class="col-12">
+
+                                        <!-- EDUCATION -->
+                                        <div class="d-flex justify-content-between align-items-center mb-2">
+                                            <h6 class="text-success mb-0">
+                                                <i class="ti ti-school"></i> Education
+                                            </h6>
+
+                                            <button type="button"
+                                                    class="btn btn-sm btn-outline-primary"
+                                                    @onclick="AddEducation">
+                                                <i class="ti ti-plus"></i> Add Education
+                                            </button>
+                                        </div>
+
+                                        @if (Employee.Educations.Any())
+                                        {
+                                            @foreach (var edu in Employee.Educations)
+                                            {
+                                                <div class="card mb-3">
+                                                    <div class="card-body">
+
+                                                        <div class="row g-2">
+
+                                                            <div class="col-12 col-md-3">
+                                                                <label class="form-label">Degree</label>
+                                                                <InputText class="form-control"
+                                                                           @bind-Value="edu.Degree"
+                                                                           placeholder="Degree" />
+                                                            </div>
+
+                                                            <div class="col-12 col-md-3">
+                                                                <label class="form-label">Specialization</label>
+                                                                <InputText class="form-control"
+                                                                           @bind-Value="edu.Specialization"
+                                                                           placeholder="Specialization" />
+                                                            </div>
+
+                                                            <div class="col-12 col-md-3">
+                                                                <label class="form-label">Institute</label>
+                                                                <InputText class="form-control"
+                                                                           @bind-Value="edu.InstituteName"
+                                                                           placeholder="Institute Name" />
+                                                            </div>
+
+                                                            <div class="col-10 col-md-2">
+                                                                <label class="form-label">Completion</label>
+                                                                <InputDate class="form-control"
+                                                                           @bind-Value="edu.DateOfCompletion" />
+                                                            </div>
+
+                                                            <div class="col-1 d-flex align-items-end">
+                                                                <button type="button"
+                                                                        class="btn btn-outline-danger btn-sm"
+                                                                        @onclick="() => RemoveEducation(edu)">
+                                                                    <i class="ti ti-trash"></i>
+                                                                </button>
+                                                            </div>
+
+                                                        </div>
+
+                                                    </div>
+                                                </div>
+                                            }
+                                        }
+                                        else
+                                        {
+                                            <div class="border rounded p-4 text-center text-muted mb-3"
+                                                 style="min-height:120px; display:flex; align-items:center; justify-content:center;">
+                                                <div>
+                                                    <i class="ti ti-school text-secondary" style="font-size:22px;"></i>
+                                                    <div class="mt-2">No Education Added</div>
+                                                </div>
+                                            </div>
+                                        }
+
+                                        <!-- WORK EXPERIENCE -->
+                                        <div class="d-flex justify-content-between align-items-center mb-2 mt-4">
+                                            <h6 class="text-success mb-0">
+                                                <i class="ti ti-history"></i> Work Experience
+                                            </h6>
+
+                                            <button type="button"
+                                                    class="btn btn-sm btn-outline-primary"
+                                                    @onclick="AddWorkExperience">
+                                                <i class="ti ti-plus"></i> Add Work Experience
+                                            </button>
+                                        </div>
+
+                                        @if (Employee.WorkExperiences.Any())
+                                        {
+                                            @foreach (var exp in Employee.WorkExperiences)
+                                            {
+                                                <div class="card mb-3">
+                                                    <div class="card-body">
+
+                                                        <div class="row g-2">
+
+                                                            <div class="col-12 col-md-4">
+                                                                <label class="form-label">Company</label>
+                                                                <InputText class="form-control"
+                                                                           @bind-Value="exp.CompanyName"
+                                                                           placeholder="Company Name" />
+                                                            </div>
+
+                                                            <div class="col-12 col-md-3">
+                                                                <label class="form-label">Role</label>
+                                                                <InputText class="form-control"
+                                                                           @bind-Value="exp.JobTitle"
+                                                                           placeholder="Role / Designation" />
+                                                            </div>
+
+                                                            <div class="col-6 col-md-2">
+                                                                <label class="form-label">From</label>
+                                                                <InputDate class="form-control"
+                                                                           @bind-Value="exp.FromDate" />
+                                                            </div>
+
+                                                            <div class="col-6 col-md-2">
+                                                                <label class="form-label">To</label>
+                                                                <InputDate class="form-control"
+                                                                           @bind-Value="exp.ToDate" />
+                                                            </div>
+
+                                                            <div class="col-1 mt-2 d-flex align-items-end">
+                                                                <button type="button"
+                                                                        class="btn btn-outline-danger btn-sm"
+                                                                        @onclick="() => RemoveWorkExperience(exp)">
+                                                                    <i class="ti ti-trash"></i>
+                                                                </button>
+                                                            </div>
+
+                                                        </div>
+
+                                                    </div>
+                                                </div>
+                                            }
+                                        }
+                                        else
+                                        {
+                                            <div class="border rounded p-4 text-center text-muted mb-3"
+                                                 style="min-height:120px; display:flex; align-items:center; justify-content:center;">
+                                                <div>
+                                                    <i class="ti ti-history text-secondary" style="font-size:22px;"></i>
+                                                    <div class="mt-2">No Work Experience Added</div>
+                                                </div>
+                                            </div>
+                                        }
+
+                                    </div>
+
+                                </div>
+                            }
+
+                            <!-- WIZARD FOOTER -->
+                            <div class="d-flex gap-2 wizard-footer mb-4" style="justify-content: end;">
+                                @if (CurrentStep != 1)
+                                {
+                                    <button type="button" class="btn Back" @onclick="Back" disabled="@(CurrentStep == 1)"><i class="ti ti-chevron-left"></i> Previous</button>
+                                }
+                                @if (CurrentStep < Steps.Count)
+                                {
+                                    <button type="button" class="btn btn-primary" @onclick="Next">Next <i class="ti ti-chevron-right"></i></button>
+                                }
+                                else
+                                {
+                                    <button type="button" class="btn btn-primary" @onclick="Save"><i class="ti ti-device-floppy"></i> @(IsEdit ? "Update" : "Save")</button>
+
+                                }
+                            </div>
+
+
+                </div>
+                        @if (CurrentStep != 6)
+                        {
+                            <aside class="summary p-3 rounded d-none d-xl-flex"
+                                   style="height:auto;background:white;border:none;display:flex;padding-left:32px !important;padding-top:42px !important;">
+
+                                <div class="timeline-line1"></div>
+                                <div class="timeline-indicator1"></div>
+
+                                <div style="padding-left:15px;width:262px;">
+
+                                    <h3 class="text-primary mb-3" style="font-size:17px;">Live Summary</h3>
+
+                                    <div class="row">
+
+                                        @* STEP 1 — BASIC *@
+                                        @if (CurrentStep == 1)
+                                        {
+                                            <div class="col-md-12 mb-3"><span>Employee ID: </span><b>@Employee.EmployeeId</b></div>
+                                            <div class="col-md-12 mb-3"><span>Email: </span><b>@Employee.OfficialEmail</b></div>
+                                            <div class="col-md-12 mb-3"><span>First Name: </span><b>@Employee.FirstName</b></div>
+                                            <div class="col-md-12 mb-3"><span>Last Name: </span><b>@Employee.LastName</b></div>
+                                        }
+
+                                        @* STEP 2 — WORK *@
+                                        @if (CurrentStep == 2)
+                                        {
+                                            <div class="col-md-12 mb-3">
+                                                <span>Department: </span>
+                                                <b>@Departments.FirstOrDefault(d => d.Id == Employee.DepartmentId)?.Name</b>
+                                            </div>
+
+                                            <div class="col-md-12 mb-3">
+                                                <span>Designation: </span>
+                                                <b>@Designations.FirstOrDefault(d => d.Id == Employee.DesignationId)?.Name</b>
+                                            </div>
+
+                                            <div class="col-md-12 mb-3">
+                                                <span>Employment Type: </span>
+                                                <b>@Employee.EmploymentType</b>
+                                            </div>
+
+                                            <div class="col-md-12 mb-3">
+                                                <span>Date Of Joining: </span>
+                                                <b>@Employee.DateOfJoining?.ToString("dd MMM yyyy")</b>
+                                            </div>
+                                            <div class="col-md-12 mb-3">
+                                                <span>Expertise: </span>
+                                                <b class="ql-editor">
+                                                    @(new MarkupString(Employee?.Expertise ?? ""))
+                                                </b>
+                                            </div>
+                                        }
+
+                                        @* STEP 3 — PERSONAL *@
+                                        @if (CurrentStep == 3)
+                                        {
+                                            <div class="col-md-12 mb-3">
+                                                <span>Date Of Birth: </span>
+                                                <b>@Employee.DateOfBirth?.ToString("dd MMM yyyy")</b>
+                                            </div>
+
+                                            <div class="col-md-12 mb-3">
+                                                <span>Gender: </span>
+                                                <b>@Employee.Gender</b>
+                                            </div>
+
+                                            <div class="col-md-12 mb-3">
+                                                <span>Marital Status: </span>
+                                                <b>@Employee.MaritalStatus</b>
+                                            </div>
+
+                                            <div class="col-md-12 mb-3">
+                                                <span>About: </span>
+                                                <b class="ql-editor">
+                                                    @(new MarkupString(Employee?.AboutMe ?? ""))
+                                                </b>
+                                            </div>
+                                        }
+
+                                        @* STEP 4 — CONTACT *@
+                                        @if (CurrentStep == 4)
+                                        {
+                                        
+                                            <div class="col-md-12 mb-3">
+                                                <span>Address: </span>
+                                                <b>@Employee.PresentAddress?.AddressLine1</b>
+                                            </div>
+                                            <div class="col-md-12 mb-3">
+                                                <span>Mobile: </span>
+                                                <b>@Employee.PersonalMobileNumber</b>
+                                            </div>
+
+                                            <div class="col-md-12 mb-3">
+                                                <span>Personal Email: </span>
+                                                <b>@Employee.PersonalEmail</b>
+                                            </div>
+                                        }
+
+                                        @* STEP 5 — IDENTITY *@
+                                        @if (CurrentStep == 5)
+                                        {
+                                            <div class="col-md-12 mb-3">
+                                                <span>PAN: </span>
+                                                <b>@Employee.PAN</b>
+                                            </div>
+
+                                            <div class="col-md-12 mb-3">
+                                                <span>Aadhaar: </span>
+                                                <b>@Employee.Aadhaar</b>
+                                            </div>
+
+                                            <div class="col-md-12 mb-3">
+                                                <span>UAN: </span>
+                                                <b>@Employee.UAN</b>
+                                            </div>
+                                        }
+
+
+                                    </div>
+
+                                </div>
+
+                            </aside>
+                        }
+
+            </div>
+            </div>
+        </EditForm>
+        </div>
+    </div>
+}

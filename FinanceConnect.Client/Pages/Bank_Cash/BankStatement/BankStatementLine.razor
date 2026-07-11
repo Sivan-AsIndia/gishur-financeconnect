@@ -1,0 +1,267 @@
+﻿@page "/bank-statements/{StatementId:guid}/lines"
+@using FinanceConnect.Client.ViewModels
+
+<style>
+    /* ===== BANK STATEMENT LINE GRID ===== */
+    .stmt-line-item {
+        background: #fff;
+        border: 1px solid #e9ecef;
+        border-radius: 10px;
+        margin-bottom: 12px;
+        padding: 16px;
+        transition: all 0.2s ease;
+    }
+
+    .stmt-line-item:hover {
+        border-color: #0d6efd;
+        box-shadow: 0 4px 12px rgba(13, 110, 253, 0.1);
+    }
+
+    .stmt-line-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 12px;
+        padding-bottom: 10px;
+        border-bottom: 1px solid #e9ecef;
+    }
+
+    .stmt-line-number {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+
+    .stmt-badge {
+        background: linear-gradient(135deg, #0d6efd 0%, #0a58ca 100%);
+        color: #fff;
+        font-weight: 700;
+        font-size: 12px;
+        padding: 4px 10px;
+        border-radius: 20px;
+        min-width: 36px;
+        text-align: center;
+    }
+
+    .stmt-amount {
+        font-size: 18px;
+        font-weight: 700;
+    }
+
+    .stmt-amount.debit {
+        color: #dc3545;
+    }
+
+    .stmt-amount.credit {
+        color: #198754;
+    }
+
+    /* Grid */
+    .stmt-fields-grid {
+        display: grid;
+        grid-template-columns: repeat(12, 1fr);
+        gap: 12px;
+    }
+
+    .stmt-field {
+        display: flex;
+        flex-direction: column;
+    }
+
+    .stmt-label {
+        font-size: 11px;
+        text-transform: uppercase;
+        color: #6c757d;
+        font-weight: 600;
+        margin-bottom: 4px;
+    }
+
+    .stmt-value {
+        font-size: 13px;
+        font-weight: 500;
+        padding: 8px 10px;
+        background: #f8f9fa;
+        border-radius: 6px;
+        border: 1px solid #dee2e6;
+        word-break: break-word;
+    }
+
+    .col-date { grid-column: span 2; }
+    .col-value { grid-column: span 2; }
+    .col-ref { grid-column: span 3; }
+    .col-narr { grid-column: span 5; }
+
+    /* Actions */
+    .stmt-actions {
+        display: flex;
+        justify-content: flex-end;
+        gap: 8px;
+        margin-top: 10px;
+        padding-top: 10px;
+        border-top: 1px solid #e9ecef;
+    }
+
+    .stmt-btn {
+        padding: 6px 12px;
+        border-radius: 6px;
+        font-size: 13px;
+    }
+
+    /* Badges */
+    .badge-unmatched { background: #6c757d; }
+    .badge-suggested { background: #0dcaf0; }
+    .badge-matched { background: #198754; }
+    .badge-locked { background: #212529; }
+    .badge-excluded { background: #dc3545; }
+
+    /* Responsive */
+    @@media (max-width: 768px) {
+        .stmt-fields-grid {
+            grid-template-columns: repeat(2, 1fr);
+        }
+        .col-date,
+        .col-value,
+        .col-ref,
+        .col-narr {
+            grid-column: span 2;
+        }
+    }
+</style>
+
+@if (!StatementLines.Any())
+{
+    <div class="empty-lines-state">
+        <i class="ti ti-database-off d-block"></i>
+        <div class="fw-semibold mb-1">No statement lines found</div>
+        <small>Import a bank statement to generate lines</small>
+    </div>
+}
+else
+{
+
+    @foreach (var line in StatementLines)
+    {
+        displayLineNo++;
+
+        var isDebit = line.Direction == StatementLineDirectionType.Debit;
+
+        <div class="stmt-line-item">
+
+            <!-- HEADER -->
+            <div class="stmt-line-header">
+                <div class="stmt-line-number">
+                    <span class="stmt-badge">#@displayLineNo</span>
+
+                    <span class="badge 
+                        @(line.ReconciliationStatus == ReconciliationStatusType.Unmatched ? "badge-unmatched" :
+                          line.ReconciliationStatus == ReconciliationStatusType.Suggested ? "badge-suggested" :
+                          line.ReconciliationStatus == ReconciliationStatusType.Matched ? "badge-matched" :
+                          line.ReconciliationStatus == ReconciliationStatusType.FinalizedLocked ? "badge-locked" :
+                          "badge-excluded")">
+                        @line.ReconciliationStatus
+                    </span>
+                </div>
+
+                <div class="stmt-amount @(isDebit ? "debit" : "credit")">
+                    @(isDebit ? "-" : "+") ₹@line.Amount.ToString("N2")
+                </div>
+            </div>
+
+            <!-- FIELDS GRID -->
+            <div class="stmt-fields-grid">
+
+                <div class="stmt-field col-date">
+                    <span class="stmt-label">Txn Date</span>
+                    <div class="stmt-value">
+                        @line.TransactionDate.ToString("dd MMM yyyy")
+                    </div>
+                </div>
+
+                <div class="stmt-field col-date">
+                    <span class="stmt-label">Value Date</span>
+                    <div class="stmt-value">
+                        @(line.ValueDate?.ToString("dd MMM yyyy") ?? "-")
+                    </div>
+                </div>
+
+                <div class="stmt-field col-value">
+                    <span class="stmt-label">Debit</span>
+                    <div class="stmt-value text-danger">
+                        @(line.DebitAmount > 0 ? $"₹{line.DebitAmount:N2}" : "-")
+                    </div>
+                </div>
+
+                <div class="stmt-field col-value">
+                    <span class="stmt-label">Credit</span>
+                    <div class="stmt-value text-success">
+                        @(line.CreditAmount > 0 ? $"₹{line.CreditAmount:N2}" : "-")
+                    </div>
+                </div>
+
+                <div class="stmt-field col-ref">
+                    <span class="stmt-label">Reference</span>
+                    <div class="stmt-value">
+                        @(string.IsNullOrWhiteSpace(line.ReferenceText) ? "-" : line.ReferenceText)
+                    </div>
+                </div>
+
+                <div class="stmt-field col-narr">
+                    <span class="stmt-label">Narration</span>
+                    <div class="stmt-value">
+                        @(string.IsNullOrWhiteSpace(line.NarrationRaw) ? "-" : line.NarrationRaw)
+                    </div>
+                </div>
+
+                <div class="stmt-field col-value">
+                    <span class="stmt-label">Running Balance</span>
+                    <div class="stmt-value">
+                        @(line.RunningBalance?.ToString("N2") ?? "-")
+                    </div>
+                </div>
+
+                <div class="stmt-field col-value">
+                    <span class="stmt-label">UTR / Cheque</span>
+                    <div class="stmt-value">
+                        @(line.UTRNumberExtracted ?? line.ChequeNumberExtracted ?? "-")
+                    </div>
+                </div>
+
+                <div class="stmt-field col-value">
+                    <span class="stmt-label">Match Txn</span>
+                    <div class="stmt-value">
+                        @(line.MatchedBankTransactionId?.ToString() ?? "-")
+                    </div>
+                </div>
+            </div>
+
+            <!-- ACTIONS (Only in Reconciliation Mode) -->
+            @if (ShowReconciliationActions)
+            {
+                <div class="stmt-actions">
+
+                    @if (line.ReconciliationStatus == ReconciliationStatusType.Unmatched ||
+                         line.ReconciliationStatus == ReconciliationStatusType.Suggested)
+                    {
+                        <button class="btn btn-sm btn-outline-success stmt-btn"
+                                @onclick="() => MatchLine(line)">
+                            <i class="ti ti-link me-1"></i> Match
+                        </button>
+                    }
+
+                    @if (line.ReconciliationStatus != ReconciliationStatusType.FinalizedLocked)
+                    {
+                        <button class="btn btn-sm btn-outline-danger stmt-btn"
+                                @onclick="() => ExcludeLine(line)">
+                            <i class="ti ti-ban me-1"></i> Exclude
+                        </button>
+                    }
+
+                    <button class="btn btn-sm btn-outline-secondary stmt-btn"
+                            @onclick="() => OpenLineDetails(line)">
+                        <i class="ti ti-eye me-1"></i> Details
+                    </button>
+                </div>
+            }
+        </div>
+    }
+}

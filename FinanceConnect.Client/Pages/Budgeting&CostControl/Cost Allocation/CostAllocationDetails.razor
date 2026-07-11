@@ -1,0 +1,849 @@
+﻿@page "/cost-allocations/{Id:guid}/view"
+@using FinanceConnect.Client.ViewModels
+@using static FinanceConnect.Client.ViewModels.CostAllocationViewModel
+
+<style>
+    /* ── Status badges ─────────────────────────────────────────────── */
+    .fc-status-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        font-size: 12px;
+        font-weight: 600;
+    }
+
+    .fc-badge-dot {
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        background: currentColor;
+    }
+
+    .fc-status-draft {
+        background-color: #f3f4f6;
+        color: #6b7280;
+    }
+
+    .fc-status-active {
+        background-color: #e6f7ee;
+        color: #16a34a;
+    }
+
+    .fc-status-pending {
+        background-color: #fff7e6;
+        color: #d97706;
+    }
+
+    .fc-status-cancelled {
+        background-color: #ffeaea;
+        color: #dc2626;
+    }
+
+    /* ── Allocation Line List (compact horizontal rows) ─────────────── */
+
+    .alloc-line-list {
+        border: 1px solid #e5e7eb;
+        border-radius: 10px;
+        overflow: hidden;
+        margin-bottom: 16px;
+    }
+
+    /* 7-column grid: # | Cost Center | Basis | % | Amount | Override | Status */
+    .alloc-line-list-header,
+    .alloc-line-row {
+        display: grid;
+        grid-template-columns: 36px 1fr 169px 302px 236px 189px 90px;
+        align-items: center;
+        gap: 8px;
+        padding: 9px 14px;
+    }
+
+    .alloc-line-list-header {
+        background: #f8fafc;
+        border-bottom: 1px solid #e5e7eb;
+    }
+
+    .alloc-col-label {
+        font-size: 10px;
+        font-weight: 700;
+        color: #9ca3af;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+    }
+
+        .alloc-col-label.r {
+            text-align: right;
+        }
+
+    .alloc-line-row {
+        border-bottom: 1px solid #f1f5f9;
+        transition: background 0.1s;
+    }
+
+        .alloc-line-row:last-child {
+            border-bottom: none;
+        }
+
+        .alloc-line-row:hover {
+            background: #f8fafc;
+        }
+
+    .alloc-line-num {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 24px;
+        height: 24px;
+        border-radius: 50%;
+        background: #f1f5f9;
+        color: #475569;
+        font-size: 11px;
+        font-weight: 700;
+        flex-shrink: 0;
+    }
+
+    .alloc-row-cc {
+        display: flex;
+        align-items: center;
+        gap: 7px;
+        min-width: 0;
+    }
+
+        .alloc-row-cc i {
+            color: #6366f1;
+            font-size: 14px;
+            flex-shrink: 0;
+        }
+
+        .alloc-row-cc span {
+            font-size: 13px;
+            font-weight: 600;
+            color: #111827;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+    .alloc-row-val {
+        font-size: 13px;
+        color: #374151;
+        text-align: right;
+    }
+
+        .alloc-row-val.pct {
+            color: #6366f1;
+            font-weight: 600;
+        }
+
+        .alloc-row-val.amt {
+            color: #0f172a;
+            font-weight: 700;
+        }
+
+    .alloc-row-override {
+        text-align: center;
+    }
+
+    /* Totals footer */
+    .alloc-line-totals {
+        border-top: 1.5px dashed #e5e7eb;
+        padding-top: 12px;
+        margin-top: 4px;
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+    }
+
+    .alloc-total-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        font-size: 13px;
+        padding: 6px 12px;
+        border-radius: 6px;
+    }
+
+        .alloc-total-row.total-allocated {
+            background: #f0f9ff;
+            color: #0369a1;
+            font-weight: 700;
+        }
+
+        .alloc-total-row.total-unallocated {
+            background: #fef2f2;
+            color: #dc2626;
+            font-weight: 600;
+        }
+</style>
+
+@if (Item == null)
+{
+    <div class="content fc-empty-state">
+        <div class="fc-empty-icon"><i class="ti ti-file-off"></i></div>
+        <h4>Allocation Not Found</h4>
+        <p>The requested cost allocation could not be located.</p>
+        <a href="/cost-allocations" class="fc-btn fc-btn-secondary">
+            <i class="ti ti-arrow-left"></i> Back to Allocations
+        </a>
+    </div>
+}
+else
+{
+    <div class="content mb-4">
+
+        <!-- ── BREADCRUMB + HEADER ────────────────────────────────────── -->
+        <div class="fc-page-header">
+            <div class="fc-breadcrumb">
+                <a href="/cost-allocations" class="fc-breadcrumb-link">
+                    <i class="ti ti-layout-list"></i> Cost Allocations
+                </a>
+                <span class="fc-breadcrumb-sep"><i class="ti ti-chevron-right"></i></span>
+                <span class="fc-breadcrumb-current">Allocation Details</span>
+            </div>
+            <div class="d-flex gap-2 page-btn">
+                @if (!Item.IsLocked && Item.AllocationStatus == AllocationStatus.Draft)
+                {
+                    <a href="/cost-allocations/edit/@Item.CostAllocationId" class="btn btn-primary">
+                        <i class="ti ti-edit"></i> Edit
+                    </a>
+                }
+                <a href="/cost-allocations" class="btn btn-outline-secondary">
+                    <i class="ti ti-arrow-left"></i> Back
+                </a>
+            </div>
+        </div>
+
+        <!-- ── HERO BANNER ───────────────────────────────────────────── -->
+        <div class="fc-hero">
+            <div class="fc-hero-accent"></div>
+            <div class="fc-hero-body">
+                <div class="fc-hero-icon-wrap">
+                    <div class="fc-hero-icon">
+                        <i class="ti ti-chart-pie-2"></i>
+                    </div>
+                </div>
+                <div class="fc-hero-info">
+                    <div class="fc-hero-title-row">
+                        <h2 class="fc-hero-title">@Item.AllocationCode</h2>
+                        @if (Item.IsLocked)
+                        {
+                            <span class="badge bg-warning-transparent ms-2" style="font-size:11px;">
+                                <i class="ti ti-lock me-1"></i>Locked
+                            </span>
+                        }
+                    </div>
+                    <div class="fc-hero-meta">
+                        <span class="fc-meta-item">
+                            <i class="ti ti-tag"></i>
+                            @Item.AllocationName
+                        </span>
+                        <span class="fc-meta-divider"></span>
+                        <span class="fc-meta-item">
+                            <i class="ti ti-calendar"></i>
+                            @Item.AllocationDate.ToString("dd MMM yyyy")
+                        </span>
+                        <span class="fc-meta-divider"></span>
+                        <span class="fc-meta-item">
+                            <i class="ti ti-adjustments"></i>
+                            @Item.AllocationMethod
+                        </span>
+                    </div>
+                    <div class="mt-2 d-flex gap-2 flex-wrap">
+                        <span class="badge @GetStatusBadge(Item.AllocationStatus)">
+                            @Item.AllocationStatus
+                        </span>
+                        <span class="badge bg-info-transparent">@Item.AllocationType</span>
+                        <span class="badge bg-secondary-transparent text-secondary">@Item.ScopeType</span>
+                        @if (Item.IsFullyAllocated)
+                        {
+                            <span class="badge bg-success-transparent">&#10003; Fully Allocated</span>
+                        }
+                        else
+                        {
+                            <span class="badge bg-warning-transparent">&#9888; Partial</span>
+                        }
+                        @if (Item.IsLocked)
+                        {
+                            <span class="badge bg-danger-transparent">&#128274; Locked</span>
+                        }
+                    </div>
+                </div>
+                <div class="fc-hero-amount">
+                    <div class="fc-amount-label">Source Amount</div>
+                    <div class="fc-amount-value">@Item.SourceAmount.ToString("N0")</div>
+                    <div class="fc-amount-sub">@Item.SourceAmountType</div>
+                </div>
+            </div>
+        </div>
+        <style>
+            /* Core Identity — 2-column split */
+            .ci-two-col {
+                gap: 15px;
+                display: grid;
+                grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            }
+
+            .ci-col-left {
+                padding-right: 24px;
+            }
+
+            .ci-col-right {
+                padding-left: 24px;
+                border-left: 1px solid #f1f5f9;
+            }
+
+            .ci-group {
+                margin-bottom: 20px;
+            }
+
+                .ci-group:last-child {
+                    margin-bottom: 0;
+                }
+
+            .ci-group-label {
+                font-size: 10px;
+                font-weight: 700;
+                color: #9ca3af;
+                text-transform: uppercase;
+                letter-spacing: 0.06em;
+                margin-bottom: 10px;
+                padding-bottom: 6px;
+                border-bottom: 1px dashed #f1f5f9;
+            }
+
+            /* Mobile: single column */
+            @@media (max-width: 768px) {
+                .ci-two-col {
+                    grid-template-columns: 1fr;
+                }
+
+                .ci-col-left {
+                    padding-right: 0;
+                    border-bottom: 1px solid #f1f5f9;
+                    padding-bottom: 20px;
+                    margin-bottom: 20px;
+                }
+
+                .ci-col-right {
+                    padding-left: 0;
+                    border-left: none;
+                }
+            }
+        </style>
+        <!-- ── MAIN GRID ─────────────────────────────────────────────── -->
+        <div class="fc-grid">
+
+            <!-- LEFT COLUMN ─────────────────────────────────────────── -->
+            <div class="fc-col-main">
+
+                <!-- CORE IDENTITY -->
+                <div class="fc-card">
+                    <div class="fc-card-header">
+                        <span class="fc-card-header-icon text-primary bg-primary-transparent">
+                            <i class="ti ti-id"></i>
+                        </span>
+                        <h3 class="text-primary">Core Identity</h3>
+                    </div>
+
+                    <div class="fc-card-body">
+                        <div class="ci-two-col">
+
+                            <!-- LEFT COLUMN -->
+                            <div class="ci-col-left">
+
+                                <!-- Group: Identification -->
+                                <div class="ci-group">
+                                    <div class="ci-group-label">Identification</div>
+                                    <div class="row g-3">
+                                        <div class="col-12 col-sm-5">
+                                            <div class="fc-field">
+                                                <label>Allocation Code</label>
+                                                <div class="fc-field-value fc-mono fw-bold">@Item.AllocationCode</div>
+                                            </div>
+                                        </div>
+                                        <div class="col-12 col-sm-7">
+                                            <div class="fc-field">
+                                                <label>Allocation Name</label>
+                                                <div class="fc-field-value">@Item.AllocationName</div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Group: Dates -->
+                                <div class="ci-group">
+                                    <div class="ci-group-label">Dates</div>
+                                    <div class="row g-3">
+                                        <div class="col-6">
+                                            <div class="fc-field">
+                                                <label>Allocation Date</label>
+                                                <div class="fc-field-value">@Item.AllocationDate.ToString("dd MMM yyyy")</div>
+                                            </div>
+                                        </div>
+                                        <div class="col-6">
+                                            <div class="fc-field">
+                                                <label>Effective Date</label>
+                                                <div class="fc-field-value">@Item.EffectiveDate.ToString("dd MMM yyyy")</div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Group: Classification -->
+                                <div class="ci-group">
+                                    <div class="ci-group-label">Classification</div>
+                                    <div class="row g-3">
+                                        <div class="col-6">
+                                            <div class="fc-field">
+                                                <label>Allocation Type</label>
+                                                <div class="fc-field-value d-flex flex-column align-items-start">
+                                                    <span class="badge bg-info-transparent">@Item.AllocationType</span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="col-6">
+                                            <div class="fc-field">
+                                                <label>Scope Type</label>
+                                                <div class="fc-field-value d-flex flex-column align-items-start">
+                                                    <span class="badge bg-secondary-transparent text-secondary">@Item.ScopeType</span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                            </div>
+
+                            <!-- RIGHT COLUMN -->
+                            <div class="ci-col-right">
+
+                                <!-- Group: Source Details -->
+                                <div class="ci-group">
+                                    <div class="ci-group-label">Source Details</div>
+                                    <div class="row g-3">
+                                        <div class="col-12 col-sm-6">
+                                            <div class="fc-field">
+                                                <label>Source Amount Type</label>
+                                                <div class="fc-field-value">@Item.SourceAmountType</div>
+                                            </div>
+                                        </div>
+                                        <div class="col-12 col-sm-6">
+                                            <div class="fc-field">
+                                                <label>Rounding Rule</label>
+                                                <div class="fc-field-value">@Item.RoundingRule</div>
+                                            </div>
+                                        </div>
+
+                                        @if (!string.IsNullOrWhiteSpace(Item.SourceReferenceText))
+                                        {
+                                            <div class="col-12">
+                                                <div class="fc-field">
+                                                    <label>Source Reference</label>
+                                                    <div class="fc-field-value">@Item.SourceReferenceText</div>
+                                                </div>
+                                            </div>
+                                        }
+
+                                        @if (!string.IsNullOrWhiteSpace(Item.SourceCostCenterName))
+                                        {
+                                            <div class="col-12">
+                                                <div class="fc-field">
+                                                    <label>Source Cost Center</label>
+                                                    <div class="fc-field-value">@Item.SourceCostCenterName</div>
+                                                </div>
+                                            </div>
+                                        }
+                                    </div>
+                                </div>
+
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <!-- ALLOCATION METHOD & DRIVER -->
+                <div class="fc-card">
+                    <div class="fc-card-header">
+                        <span class="fc-card-header-icon text-primary bg-primary-transparent">
+                            <i class="ti ti-adjustments"></i>
+                        </span>
+                        <h3 class="text-primary">Allocation Method & Driver</h3>
+                    </div>
+                    <div class="fc-card-body">
+                        <div class="fc-field-grid">
+                            <div class="fc-field flex-column d-flex justify-content-start align-items-start">
+                                <label>Method</label>
+                                <div class="fc-field-value">
+                                    <span class="badge bg-primary-transparent">@Item.AllocationMethod</span>
+                                </div>
+                            </div>
+                            <div class="fc-field">
+                                <label>Must Fully Allocate</label>
+                                <div class="fc-field-value flex-column d-flex justify-content-start align-items-start">
+                                    @if (Item.MustFullyAllocateSource)
+                                    {
+                                        <span class="badge bg-success-transparent">Yes</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="text-muted">No</span>
+                                    }
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+              
+                <!-- ASSUMPTIONS & NOTES -->
+                @if (!string.IsNullOrWhiteSpace(Item.AllocationAssumptionText) ||
+                            !string.IsNullOrWhiteSpace(Item.Notes))
+                {
+                    <div class="fc-card">
+                        <div class="fc-card-header">
+                            <span class="fc-card-header-icon text-primary bg-primary-transparent">
+                                <i class="ti ti-bulb"></i>
+                            </span>
+                            <h3 class="text-primary">Assumptions & Notes</h3>
+                        </div>
+                        <div class="fc-card-body">
+                            <div class="fc-field-grid">
+                                @if (!string.IsNullOrWhiteSpace(Item.AllocationAssumptionText))
+                                {
+                                    <div class="fc-field" style="grid-column: 1 / -1;">
+                                        <label>Allocation Assumptions</label>
+                                        <div class="fc-field-value">@Item.AllocationAssumptionText</div>
+                                    </div>
+                                }
+                                @if (!string.IsNullOrWhiteSpace(Item.Notes))
+                                {
+                                    <div class="fc-field" style="grid-column: 1 / -1;">
+                                        <label>Notes</label>
+                                        <div class="fc-field-value">@Item.Notes</div>
+                                    </div>
+                                }
+                            </div>
+                        </div>
+                    </div>
+                }
+
+                <!-- WORKFLOW & GOVERNANCE -->
+                <div class="fc-card">
+                    <div class="fc-card-header">
+                        <span class="fc-card-header-icon text-primary bg-primary-transparent">
+                            <i class="ti ti-shield-check"></i>
+                        </span>
+                        <h3 class="text-primary">Workflow & Governance</h3>
+                    </div>
+                    <div class="fc-card-body">
+                        <div class="fc-field-grid">
+                            @if (Item.SubmittedOn.HasValue)
+                            {
+                                <div class="fc-field">
+                                    <label>Submitted On</label>
+                                    <div class="fc-field-value">
+                                        @Item.SubmittedOn.Value.ToString("dd MMM yyyy HH:mm")
+                                    </div>
+                                </div>
+                            }
+                            @if (Item.ApprovedOn.HasValue)
+                            {
+                                <div class="fc-field">
+                                    <label>Approved On</label>
+                                    <div class="fc-field-value">
+                                        @Item.ApprovedOn.Value.ToString("dd MMM yyyy HH:mm")
+                                    </div>
+                                </div>
+                            }
+                            @if (Item.LockedOn.HasValue)
+                            {
+                                <div class="fc-field">
+                                    <label>Locked On</label>
+                                    <div class="fc-field-value">
+                                        @Item.LockedOn.Value.ToString("dd MMM yyyy HH:mm")
+                                    </div>
+                                </div>
+                            }
+                            @if (!string.IsNullOrWhiteSpace(Item.ReversalReason))
+                            {
+                                <div class="fc-field" style="grid-column: 1 / -1;">
+                                    <label>Reversal Reason</label>
+                                    <div class="fc-field-value text-danger">@Item.ReversalReason</div>
+                                </div>
+                            }
+                            @if (Item.PreviousAllocationId.HasValue)
+                            {
+                                <div class="fc-field" style="grid-column: 1 / -1;">
+                                    <label>Previous Allocation Ref</label>
+                                    <div class="fc-field-value">
+                                        <a href="/cost-allocations/@Item.PreviousAllocationId.Value/view"
+                                           class="link-View">
+                                            @Item.PreviousAllocationId.Value.ToString().Substring(0, 8)&hellip;
+                                        </a>
+                                    </div>
+                                </div>
+                            }
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- RIGHT COLUMN ────────────────────────────────────────── -->
+            <div class="fc-col-side">
+
+                <!-- ALLOCATION SUMMARY -->
+                <div class="fc-card fc-amount-card">
+                    <div class="fc-card-header">
+                        <span class="fc-card-header-icon text-primary bg-primary-transparent">
+                            <i class="ti ti-list-check"></i>
+                        </span>
+                        <h3 class="text-primary">Allocation Summary</h3>
+                    </div>
+                    <div class="fc-card-body fc-no-padding">
+                        <div class="fc-amount-list">
+                            <div class="fc-amount-row">
+                                <span class="fc-amount-row-label">Source Amount</span>
+                                <span class="fc-amount-row-value fw-bold text-primary">
+                                    @Item.SourceAmount.ToString("N2")
+                                </span>
+                            </div>
+                            <div class="fc-amount-row">
+                                <span class="fc-amount-row-label">Total Allocated</span>
+                                <span class="fc-amount-row-value @(Item.IsFullyAllocated ? "text-success" : "text-warning")">
+                                    @Item.TotalAllocatedAmount.ToString("N2")
+                                </span>
+                            </div>
+                            <div class="fc-amount-row">
+                                <span class="fc-amount-row-label">Unallocated</span>
+                                <span class="fc-amount-row-value @(Item.UnallocatedAmount == 0 ? "text-success" : "text-danger")">
+                                    @Item.UnallocatedAmount.ToString("N2")
+                                </span>
+                            </div>
+                            <div class="fc-amount-row">
+                                <span class="fc-amount-row-label">Target Count</span>
+                                <span class="fc-amount-row-value">@Item.TotalTargetCount</span>
+                            </div>
+                            <div class="fc-amount-row">
+                                <span class="fc-amount-row-label">Source Type</span>
+                                <span class="fc-amount-row-value" style="font-size:11px;">
+                                    @Item.SourceAmountType
+                                </span>
+                            </div>
+                            <div class="fc-amount-row fc-amount-net">
+                                <span class="fc-amount-row-label">Attachments</span>
+                                <span class="fc-amount-row-value fc-amount-net-value">
+                                    @Item.AttachmentCount
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- HISTORY TIMELINE -->
+                <div class="fc-card">
+                    <div class="fc-card-header">
+                        <span class="fc-card-header-icon text-primary bg-primary-transparent">
+                            <i class="ti ti-history"></i>
+                        </span>
+                        <h3 class="text-primary">History</h3>
+                    </div>
+                    <div class="fc-card-body fc-no-padding">
+                        <div class="fc-timeline">
+                            <div class="fc-timeline-item fc-tl-created">
+                                <div class="fc-tl-dot"></div>
+                                <div class="fc-tl-content">
+                                    <div class="fc-tl-label">Created</div>
+                                    <div class="fc-tl-time">
+                                        @Item.CreatedAt.ToString("dd MMM yyyy HH:mm")
+                                    </div>
+                                </div>
+                            </div>
+                            @if (Item.SubmittedOn.HasValue)
+                            {
+                                <div class="fc-timeline-item fc-tl-updated">
+                                    <div class="fc-tl-dot"></div>
+                                    <div class="fc-tl-content">
+                                        <div class="fc-tl-label">Submitted</div>
+                                        <div class="fc-tl-time">
+                                            @Item.SubmittedOn.Value.ToString("dd MMM yyyy HH:mm")
+                                        </div>
+                                    </div>
+                                </div>
+                            }
+                            @if (Item.ApprovedOn.HasValue)
+                            {
+                                <div class="fc-timeline-item fc-tl-posted">
+                                    <div class="fc-tl-dot"></div>
+                                    <div class="fc-tl-content">
+                                        <div class="fc-tl-label">Approved</div>
+                                        <div class="fc-tl-time">
+                                            @Item.ApprovedOn.Value.ToString("dd MMM yyyy HH:mm")
+                                        </div>
+                                    </div>
+                                </div>
+                            }
+                        <div class="fc-timeline-item @(Item.AllocationStatus == AllocationStatus.Draft ? "fc-tl-updated" : "fc-tl-posted")">
+                            <div class="fc-tl-dot"></div>
+                            <div class="fc-tl-content">
+                                <div class="fc-tl-label">Status: @Item.AllocationStatus</div>
+                                <div class="fc-tl-time">
+                                    @(Item.IsFullyAllocated
+                                                                        ? "Fully allocated"
+                                                                        : "Partial — residual pending")
+                                    </div>
+                                </div>
+                            </div>
+                            @if (Item.IsLocked)
+                            {
+                                <div class="fc-timeline-item fc-tl-reversed">
+                                    <div class="fc-tl-dot"></div>
+                                    <div class="fc-tl-content">
+                                        <div class="fc-tl-label">Locked</div>
+                                        <div class="fc-tl-time fc-danger-text">
+                                            @(Item.LockedOn.HasValue
+                                                                                ? Item.LockedOn.Value.ToString("dd MMM yyyy HH:mm")
+                                                                                : "No further edits permitted")
+                                        </div>
+                                    </div>
+                                </div>
+                            }
+                            @if (!string.IsNullOrWhiteSpace(Item.ReversalReason))
+                            {
+                                <div class="fc-timeline-item fc-tl-cancelled">
+                                    <div class="fc-tl-dot"></div>
+                                    <div class="fc-tl-content">
+                                        <div class="fc-tl-label">Reversed</div>
+                                        <div class="fc-tl-time fc-warning-text">@Item.ReversalReason</div>
+                                    </div>
+                                </div>
+                            }
+                        </div>
+                    </div>
+                </div>
+
+                <!-- FULLY ALLOCATED NOTE -->
+                @if (Item.IsFullyAllocated)
+                {
+                    <div class="fc-card" style="border-color:#bbf7d0;">
+                        <div class="fc-card-body" style="background:#f0fdf4;">
+                            <div class="d-flex gap-2 align-items-start">
+                                <i class="ti ti-circle-check text-success mt-1"></i>
+                                <div style="font-size:11px;color:#15803d;">
+                                    <div class="fw-bold mb-1">Fully Allocated</div>
+                                    Source amount is 100% distributed across all target cost centers.
+                                    No residual remaining.
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                }
+
+            </div>
+        </div>
+
+        <!-- ── TARGET ALLOCATION LINES — COMPACT LIST ─────────── -->
+        <div class="fc-card mt-3 ">
+            <div class="fc-card-header">
+                <span class="fc-card-header-icon text-primary bg-primary-transparent">
+                    <i class="ti ti-list-details"></i>
+                </span>
+                <h3 class="text-primary">Target Allocation Lines</h3>
+                <span class="fc-pill">@Item.TotalTargetCount line(s)</span>
+            </div>
+
+            @if (Item.Lines.Any())
+            {
+                <div class="fc-card-body">
+
+                    <div class="alloc-line-list">
+
+                        <!-- Column headers -->
+                        <div class="alloc-line-list-header">
+                            <span class="alloc-col-label">#</span>
+                            <span class="alloc-col-label">Cost Center</span>
+                            <span class="alloc-col-label r">Basis Value</span>
+                            <span class="alloc-col-label r">Alloc %</span>
+                            <span class="alloc-col-label r">Allocated Amt</span>
+                            <span class="alloc-col-label" style="text-align:center;">Override</span>
+                            <span class="alloc-col-label">Status</span>
+                        </div>
+
+                        <!-- Data rows -->
+                        @foreach (var line in Item.Lines.OrderBy(l => l.LineNumber))
+                        {
+                            <div class="alloc-line-row">
+
+                                <span class="alloc-line-num">@line.LineNumber</span>
+
+                                <div class="alloc-row-cc">
+                                    <i class="ti ti-building-bank"></i>
+                                    <span class="truncate-tip text-truncate"
+                                          data-bs-placement="top"
+                                          title="@line.TargetCostCenterName">
+                                        @line.TargetCostCenterName
+                                    </span>
+                                </div>
+
+                                <span class="alloc-row-val">
+                                    @(line.BasisValue.HasValue? line.BasisValue.Value.ToString("N0") : "–")
+                                </span>
+
+                                <span class="alloc-row-val pct">
+                                    @(line.AllocationPercent.HasValue? line.AllocationPercent.Value.ToString("N2") + "%" : "–")
+                                </span>
+
+                                <span class="alloc-row-val amt">
+                                    @line.AllocatedAmount.ToString("N2")
+                                </span>
+
+                                <div class="alloc-row-override">
+                                    @if (line.ManualOverrideFlag)
+                                    {
+                                        <span class="badge bg-warning-transparent"
+                                              title="@line.ManualOverrideReason">
+                                            <i class="ti ti-pencil-exclamation me-1"></i>Override
+                                        </span>
+                                    }
+                                </div>
+
+                                <span class="badge @GetLineStatusBadge(line.AllocationLineStatus)">
+                                    @line.AllocationLineStatus
+                                </span>
+
+                            </div>
+                        }
+                    </div>
+
+                    <!-- Totals footer -->
+                    <div class="alloc-line-totals">
+                        <div class="alloc-total-row total-allocated">
+                            <span>Total Allocated</span>
+                            <span>@Item.TotalAllocatedAmount.ToString("N2")</span>
+                        </div>
+                        @if (Item.UnallocatedAmount != 0)
+                        {
+                            <div class="alloc-total-row total-unallocated">
+                                <span>Unallocated Residual</span>
+                                <span>@Item.UnallocatedAmount.ToString("N2")</span>
+                            </div>
+                        }
+                    </div>
+
+                </div>
+            }
+            else
+            {
+                <div class="fc-card-body">
+                    <div class="fc-advance-notice">
+                        <div class="fc-advance-icon"><i class="ti ti-circle-off"></i></div>
+                        <div>
+                            <div class="fc-advance-title">No Target Lines Defined</div>
+                            <div class="fc-advance-sub">Open Edit to add target allocation lines.</div>
+                        </div>
+                    </div>
+                </div>
+            }
+        </div>
+
+    </div>
+}

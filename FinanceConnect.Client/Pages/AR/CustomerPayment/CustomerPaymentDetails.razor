@@ -1,0 +1,690 @@
+@page "/customer-payments/{Id:guid}/view"
+@using FinanceConnect.Client.ViewModels
+@using FinanceConnect.Client.Services
+
+<PageTitle>Payment Details - FinanceConnect</PageTitle>
+
+@if (!isInitialized)
+{
+    <div class="fc-loading-overlay">
+        <div class="fc-spinner">
+            <div class="fc-spinner-ring"></div>
+            <span class="fc-spinner-label">Loading payment...</span>
+        </div>
+    </div>
+}
+else if (Payment == null)
+{
+    <div class="content fc-empty-state">
+        <div class="fc-empty-icon">
+            <i class="ti ti-file-off"></i>
+        </div>
+        <h4>Payment Not Found</h4>
+        <p>The requested payment record could not be located.</p>
+        <a href="/customer-payments" class="fc-btn fc-btn-secondary">
+            <i class="ti ti-arrow-left"></i> Back to Payments
+        </a>
+    </div>
+}
+else
+{
+    <div class="content mb-4">
+
+        <!-- BREADCRUMB + HEADER -->
+        <div class="fc-page-header">
+            <div class="fc-breadcrumb">
+                <a href="/customer-payments" class="fc-breadcrumb-link">
+                    <i class="ti ti-layout-list"></i> Customer Payment
+                </a>
+                <span class="fc-breadcrumb-sep"><i class="ti ti-chevron-right"></i></span>
+                <span class="fc-breadcrumb-current">Payment Details</span>
+            </div>
+            <div class="d-flex gap-2 page-btn">
+                @if (Payment.CanEdit)
+                {
+                    <a href="/customer-payments/@Payment.Id" class="btn btn-primary">
+                        <i class="ti ti-edit me-1"></i> Edit
+                    </a>
+                }
+                <a @onclick="PrintPage" class="btn bg-primary text-white">
+                    <i class="bi bi-printer me-1"></i> Print
+                </a>
+                <a href="/customer-payments" class="btn btn-outline-secondary">
+                    <i class="ti ti-arrow-left me-1"></i> Back
+                </a>
+            </div>
+        </div>
+
+        <!-- HERO BANNER -->
+        <div class="fc-hero">
+            <div class="fc-hero-accent"></div>
+            <div class="fc-hero-body">
+                <div class="fc-hero-icon-wrap">
+                    <div class="fc-hero-icon">
+                        <i class="ti ti-receipt"></i>
+                    </div>
+                </div>
+                <div class="fc-hero-info">
+                    <div class="fc-hero-title-row">
+                        <h2 class="fc-hero-title">@Payment.ReceiptNumber</h2>
+                        <span class="fc-status-badge @GetStatusBadgeClass(Payment.PaymentStatus)">
+                            <span class="fc-badge-dot"></span>
+                            @PaymentStatuses.GetDisplayName(Payment.PaymentStatus)
+                        </span>
+                        <span class="fc-method-chip @GetMethodChipClass(Payment.PaymentMethod)"
+                              data-bs-toggle="tooltip" data-bs-placement="top"
+                              title="@PaymentMethods.GetDisplayName(Payment.PaymentMethod)">
+                            <i class="@GetMethodIcon(Payment.PaymentMethod) me-1"></i>@PaymentMethods.GetDisplayName(Payment.PaymentMethod)
+                        </span>
+                        @if (Payment.IsSystemGenerated)
+                        {
+                            <span class="fc-status-badge" style="background:#1e293b15;color:#1e293b;">
+                                <i class="ti ti-robot me-1"></i>System Generated
+                            </span>
+                        }
+                        @if (Payment.IsReconciled)
+                        {
+                            <span class="fc-status-badge" style="background:#0891b215;color:#0891b2;">
+                                <i class="ti ti-circle-check me-1"></i>Reconciled
+                            </span>
+                        }
+                        @if (Payment.HasAttachments)
+                        {
+                            <span class="fc-status-badge" style="background:#64748b15;color:#64748b;">
+                                <i class="ti ti-paperclip me-1"></i>@Payment.AttachmentCount Attachment(s)
+                            </span>
+                        }
+                    </div>
+                    <div class="fc-hero-meta">
+                        <span class="fc-meta-item">
+                            <i class="ti ti-user"></i>
+                            @Payment.CustomerCode &mdash; @Payment.CustomerName
+                        </span>
+                        <span class="fc-meta-divider"></span>
+                        <span class="fc-meta-item">
+                            <i class="ti ti-calendar"></i>
+                            @Payment.ReceiptDate.ToString("dd MMM yyyy")
+                        </span>
+                        @if (!string.IsNullOrEmpty(Payment.InstrumentNumber))
+                        {
+                            <span class="fc-meta-divider"></span>
+                            <span class="fc-meta-item">
+                                <i class="ti ti-file-barcode"></i>
+                                Ref: @Payment.InstrumentNumber
+                            </span>
+                        }
+                    </div>
+                </div>
+                <div class="fc-hero-amount">
+                    <div class="fc-amount-label">Amount Received</div>
+                    <div class="fc-amount-value">@Payment.CurrencyCode @Payment.PaymentAmountTotal.ToString("N2")</div>
+                    <div class="fc-amount-sub">Allocated: @Payment.AllocatedAmountTotal.ToString("N2")</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- MAIN GRID -->
+        <div class="fc-grid">
+
+            <!-- LEFT COLUMN -->
+            <div class="fc-col-main">
+
+                <!-- CORE INFORMATION -->
+                <div class="fc-card">
+                    <div class="fc-card-header">
+                        <span class="fc-card-header-icon fc-icon-blue">
+                            <i class="ti ti-id"></i>
+                        </span>
+                        <h3>Core Information</h3>
+                    </div>
+                    <div class="fc-card-body">
+                        <div class="row g-4">
+                            <div class="col-md-3">
+                                <div class="fc-field">
+                                    <label>Receipt Number</label>
+                                    <div class="fc-field-value fc-mono">@Payment.ReceiptNumber</div>
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="fc-field">
+                                    <label>Receipt Date</label>
+                                    <div class="fc-field-value">@Payment.ReceiptDate.ToString("dd MMM yyyy")</div>
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="fc-field">
+                                    <label>Status</label>
+                                    <div class="fc-field-value">
+                                        <span class="fc-status-badge @GetStatusBadgeClass(Payment.PaymentStatus)">
+                                            <span class="fc-badge-dot"></span>
+                                            @PaymentStatuses.GetDisplayName(Payment.PaymentStatus)
+                                        </span>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="fc-field">
+                                    <label>Method</label>
+                                    <div class="fc-field-value">
+                                        <span class="fc-method-chip @GetMethodChipClass(Payment.PaymentMethod)"
+                                              data-bs-toggle="tooltip" data-bs-placement="top"
+                                              title="@PaymentMethods.GetDisplayName(Payment.PaymentMethod)">
+                                            <i class="@GetMethodIcon(Payment.PaymentMethod)"></i>
+                                        </span>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="fc-field">
+                                    <label>Branch</label>
+                                    <div class="fc-field-value">@Payment.BranchName</div>
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="fc-field">
+                                    <label>Currency</label>
+                                    <div class="fc-field-value">
+                                        <span class="fc-mono fw-bold">@Payment.CurrencyCode</span>
+                                        <div class="small text-muted">
+                                            @(Payment.ExchangeRate != 1
+                                                ? $"Rate: {Payment.ExchangeRate:N4}"
+                                                : Payment.CurrencyName)
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="fc-field">
+                                    <label>Deposit To</label>
+                                    <div class="fc-field-value">
+                                        <span class="fc-mono">@Payment.PaymentAccountCode</span>
+                                        <div class="small text-muted">@Payment.PaymentAccountName</div>
+                                    </div>
+                                </div>
+                            </div>
+                            @if (Payment.PostingDate.HasValue)
+                            {
+                                <div class="col-md-3">
+                                    <div class="fc-field">
+                                        <label>Posting Date</label>
+                                        <div class="fc-field-value">@Payment.PostingDate.Value.ToString("dd MMM yyyy")</div>
+                                    </div>
+                                </div>
+                            }
+                            @if (Payment.AttachmentCount > 0)
+                            {
+                                <div class="col-md-3">
+                                    <div class="fc-field">
+                                        <label>Attachments</label>
+                                        <div class="fc-field-value">
+                                            <i class="ti ti-paperclip me-1"></i>@Payment.AttachmentCount proof(s)
+                                        </div>
+                                    </div>
+                                </div>
+                            }
+                        </div>
+                    </div>
+                </div>
+
+                <!-- INSTRUMENT DETAILS -->
+                @if (Payment.PaymentMethod != PaymentMethods.Cash)
+                {
+                    <div class="fc-card">
+                        <div class="fc-card-header">
+                            <span class="fc-card-header-icon fc-icon-indigo"><i class="ti ti-file-barcode"></i></span>
+                            <h3>Instrument Details</h3>
+                        </div>
+                        <div class="fc-card-body">
+                            <div class="fc-field-grid">
+                                @if (!string.IsNullOrEmpty(Payment.InstrumentNumber))
+                                {
+                                    <div class="fc-field">
+                                        <label>@GetInstrumentLabel()</label>
+                                        <div class="fc-field-value fc-mono fc-highlight">@Payment.InstrumentNumber</div>
+                                    </div>
+                                }
+                                @if (Payment.InstrumentDate.HasValue)
+                                {
+                                    <div class="fc-field">
+                                        <label>Instrument Date</label>
+                                        <div class="fc-field-value">@Payment.InstrumentDate.Value.ToString("dd MMM yyyy")</div>
+                                    </div>
+                                }
+                                @if (!string.IsNullOrEmpty(Payment.BankName))
+                                {
+                                    <div class="fc-field">
+                                        <label>Bank Name</label>
+                                        <div class="fc-field-value">@Payment.BankName</div>
+                                    </div>
+                                }
+                                @if (!string.IsNullOrEmpty(Payment.BankAccountLast4))
+                                {
+                                    <div class="fc-field">
+                                        <label>Account (Last 4)</label>
+                                        <div class="fc-field-value fc-mono">****@Payment.BankAccountLast4</div>
+                                    </div>
+                                }
+                                @if (!string.IsNullOrEmpty(Payment.PayerName))
+                                {
+                                    <div class="fc-field">
+                                        <label>Payer Name</label>
+                                        <div class="fc-field-value">@Payment.PayerName</div>
+                                    </div>
+                                }
+                                @if (!string.IsNullOrEmpty(Payment.GatewayProvider))
+                                {
+                                    <div class="fc-field">
+                                        <label>Gateway Provider</label>
+                                        <div class="fc-field-value">
+                                            <span class="fc-tag fc-tag-neutral">@GatewayProviders.GetDisplayName(Payment.GatewayProvider)</span>
+                                        </div>
+                                    </div>
+                                }
+                                @if (!string.IsNullOrEmpty(Payment.GatewayTransactionId))
+                                {
+                                    <div class="fc-field">
+                                        <label>Gateway Transaction ID</label>
+                                        <div class="fc-field-value fc-mono fc-highlight">@Payment.GatewayTransactionId</div>
+                                    </div>
+                                }
+                            </div>
+                        </div>
+                    </div>
+                }
+
+                <!-- INVOICE ALLOCATIONS -->
+                @if (Payment.Allocations.Any())
+                {
+                    <div class="fc-card">
+                        <div class="fc-card-header">
+                            <span class="fc-card-header-icon fc-icon-emerald"><i class="ti ti-link"></i></span>
+                            <h3>Invoice Allocations</h3>
+                            <span class="fc-pill">@Payment.Allocations.Count invoice(s)</span>
+                        </div>
+                        <div class="fc-card-body fc-no-padding">
+                            <div class="fc-table-wrap">
+                                <table class="fc-table">
+                                    <thead class="bg-light">
+                                        <tr>
+                                            <th>#</th>
+                                            <th>Invoice Number</th>
+                                            <th>Invoice Date</th>
+                                            <th>Due Date</th>
+                                            <th class="fc-text-right">Outstanding</th>
+                                            <th class="fc-text-right">Allocated</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        @for (int i = 0; i < Payment.Allocations.Count; i++)
+                                        {
+                                            var alloc = Payment.Allocations[i];
+                                            <tr>
+                                                <td>@(i + 1)</td>
+                                                <td class="fc-mono fc-bold">@alloc.InvoiceNumber</td>
+                                                <td>@(alloc.InvoiceDate?.ToString("dd MMM yy") ?? "—")</td>
+                                                <td class="@(alloc.DueDate < DateTime.Today ? "fc-overdue" : "")">
+                                                    @(alloc.DueDate?.ToString("dd MMM yy") ?? "—")
+                                                    @if (alloc.DueDate.HasValue && alloc.DueDate < DateTime.Today)
+                                                    {
+                                                        <span class="fc-overdue-badge">Overdue</span>
+                                                    }
+                                                </td>
+                                                <td class="fc-text-right fc-mono">@alloc.InvoiceOutstanding.ToString("N2")</td>
+                                                <td class="fc-text-right fc-mono fc-allocated">@alloc.AllocatedAmount.ToString("N2")</td>
+                                            </tr>
+                                        }
+                                    </tbody>
+                                    <tfoot>
+                                        <tr>
+                                            <td colspan="5" class="fc-text-right fc-table-total-label">Total Allocated</td>
+                                            <td class="fc-text-right fc-mono fc-table-total">@Payment.AllocatedAmountTotal.ToString("N2")</td>
+                                        </tr>
+                                    </tfoot>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                }
+                else
+                {
+                    <div class="fc-card">
+                        <div class="fc-advance-notice">
+                            <div class="fc-advance-icon"><i class="ti ti-arrows-exchange"></i></div>
+                            <div>
+                                <div class="fc-advance-title">Advance Payment</div>
+                                <div class="fc-advance-sub">No invoice allocations — full amount recorded as advance from customer.</div>
+                            </div>
+                        </div>
+                    </div>
+                }
+
+                <!-- NARRATION -->
+                @if (!string.IsNullOrEmpty(Payment.PaymentNarration))
+                {
+                    <div class="fc-card">
+                        <div class="fc-card-header">
+                            <span class="fc-card-header-icon fc-icon-amber"><i class="ti ti-notes"></i></span>
+                            <h3>Narration</h3>
+                        </div>
+                        <div class="fc-card-body">
+                            <p class="fc-narration">@((MarkupString)Payment.PaymentNarration)</p>
+                        </div>
+                    </div>
+                }
+
+                <!-- REVERSAL INFO -->
+                @if (Payment.PaymentStatus == PaymentStatuses.Reversed)
+                {
+                    <div class="fc-card fc-card-danger">
+                        <div class="fc-card-header">
+                            <span class="fc-card-header-icon fc-icon-red"><i class="ti ti-arrow-back-up"></i></span>
+                            <h3>Reversal Information</h3>
+                        </div>
+                        <div class="fc-card-body">
+                            <div class="fc-field-grid">
+                                @if (!string.IsNullOrEmpty(Payment.ReversalReason))
+                                {
+                                    <div class="fc-field fc-field-span2">
+                                        <label>Reversal Reason</label>
+                                        <div class="fc-field-value fc-danger-text">@Payment.ReversalReason</div>
+                                    </div>
+                                }
+                                @if (!string.IsNullOrEmpty(Payment.ReversalReference))
+                                {
+                                    <div class="fc-field">
+                                        <label>Reversal Reference</label>
+                                        <div class="fc-field-value fc-mono">@Payment.ReversalReference</div>
+                                    </div>
+                                }
+                                @if (Payment.ReversedOn.HasValue)
+                                {
+                                    <div class="fc-field">
+                                        <label>Reversed On</label>
+                                        <div class="fc-field-value fc-danger-text">@Payment.ReversedOn.Value.ToString("dd MMM yyyy, HH:mm")</div>
+                                    </div>
+                                }
+                                @if (!string.IsNullOrEmpty(Payment.ReversedBy))
+                                {
+                                    <div class="fc-field">
+                                        <label>Reversed By</label>
+                                        <div class="fc-field-value">@Payment.ReversedBy</div>
+                                    </div>
+                                }
+                            </div>
+                        </div>
+                    </div>
+                }
+
+                <!-- CANCELLATION INFO -->
+                @if (Payment.PaymentStatus == PaymentStatuses.Cancelled)
+                {
+                    <div class="fc-card fc-card-warning">
+                        <div class="fc-card-header">
+                            <span class="fc-card-header-icon fc-icon-orange"><i class="ti ti-x"></i></span>
+                            <h3>Cancellation Information</h3>
+                        </div>
+                        <div class="fc-card-body">
+                            <div class="fc-field-grid">
+                                @if (!string.IsNullOrEmpty(Payment.CancellationReason))
+                                {
+                                    <div class="fc-field fc-field-span2">
+                                        <label>Cancellation Reason</label>
+                                        <div class="fc-field-value">@Payment.CancellationReason</div>
+                                    </div>
+                                }
+                                @if (Payment.CancelledOn.HasValue)
+                                {
+                                    <div class="fc-field">
+                                        <label>Cancelled On</label>
+                                        <div class="fc-field-value">@Payment.CancelledOn.Value.ToString("dd MMM yyyy, HH:mm")</div>
+                                    </div>
+                                }
+                                @if (!string.IsNullOrEmpty(Payment.CancelledBy))
+                                {
+                                    <div class="fc-field">
+                                        <label>Cancelled By</label>
+                                        <div class="fc-field-value">@Payment.CancelledBy</div>
+                                    </div>
+                                }
+                            </div>
+                        </div>
+                    </div>
+                }
+
+                <!-- POSTING CLASSIFICATION -->
+                @if (Payment.PaymentStatus == PaymentStatuses.Posted || Payment.PaymentStatus == PaymentStatuses.Reversed)
+                {
+                    <div class="fc-card">
+                        <div class="fc-card-header">
+                            <span class="fc-card-header-icon fc-icon-violet"><i class="ti ti-building-bank"></i></span>
+                            <h3>Posting Classification</h3>
+                        </div>
+                        <div class="fc-card-body">
+                            <div class="row g-4">
+                                @if (!string.IsNullOrEmpty(Payment.ReceivableAccountName))
+                                {
+                                    <div class="col-md-6">
+                                        <div class="fc-field">
+                                            <label>AR Receivable Account</label>
+                                            <div class="fc-field-value">
+                                                @if (!string.IsNullOrEmpty(Payment.ReceivableAccountCode))
+                                                {
+                                                    <span class="fc-mono">@Payment.ReceivableAccountCode</span>
+                                                }
+                                                <div class="small text-muted">@Payment.ReceivableAccountName</div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                }
+                                @if (!string.IsNullOrEmpty(Payment.AdvanceFromCustomerAccountName))
+                                {
+                                    <div class="col-md-6">
+                                        <div class="fc-field">
+                                            <label>Advance From Customer Account</label>
+                                            <div class="fc-field-value">
+                                                @if (!string.IsNullOrEmpty(Payment.AdvanceFromCustomerAccountCode))
+                                                {
+                                                    <span class="fc-mono">@Payment.AdvanceFromCustomerAccountCode</span>
+                                                }
+                                                <div class="small text-muted">@Payment.AdvanceFromCustomerAccountName</div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                }
+                                <div class="col-md-3">
+                                    <div class="fc-field">
+                                        <label>System Generated</label>
+                                        <div class="fc-field-value">
+                                            @if (Payment.IsSystemGenerated)
+                                            {
+                                                <span class="fc-status-badge" style="background:#1e293b15;color:#1e293b;"><i class="ti ti-check me-1"></i>Yes</span>
+                                            }
+                                            else
+                                            {
+                                                <span class="text-muted">No</span>
+                                            }
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-3">
+                                    <div class="fc-field">
+                                        <label>Reconciled</label>
+                                        <div class="fc-field-value">
+                                            @if (Payment.IsReconciled)
+                                            {
+                                                <span class="fc-status-badge" style="background:#0891b215;color:#0891b2;"><i class="ti ti-circle-check me-1"></i>Yes</span>
+                                            }
+                                            else
+                                            {
+                                                <span class="text-muted">No (Pending)</span>
+                                            }
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                }
+
+            </div>
+
+            <!-- RIGHT COLUMN -->
+            <div class="fc-col-side">
+
+                <!-- AMOUNT SUMMARY -->
+                <div class="fc-card fc-amount-card">
+                    <div class="fc-card-header">
+                        <span class="fc-card-header-icon fc-icon-blue"><i class="ti ti-calculator"></i></span>
+                        <h3>Amount Summary</h3>
+                    </div>
+                    <div class="fc-card-body fc-no-padding">
+                        <div class="fc-amount-list">
+                            <div class="fc-amount-row">
+                                <span class="fc-amount-row-label">Amount Received</span>
+                                <span class="fc-amount-row-value fc-amount-gross">
+                                    @Payment.CurrencyCode @Payment.PaymentAmountTotal.ToString("N2")
+                                </span>
+                            </div>
+                            <div class="fc-amount-row">
+                                <span class="fc-amount-row-label">Allocated to Invoices</span>
+                                <span class="fc-amount-row-value fc-amount-allocated">@Payment.AllocatedAmountTotal.ToString("N2")</span>
+                            </div>
+                            <div class="fc-amount-row">
+                                <span class="fc-amount-row-label">Unallocated</span>
+                                <span class="fc-amount-row-value">@Payment.UnallocatedAmountTotal.ToString("N2")</span>
+                            </div>
+                            <div class="fc-amount-row">
+                                <span class="fc-amount-row-label">Advance Payment</span>
+                                <span class="fc-amount-row-value fc-amount-advance">@Payment.AdvanceAmountTotal.ToString("N2")</span>
+                            </div>
+                            @if (Payment.ExchangeRate != 1)
+                            {
+                                <div class="fc-amount-row">
+                                    <span class="fc-amount-row-label">Exchange Rate</span>
+                                    <span class="fc-amount-row-value">@Payment.ExchangeRate.ToString("N6")</span>
+                                </div>
+                            }
+                        </div>
+                    </div>
+                </div>
+
+                <!-- HISTORY (renamed from Audit Trail) -->
+                <div class="fc-card">
+                    <div class="fc-card-header">
+                        <span class="fc-card-header-icon fc-icon-slate"><i class="ti ti-history"></i></span>
+                        <h3>History</h3>
+                    </div>
+                    <div class="fc-card-body fc-no-padding">
+                        <div class="fc-timeline">
+
+                            <div class="fc-timeline-item fc-tl-created">
+                                <div class="fc-tl-dot"></div>
+                                <div class="fc-tl-content">
+                                    <div class="fc-tl-label">Created</div>
+                                    <div class="fc-tl-time">@Payment.CreatedAt.ToString("dd MMM yyyy, HH:mm")</div>
+                                    @if (!string.IsNullOrEmpty(Payment.CreatedBy))
+                                    {
+                                        <div class="fc-tl-user"><i class="ti ti-user"></i> @Payment.CreatedBy</div>
+                                    }
+                                </div>
+                            </div>
+
+                            @if (Payment.UpdatedAt.HasValue)
+                            {
+                                <div class="fc-timeline-item fc-tl-updated">
+                                    <div class="fc-tl-dot"></div>
+                                    <div class="fc-tl-content">
+                                        <div class="fc-tl-label">Updated</div>
+                                        <div class="fc-tl-time">@Payment.UpdatedAt.Value.ToString("dd MMM yyyy, HH:mm")</div>
+                                        @if (!string.IsNullOrEmpty(Payment.UpdatedBy))
+                                        {
+                                            <div class="fc-tl-user"><i class="ti ti-user"></i> @Payment.UpdatedBy</div>
+                                        }
+                                    </div>
+                                </div>
+                            }
+
+                            @if (Payment.SubmittedOn.HasValue)
+                            {
+                                <div class="fc-timeline-item fc-tl-submitted">
+                                    <div class="fc-tl-dot"></div>
+                                    <div class="fc-tl-content">
+                                        <div class="fc-tl-label">Submitted</div>
+                                        <div class="fc-tl-time">@Payment.SubmittedOn.Value.ToString("dd MMM yyyy, HH:mm")</div>
+                                        @if (!string.IsNullOrEmpty(Payment.SubmittedBy))
+                                        {
+                                            <div class="fc-tl-user"><i class="ti ti-user"></i> @Payment.SubmittedBy</div>
+                                        }
+                                    </div>
+                                </div>
+                            }
+
+                            @if (Payment.ApprovedOn.HasValue)
+                            {
+                                <div class="fc-timeline-item fc-tl-approved">
+                                    <div class="fc-tl-dot"></div>
+                                    <div class="fc-tl-content">
+                                        <div class="fc-tl-label">Approved</div>
+                                        <div class="fc-tl-time">@Payment.ApprovedOn.Value.ToString("dd MMM yyyy, HH:mm")</div>
+                                        @if (!string.IsNullOrEmpty(Payment.ApprovedBy))
+                                        {
+                                            <div class="fc-tl-user"><i class="ti ti-user"></i> @Payment.ApprovedBy</div>
+                                        }
+                                    </div>
+                                </div>
+                            }
+
+                            @if (Payment.PostedOn.HasValue)
+                            {
+                                <div class="fc-timeline-item fc-tl-posted">
+                                    <div class="fc-tl-dot"></div>
+                                    <div class="fc-tl-content">
+                                        <div class="fc-tl-label">Posted</div>
+                                        <div class="fc-tl-time fc-success-text">@Payment.PostedOn.Value.ToString("dd MMM yyyy, HH:mm")</div>
+                                        @if (!string.IsNullOrEmpty(Payment.PostedBy))
+                                        {
+                                            <div class="fc-tl-user"><i class="ti ti-user"></i> @Payment.PostedBy</div>
+                                        }
+                                    </div>
+                                </div>
+                            }
+
+                            @if (Payment.ReversedOn.HasValue)
+                            {
+                                <div class="fc-timeline-item fc-tl-reversed">
+                                    <div class="fc-tl-dot"></div>
+                                    <div class="fc-tl-content">
+                                        <div class="fc-tl-label">Reversed</div>
+                                        <div class="fc-tl-time fc-danger-text">@Payment.ReversedOn.Value.ToString("dd MMM yyyy, HH:mm")</div>
+                                        @if (!string.IsNullOrEmpty(Payment.ReversedBy))
+                                        {
+                                            <div class="fc-tl-user"><i class="ti ti-user"></i> @Payment.ReversedBy</div>
+                                        }
+                                    </div>
+                                </div>
+                            }
+
+                            @if (Payment.CancelledOn.HasValue)
+                            {
+                                <div class="fc-timeline-item fc-tl-cancelled">
+                                    <div class="fc-tl-dot"></div>
+                                    <div class="fc-tl-content">
+                                        <div class="fc-tl-label">Cancelled</div>
+                                        <div class="fc-tl-time fc-warning-text">@Payment.CancelledOn.Value.ToString("dd MMM yyyy, HH:mm")</div>
+                                        @if (!string.IsNullOrEmpty(Payment.CancelledBy))
+                                        {
+                                            <div class="fc-tl-user"><i class="ti ti-user"></i> @Payment.CancelledBy</div>
+                                        }
+                                    </div>
+                                </div>
+                            }
+
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+
+    </div>
+}

@@ -1,0 +1,632 @@
+﻿@page "/401page"
+
+<style>
+    :root {
+        --primary-dark: color-mix(in srgb, var(--primary) 75%, black);
+        --primary-mid: color-mix(in srgb, var(--primary) 85%, white);
+        --primary-lite: color-mix(in srgb, var(--primary) 45%, white);
+        --primary-pale: color-mix(in srgb, var(--primary) 18%, white);
+        --primary-bg: color-mix(in srgb, var(--primary) 6%, white);
+        --pglow: color-mix(in srgb, var(--primary) 22%, transparent);
+        --pglow-strong: color-mix(in srgb, var(--primary) 40%, transparent);
+        --plight: color-mix(in srgb, var(--primary) 35%, white);
+        --border: color-mix(in srgb, var(--primary) 14%, transparent);
+        --bg: #ffffff;
+        --bg2: color-mix(in srgb, var(--primary) 5%, white);
+        --text-h: #1e1035;
+        --text-p: #7a7090;
+        --text-s: #b0a8c4;
+    }
+
+    .page-401 {
+        position: relative;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        height: 86vh;
+        justify-content: center;
+        overflow: hidden;
+        animation: pageIn401 .9s cubic-bezier(.16,1,.3,1) both;
+    }
+
+
+    @@keyframes pageIn401 {
+        from {
+            opacity: 0;
+            transform: translateY(24px);
+        }
+
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    /* ══ ILLUSTRATION WRAP ══ */
+    .illus-401 {
+        position: relative;
+        z-index: 1;
+        width: min(600px, 42vw);
+        animation: float401 5s ease-in-out infinite;
+    }
+
+    @@keyframes float401 {
+        0%, 100% {
+            transform: translateY(0);
+        }
+
+        50% {
+            transform: translateY(-12px);
+        }
+    }
+
+    /* ══ CONTENT ══ */
+    .content-401 {
+        position: relative;
+        z-index: 1;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        text-align: center;
+        max-width: 500px;
+        width: 100%;
+    }
+
+    .heading-401 {
+        font-size: clamp(1.8rem, 4vw, 2.5rem);
+        font-weight: 900;
+        color: var(--text-h);
+        letter-spacing: -.03em;
+        line-height: 1.15;
+        margin-bottom: .7rem;
+        animation: fadeUp401 .5s .18s both;
+    }
+
+        .heading-401 .accent {
+            color: var(--primary);
+        }
+
+    .desc-401 {
+        font-size: clamp(.88rem, 1.7vw, .98rem);
+        color: var(--text-p);
+        font-weight: 500;
+        line-height: 1.7;
+        margin-bottom: 1.6rem;
+        animation: fadeUp401 .5s .26s both;
+    }
+
+    .info-row-401 {
+        display: inline-flex;
+        align-items: center;
+        gap: .7rem;
+        background: var(--bg2);
+        border: 1px solid var(--border);
+        border-radius: 50px;
+        padding: .5rem 1.2rem .5rem .5rem;
+        margin-bottom: 2rem;
+        animation: fadeUp401 .5s .34s both;
+    }
+
+    .info-row-icon {
+        width: 32px;
+        height: 32px;
+        border-radius: 50%;
+        background: linear-gradient(135deg, var(--primary-lite), var(--primary));
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+        box-shadow: 0 3px 10px var(--pglow);
+    }
+
+        .info-row-icon svg {
+            width: 15px;
+            height: 15px;
+            stroke: #fff;
+            fill: none;
+            stroke-width: 2.2;
+            stroke-linecap: round;
+            stroke-linejoin: round;
+        }
+
+    .info-row-401 span {
+        font-size: .8rem;
+        font-weight: 700;
+        color: var(--text-h);
+    }
+
+    .actions-401 {
+        display: flex;
+        gap: .9rem;
+        justify-content: center;
+        flex-wrap: wrap;
+        animation: fadeUp401 .5s .42s both;
+    }
+
+    @@keyframes fadeUp401 {
+        from {
+            opacity: 0;
+            transform: translateY(14px);
+        }
+
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    /* ══ SVG ANIMATION CLASSES ══ */
+
+    /* shield pulse ring */
+    .shield-ring {
+        animation: shieldPulse 3s ease-out infinite;
+        transform-origin: 290px 148px;
+    }
+
+    @@keyframes shieldPulse {
+        0% {
+            opacity: .35;
+            transform: scale(1);
+        }
+
+        100% {
+            opacity: 0;
+            transform: scale(1.18);
+        }
+    }
+
+    /* lock shackle bounce */
+    .shackle-anim {
+        animation: shackleBounce 2.5s cubic-bezier(.36,.07,.19,.97) infinite;
+        transform-origin: 290px 162px;
+    }
+
+    @@keyframes shackleBounce {
+        0%, 100% {
+            transform: translateY(0);
+        }
+
+        10% {
+            transform: translateY(-5px);
+        }
+
+        20% {
+            transform: translateY(0);
+        }
+
+        30% {
+            transform: translateY(-3px);
+        }
+
+        40% {
+            transform: translateY(0);
+        }
+    }
+
+    /* keyhole glow pulse */
+    .keyhole-glow {
+        animation: keyholePulse 2s ease-in-out infinite;
+    }
+
+    @@keyframes keyholePulse {
+        0%, 100% {
+            opacity: .55;
+        }
+
+        50% {
+            opacity: 1;
+            filter: drop-shadow(0 0 5px var(--primary));
+        }
+    }
+
+    /* warning badge pop */
+    .warn-badge {
+        animation: warnPop .6s 1s cubic-bezier(.22,1,.36,1) both;
+        transform-origin: 420px 80px;
+    }
+
+    @@keyframes warnPop {
+        from {
+            opacity: 0;
+            transform: scale(.3) rotate(-12deg);
+        }
+
+        to {
+            opacity: 1;
+            transform: scale(1) rotate(0deg);
+        }
+    }
+
+    /* warning badge pulse */
+    .warn-pulse {
+        animation: warnRing 2s ease-out infinite 1.5s;
+        transform-origin: 420px 80px;
+    }
+
+    @@keyframes warnRing {
+        0% {
+            opacity: .4;
+            transform: scale(1);
+        }
+
+        100% {
+            opacity: 0;
+            transform: scale(1.6);
+        }
+    }
+
+    /* speech bubble pop */
+    .bubble-pop {
+        animation: bubPop .5s 1.2s cubic-bezier(.22,1,.36,1) both;
+        transform-origin: 148px 130px;
+    }
+
+    @@keyframes bubPop {
+        from {
+            opacity: 0;
+            transform: scale(.3);
+        }
+
+        to {
+            opacity: 1;
+            transform: scale(1);
+        }
+    }
+
+    /* person head bob */
+    .person-head {
+        animation: headBob 4s ease-in-out infinite;
+        transform-origin: 152px 218px;
+    }
+
+    @@keyframes headBob {
+        0%, 100% {
+            transform: rotate(0deg);
+        }
+
+        25% {
+            transform: rotate(-4deg);
+        }
+
+        75% {
+            transform: rotate(3deg);
+        }
+    }
+
+    /* floating dots */
+    .fdot1 {
+        animation: fdot 3.2s ease-in-out infinite 0s;
+    }
+
+    .fdot2 {
+        animation: fdot 3.8s ease-in-out infinite .6s;
+    }
+
+    .fdot3 {
+        animation: fdot 2.9s ease-in-out infinite 1.2s;
+    }
+
+    @@keyframes fdot {
+        0%, 100% {
+            transform: translateY(0);
+            opacity: .35;
+        }
+
+        50% {
+            transform: translateY(-10px);
+            opacity: .6;
+        }
+    }
+
+    /* arc dash crawl */
+    .arc-crawl {
+        stroke-dasharray: 6 8;
+        animation: arcCrawl 4s linear infinite;
+    }
+
+    @@keyframes arcCrawl {
+        from {
+            stroke-dashoffset: 0;
+        }
+
+        to {
+            stroke-dashoffset: -56;
+        }
+    }
+
+    /* shield top gloss shimmer */
+    .gloss-shimmer {
+        animation: glossShimmer 3s ease-in-out infinite;
+    }
+
+    @@keyframes glossShimmer {
+        0%, 100% {
+            opacity: .28;
+        }
+
+        50% {
+            opacity: .48;
+        }
+    }
+
+    /* exclamation mark blink */
+    .exclaim-blink {
+        animation: exclaimBlink 1.8s ease-in-out infinite;
+    }
+
+    @@keyframes exclaimBlink {
+        0%, 100% {
+            opacity: 1;
+        }
+
+        50% {
+            opacity: .4;
+        }
+    }
+</style>
+
+<div class="content page-401">
+
+        <!-- ══ ILLUSTRATION ══ -->
+        <svg class="illus-401" viewBox="0 0 580 300" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <defs>
+                <!-- faded 401 number gradient -->
+                <linearGradient id="numG" x1="0" y1="0" x2="0" y2="300" gradientUnits="userSpaceOnUse">
+                    <stop offset="0%" stop-color="var(--primary-lite)" stop-opacity=".18" />
+                    <stop offset="100%" stop-color="var(--primary-pale)" stop-opacity=".08" />
+                </linearGradient>
+                <!-- shield fill -->
+                <linearGradient id="shG" x1="248" y1="20" x2="340" y2="240" gradientUnits="userSpaceOnUse">
+                    <stop offset="0%" stop-color="var(--primary-mid)" />
+                    <stop offset="100%" stop-color="var(--primary)" />
+                </linearGradient>
+                <!-- shield inner dark -->
+                <linearGradient id="shInG" x1="248" y1="40" x2="330" y2="220" gradientUnits="userSpaceOnUse">
+                    <stop offset="0%" stop-color="var(--primary-dark)" />
+                    <stop offset="100%" stop-color="var(--primary)" />
+                </linearGradient>
+                <!-- lock body fill -->
+                <linearGradient id="lkG" x1="0" y1="0" x2="0" y2="1" gradientUnits="objectBoundingBox">
+                    <stop offset="0%" stop-color="var(--primary-pale)" />
+                    <stop offset="100%" stop-color="var(--primary-lite)" />
+                </linearGradient>
+                <!-- warning badge -->
+                <linearGradient id="warnG" x1="0" y1="0" x2="1" y2="1" gradientUnits="objectBoundingBox">
+                    <stop offset="0%" stop-color="var(--primary-mid)" />
+                    <stop offset="100%" stop-color="var(--primary)" />
+                </linearGradient>
+                <!-- person skin -->
+                <linearGradient id="skinG" x1="0" y1="0" x2="0" y2="1" gradientUnits="objectBoundingBox">
+                    <stop offset="0%" stop-color="#f5c4a0" />
+                    <stop offset="100%" stop-color="#eaad88" />
+                </linearGradient>
+                <!-- shadow filter -->
+                <filter id="shDrop" x="-25%" y="-20%" width="150%" height="160%">
+                    <feDropShadow dx="0" dy="10" stdDeviation="16" flood-color="var(--pglow-strong)" />
+                </filter>
+                <filter id="lkDrop" x="-30%" y="-25%" width="160%" height="160%">
+                    <feDropShadow dx="0" dy="5" stdDeviation="8" flood-color="var(--pglow-strong)" />
+                </filter>
+                <filter id="warnDrop" x="-30%" y="-30%" width="160%" height="160%">
+                    <feDropShadow dx="0" dy="4" stdDeviation="8" flood-color="var(--pglow-strong)" />
+                </filter>
+                <filter id="personDrop" x="-20%" y="-10%" width="140%" height="140%">
+                    <feDropShadow dx="0" dy="6" stdDeviation="8" flood-color="rgba(0,0,0,0.14)" />
+                </filter>
+                <filter id="bubbleDrop" x="-10%" y="-10%" width="130%" height="130%">
+                    <feDropShadow dx="0" dy="3" stdDeviation="5" flood-color="rgba(0,0,0,0.10)" />
+                </filter>
+            </defs>
+
+            <!-- ── FADED BIG 401 ── -->
+            <text font-family="'Sora',sans-serif" font-weight="900" font-size="248"
+                  fill="url(#numG)" x="10" y="252" letter-spacing="-4">401</text>
+
+            <!-- ── GROUND SHADOW ── -->
+            <ellipse cx="290" cy="288" rx="210" ry="10" fill="var(--pglow)" opacity=".35" />
+            <ellipse cx="148" cy="286" rx="62" ry="7" fill="rgba(0,0,0,0.06)" />
+
+            <!-- ── SHIELD PULSE RING ── -->
+            <path class="shield-ring"
+                  d="M290 14 L382 48 L382 152 Q382 224 290 256 Q198 224 198 152 L198 48 Z"
+                  fill="none" stroke="var(--primary)" stroke-width="2" opacity=".3" />
+
+            <!-- ── SHIELD OUTER ── -->
+            <path fill="url(#shG)" filter="url(#shDrop)"
+                  d="M290 22 L374 54 L374 150 Q374 218 290 248 Q206 218 206 150 L206 54 Z" />
+
+            <!-- ── SHIELD INNER ── -->
+            <path fill="url(#shInG)"
+                  d="M290 40 L358 68 L358 148 Q358 206 290 232 Q222 206 222 148 L222 68 Z" />
+
+            <!-- shield top gloss -->
+            <path class="gloss-shimmer"
+                  d="M290 40 L358 68 L358 94 L222 94 L222 68 Z"
+                  fill="rgba(255,255,255,0.28)" />
+            <!-- shield left edge shine -->
+            <path stroke="rgba(255,255,255,0.18)" stroke-width="3" stroke-linecap="round" fill="none"
+                  d="M222 76 L222 150 Q222 182 235 204" />
+            <!-- shield inner border -->
+            <path stroke="rgba(255,255,255,0.10)" stroke-width="1.5" fill="none"
+                  d="M290 44 L354 71 L354 148 Q354 202 290 228 Q226 202 226 148 L226 71 Z" />
+
+            <!-- ── PADLOCK ── -->
+            <!-- shackle -->
+            <path class="shackle-anim"
+                  stroke="var(--primary-pale)" stroke-width="13" stroke-linecap="round" fill="none"
+                  filter="url(#lkDrop)"
+                  d="M274 162 L274 138 Q274 110 290 110 Q306 110 306 138 L306 162" />
+            <!-- shackle inner highlight -->
+            <path stroke="rgba(255,255,255,0.22)" stroke-width="4" stroke-linecap="round" fill="none"
+                  d="M277 162 L277 140 Q277 116 290 114" />
+
+            <!-- lock body -->
+            <rect fill="url(#lkG)" filter="url(#lkDrop)"
+                  x="262" y="158" width="56" height="48" rx="12" />
+            <!-- lock body top shadow -->
+            <rect fill="rgba(0,0,0,0.06)" x="262" y="158" width="56" height="13" rx="12" />
+            <!-- lock body highlight -->
+            <rect fill="rgba(255,255,255,0.22)" x="264" y="160" width="52" height="6" rx="6" />
+
+            <!-- keyhole -->
+            <circle class="keyhole-glow" fill="var(--pglow-strong)" cx="290" cy="177" r="8" />
+            <circle stroke="var(--primary)" stroke-width="1.5" fill="none" cx="290" cy="177" r="8" opacity=".4" />
+            <rect class="keyhole-glow" fill="var(--pglow-strong)" x="287" y="182" width="6" height="13" rx="3" />
+
+            <!-- ── WARNING BADGE (top right) ── -->
+            <!-- pulse ring -->
+            <circle class="warn-pulse" cx="420" cy="72" r="24"
+                    fill="none" stroke="var(--primary)" stroke-width="2" opacity=".5" />
+            <!-- badge circle -->
+            <circle class="warn-badge" cx="420" cy="72" r="26"
+                    fill="url(#warnG)" filter="url(#warnDrop)" />
+            <circle cx="420" cy="72" r="26" fill="rgba(255,255,255,0.12)" />
+            <!-- gloss on badge -->
+            <ellipse cx="415" cy="60" rx="12" ry="7" fill="rgba(255,255,255,0.25)" />
+            <!-- exclamation mark -->
+            <rect class="exclaim-blink" x="418" y="56" width="4" height="16" rx="2" fill="white" />
+            <circle class="exclaim-blink" cx="420" cy="79" r="2.5" fill="white" />
+
+            <!-- ── FLOATING DECORATIVE DOTS & RINGS ── -->
+            <!-- left cluster -->
+            <circle class="fdot1" cx="168" cy="90" r="6" fill="var(--primary-lite)" opacity=".4" />
+            <circle cx="168" cy="90" r="10" fill="none" stroke="var(--primary-lite)" stroke-width="1.5" opacity=".2"
+                    style="animation: fdot 3.2s ease-in-out infinite 0s;" />
+
+            <circle class="fdot2" cx="182" cy="195" r="5" fill="var(--primary)" opacity=".3" />
+
+            <!-- right cluster -->
+            <circle class="fdot3" cx="410" cy="175" r="5" fill="var(--primary)" opacity=".3" />
+            <circle cx="430" cy="130" r="4" fill="var(--primary-lite)" opacity=".25"
+                    style="animation: fdot 4s ease-in-out infinite .4s;" />
+
+            <!-- top dots -->
+            <circle cx="350" cy="38" r="3" fill="var(--primary-lite)" opacity=".3"
+                    style="animation: fdot 3.5s ease-in-out infinite .8s;" />
+
+            <!-- ── DASHED ARC LINES ── -->
+            <path class="arc-crawl" stroke="var(--pglow)" stroke-width="1.5" stroke-linecap="round" fill="none"
+                  d="M155 165 Q175 115 210 84" />
+            <path class="arc-crawl" stroke="var(--pglow)" stroke-width="1.5" stroke-linecap="round" fill="none"
+                  d="M425 165 Q405 115 370 84"
+                  style="animation-direction: reverse;" />
+
+            <!-- ── PERSON (left side, looking at shield) ── -->
+            <g filter="url(#personDrop)">
+                <!-- ground shadow for person -->
+                <ellipse cx="148" cy="287" rx="44" ry="7" fill="rgba(0,0,0,0.10)" />
+
+                <!-- legs -->
+                <rect x="136" y="262" width="12" height="28" rx="6" fill="var(--primary-dark)" />
+                <rect x="152" y="262" width="12" height="28" rx="6" fill="var(--primary-dark)" />
+                <!-- shoes -->
+                <ellipse cx="142" cy="291" rx="11" ry="5.5" fill="#2c2c3c" />
+                <ellipse cx="158" cy="291" rx="11" ry="5.5" fill="#2c2c3c" />
+
+                <!-- body (orange shirt) -->
+                <rect x="128" y="218" width="44" height="48" rx="12" fill="var(--primary)" />
+                <rect x="128" y="260" width="44" height="8" rx="0" fill="var(--primary-dark)" />
+
+                <!-- left arm pointing at shield -->
+                <path stroke="#f5c4a0" stroke-width="12" stroke-linecap="round" fill="none"
+                      d="M128 232 Q105 222 192 196" />
+                <!-- right arm -->
+                <path stroke="#f5c4a0" stroke-width="12" stroke-linecap="round" fill="none"
+                      d="M172 238 Q184 232 178 218" />
+
+                <!-- neck -->
+                <rect x="142" y="208" width="16" height="14" rx="7" fill="#f5c4a0" />
+
+                <!-- head -->
+                <g class="person-head">
+                    <circle cx="150" cy="194" r="26" fill="#f5c4a0" />
+                    <!-- hair -->
+                    <path d="M126 186 Q128 162 150 160 Q172 162 174 186
+                         Q164 174 150 176 Q136 174 126 186Z" fill="#2c2011" />
+                    <!-- ear -->
+                    <ellipse cx="124" cy="196" rx="5" ry="7" fill="#eaad88" />
+                    <!-- eyes -->
+                    <ellipse cx="142" cy="193" rx="3" ry="3.2" fill="#2c2011" />
+                    <ellipse cx="158" cy="193" rx="3" ry="3.2" fill="#2c2011" />
+                    <!-- eyebrows worried -->
+                    <path stroke="#2c2011" stroke-width="2" stroke-linecap="round" fill="none"
+                          d="M138 186 Q142 182 146 185" />
+                    <path stroke="#2c2011" stroke-width="2" stroke-linecap="round" fill="none"
+                          d="M154 185 Q158 182 162 186" />
+                    <!-- mouth - concerned -->
+                    <path stroke="#c07050" stroke-width="2" stroke-linecap="round" fill="none"
+                          d="M144 206 Q150 202 156 206" />
+                </g>
+            </g>
+
+            <!-- ── SPEECH BUBBLE ── -->
+            <g class="bubble-pop" filter="url(#bubbleDrop)">
+                <!-- shadow -->
+                <rect x="28" y="128" width="114" height="52" rx="14"
+                      fill="rgba(0,0,0,0.07)" transform="translate(2,3)" />
+                <!-- bubble body -->
+                <rect x="26" y="126" width="114" height="52" rx="14"
+                      fill="white" stroke="var(--border)" stroke-width="1.5" />
+                <!-- tail -->
+                <polygon points="56,178 46,196 70,178"
+                         fill="white" stroke="var(--border)" stroke-width="1.5" stroke-linejoin="round" />
+                <rect x="48" y="177" width="24" height="5" fill="white" />
+                <!-- text line 1 -->
+                <text x="83" y="148"
+                      font-family="'Nunito',sans-serif" font-size="13" font-weight="800"
+                      fill="var(--primary)" text-anchor="middle">Access Denied!</text>
+                <!-- text line 2 -->
+                <text x="83" y="166"
+                      font-family="'DM Sans',sans-serif" font-size="10.5" font-weight="600"
+                      fill="#9d8e82" text-anchor="middle">Please log in 🔐</text>
+            </g>
+
+        </svg>
+
+        <!-- ══ TEXT CONTENT ══ -->
+        <div class="content-401">
+
+            <h1 class="heading-401">
+                No <span class="accent">authorization</span> found.
+            </h1>
+
+            <p class="desc-401">
+                This page is not publicly available.<br />
+                To access it please login first.
+            </p>
+
+            <div class="info-row-401">
+                <div class="info-row-icon">
+                    <svg viewBox="0 0 24 24">
+                        <rect x="3" y="11" width="18" height="11" rx="2" />
+                        <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+                    </svg>
+                </div>
+                <span>Authentication Required — Valid credentials needed</span>
+            </div>
+
+            <div class="actions-401">
+                <a href="/login" class="btn btn-primary">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none"
+                         stroke="currentColor" stroke-width="2.5"
+                         stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4" />
+                        <polyline points="10 17 15 12 10 7" />
+                        <line x1="15" y1="12" x2="3" y2="12" />
+                    </svg>
+                    Login Now
+                </a>
+                <a href="/" class="btn btn-outline-secondary">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none"
+                         stroke="currentColor" stroke-width="2.5"
+                         stroke-linecap="round" stroke-linejoin="round">
+                        <line x1="19" y1="12" x2="5" y2="12" />
+                        <polyline points="12 19 5 12 12 5" />
+                    </svg>
+                    Back Dashboard
+                </a>
+            </div>
+
+        </div>
+
+    </div>

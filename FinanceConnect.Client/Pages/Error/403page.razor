@@ -1,0 +1,299 @@
+﻿@page "/403page"
+
+
+<style>
+    :root {
+    
+        --primary-hover: #27b0a0;
+        --primary-shadow: rgba(47,196,178,0.38);
+        --bg: #f7fafc;
+        --num-color: #dce8f0;
+        --text-dark: #2d3748;
+        --text-mid: #718096;
+        --font: 'Nunito', sans-serif;
+    }
+
+
+    .page {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        width: 100%;
+        padding: 2rem 1rem;
+        margin-bottom: 22px;
+        animation: fadeUp 0.7s cubic-bezier(0.16,1,0.3,1) both;
+    }
+
+    @@keyframes fadeUp {
+        from {
+            opacity: 0;
+            transform: translateY(32px);
+        }
+
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    /* ── Illustration wrapper ── */
+    .illustration {
+        position: relative;
+        width: min(640px, 96vw);
+        height: clamp(220px, 36vw, 320px);
+        display: flex;
+        align-items: flex-end;
+        justify-content: center;
+    }
+
+    /* Giant faded 403 */
+    .num-bg {
+        position: absolute;
+        inset: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        pointer-events: none;
+        user-select: none;
+        gap: 11px
+    }
+
+        .num-bg span {
+            font-weight: 900;
+            font-size: clamp(160px, 26vw, 240px);
+            color: color-mix(in srgb, var(--primary) 25%, white);
+            line-height: 1;
+            letter-spacing: -8px;
+        }
+
+    /* Floating grey squares */
+    .sq {
+        position: absolute;
+        background: #c8dae6;
+        border-radius: 3px;
+        animation: sqFloat 3.5s ease-in-out infinite;
+    }
+    @@keyframes sqFloat {
+        0%, 100% {
+            transform: translateY(0) rotate(0deg);
+        }
+
+        50% {
+            transform: translateY(-8px) rotate(10deg);
+        }
+    }
+
+    /* Dashed arc trail */
+    .trail-svg {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        pointer-events: none;
+    }
+
+    /* Paper plane */
+    .plane {
+        position: absolute;
+        top: clamp(14px,3vw,28px);
+        left: clamp(20px,5vw,54px);
+        animation: planeFloat 5s ease-in-out infinite;
+    }
+    @@keyframes planeFloat {
+        0%, 100% {
+            transform: translate(0,0) rotate(-8deg);
+        }
+
+        50% {
+            transform: translate(6px,-12px) rotate(2deg);
+        }
+    }
+
+    /* The main scene SVG */
+    .scene {
+        position: absolute;
+        bottom: 19px;
+        left: 337px;
+        transform: translateX(-50%);
+        width: clamp(280px, 56vw, 420px);
+        height: clamp(190px, 34vw, 280px);
+    }
+
+    /* ── Text section ── */
+    .text-wrap {
+        margin-top: clamp(12px, 2vw, 24px);
+        text-align: center;
+    }
+
+        .text-wrap h1 {
+            font-size: clamp(1.5rem, 3.5vw, 2.1rem);
+            font-weight: 800;
+            color: var(--text-dark);
+            letter-spacing: -0.01em;
+            margin-bottom: 0.6rem;
+        }
+
+        .text-wrap p {
+            font-size: clamp(0.85rem, 1.8vw, 0.97rem);
+            color: #808080cf;
+            font-weight: 600;
+            line-height: 1.75;
+            margin-bottom: 1.8rem;
+        }
+
+</style>
+
+<div class="content page">
+
+    <!-- ── Illustration ── -->
+    <div class="illustration">
+
+        <!-- 403 background -->
+        <div class="num-bg">
+            <span>4</span><span>0</span><span>3</span>
+        </div>
+
+        <!-- Floating squares -->
+        <div class="sq" style="width:14px;height:14px;top:18px;left:7%;animation-delay:0s;opacity:.75"></div>
+        <div class="sq" style="width:9px;height:9px;top:52px;left:17%;animation-delay:.55s;opacity:.5"></div>
+        <div class="sq" style="width:18px;height:10px;top:30px;left:36%;animation-delay:1.1s;opacity:.4"></div>
+        <div class="sq" style="width:12px;height:12px;top:22px;right:9%;animation-delay:.9s;opacity:.7"></div>
+        <div class="sq" style="width:8px;height:8px;top:62px;right:19%;animation-delay:.3s;opacity:.45"></div>
+
+        <!-- Dashed trail arc -->
+        <svg class="trail-svg" viewBox="0 0 640 320" preserveAspectRatio="none">
+            <path d="M54 52 Q140 12 230 82 Q290 130 340 108"
+                  stroke="var(--primary)" stroke-width="1.8"
+                  stroke-dasharray="6,6" fill="none" opacity="0.38" />
+        </svg>
+
+        <!-- Paper plane -->
+        <div class="plane">
+            <svg width="38" height="38" viewBox="0 0 38 38" fill="none">
+                <path d="M3 19 L35 5 L25 33 L17 23 Z" fill="var(--primary)" opacity=".82" />
+                <path d="M17 23 L21 19 L35 5 Z" fill="var(--primary)" opacity=".82" />
+                <path d="M17 23 L14 33 L25 33 Z" fill="var(--primary)" opacity=".55" />
+            </svg>
+        </div>
+
+        <!-- ── SVG Scene ── -->
+        <svg class="scene" viewBox="0 0 380 260" fill="none" xmlns="http://www.w3.org/2000/svg">
+
+            <!-- Ground -->
+            <line x1="0" y1="238" x2="380" y2="238" stroke="#dce8f0" stroke-width="2" stroke-linecap="round" />
+
+            <!-- ══ PLANT ══ -->
+            <g transform="translate(308,148)">
+                <path d="M9 62 Q5 66 3 80 L21 80 Q19 66 14 62Z" fill="#b8cdd8" />
+                <rect x="1" y="78" width="22" height="6" rx="2.5" fill="#a0bac8" />
+                <path d="M12 62 Q12 44 22 30" stroke="#6db56d" stroke-width="2.8" stroke-linecap="round" fill="none" />
+                <path d="M12 62 Q10 46 0 31" stroke="#6db56d" stroke-width="2.8" stroke-linecap="round" fill="none" />
+                <path d="M12 62 Q20 48 26 40" stroke="#6db56d" stroke-width="2.2" stroke-linecap="round" fill="none" />
+                <ellipse cx="22" cy="29" rx="11" ry="6.5" transform="rotate(-28 22 29)" fill="#5ab55a" />
+                <ellipse cx="0" cy="30" rx="11" ry="6.5" transform="rotate( 28  0 30)" fill="#68c868" />
+                <ellipse cx="26" cy="39" rx="8" ry="5.5" transform="rotate(-12 26 39)" fill="#5ab55a" />
+            </g>
+
+            <!-- ══ DOOR ══ -->
+            <g transform="translate(126,28)">
+                <!-- outer arch frame -->
+                <path d="M6 210 L6 68 Q6 16 64 16 Q122 16 122 68 L122 210 Z" fill="#e2ecf4" stroke="#c2d4e0" stroke-width="2.5" />
+                <!-- inner door face -->
+                <path d="M16 208 L16 70 Q16 32 64 32 Q112 32 112 70 L112 208 Z" fill="#ffffff" stroke="#d8e8f0" stroke-width="1.8" />
+                <!-- upper panels -->
+                <rect x="24" y="108" width="34" height="40" rx="4" fill="#eef4f8" stroke="#d8e8f0" stroke-width="1.2" />
+                <rect x="70" y="108" width="34" height="40" rx="4" fill="#eef4f8" stroke="#d8e8f0" stroke-width="1.2" />
+                <!-- lower panels -->
+                <rect x="24" y="154" width="34" height="46" rx="4" fill="#eef4f8" stroke="#d8e8f0" stroke-width="1.2" />
+                <rect x="70" y="154" width="34" height="46" rx="4" fill="#eef4f8" stroke="#d8e8f0" stroke-width="1.2" />
+                <!-- porthole window -->
+                <circle cx="64" cy="76" r="22" fill="#e2f0f5" stroke="#c2d4e0" stroke-width="2.2" />
+                <circle cx="64" cy="76" r="14" fill="white" stroke="#d8e8f0" stroke-width="1.8" />
+                <!-- hinge dots -->
+                <circle cx="18" cy="94" r="2.5" fill="#c2d4e0" />
+                <circle cx="18" cy="168" r="2.5" fill="#c2d4e0" />
+                <!-- knob -->
+                <circle cx="96" cy="140" r="5.5" fill="#adc4d4" />
+                <circle cx="96" cy="140" r="3" fill="#95b0c0" />
+                <!-- CLOSE sign hanging -->
+                <rect x="38" y="60" width="52" height="17" rx="4" fill="#ff6878" />
+                <line x1="64" y1="56" x2="64" y2="60" stroke="#ccc" stroke-width="1.5" />
+                <circle cx="64" cy="56" r="2" fill="#ccc" />
+                <text x="64" y="72" text-anchor="middle"
+                      font-family="Nunito,sans-serif" font-weight="900"
+                      font-size="9" fill="white" letter-spacing="0.8">CLOSE</text>
+            </g>
+
+            <!-- ══ SITTING PERSON (left) ══ -->
+            <g transform="translate(24,128)">
+                <!-- thighs / lap -->
+                <path d="M14 76 Q2 78 -2 90 L22 92 Q23 82 26 76Z" fill="#5ba8e0" />
+                <path d="M32 74 Q44 78 48 90 L26 92 Q25 82 24 74Z" fill="#4a95cc" />
+                <!-- shoes -->
+                <ellipse cx="4" cy="92" rx="10" ry="5" fill="#2d3748" />
+                <ellipse cx="42" cy="92" rx="10" ry="5" fill="#2d3748" />
+                <!-- torso -->
+                <path d="M8 34 Q5 58 10 77 L38 77 Q42 58 40 34Z" fill="var(--primary)" />
+                <!-- left arm -->
+                <path d="M8 50 Q-4 57 -1 70" stroke="#f2c9a0" stroke-width="9" stroke-linecap="round" fill="none" />
+                <!-- right arm -->
+                <path d="M40 50 Q50 57 46 70" stroke="#f2c9a0" stroke-width="9" stroke-linecap="round" fill="none" />
+                <!-- phone/book -->
+                <rect x="2" y="64" width="22" height="28" rx="3.5" fill="#2d3748" />
+                <rect x="5" y="67" width="16" height="20" rx="1.5" fill="#5ba8e0" opacity=".75" />
+                <!-- head -->
+                <circle cx="24" cy="20" r="20" fill="#f2c9a0" />
+                <!-- hair -->
+                <path d="M4 16 Q4 -2 24 -2 Q44 -2 44 16 Q40 4 24 4 Q8 4 4 16Z" fill="#2d1f14" />
+                <!-- eyes looking down -->
+                <ellipse cx="17" cy="22" rx="2.8" ry="1.6" fill="#2d3748" />
+                <ellipse cx="31" cy="22" rx="2.8" ry="1.6" fill="#2d3748" />
+                <!-- ears -->
+                <ellipse cx="3" cy="20" rx="4" ry="5" fill="#e8b888" />
+                <ellipse cx="45" cy="20" rx="4" ry="5" fill="#e8b888" />
+            </g>
+
+            <!-- ══ STANDING PERSON (right of door) ══ -->
+            <g transform="translate(262,52)">
+                <!-- legs -->
+                <rect x="10" y="128" width="15" height="56" rx="6" fill="#d94455" />
+                <rect x="30" y="128" width="15" height="56" rx="6" fill="#c23a4a" />
+                <!-- shoes -->
+                <ellipse cx="17" cy="186" rx="13" ry="6" fill="#1a2535" />
+                <ellipse cx="38" cy="186" rx="13" ry="6" fill="#1a2535" />
+                <!-- body -->
+                <rect x="6" y="64" width="43" height="68" rx="10" fill="#2d3748" />
+                <!-- left arm hanging -->
+                <path d="M6 80 Q-7 88 -4 108" stroke="#f2c9a0" stroke-width="10" stroke-linecap="round" fill="none" />
+                <!-- right arm up -->
+                <path d="M49 80 Q62 72 60 54" stroke="#f2c9a0" stroke-width="10" stroke-linecap="round" fill="none" />
+                <!-- phone -->
+                <rect x="52" y="36" width="16" height="24" rx="3.5" fill="#1a202c" />
+                <rect x="54" y="39" width="12" height="16" rx="1.5" fill="#5ba8e0" opacity=".85" />
+                <!-- head -->
+                <circle cx="27" cy="36" r="25" fill="#f2c9a0" />
+                <!-- hair -->
+                <path d="M3 31 Q3 7 27 7 Q51 7 51 31 Q48 16 27 16 Q6 16 3 31Z" fill="#1a202c" />
+                <!-- eyes -->
+                <ellipse cx="19" cy="37" rx="3.2" ry="2.2" fill="#2d3748" />
+                <ellipse cx="35" cy="37" rx="3.2" ry="2.2" fill="#2d3748" />
+                <!-- ears -->
+                <ellipse cx="1" cy="36" rx="4.5" ry="6" fill="#e8b888" />
+                <ellipse cx="53" cy="36" rx="4.5" ry="6" fill="#e8b888" />
+            </g>
+
+        </svg>
+    </div><!-- /illustration -->
+    <!-- ── Text ── -->
+    <div class="text-wrap">
+        <h1>We are Sorry...</h1>
+        <p>
+            The page you're trying to access has restricted access.<br />
+            Please refer to your system administrator
+        </p>
+        <a href="javascript:history.back()" class="btn btn-primary"> <i class="ti ti-arrow-left"></i>  Go Back</a>
+    </div>
+
+</div>

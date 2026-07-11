@@ -1,0 +1,646 @@
+﻿/* ============================================================
+   LAYOUT TOGGLE SLIDER UI
+   ============================================================ */
+.layout-toggle-wrapper {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+    padding: 4px 0;
+}
+
+.layout-toggle-slider {
+    cursor: pointer;
+    user-select: none;
+}
+
+.layout-toggle-track {
+    position: relative;
+    width: 72px;
+    height: 32px;
+    background: #e9ecef;
+    border-radius: 999px;
+    display: flex;
+    align-items: center;
+    padding: 3px;
+    transition: background 0.3s ease;
+    box-shadow: inset 0 1px 3px rgba(0,0,0,0.12);
+}
+
+.layout-toggle-slider.is-horizontal .layout-toggle-track {
+    background: #ff6b35;
+}
+
+.layout-toggle-slider.is-vertical .layout-toggle-track {
+    background: #6c757d;
+}
+
+.layout-toggle-thumb {
+    position: absolute;
+    width: 26px;
+    height: 26px;
+    background: #fff;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.18);
+    transition: left 0.3s cubic-bezier(0.4,0,0.2,1);
+    font-size: 13px;
+    left: 3px;
+}
+
+.layout-toggle-slider.is-horizontal .layout-toggle-thumb {
+    left: calc(100% - 29px);
+    color: #ff6b35;
+}
+
+.layout-toggle-slider.is-vertical .layout-toggle-thumb {
+    left: 3px;
+    color: #6c757d;
+}
+
+.toggle-icon-h, .toggle-icon-v {
+    position: absolute;
+    font-size: 13px;
+    transition: opacity 0.2s;
+}
+
+.layout-toggle-slider.is-horizontal .toggle-icon-h {
+    opacity: 1;
+}
+
+.layout-toggle-slider.is-horizontal .toggle-icon-v {
+    opacity: 0;
+}
+
+.layout-toggle-slider.is-vertical .toggle-icon-h {
+    opacity: 0;
+}
+
+.layout-toggle-slider.is-vertical .toggle-icon-v {
+    opacity: 1;
+}
+
+.toggle-label-left, .toggle-label-right {
+    position: absolute;
+    font-size: 10px;
+    font-weight: 700;
+    color: rgba(255,255,255,0.9);
+    transition: opacity 0.2s;
+    pointer-events: none;
+}
+
+.toggle-label-left {
+    left: 9px;
+}
+
+.toggle-label-right {
+    right: 9px;
+}
+
+.layout-toggle-slider.is-horizontal .toggle-label-left {
+    opacity: 1;
+}
+
+.layout-toggle-slider.is-horizontal .toggle-label-right {
+    opacity: 0;
+}
+
+.layout-toggle-slider.is-vertical .toggle-label-left {
+    opacity: 0;
+}
+
+.layout-toggle-slider.is-vertical .toggle-label-right {
+    opacity: 1;
+}
+
+.layout-toggle-labels {
+    display: flex;
+    gap: 12px;
+    justify-content: center;
+}
+
+.layout-label {
+    font-size: 11px;
+    color: #888;
+    cursor: pointer;
+    transition: color 0.2s, font-weight 0.2s;
+}
+
+.layout-toggle-slider.is-horizontal ~ .layout-toggle-labels #label-horizontal,
+.layout-toggle-slider.is-vertical ~ .layout-toggle-labels #label-vertical {
+    color: #333;
+    font-weight: 600;
+}
+
+/* ============================================================
+   LAYOUT CARD SELECTOR
+   ============================================================ */
+.layout-card-group {
+    display: flex;
+    gap: 10px;
+    justify-content: start;
+}
+
+.layout-card {
+    position: relative;
+    width: 90px;
+    cursor: pointer;
+    border-radius: 8px;
+    border: 2px solid #e0e0e0;
+    overflow: hidden;
+    transition: border-color 0.25s, box-shadow 0.25s, transform 0.2s;
+    background: #f8f9fa;
+}
+
+    .layout-card:hover {
+        border-color: var(--primary);
+        transform: translateY(-2px);
+        box-shadow: 0 4px 16px rgba(255,107,53,0.18);
+    }
+
+    .layout-card.active {
+        border-color: var(--primary);
+        box-shadow: 0 0 0 3px color-mix(in srgb, var(--primary) 15%, transparent);
+    }
+
+.layout-card-check {
+    display: none;
+    position: absolute;
+    top: 5px;
+    right: 5px;
+    color: var(--primary);
+    font-size: 14px;
+    line-height: 1;
+}
+
+.layout-card.active .layout-card-check {
+    display: block;
+}
+
+.layout-card-label {
+    text-align: center;
+    font-size: 11px;
+    font-weight: 600;
+    color: #555;
+    padding: 5px 4px;
+    background: #fff;
+    border-top: 1px solid #eee;
+    transition: color 0.2s;
+}
+
+.layout-card.active .layout-card-label {
+    color: var(--primary);
+}
+
+.layout-preview {
+    width: 100%;
+    height: 62px;
+    background: #eef0f3;
+    overflow: hidden;
+    position: relative;
+}
+
+.horizontal-preview .lp-topbar {
+    display: flex;
+    align-items: center;
+    height: 14px;
+    background: #fff;
+    border-bottom: 1px solid #ddd;
+    padding: 0 4px;
+    gap: 3px;
+}
+
+.horizontal-preview .lp-logo {
+    width: 16px;
+    height: 6px;
+    background: var(--primary);
+    border-radius: 2px;
+    flex-shrink: 0;
+}
+
+.horizontal-preview .lp-nav {
+    display: flex;
+    gap: 3px;
+    flex: 1;
+}
+
+    .horizontal-preview .lp-nav span {
+        height: 4px;
+        flex: 1;
+        background: #ddd;
+        border-radius: 2px;
+    }
+
+.horizontal-preview .lp-body {
+    padding: 4px;
+}
+
+.horizontal-preview .lp-content {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+}
+
+.vertical-preview {
+    display: flex;
+    height: 100%;
+}
+
+    .vertical-preview .lp-sidebar {
+        width: 20px;
+        background: #2c3e50;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        padding: 4px 2px;
+        gap: 3px;
+        flex-shrink: 0;
+    }
+
+    .vertical-preview .lp-logo-v {
+        width: 12px;
+        height: 5px;
+        background: var(--primary);
+        border-radius: 1px;
+    }
+
+    .vertical-preview .lp-menu {
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+        width: 100%;
+    }
+
+        .vertical-preview .lp-menu span {
+            height: 3px;
+            background: rgba(255,255,255,0.3);
+            border-radius: 1px;
+            display: block;
+        }
+
+    .vertical-preview .lp-main {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+    }
+
+    .vertical-preview .lp-header-v {
+        height: 10px;
+        background: #fff;
+        border-bottom: 1px solid #ddd;
+    }
+
+    .vertical-preview .lp-content-v {
+        padding: 4px 3px;
+        display: flex;
+        flex-direction: column;
+        gap: 3px;
+    }
+
+.lp-block {
+    height: 6px;
+    background: #d5d8dc;
+    border-radius: 2px;
+}
+
+    .lp-block.short {
+        width: 60%;
+    }
+
+body.layout-horizontal .page-wrapper {
+    margin-left: 0
+}
+
+
+
+@media(min-width:992px) {
+    /* ============================================================
+   HORIZONTAL LAYOUT — HEADER
+   ============================================================ */
+    body.layout-horizontal .header {
+        position: fixed !important;
+        top: 0 !important;
+        left: 0 !important;
+        right: 0 !important;
+        width: 100% !important;
+        height: 65px !important;
+        z-index: 1001 !important;
+        display: flex !important;
+        align-items: center !important;
+        padding: 0 16px !important;
+        /*        background: #fff;*/
+        margin: 0 !important;
+        justify-content: space-between;
+        /*    box-shadow: 0 1px 4px rgba(0,0,0,0.08);*/
+    }
+
+    .layout-horizontal .content {
+        margin-top: 51px;
+    }
+
+    body.layout-horizontal .header .sidebar-logo {
+        display: flex !important;
+        align-items: center !important;
+        width: 180px !important;
+        height: 65px !important;
+        flex-shrink: 0;
+        padding: 0 16px 0 0;
+        margin-right: 8px;
+    }
+
+        body.layout-horizontal .header .sidebar-logo img {
+            height: 40px;
+            width: auto;
+        }
+
+        body.layout-horizontal .header .sidebar-logo #toggle_btn,
+        body.layout-horizontal .header .sidebar-logo .logo-small {
+            display: none !important;
+        }
+
+        body.layout-horizontal .header .sidebar-logo a.logo-normal {
+            display: block !important;
+        }
+    /* ============================================================
+   HORIZONTAL LAYOUT — SIDEBAR (nav bar strip)
+   ============================================================ */
+    body.layout-horizontal #sidebar {
+        position: fixed !important;
+        top: 65px !important;
+        left: 0;
+        right: 0;
+        width: 100% !important;
+        height: 50px !important;
+        z-index: 1000;
+        display: flex !important;
+        flex-direction: row !important;
+        align-items: center;
+        background: #fff;
+        border-bottom: 1px solid #eee;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+        padding: 0;
+        overflow: hidden !important;
+    }
+
+        body.layout-horizontal #sidebar .sidebar-logo {
+            display: none !important;
+        }
+
+    body.layout-horizontal .modern-profile,
+    body.layout-horizontal .sidebar-header {
+        display: none !important;
+    }
+    /* ── nav-scroll-track: fills available space between arrows ── */
+    body.layout-horizontal .nav-scroll-track {
+        flex: 1;
+        min-width: 0;
+        overflow: hidden;
+        height: 50px;
+        position: relative;
+        display: flex;
+        align-items: center;
+    }
+    /* ── sidebar-inner & slimScrollDiv ── */
+    body.layout-horizontal .sidebar-inner {
+        width: 100% !important;
+        height: 50px !important;
+        overflow: hidden !important;
+        display: flex;
+        align-items: center;
+    }
+
+    body.layout-horizontal .slimScrollDiv {
+        width: 100% !important;
+        height: 50px !important;
+        overflow: hidden !important;
+        flex: 1 !important;
+    }
+    /* ── sidebar-menu container ── */
+    body.layout-horizontal #sidebar-menu {
+        width: 100%;
+        height: 50px;
+        overflow: hidden !important;
+        display: flex;
+        align-items: center;
+    }
+        /* ── The actual scrollable <ul> ── */
+        body.layout-horizontal #sidebar-menu > ul {
+            /*        display: flex !important;*/
+            flex-direction: row;
+            height: 50px;
+            padding: 0 6px;
+            margin: 0;
+            list-style: none;
+            white-space: nowrap;
+            overflow-x: auto !important;
+            overflow-y: hidden !important;
+            width: max-content;
+            scroll-behavior: smooth;
+            scrollbar-width: none;
+            -ms-overflow-style: none;
+            align-items: center;
+        }
+
+            body.layout-horizontal #sidebar-menu > ul::-webkit-scrollbar {
+                display: none;
+            }
+            /* ── Each group item ── */
+            body.layout-horizontal #sidebar-menu > ul > li.submenu-open {
+                position: static;
+                overflow: visible !important;
+                height: 50px;
+                display: inline-flex;
+                align-items: center;
+                flex-shrink: 0;
+            }
+                /* ── Group label (acts as nav tab) ── */
+                body.layout-horizontal #sidebar-menu > ul > li.submenu-open > h6 {
+                    display: flex !important;
+                    align-items: center;
+                    gap: 4px;
+                    padding: 0 16px;
+                    height: 50px;
+                    cursor: pointer;
+                    margin: 0;
+                    font-size: 13px;
+                    font-weight: 600;
+                    color: black;
+                    white-space: nowrap;
+                    border-bottom: 2px solid transparent;
+                    border-top: none;
+                    border-left: none;
+                    border-right: none;
+                    transition: color 0.2s, border-color 0.2s;
+                    background: none;
+                    letter-spacing: 0.01em;
+                }
+
+    body.layout-horizontal .has-bg #sidebar-menu > ul > li.submenu-open > h6 {
+        color:white
+    }
+
+    body.layout-horizontal #sidebar-menu > ul > li.submenu-open > h6::after {
+        content: '▾';
+        font-size: 9px;
+        opacity: 0.6;
+        transition: transform 0.2s;
+    }
+
+    body.layout-horizontal #sidebar-menu > ul > li.submenu-open:hover > h6 {
+        color: var(--primary, #ff6b35);
+        border-bottom-color: var(--primary, #ff6b35);
+    }
+
+        body.layout-horizontal #sidebar-menu > ul > li.submenu-open:hover > h6::after {
+            transform: rotate(-180deg);
+        }
+    /* ── Dropdown panel ── */
+    body.layout-horizontal #sidebar-menu > ul > li.submenu-open > ul {
+        display: none;
+        position: fixed !important;
+        background: #fff;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.12);
+        border-radius: 10px;
+        min-width: 220px;
+        padding: 6px 0;
+        z-index: 99999;
+        border: 1px solid #eee;
+        list-style: none;
+        max-height: 70vh;
+        overflow-y: auto;
+    }
+
+    body.layout-horizontal #sidebar-menu > ul > li.submenu-open:hover > ul {
+        display: block !important;
+    }
+
+    body.layout-horizontal #sidebar-menu > ul > li.submenu-open > ul > li > a {
+        display: flex !important;
+        align-items: center;
+        padding: 9px 16px;
+        color: #444 !important;
+        font-size: 13px;
+        text-decoration: none;
+        gap: 8px;
+        transition: background 0.15s, color 0.15s;
+    }
+
+        body.layout-horizontal #sidebar-menu > ul > li.submenu-open > ul > li > a:hover {
+            background: #fff5f0 !important;
+            color: var(--primary, #ff6b35) !important;
+        }
+
+    body.layout-horizontal #sidebar-menu > ul > li.submenu-open > ul > li.active > a {
+        color: var(--primary, #ff6b35) !important;
+        background: #fff5f0 !important;
+        font-weight: 600;
+    }
+
+    body.layout-horizontal #sidebar.has-bg::before {
+        background: linear-gradient(180deg, #6082a7 0%, #243748bd 22.14%);
+    }
+
+    body.layout-horizontal .sidebar .has-bg {
+        background-position: top;
+    }
+
+    .nav-scroll-btn {
+        display: none;
+        align-items: center;
+        justify-content: center;
+        width: 34px;
+        min-width: 34px;
+        height: 50px;
+        background: #fff;
+        border: none;
+        border-top: none;
+        border-bottom: none;
+        cursor: pointer;
+        font-size: 20px;
+        font-weight: 300;
+        color: #666;
+        flex-shrink: 0;
+        z-index: 10;
+        transition: background 0.2s, color 0.2s;
+        padding: 0;
+        line-height: 1;
+    }
+
+        .nav-scroll-btn:hover {
+            background: #fff5f0;
+            color: var(--primary, #ff6b35);
+        }
+
+        .nav-scroll-btn.nav-scroll-left {
+            border-left: 1px solid #eee;
+            box-shadow: -4px 0 10px rgb(0 0 0 / 42%);
+            background: white;
+            color: var(--primary);
+            font-size: 35px;
+        }
+
+        .nav-scroll-btn.nav-scroll-right {
+            border-left: 1px solid #eee;
+            box-shadow: 0px 0 10px rgb(0 0 0 / 15%);
+            background: white;
+            color: var(--primary);
+            font-size: 35px;
+        }
+
+        .nav-scroll-btn:disabled {
+            opacity: 0.25;
+            cursor: not-allowed;
+            border-left: 1px solid #eee;
+            box-shadow: -4px 0 10px rgba(0, 0, 0, 0.06);
+            background: var(--primary);
+            color: white;
+            font-size: 35px;
+        }
+
+    body.layout-horizontal #sidebar.nav-overflow .nav-scroll-btn {
+        display: flex !important;
+    }
+
+    body.layout-horizontal #sidebar.nav-overflow .nav-scroll-track::before,
+    body.layout-horizontal #sidebar.nav-overflow .nav-scroll-track::after {
+        content: '';
+        position: absolute;
+        top: 0;
+        width: 20px;
+        height: 100%;
+        pointer-events: none;
+        z-index: 5;
+    }
+
+    body.layout-horizontal #sidebar.nav-overflow .nav-scroll-track::before {
+        left: 0;
+        background: linear-gradient(to right, rgba(255,255,255,0.9), transparent);
+    }
+
+    body.layout-horizontal #sidebar.nav-overflow .nav-scroll-track::after {
+        right: 0;
+        background: linear-gradient(to left, rgba(255,255,255,0.9), transparent);
+    }
+}
+
+
+@media (max-width:992px) {
+    body.layout-horizontal .header .horizontalLogo {
+        /*        display: none !important*/
+    }
+
+    .nav-scroll-left, .nav-scroll-right {
+        display: none
+    }
+
+    #Select_Layout {
+        display: none
+    }
+}
+
+body.layout-horizontal #sidebar-menu > ul > li.submenu-open:has(> ul > li.active) > .submenu-hdr {
+    color: var(--primary) !important;
+    border-bottom-color: var(--primary, #ff6b35) !important;
+}

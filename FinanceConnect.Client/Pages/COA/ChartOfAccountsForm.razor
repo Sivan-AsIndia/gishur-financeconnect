@@ -1,0 +1,541 @@
+﻿@page "/chart-of-accounts/create"
+@page "/chart-of-accounts/{Id:guid}"
+@using FinanceConnect.Client.ViewModels
+@using FinanceConnect.Client.Services
+
+<style>
+    .form-select option:checked {
+        color: white;
+        background-color: var(--primary);
+    }
+
+
+
+    .validation-message {
+        color: #dc3545;
+        font-size: 12px;
+    }
+
+    .form-select.is-invalid {
+        border-color: #dc3545;
+    }
+
+    .field-validation-error {
+        color: #dc3545;
+        font-size: 12px;
+        display: block;
+        margin-top: 4px;
+    }
+</style>
+
+@if (!isInitialized)
+{
+    <div class="page-loading-overlay"><div class="whirly-loader"></div></div>
+}
+else
+{
+    <div class="content Accordion-form">
+
+        <div class="page-header">
+            <div class="add-item d-flex">
+                <div class="page-title">
+                    <h4 class="fw-bold">@PageTitle</h4>
+                    <h6>@PageSubTitle</h6>
+                </div>
+            </div>
+
+            <div class="page-btn mt-0">
+                <a href="/chart-of-accounts" class="btn btn-outline-secondary">
+                    <i class="ti ti-arrow-left"></i> Back
+                </a>
+            </div>
+        </div>
+
+        <EditForm EditContext="_editContext" OnSubmit="HandleSubmit">
+            <DataAnnotationsValidator />
+
+            <div class="add-product" style="background:#f4f7fb; padding:24px 14px;">
+                <div class="tl-accordion">
+
+                    <!-- LEFT PANEL  -->
+                    <div class="tl-left-panel">
+
+                        <!-- 01 -->
+                        <div class="tl-label @(ShowIdentity ? "active accent-orange" : "")"
+                             @onclick="@(() => ToggleAccordion("identity"))">
+                            <div class="tl-label-icon ico-orange"><i data-feather="file-text"></i></div>
+                            <div class="tl-label-text">
+                                <div class="tl-label-title">Chart Identity</div>
+                                <div class="tl-label-sub">Basic chart information</div>
+                            </div>
+                            <span class="tl-label-chevron @(ShowIdentity ? "open" : "")">
+                                <i data-feather="chevron-right"></i>
+                            </span>
+                        </div>
+
+                        <!-- 02 -->
+                        <div class="tl-label @(ShowScope ? "active accent-blue" : "")"
+                             @onclick="@(() => ToggleAccordion("scope"))">
+                            <div class="tl-label-icon ico-blue"><i data-feather="target"></i></div>
+                            <div class="tl-label-text">
+                                <div class="tl-label-title">Scope & Defaults</div>
+                                <div class="tl-label-sub">Chart type and default settings</div>
+                            </div>
+                            <span class="tl-label-chevron @(ShowScope ? "open" : "")">
+                                <i data-feather="chevron-right"></i>
+                            </span>
+                        </div>
+
+                        <!-- 03 -->
+                        <div class="tl-label @(ShowCodeRules ? "active accent-purple" : "")"
+                             @onclick="@(() => ToggleAccordion("codeRules"))">
+                            <div class="tl-label-icon ico-purple"><i data-feather="hash"></i></div>
+                            <div class="tl-label-text">
+                                <div class="tl-label-title">Account Code Rules</div>
+                                <div class="tl-label-sub">Account numbering configuration</div>
+                            </div>
+                            <span class="tl-label-chevron @(ShowCodeRules ? "open" : "")">
+                                <i data-feather="chevron-right"></i>
+                            </span>
+                        </div>
+
+                        <!-- 04 -->
+                        <div class="tl-label @(ShowGovernance ? "active accent-green" : "")"
+                             @onclick="@(() => ToggleAccordion("governance"))">
+                            <div class="tl-label-icon ico-green"><i data-feather="shield"></i></div>
+                            <div class="tl-label-text">
+                                <div class="tl-label-title">Posting & Governance</div>
+                                <div class="tl-label-sub">Approval & governance rules</div>
+                            </div>
+                            <span class="tl-label-chevron @(ShowGovernance ? "open" : "")">
+                                <i data-feather="chevron-right"></i>
+                            </span>
+                        </div>
+
+                        <!-- 05 -->
+                        <div class="tl-label @(ShowTemplate ? "active accent-rose" : "")"
+                             @onclick="@(() => ToggleAccordion("template"))">
+                            <div class="tl-label-icon ico-rose"><i data-feather="upload"></i></div>
+                            <div class="tl-label-text">
+                                <div class="tl-label-title">Import / Template Setup</div>
+                                <div class="tl-label-sub">Template source & configuration</div>
+                            </div>
+                            <span class="tl-label-chevron @(ShowTemplate ? "open" : "")">
+                                <i data-feather="chevron-right"></i>
+                            </span>
+                        </div>
+
+                        <!-- 06 -->
+                        <div class="tl-label @(ShowStatus ? "active accent-teal" : "")"
+                             @onclick="@(() => ToggleAccordion("status"))">
+                            <div class="tl-label-icon ico-teal"><i data-feather="check-circle"></i></div>
+                            <div class="tl-label-text">
+                                <div class="tl-label-title">Status</div>
+                                <div class="tl-label-sub">Lifecycle & locking</div>
+                            </div>
+                            <span class="tl-label-chevron @(ShowStatus ? "open" : "")">
+                                <i data-feather="chevron-right"></i>
+                            </span>
+                        </div>
+
+                    </div>
+
+
+                    <!-- RIGHT TIMELINE  -->
+                    <div class="tl-right-area">
+
+                        <!-- CHART IDENTITY -->
+                        <div class="tl-card-row @(ShowIdentity ? "row-active" : "")">
+                            <div class="tl-dot-col">
+                                <div class="tl-dot" @onclick="@(() => ToggleAccordion("identity"))"></div>
+                            </div>
+                            <div class="tl-card-col">
+                                <div class="tl-card @(ShowIdentity ? "card-active border-orange" : "")">
+                                    <div class="tl-card-header" @onclick="@(() => ToggleAccordion("identity"))">
+                                        <div class="tl-card-header-title">
+                                            <span class="tl-card-step step-orange">01</span>
+                                            Chart Identity
+                                        </div>
+                                        <span class="tl-card-toggle @(ShowIdentity ? "toggle-open" : "")">
+                                            <i data-feather="chevron-down"></i>
+                                        </span>
+                                    </div>
+
+                                    <div class="tl-collapse @(ShowIdentity ? "tl-open" : "")">
+                                        <div class="tl-card-body">
+                                            <div class="tl-card-body-inner @(IdentityTouched ? "touched" : "")">
+                                                <div class="row">
+                                                    <div class="col-sm-6 col-md-3 mb-3">
+                                                        <label class="form-label">Chart Code <span class="text-danger ms-1">*</span></label>
+                                                        <input class="form-control text-uppercase @(ChartCodeValidationError != null ? "is-invalid" : "")"
+                                                               @bind="ChartCodeValue"
+                                                               @bind:event="oninput"
+                                                               @bind:after="OnChartCodeChanged"
+                                                               disabled="@(IsEdit)"
+                                                               placeholder="e.g., MAIN" maxlength="20" />
+                                                        @if (ChartCodeValidationError != null)
+                                                        {
+                                                            <span class="field-validation-error">@ChartCodeValidationError</span>
+                                                        }
+                                                    </div>
+
+                                                    <div class="col-sm-6 col-md-5 mb-3">
+                                                        <label class="form-label">Chart Name <span class="text-danger ms-1">*</span></label>
+                                                        <input class="form-control @(ChartNameValidationError != null ? "is-invalid" : "")"
+                                                               @bind="Model.ChartName"
+                                                               @bind:event="oninput"
+                                                               @onblur="OnChartNameChanged"
+                                                               placeholder="e.g., Main Chart of Accounts" maxlength="200" />
+                                                        @if (ChartNameValidationError != null)
+                                                        {
+                                                            <span class="field-validation-error">@ChartNameValidationError</span>
+                                                        }
+                                                    </div>
+
+                                                    <div class="col-sm-6 col-md-4 mb-3">
+                                                        <label class="form-label">Company <span class="text-danger ms-1">*</span></label>
+                                                        <select class="form-select @(CompanyValidationError != null ? "is-invalid" : "")"
+                                                                @bind="SelectedCompanyId"
+                                                                @bind:after="OnCompanyChanged"
+                                                                disabled="@(IsEdit)">
+                                                            <option value="">--Select Company--</option>
+                                                            @foreach (var company in Companies)
+                                                            {
+                                                                <option value="@company.Id">@company.CompanyCode - @company.LegalName</option>
+                                                            }
+                                                        </select>
+                                                        @if (CompanyValidationError != null)
+                                                        {
+                                                            <span class="field-validation-error">@CompanyValidationError</span>
+                                                        }
+                                                    </div>
+                                                    @* maxlength="500" *@
+                                                    <div class="col-12 mb-3">
+                                                        <label class="form-label">Description</label>
+                                                          <RichTextEditor @ref="_descriptionEditor"
+                                                                        Value="@Model.Description"
+                                                                        MaxHeight="200" MinHeight="80"
+                                                                       placeholder="Purpose of this chart..." />
+                                                    </div>
+
+                                                </div>
+
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- SCOPE -->
+                        <div class="tl-card-row @(ShowScope ? "row-active" : "")">
+                            <div class="tl-dot-col">
+                                <div class="tl-dot" @onclick="@(() => ToggleAccordion("scope"))"></div>
+                            </div>
+                            <div class="tl-card-col">
+                                <div class="tl-card @(ShowScope ? "card-active border-blue" : "")">
+                                    <div class="tl-card-header" @onclick="@(() => ToggleAccordion("scope"))">
+                                        <div class="tl-card-header-title">
+                                            <span class="tl-card-step step-blue">02</span>
+                                            Scope & Defaults
+                                        </div>
+                                        <span class="tl-card-toggle @(ShowScope ? "toggle-open" : "")">
+                                            <i data-feather="chevron-down"></i>
+                                        </span>
+                                    </div>
+                                    <div class="tl-collapse @(ShowScope ? "tl-open" : "")">
+                                        <div class="tl-card-body">
+                                            <div class="tl-card-body-inner @(ScopeTouched ? "touched" : "")">
+
+                                                <div class="row">
+                                                    <div class="col-sm-6 col-md-3 mb-3">
+                                                        <label class="form-label">Chart Type <span class="text-danger ms-1">*</span></label>
+                                                        <select class="form-select @(ChartTypeValidationError != null ? "is-invalid" : "")"
+                                                                @bind="SelectedChartType"
+                                                                @bind:after="OnChartTypeChanged">
+                                                            <option value="">--Select Chart Type--</option>
+                                                            @foreach (var type in ChartTypes.All)
+                                                            {
+                                                                <option value="@type">@type</option>
+                                                            }
+                                                        </select>
+                                                        @if (ChartTypeValidationError != null)
+                                                        {
+                                                            <span class="field-validation-error">@ChartTypeValidationError</span>
+                                                        }
+                                                    </div>
+
+                                                    <div class="col-sm-6 col-md-3 mb-3">
+                                                        <label class="form-label">Effective From <span class="text-danger ms-1">*</span></label>
+                                                        <InputDate class="form-control" @bind-Value="Model.EffectiveFrom" />
+                                                    </div>
+
+                                                    <div class="col-sm-6 col-md-3 mb-3">
+                                                        <label class="form-label">Effective To</label>
+                                                        <InputDate class="form-control" @bind-Value="Model.EffectiveTo" />
+                                                    </div>
+
+                                                    <div class="col-sm-6 col-md-3 mb-3 d-flex align-items-end">
+                                                        <div class="form-check form-switch">
+                                                            <InputCheckbox class="form-check-input" id="isDefault" @bind-Value="Model.IsDefaultForCompany" />
+                                                            <label class="form-check-label" for="isDefault">Default for Company</label>
+                                                        </div>
+                                                    </div>
+                                                </div>
+
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- ACCOUNT CODE RULES -->
+                        <div class="tl-card-row @(ShowCodeRules ? "row-active" : "")">
+                            <div class="tl-dot-col">
+                                <div class="tl-dot" @onclick="@(() => ToggleAccordion("codeRules"))"></div>
+                            </div>
+                            <div class="tl-card-col">
+                                <div class="tl-card @(ShowCodeRules ? "card-active border-purple" : "")">
+                                    <div class="tl-card-header" @onclick="@(() => ToggleAccordion("codeRules"))">
+                                        <div class="tl-card-header-title">
+                                            <span class="tl-card-step step-purple">03</span>
+                                            Account Code Rules
+                                        </div>
+                                        <span class="tl-card-toggle @(ShowCodeRules ? "toggle-open" : "")">
+                                            <i data-feather="chevron-down"></i>
+                                        </span>
+                                    </div>
+                                    <div class="tl-collapse @(ShowCodeRules ? "tl-open" : "")">
+                                        <div class="tl-card-body">
+                                            <div class="tl-card-body-inner @(CodeRulesTouched ? "touched" : "")">
+
+                                                
+                                                <div class="row">
+                                                    <div class="col-sm-6 col-md-3 mb-3">
+                                                        <label class="form-label">Account Code Mode <span class="text-danger ms-1">*</span></label>
+                                                        <select class="form-select" @bind="Model.AccountCodeMode">
+                                                            <option value="">--Select Account Code Mode--</option>
+                                                            @foreach (var mode in AccountCodeModes.All)
+                                                            {
+                                                                <option value="@mode">@mode</option>
+                                                            }
+                                                        </select>
+                                                    </div>
+
+                                                    <div class="col-sm-6 col-md-3 mb-3">
+                                                        <label class="form-label">Code Format <span class="text-danger ms-1">*</span></label>
+                                                        <input class="form-control @(CodeFormatValidationError != null ? "is-invalid" : "")"
+                                                               @bind="Model.AccountCodeFormat"
+                                                               @bind:event="oninput"
+                                                               @bind:after="OnCodeFormatChanged"
+                                                               placeholder="e.g., NNNN" maxlength="50" />
+                                                        @if (CodeFormatValidationError != null)
+                                                        {
+                                                            <span class="field-validation-error">@CodeFormatValidationError</span>
+                                                        }
+                                                    </div>
+
+                                                    <div class="col-sm-6 col-md-3 mb-3">
+                                                        <label class="form-label">Next Account Number</label>
+                                                        <InputNumber class="form-control" @bind-Value="Model.NextAccountNumber" />
+                                                    </div>
+
+                                                    <div class="col-sm-6 col-md-3 mb-3 d-flex align-items-end">
+                                                        <div class="form-check form-switch">
+                                                            <InputCheckbox class="form-check-input" id="enforceUnique" @bind-Value="Model.EnforceUniqueAccountCode" />
+                                                            <label class="form-check-label" for="enforceUnique">Enforce Unique Codes</label>
+                                                        </div>
+                                                    </div>
+
+                                                    <div class="col-sm-6 col-md-3 mb-3 d-flex align-items-end">
+                                                        <div class="form-check form-switch">
+                                                            <InputCheckbox class="form-check-input" id="enforceUniqueName" @bind-Value="Model.EnforceUniqueAccountName" />
+                                                            <label class="form-check-label" for="enforceUniqueName">Enforce Unique Account Name</label>
+                                                        </div>
+                                                    </div>
+
+                                                    <div class="col-sm-6 col-md-3 mb-3 d-flex align-items-end">
+                                                        <div class="form-check form-switch">
+                                                            <InputCheckbox class="form-check-input" id="allowCodeReuse" @bind-Value="Model.AllowAccountCodeReuseAfterInactivation" />
+                                                            <label class="form-check-label" for="allowCodeReuse">Allow Code Reuse After Inactivation</label>
+                                                        </div>
+                                                    </div>
+                                                </div>
+
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- GOVERNANCE -->
+                        <div class="tl-card-row @(ShowGovernance ? "row-active" : "")">
+                            <div class="tl-dot-col">
+                                <div class="tl-dot" @onclick="@(() => ToggleAccordion("governance"))"></div>
+                            </div>
+                            <div class="tl-card-col">
+                                <div class="tl-card @(ShowGovernance ? "card-active border-green" : "")">
+                                    <div class="tl-card-header" @onclick="@(() => ToggleAccordion("governance"))">
+                                        <div class="tl-card-header-title">
+                                            <span class="tl-card-step step-green">04</span>
+                                            Posting & Governance Controls
+                                        </div>
+                                        <span class="tl-card-toggle @(ShowGovernance ? "toggle-open" : "")">
+                                            <i data-feather="chevron-down"></i>
+                                        </span>
+                                    </div>
+                                    <div class="tl-collapse @(ShowGovernance ? "tl-open" : "")">
+                                        <div class="tl-card-body">
+                                            <div class="tl-card-body-inner @(GovernanceTouched ? "touched" : "")">
+
+                                                <div class="row">
+                                                    <div class="col-sm-6 col-md-4 mb-3 d-flex align-items-end">
+                                                        <div class="form-check form-switch">
+                                                            <InputCheckbox class="form-check-input" id="changeRequestRequired" @bind-Value="Model.ChangeRequestRequired" />
+                                                            <label class="form-check-label" for="changeRequestRequired">
+                                                                <strong>Require Change Request</strong>
+                                                                <br /><small class="text-muted">Changes must go via approval workflow</small>
+                                                            </label>
+                                                        </div>
+                                                    </div>
+                                                </div>
+
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- TEMPLATE -->
+                        <div class="tl-card-row @(ShowTemplate ? "row-active" : "")">
+                            <div class="tl-dot-col">
+                                <div class="tl-dot" @onclick="@(() => ToggleAccordion("template"))"></div>
+                            </div>
+                            <div class="tl-card-col">
+                                <div class="tl-card @(ShowTemplate ? "card-active border-rose" : "")">
+                                    <div class="tl-card-header" @onclick="@(() => ToggleAccordion("template"))">
+                                        <div class="tl-card-header-title">
+                                            <span class="tl-card-step step-rose">05</span>
+                                            Import / Template Setup
+                                        </div>
+                                        <span class="tl-card-toggle @(ShowTemplate ? "toggle-open" : "")">
+                                            <i data-feather="chevron-down"></i>
+                                        </span>
+                                    </div>
+                                    <div class="tl-collapse @(ShowTemplate ? "tl-open" : "")">
+                                        <div class="tl-card-body">
+                                            <div class="tl-card-body-inner @(TemplateTouched ? "touched" : "")">
+
+                                                <div class="row">
+                                                    <div class="col-sm-6 col-md-4 mb-3">
+                                                        <label class="form-label">Template Source</label>
+                                                        <select class="form-select" @bind="Model.TemplateSource">
+                                                            <option value="">--Select Template Source--</option>
+                                                            @foreach (var source in TemplateSources.All)
+                                                            {
+                                                                <option value="@source">@TemplateSources.GetDisplayName(source)</option>
+                                                            }
+                                                        </select>
+                                                    </div>
+
+                                                    <div class="col-sm-6 col-md-4 mb-3">
+                                                        <label class="form-label">Template / Source Reference</label>
+                                                        <input class="form-control" @bind="Model.TemplateReferenceId"
+                                                               placeholder="Template name or import batch ID" maxlength="100" />
+                                                    </div>
+                                                </div>
+
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- STATUS -->
+                        <div class="tl-card-row @(ShowStatus ? "row-active" : "")">
+                            <div class="tl-dot-col">
+                                <div class="tl-dot" @onclick="@(() => ToggleAccordion("status"))"></div>
+                            </div>
+                            <div class="tl-card-col">
+                                <div class="tl-card @(ShowStatus ? "card-active border-teal" : "")">
+                                    <div class="tl-card-header" @onclick="@(() => ToggleAccordion("status"))">
+                                        <div class="tl-card-header-title">
+                                            <span class="tl-card-step step-teal">06</span>
+                                            Status
+                                        </div>
+                                        <span class="tl-card-toggle @(ShowStatus ? "toggle-open" : "")">
+                                            <i data-feather="chevron-down"></i>
+                                        </span>
+                                    </div>
+                                    <div class="tl-collapse @(ShowStatus ? "tl-open" : "")">
+                                        <div class="tl-card-body">
+                                            <div class="tl-card-body-inner @(StatusTouched ? "touched" : "")">
+
+                                                <div class="row">
+                                                    <div class="col-sm-6 col-md-3 mb-3">
+                                                        <label class="form-label">Status <span class="text-danger ms-1">*</span></label>
+                                                        <select class="form-select @(StatusValidationError != null ? "is-invalid" : "")"
+                                                                @bind="SelectedStatus"
+                                                                @bind:after="OnStatusChanged">
+                                                            <option value="">--Select Status--</option>
+                                                            @foreach (var status in COAStatuses.All)
+                                                            {
+                                                                <option value="@status">@status</option>
+                                                            }
+                                                        </select>
+                                                        @if (StatusValidationError != null)
+                                                        {
+                                                            <span class="field-validation-error">@StatusValidationError</span>
+                                                        }
+                                                    </div>
+
+                                                    @if (Model.Status == COAStatuses.Locked || Model.Status == COAStatuses.Retired)
+                                                    {
+                                                        <div class="col-sm-6 col-md-6 mb-3">
+                                                            <label class="form-label">
+                                                                @(Model.Status == COAStatuses.Locked ? "Lock Reason" : "Retirement Reason")
+                                                                <span class="text-danger ms-1">*</span>
+                                                            </label>
+                                                            <textarea class="form-control @(LockReasonValidationError != null ? "is-invalid" : "")"
+                                                                      @bind="Model.LockReason"
+                                                                      @bind:event="oninput"
+                                                                      @bind:after="OnLockReasonChanged"
+                                                                      rows="2" placeholder="Provide reason..." maxlength="300"></textarea>
+                                                            @if (LockReasonValidationError != null)
+                                                            {
+                                                                <span class="field-validation-error">@LockReasonValidationError</span>
+                                                            }
+                                                        </div>
+                                                    }
+                                                </div>
+
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                    </div>
+                </div>
+            </div>
+
+            <div class="d-flex justify-content-end mb-4">
+                <a href="/chart-of-accounts" class="btn btn-outline-secondary me-2"><i class="ti ti-x"></i> Cancel</a>
+                <button type="submit" class="btn btn-primary" disabled="@isSaving">
+                    @if (isSaving)
+                    {
+                        <span class="spinner-border spinner-border-sm me-1"></span>
+                    }
+                    <i class="ti ti-device-floppy"></i> @(IsEdit ? "Update" : "Save")
+                </button>
+            </div>
+
+        </EditForm>
+
+    </div>
+}

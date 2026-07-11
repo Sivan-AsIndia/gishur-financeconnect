@@ -1,0 +1,255 @@
+﻿@page "/budgets/{Id:guid}/view"
+@using FinanceConnect.Client.ViewModels
+
+@if (!isInitialized)
+{
+    <div class="page-loading-overlay">
+        <div class="whirly-loader"></div>
+    </div>
+}
+else if (Budget == null)
+{
+    <div class="content">
+        <div class="alert alert-danger">
+            Budget not found.
+            <a href="/budgets" class="alert-link ms-2">Return</a>
+        </div>
+    </div>
+}
+else
+{
+    <div class="vb-root">
+        <div class="content mb-4">
+
+            <!-- HEADER -->
+            <div class="vb-header-card">
+
+                <div class="vb-cover"></div>
+
+                <div class="vb-header-body">
+
+                    <div class="vb-avatar">
+                        BD
+                    </div>
+
+                    <div class="vb-header-meta">
+
+                        <div>
+                            <p class="vb-bill-number">@Budget.BudgetCode</p>
+                            <p class="vb-bill-sub">
+                                @Budget.BudgetName
+                            </p>
+
+                            <div class="vb-badges">
+                                <span class="badge @GetStatusBadge(Budget.Status)">
+                                    @Budget.Status
+                                </span>
+
+                                <span class="badge bg-info-transparent text-info">
+                                    @Budget.BudgetType
+                                </span>
+                            </div>
+                        </div>
+
+                        <div class="vb-header-actions">
+                            
+                            <a @onclick="PrintPage" class="btn btn-primary">
+                                <i class="bi bi-printer"></i> Print
+                            </a>
+                            <a href="/budgets" class="btn btn-outline-secondary">
+                                <i class="ti ti-arrow-left"></i> Back
+                            </a>
+
+                        </div>
+
+                    </div>
+                </div>
+            </div>
+
+            <!-- SUMMARY -->
+            <div class="vb-summary-grid mt-3 mb-4">
+
+                <div class="vb-tile">
+                    <div class="vb-tile-label">Total Budget</div>
+                    <div class="vb-tile-value">
+                        ₹ @Budget.TotalBudgetAmount.ToString("N2")
+                    </div>
+                </div>
+
+                <div class="vb-tile">
+                    <div class="vb-tile-label">Consumed</div>
+                    <div class="vb-tile-value">
+                        ₹ @Budget.ConsumedActualAmount.ToString("N2")
+                    </div>
+                </div>
+
+                <div class="vb-tile">
+                    <div class="vb-tile-label">Available</div>
+                    <div class="vb-tile-value">
+                        ₹ @Budget.AvailableBalanceAmount.ToString("N2")
+                    </div>
+                </div>
+
+                <div class="vb-tile-wide">
+                    <div class="vb-tile-label">Revenue Budget</div>
+                    <div class="vb-tile-value primary">
+                        ₹ @Budget.TotalRevenueBudgetAmount.ToString("N2")
+                    </div>
+                </div>
+
+            </div>
+
+            <div class="vb-two-col">
+
+                <!-- SIDEBAR -->
+                <aside class="vb-sidebar">
+
+                    <!-- PERIOD -->
+                    <div class="vb-card">
+                        <div class="vb-card-header">
+                            <h6><i class="ti ti-calendar"></i> Planning</h6>
+                        </div>
+
+                        <div class="vb-card-body">
+
+                            <div class="vb-row">
+                                <span class="vb-label">Start</span>
+                                <span class="vb-val">@Budget.StartDate?.ToString("dd MMM yyyy")</span>
+                            </div>
+
+                            <div class="vb-row">
+                                <span class="vb-label">End</span>
+                                <span class="vb-val">@Budget.EndDate?.ToString("dd MMM yyyy")</span>
+                            </div>
+
+                            <div class="vb-row">
+                                <span class="vb-label">Granularity</span>
+                                <span class="vb-val">@Budget.PeriodGranularity</span>
+                            </div>
+
+                        </div>
+                    </div>
+
+                    <!-- SCOPE -->
+                    <div class="vb-card">
+                        <div class="vb-card-header">
+                            <h6><i class="ti ti-layers"></i> Scope</h6>
+                        </div>
+
+                        <div class="vb-card-body">
+
+                            <div class="vb-row">
+                                <span class="vb-label">Company</span>
+                                <span class="vb-val">@BudgetService.GetCountryNameById(Budget.CompanyId)</span>
+                            </div>
+
+                            <div class="vb-row">
+                                <span class="vb-label">Branch</span>
+                                <span class="vb-val">@Budget.BranchId</span>
+                            </div>
+
+                        </div>
+                    </div>
+
+                    <!-- AUDIT -->
+                    <div class="vb-card">
+                        <div class="vb-card-header">
+                            <h6><i class="ti ti-history"></i> Audit</h6>
+                        </div>
+
+                        <div class="vb-card-body">
+
+                            <div class="vb-row">
+                                <span class="vb-label">Created</span>
+                                <span class="vb-val">@Budget.CreatedAt.ToString("dd MMM yyyy")</span>
+                            </div>
+
+                            @if (Budget.ApprovedOn.HasValue)
+                            {
+                                <div class="vb-row">
+                                    <span class="vb-label">Approved</span>
+                                    <span class="vb-val">@Budget.ApprovedOn.Value.ToString("dd MMM yyyy")</span>
+                                </div>
+                            }
+
+                        </div>
+                    </div>
+
+                </aside>
+
+                <!-- MAIN -->
+                <div class="vb-main">
+
+                    <!-- CLASSIFICATION -->
+                    <div class="vb-card">
+                        <div class="vb-card-header">
+                            <h6><i class="ti ti-tag"></i> Classification</h6>
+                        </div>
+
+                        <div class="vb-card-body">
+
+                            <div class="vb-row">
+                                <span class="vb-label">Type</span>
+                                <span class="vb-val">@Budget.BudgetType</span>
+                            </div>
+
+                            <div class="vb-row">
+                                <span class="vb-label">Nature</span>
+                                <span class="vb-val">@Budget.BudgetNature</span>
+                            </div>
+
+                            <div class="vb-row">
+                                <span class="vb-label">Planning Level</span>
+                                <span class="vb-val">@Budget.PlanningLevel</span>
+                            </div>
+
+                            <div class="vb-row">
+                                <span class="vb-label">Scenario</span>
+                                <span class="vb-val">@Budget.ScenarioType</span>
+                            </div>
+
+                        </div>
+                    </div>
+
+                    <!-- VERSION -->
+                    <div class="vb-card">
+                        <div class="vb-card-header">
+                            <h6><i class="ti ti-git-branch"></i> Version</h6>
+                        </div>
+
+                        <div class="vb-card-body">
+
+                            <div class="vb-row">
+                                <span class="vb-label">Version</span>
+                                <span class="vb-val">@Budget.VersionNumber</span>
+                            </div>
+
+                            <div class="vb-row">
+                                <span class="vb-label">Revision</span>
+                                <span class="vb-val">@Budget.RevisionNumber</span>
+                            </div>
+
+                        </div>
+                    </div>
+
+                    <!-- NOTES -->
+                    @if (!string.IsNullOrWhiteSpace(Budget.Notes))
+                    {
+                        <div class="vb-card">
+                            <div class="vb-card-header">
+                                <h6><i class="ti ti-notes"></i> Notes</h6>
+                            </div>
+
+                            <div class="vb-card-body">
+                                <p>@Budget.Notes</p>
+                            </div>
+                        </div>
+                    }
+
+                </div>
+
+            </div>
+
+        </div>
+    </div>
+}

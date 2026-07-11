@@ -1,0 +1,167 @@
+@page "/depreciation-schedules"
+@inject IJSRuntime JS
+
+<div class="content List-view">
+
+    <div class="page-header">
+        <div class="add-item d-flex">
+            <div class="page-title">
+                <h4 class="fw-bold">Depreciation Schedule List</h4>
+                <h6>View asset depreciation schedules &amp; period plans</h6>
+            </div>
+        </div>
+        <ul class="table-top-head me-2">
+            <li>
+                <a href="javascript:void(0);" title="Refresh" @onclick="OnRefreshAsync"><i class="ti ti-refresh"></i></a>
+            </li>
+        </ul>
+    </div>
+
+    <div class="card">
+        <div class="card-header d-flex align-items-center justify-content-between flex-wrap row-gap-3">
+            <div class="search-set">
+                <div class="search-input">
+                    <span class="btn-searchset"><i class="ti ti-search fs-14"></i></span>
+                    <input type="search" class="form-control form-control-sm"
+                           placeholder="Search schedule"
+                           @bind="searchText" @oninput="OnSearch" />
+                </div>
+            </div>
+            <div style="display:flex; gap:15px;">
+                <select class="form-select form-select-sm" style="min-width:180px"
+                        @bind="SelectedStatus" @bind:event="oninput" @onchange="OnFilterChanged">
+                    <option value="">All Status</option>
+                    @foreach (var s in AvailableStatuses)
+                    {
+                        <option value="@((int)s)">@s</option>
+                    }
+                </select>
+            </div>
+        </div>
+
+        <div class="card-body p-0">
+            <table class="table align-middle w-100 table-fixed">
+                <thead class="thead-light">
+                    <tr>
+                        <th class="d-xl-none" style="width:40px"></th>
+                        @* <th style="white-space:nowrap;">Schedule No</th> *@
+                        <th>Asset</th>
+                        <th class="d-none d-md-table-cell">Method</th>
+                        <th class="d-none d-md-table-cell">Life (Mo)</th>
+                        <th class="d-none d-xl-table-cell">Start</th>
+                        <th class="d-none d-xl-table-cell">End</th>
+                        <th class="d-none d-xl-table-cell">Total Planned</th>
+                        <th class="d-none d-xl-table-cell">Ver.</th>
+                        <th>Status</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @if (PagedItems.Any())
+                    {
+                        @foreach (var sch in PagedItems)
+                        {
+                            <tr>
+                                <td class="d-xl-none text-center" style="padding:0;padding-left:15px;">
+                                    <a href="javascript:void(0);" class="TablePlus"
+                                       data-bs-toggle="modal" data-bs-target="#rowDetailsModal"
+                                       @onclick="() => OpenRowDetails(sch)">
+                                        <i class="ti ti-plus"></i>
+                                    </a>
+                                </td>
+                                @* <td style="white-space:nowrap;">
+                                    <span class="fw-medium">
+                                        <i class="ti ti-external-link me-2 PopupIcon"></i>
+                                        <a href="/depreciation-schedules/@sch.AssetDepreciationScheduleId/view" class="link-View text-decoration-none link-View"
+                                           data-bs-toggle="tooltip"
+                                           data-bs-placement="top"
+                                           title="@sch.AssetNameDisplay details">
+                                            @sch.AssetNameDisplay
+                                        </a>
+                                    </span>
+                                </td> *@
+                                <td>
+                                    <div>
+                                        <span class="fw-medium">
+                                            <i class="ti ti-external-link me-2 PopupIcon"></i>
+                                            <a href="/depreciation-schedules/@sch.AssetDepreciationScheduleId/view" class="link-View text-decoration-none link-View"
+                                               data-bs-toggle="tooltip"
+                                               data-bs-placement="top"
+                                               title="@sch.AssetNameDisplay details">
+                                                @sch.AssetNameDisplay
+                                            </a>
+                                        </span>
+                                    </div>
+                                    <small class="text-muted">@sch.AssetCodeDisplay</small>
+                                </td>
+                                <td class="d-none d-md-table-cell">@sch.MethodTypeSnapshot</td>
+                                <td class="d-none d-md-table-cell">@sch.UsefulLifeMonthsSnapshot</td>
+                                <td class="d-none d-xl-table-cell">@sch.StartDate.ToString("dd MMM yyyy")</td>
+                                <td class="d-none d-xl-table-cell">@sch.EndDate.ToString("dd MMM yyyy")</td>
+                                <td class="d-none d-xl-table-cell text-end">@sch.TotalPlannedDepreciationAmount.ToString("N2")</td>
+                                <td class="d-none d-xl-table-cell text-center">v@(sch.ScheduleVersion)</td>
+                                <td>
+                                    <span class="badge @GetStatusBadgeClass(sch.ScheduleStatus)">@sch.ScheduleStatus</span>
+                                </td>
+                            </tr>
+                        }
+                    }
+                    else
+                    {
+                        <tr><td colspan="10" class="text-center py-4 text-muted">No schedules found</td></tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+
+        @if (FilteredItems.Count > 0)
+        {
+            <div class="d-flex align-items-center justify-content-between p-3">
+                <div class="d-flex align-items-center fs-13">
+                    <span class="me-2">Rows per page</span>
+                    <select class="form-select form-select-sm" style="width:80px" @onchange="OnPageSizeChange">
+                        <option value="5" selected="@(PageSize == 5)">5</option>
+                        <option value="10" selected="@(PageSize == 10)">10</option>
+                        <option value="25" selected="@(PageSize == 25)">25</option>
+                    </select>
+                    <span class="ms-2">Entries</span>
+                </div>
+                <nav>
+                    <ul class="pagination pagination-sm mb-0">
+                        <li class="page-item @(CurrentPage == 1 ? "disabled" : "")">
+                            <a class="page-link" href="javascript:void(0);" @onclick="PreviousPage"><i class="ti ti-chevron-left"></i></a>
+                        </li>
+                        @for (int i = StartPage; i <= EndPage; i++)
+                        {
+                            var pageNum = i;
+                            <li class="page-item @(CurrentPage == pageNum ? "active" : "")">
+                                <a class="page-link" href="javascript:void(0);" @onclick="() => GoToPage(pageNum)">@pageNum</a>
+                            </li>
+                        }
+                        <li class="page-item @(CurrentPage == TotalPages ? "disabled" : "")">
+                            <a class="page-link" href="javascript:void(0);" @onclick="NextPage"><i class="ti ti-chevron-right"></i></a>
+                        </li>
+                    </ul>
+                </nav>
+            </div>
+        }
+    </div>
+
+    <!-- Row Details Modal -->
+    <div class="modal fade list-Popup" id="rowDetailsModal" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Schedule Details</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" style="padding:0;right:22px;position:absolute;transform:none"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-2 d-flex gap-3"><strong>Method:</strong><div>@SelectedItem?.MethodTypeSnapshot</div></div>
+                    <div class="mb-2 d-flex gap-3"><strong>Life:</strong><div>@SelectedItem?.UsefulLifeMonthsSnapshot months</div></div>
+                    <div class="mb-2 d-flex gap-3"><strong>Base Amount:</strong><div>@SelectedItem?.DepreciationBaseAmountSnapshot.ToString("N2")</div></div>
+                    <div class="mb-2 d-flex gap-3"><strong>Total Planned:</strong><div>@SelectedItem?.TotalPlannedDepreciationAmount.ToString("N2")</div></div>
+                    <div class="mb-2 d-flex gap-3"><strong>Version:</strong><div>v@(SelectedItem?.ScheduleVersion)</div></div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

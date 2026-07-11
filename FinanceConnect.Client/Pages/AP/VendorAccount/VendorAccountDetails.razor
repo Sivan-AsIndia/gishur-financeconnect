@@ -1,0 +1,382 @@
+@page "/vendor-accounts/{Id:guid}/view"
+@using FinanceConnect.Client.ViewModels
+@using FinanceConnect.Client.Services
+
+<PageTitle>Vendor Account Details - FinanceConnect</PageTitle>
+
+@if (!isInitialized)
+{
+    <div class="d-flex justify-content-center align-items-center" style="min-height: 400px;">
+        <div class="spinner-border text-primary" role="status">
+            <span class="visually-hidden">Loading...</span>
+        </div>
+    </div>
+}
+else if (Account == null)
+{
+    <div class="container-xl mt-4">
+        <div class="alert alert-warning">
+            <i class="ti ti-alert-triangle me-2"></i>
+            Vendor account not found.
+        </div>
+        <a href="/vendor-accounts" class="btn btn-secondary">
+            <i class="ti ti-arrow-left me-1"></i> Back to List
+        </a>
+    </div>
+}
+else
+{
+    <div class="content view-screen py-4">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <div>
+                <h4 class="fw-bold mb-1">Vendor Account Details</h4>
+                <p class="text-muted mb-0 small">View vendor account balances and activity</p>
+            </div>
+            <a href="/vendor-accounts" class="btn btn-outline-secondary">
+                <i class="ti ti-arrow-left me-1"></i> Back
+            </a>
+        </div>
+        <div class="row g-4">
+            <!-- Header Section - Profile List Card -->
+            <div class="col-lg-12">
+                <div class="profile-list-card">
+                    <!-- LEFT - Avatar -->
+                    <div class="profile-left">
+                        <div class="avatar letter-avatar">
+                            @Account.VendorName?.Substring(0, Math.Min(2, Account.VendorName?.Length ?? 0)).ToUpper()
+                        </div>
+                    </div>
+
+                    <!-- CENTER - Vendor Info -->
+                    <div class="profile-center">
+                        <div class="top-row">
+                            <h5>@Account.VendorName</h5>
+                            <span class="badge @GetStatusBadgeClass(Account.AccountStatus)">@Account.AccountStatus</span>
+                            @if (Account.IsPaymentBlocked)
+                            {
+                                <span class="badge bg-danger-transparent text-danger">
+                                    <i class="ti ti-credit-card-off me-1"></i>Payment Blocked
+                                </span>
+                            }
+                            @if (Account.IsPostingBlocked)
+                            {
+                                <span class="badge bg-warning-transparent text-warning">
+                                    <i class="ti ti-lock me-1"></i>Posting Blocked
+                                </span>
+                            }
+                        </div>
+                        <div class="sub-text">
+                            <span style="display: flex; gap: 4px; margin-top: 7px;">
+                                <i class="ti ti-currency-rupee"></i> @Account.CurrencyCode - @Account.CurrencyName
+                            </span>
+                            <span style="display: flex; gap: 4px; margin-top: 7px;">
+                                <i class="ti ti-id"></i> @Account.VendorCode
+                            </span>
+                        </div>
+                    </div>
+
+                    <!-- RIGHT - Back Button -->
+                    @* <div class="profile-right">
+                        <a href="/vendor-accounts" class="btn btn-secondary btn-sm">
+                            <i class="ti ti-arrow-left"></i> Back
+                        </a>
+                    </div> *@
+                </div>
+            </div>
+         
+            <style>
+                .bg-surplus {
+                    background: linear-gradient(135deg, #009f0e, #05d436) !important;
+                }
+
+                .bg-exposure {
+                    background: linear-gradient(135deg, #7a0000, #ff3b3b) !important;
+                }
+
+            </style>
+            <!-- Balance Summary Cards -->
+            <div class="col-lg-12">
+                <div class="row g-3">
+                    <div class="col-md-3">
+                        <div class="card bg-primary text-white mb-0" style="    background: linear-gradient(135deg, #b60352, #f50075);">
+                            <div class="card-body py-3">
+                                <div class="d-flex align-items-center justify-content-between">
+                                    <div>
+                                        <div class="small text-white">Outstanding Payable</div>
+                                        <div class="text-white mb-0">@Account.OutstandingPayableAmount.ToString("N2")</div>
+                                    </div>
+                                    <div class="avatar bg-opacity-25">
+                                        <i class="ti ti-receipt fs-24 text-white"></i>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="card bg-success text-white mb-0" style="background: linear-gradient(135deg, #003797, #002cf5);">
+                            <div class="card-body py-3">
+                                <div class="d-flex align-items-center justify-content-between">
+                                    <div>
+                                        <div class="small text-white">Advance Paid</div>
+                                        <div class="text-white mb-0">@Account.AdvancePaidAmount.ToString("N2")</div>
+                                    </div>
+                                    <div class="avatar bg-opacity-25">
+                                        <i class="ti ti-cash fs-24 text-white"></i>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                       <div class="card @(Account.HasAdvanceSurplus ? "bg-surplus" : "bg-exposure") text-white mb-0">
+
+                            <div class="card-body py-3">
+                                <div class="d-flex align-items-center justify-content-between">
+                                    <div>
+                                        <div class="small text-white">
+                                            @(Account.HasAdvanceSurplus ? "Advance Surplus" : "Net Exposure")
+                                        </div>
+                                        <div class="text-white mb-0">
+                                            @(Account.HasAdvanceSurplus ? Account.AdvanceSurplusAmount.ToString("N2") : Account.NetExposureAmount.ToString("N2"))
+                                        </div>
+                                    </div>
+                                    <div class="avatar bg-opacity-25">
+                                        <i class="ti ti-@(Account.HasAdvanceSurplus ? "trending-up" : "trending-down") fs-24 text-white"></i>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="card bg-secondary text-white mb-0" style="background: linear-gradient(135deg, #e67100, #fe9f43);">
+                            <div class="card-body py-3">
+                                <div class="d-flex align-items-center justify-content-between">
+                                    <div>
+                                        <div class="small text-white">Total Bills Posted</div>
+                                        <div class="text-white mb-0">@Account.TotalBillsPostedAmount.ToString("N2")</div>
+                                    </div>
+                                    <div class="avatar bg-opacity-25">
+                                        <i class="ti ti-file-invoice fs-24 text-white"></i>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Left Column - Main Content -->
+            <div class="col-lg-8">
+                <div class="profile-card">
+                    <!-- Cumulative Totals -->
+                    <div class="card mb-3">
+                        <div class="card-header py-2">
+                            <i class="ti ti-chart-bar me-2"></i> Cumulative Totals (Lifetime)
+                        </div>
+                        <div class="card-body py-2">
+                            <div class="row">
+                                <div class="col-md-4 col-6 mb-2">
+                                    <small class="text-muted">Total Bills</small>
+                                    <div class="fw-medium">@Account.TotalBillsPostedAmount.ToString("N2")</div>
+                                </div>
+                                <div class="col-md-4 col-6 mb-2">
+                                    <small class="text-muted">Total Payments</small>
+                                    <div class="fw-medium">@Account.TotalPaymentsPostedAmount.ToString("N2")</div>
+                                </div>
+                                <div class="col-md-4 col-6 mb-2">
+                                    <small class="text-muted">Total Credit Notes</small>
+                                    <div>@Account.TotalCreditNotesPostedAmount.ToString("N2")</div>
+                                </div>
+                                <div class="col-md-4 col-6 mb-2">
+                                    <small class="text-muted">Total Debit Notes</small>
+                                    <div>@Account.TotalDebitNotesPostedAmount.ToString("N2")</div>
+                                </div>
+                                <div class="col-md-4 col-6 mb-2">
+                                    <small class="text-muted">Total Adjustments</small>
+                                    <div>@Account.TotalAdjustmentsPostedAmount.ToString("N2")</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Activity Summary -->
+                    <div class="card mb-3">
+                        <div class="card-header py-2">
+                            <i class="ti ti-activity me-2"></i> Activity Summary
+                        </div>
+                        <div class="card-body py-2">
+                            <div class="row">
+                                <div class="col-md-4 col-6 mb-2">
+                                    <small class="text-muted">Last Transaction</small>
+                                    <div>@(Account.LastTransactionOn?.ToString("dd MMM yyyy") ?? "-")</div>
+                                </div>
+                                <div class="col-md-4 col-6 mb-2">
+                                    <small class="text-muted">Last Bill Posted</small>
+                                    <div>@(Account.LastBillPostedOn?.ToString("dd MMM yyyy") ?? "-")</div>
+                                </div>
+                                <div class="col-md-4 col-6 mb-2">
+                                    <small class="text-muted">Last Payment Posted</small>
+                                    <div>@(Account.LastPaymentPostedOn?.ToString("dd MMM yyyy") ?? "-")</div>
+                                </div>
+                                <div class="col-md-6 col-12">
+                                    <small class="text-muted">Last Document Reference</small>
+                                    <div class="fw-medium">@(Account.LastDocumentReference ?? "-")</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Reconciliation Info -->
+                    <div class="card mb-3">
+                        <div class="card-header py-2">
+                            <i class="ti ti-checkup-list me-2"></i> Reconciliation Info
+                        </div>
+                        <div class="card-body py-2">
+                            <div class="row">
+                                <div class="col-md-4 col-6 mb-2">
+                                    <small class="text-muted">Last Reconciled On</small>
+                                    <div>@(Account.LastReconciledOn?.ToString("dd MMM yyyy") ?? "Not yet reconciled")</div>
+                                </div>
+                                <div class="col-md-4 col-6 mb-2">
+                                    <small class="text-muted">Reconciled By</small>
+                                    <div>@(Account.LastReconciledByUserName ?? "-")</div>
+                                </div>
+                                <div class="col-md-4 col-6 mb-2">
+                                    <small class="text-muted">AP Control Account</small>
+                                    <div>
+                                        @if (!string.IsNullOrEmpty(Account.APControlAccountCode))
+                                        {
+                                            <span class="badge bg-light text-dark">@Account.APControlAccountCode</span>
+                                            <span class="ms-1">@Account.APControlAccountName</span>
+                                        }
+                                        else
+                                        {
+                                            <span>-</span>
+                                        }
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Right Column - Locks & Audit -->
+            <div class="col-lg-4">
+                <div class="profile-card">
+                    <!-- Locks & Restrictions -->
+                    <div class="card mb-3">
+                        <div class="card-header py-2">
+                            <i class="ti ti-lock me-2"></i> Locks & Restrictions
+                        </div>
+                        <div class="card-body py-2">
+                            <div class="row g-2">
+                                <div class="col-12 mb-2">
+                                    <small class="text-muted">Payment Blocked</small>
+                                    <div>
+                                        <span class="badge @(Account.IsPaymentBlocked ? "bg-danger-transparent" : "bg-success-transparent ")">
+                                            @(Account.IsPaymentBlocked ? "Yes" : "No")
+                                        </span>
+                                    </div>
+                                </div>
+                                @if (Account.IsPaymentBlocked && !string.IsNullOrEmpty(Account.PaymentBlockReason))
+                                {
+                                    <div class="col-12 mb-2">
+                                        <small class="text-muted">Payment Block Reason</small>
+                                        <div class="text-danger small">@Account.PaymentBlockReason</div>
+                                    </div>
+                                }
+                                <div class="col-12 mb-2">
+                                    <small class="text-muted">Posting Blocked</small>
+                                    <div>
+                                        <span class="badge @(Account.IsPostingBlocked ? "bg-warning-transparent" : "bg-success-transparent")">
+                                            @(Account.IsPostingBlocked ? "Yes" : "No")
+                                        </span>
+                                    </div>
+                                </div>
+                                @if (Account.IsPostingBlocked && !string.IsNullOrEmpty(Account.PostingBlockReason))
+                                {
+                                    <div class="col-12 mb-2">
+                                        <small class="text-muted">Posting Block Reason</small>
+                                        <div class="text-warning small">@Account.PostingBlockReason</div>
+                                    </div>
+                                }
+                                @if (Account.BlockedOn.HasValue)
+                                {
+                                    <div class="col-6">
+                                        <small class="text-muted">Blocked On</small>
+                                        <div>@Account.BlockedOn.Value.ToString("dd MMM yyyy")</div>
+                                    </div>
+                                    <div class="col-6">
+                                        <small class="text-muted">Blocked By</small>
+                                        <div>@(Account.BlockedByUserName ?? "-")</div>
+                                    </div>
+                                }
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Account Status -->
+                    <div class="card mb-3">
+                        <div class="card-header py-2">
+                            <i class="ti ti-info-circle me-2"></i> Account Status
+                        </div>
+                        <div class="card-body py-2">
+                            <div class="row">
+                                <div class="col-12 mb-2">
+                                    <small class="text-muted">Status</small>
+                                    <div>
+                                        <span class="badge @GetStatusBadgeClass(Account.AccountStatus) fs-12">
+                                            @Account.AccountStatus
+                                        </span>
+                                    </div>
+                                </div>
+                                <div class="col-12 mb-2">
+                                    <small class="text-muted">Company</small>
+                                    <div>@Account.CompanyName</div>
+                                </div>
+                                <div class="col-12">
+                                    <small class="text-muted">Currency</small>
+                                    <div>
+                                        <span class="badge bg-light text-dark">@Account.CurrencyCode</span>
+                                        @Account.CurrencyName
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Audit Info -->
+                    <div class="card mb-0">
+                        <div class="card-header py-2">
+                            <i class="ti ti-clock me-2"></i> History
+                        </div>
+                        <div class="card-body py-2 small">
+                            <div class="row">
+                                <div class="col-12 mb-2">
+                                    <small class="text-muted">Created</small>
+                                    <div>@Account.CreatedAt.ToString("dd MMM yyyy HH:mm")</div>
+                                </div>
+                                <div class="col-12 mb-2">
+                                    <small class="text-muted">Created By</small>
+                                    <div>@(Account.CreatedBy ?? "-")</div>
+                                </div>
+                                @if (Account.UpdatedAt.HasValue)
+                                {
+                                    <div class="col-12 mb-2">
+                                        <small class="text-muted">Updated</small>
+                                        <div>@Account.UpdatedAt.Value.ToString("dd MMM yyyy HH:mm")</div>
+                                    </div>
+                                    <div class="col-12">
+                                        <small class="text-muted">Updated By</small>
+                                        <div>@(Account.UpdatedBy ?? "-")</div>
+                                    </div>
+                                }
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+}

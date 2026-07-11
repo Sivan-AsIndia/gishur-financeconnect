@@ -1,0 +1,596 @@
+@page "/countries"
+@inject NavigationManager Nav
+@inject IJSRuntime JS
+@inject MasterDataService MasterDataService
+@inject ToastService ToastService
+
+
+@if (!isInitialized)
+{
+    <div class="page-loading-overlay">
+        <div class="whirly-loader"></div>
+    </div>
+}
+else
+{
+    @if (isLoading)
+    {
+        <div class="page-loading-overlay">
+            <div class="whirly-loader"></div>
+        </div>
+    }
+
+    <div class="content List-view">
+
+        <!-- Page Header -->
+        <div class="page-header">
+            <div class="add-item d-flex">
+                <div class="page-title">
+                    <h4 class="fw-bold">Country List</h4>
+                    <h6>Manage your countries</h6>
+                </div>
+            </div>
+
+            <ul class="table-top-head me-2">
+                <li>
+                    <a href="javascript:void(0);" title="Refresh" @onclick="OnRefreshAsync">
+                        <i class="ti ti-refresh"></i>
+                    </a>
+                </li>
+            </ul>
+
+            <div class="page-btn">
+                <a href="/countries/create" class="btn btn-primary">
+                    <i class="ti ti-circle-plus me-1"></i>
+                    Create
+                </a>
+            </div>
+        </div>
+
+        <!-- Country List -->
+        <div class="card">
+            <div class="card-header d-flex align-items-center justify-content-between flex-wrap row-gap-3">
+                <div class="search-set">
+                    <div class="search-input">
+                        <span class="btn-searchset"><i class="ti ti-search fs-14"></i></span>
+                        <input type="search" class="form-control form-control-sm" placeholder="Search country"
+                               @bind="searchText" @oninput="OnSearch" />
+                    </div>
+                </div>
+
+                <div style="display:flex">
+                    <div>
+                        <select class="form-select form-select-sm" style="min-width: 160px" @bind="SelectedRegion">
+                            <option value="">All Regions</option>
+                            @foreach (var region in TableRegions)
+                            {
+                                <option value="@region">@region</option>
+                            }
+                        </select>
+                    </div>
+                    <div class="ms-2">
+                        <select class="form-select form-select-sm" style="min-width: 140px" @bind="SelectedStatus">
+                            <option value="">All Status</option>
+                            <option value="Active">Active</option>
+                            <option value="Inactive">Inactive</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card-body p-0">
+                <div class="">
+                    <table class="table align-middle w-100 table-fixed">
+                        <thead class="thead-light">
+                            <tr>
+                                <th class="d-xl-none" style="width:40px"></th>
+                                <th class="d-none d-md-table-cell" title="Country Code">Code</th>
+                                <th title="Country Name">Name</th>
+                                <th class="d-none d-xl-table-cell">ISO2</th>
+                                <th class="d-none d-xl-table-cell">ISO3</th>
+                                <th class="d-none d-xxl-table-cell">Region</th>
+                                @* <th class="d-none d-xxl-table-cell">Currency</th> *@
+                                @* <th class="d-none d-xxl-table-cell">Phone Code</th> *@
+                                <th class="d-none d-md-table-cell">Status</th>
+                                <th class="no-sort">Action</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @if (PagedCountries.Any())
+                            {
+                                @foreach (var c in PagedCountries)
+                                {
+                                    <tr>
+                                        <td class="d-xl-none text-center" style="padding: 0;padding-left: 15px;">
+                                            <a href="javascript:void(0);" class="TablePlus"
+                                               data-bs-toggle="modal"
+                                               data-bs-target="#rowDetailsModal"
+                                               @onclick="() => OpenRowDetails(c)">
+                                                <i class="ti ti-plus"></i>
+                                            </a>
+                                        </td>
+
+                                        <td class="d-none d-md-table-cell">
+                                            <span class="fw-medium" data-bs-toggle="tooltip"
+                                                  data-bs-placement="top"
+                                                  title="@c.CountryCode Details">
+                                                <span class="PopupIcon">⧉</span>
+                                                <a @onclick="async () => await ViewCountry(c)" class="text-decoration-none link-View" href="javascript:void(0);">
+                                                    @c.CountryCode
+                                                </a>
+                                            </span>
+                                        </td>
+                                        <td>
+                                            <div class="d-flex flex-column gap-1">
+                                                <span style="color:black;">@c.CountryName</span>
+                                                <span title="Currency">@c.DefaultCurrencyCode</span>
+                                            </div>
+                                        </td>
+                                        <td class="d-none d-xl-table-cell" >@c.ISO2</td>
+                                        <td class="d-none d-xl-table-cell">@c.ISO3</td>
+                                        <td class="d-none d-xxl-table-cell">@(c.Region ?? "-")</td>
+                                        @* <td class="d-none d-xxl-table-cell" title="@c.DefaultCurrencyCode">
+                                           
+                                        </td> *@
+                                        @* <td class="d-none d-xxl-table-cell" title="@c.PhoneCountryCode">@(c.PhoneCountryCode ?? "-")</td> *@
+                                       
+
+                                        <td class="d-none d-md-table-cell">
+                                            <div class="d-flex align-items-center gap-2">
+                                                <div class="ActiveDot @(c.IsActive ? "bg-success text-success" : "bg-danger text-danger")" ">
+                                                </div>
+                                                <span>@(c.IsActive ? "Active" : "Inactive")</span>
+                                            </div>
+                                        </td>
+
+
+                                        <td class="action-table-data">
+                                            <div class="edit-delete-action">
+                                                @* <a class="me-2 view-icon p-1" href="javascript:void(0);" title="View"
+                                                   data-bs-toggle="modal" data-bs-target="#view-country-modal"
+                                                   @onclick="async () => await ViewCountry(c)">
+                                                    <i data-feather="eye"></i>
+                                                </a> *@
+                                                <a class="me-2 p-1 edit-icon" href="/countries/@c.Id">
+                                                    <i data-feather="edit"></i>
+                                                </a>
+                                                @if (c.IsActive)
+                                                {
+                                                    <a class="me-2 p-1 Toggle-icon action-icon deactivate-icon" href="javascript:void(0);"
+                                                       title="Deactivate" data-bs-toggle="modal" data-bs-target="#deactivate-modal"
+                                                       @onclick="() => ConfirmDeactivate(c)">
+                                                        <i class="ti ti-toggle-right"></i>
+                                                    </a>
+                                                }
+                                                else
+                                                {
+                                                    <a class="me-2 p-1 Toggle-icon action-icon activate-icon" href="javascript:void(0);"
+                                                       title="Activate" data-bs-toggle="modal" data-bs-target="#activate-modal"
+                                                       @onclick="() => ConfirmActivate(c)">
+                                                        <i class="ti ti-toggle-left"></i>
+                                                    </a>
+                                                }
+                                                <a class="me-2 p-1 action-icon delete-icon" href="javascript:void(0);"
+                                                   title="Delete" data-bs-toggle="modal" data-bs-target="#delete-modal"
+                                                   @onclick="() => ConfirmDelete(c)">
+                                                    <i class="ti ti-trash"></i>
+                                                </a>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                }
+                            }
+                            else
+                            {
+                                <tr>
+                                    <td colspan="@VisibleColumnCount" class="text-center py-4">
+                                        <div class="text-muted">
+                                            <i class="ti ti-database-off fs-32 d-block mb-2"></i>
+                                            No countries found
+                                        </div>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- Pagination -->
+                @if (FilteredCountries.Any())
+                {
+                    <div class="d-flex align-items-center justify-content-between flex-wrap row-gap-3 px-3 pt-3 pb-4">
+                        <div class="d-flex align-items-center fs-13">
+                            <span class="me-2">Rows per page</span>
+                            <select class="form-select form-select-sm" style="width: auto" @onchange="OnPageSizeChange">
+                                <option value="5" selected="@(PageSize == 5)">5</option>
+                                <option value="10" selected="@(PageSize == 10)">10</option>
+                                <option value="25" selected="@(PageSize == 25)">25</option>
+                                <option value="50" selected="@(PageSize == 50)">50</option>
+                            </select>
+                            <span class="ms-3 text-muted">
+                                Entries
+                            </span>
+                        </div>
+
+                        <nav>
+                            <ul class="pagination pagination-sm mb-0">
+                                <li class="page-item @(CurrentPage == 1 ? "disabled" : "")">
+                                    <a class="page-link" href="javascript:void(0);" @onclick="PreviousPage">
+                                        <i class="ti ti-chevron-left"></i>
+                                    </a>
+                                </li>
+                                @for (int i = StartPage; i <= EndPage; i++)
+                                {
+                                    int pageNum = i;
+                                    <li class="page-item @(CurrentPage == pageNum ? "active" : "")">
+                                        <a class="page-link" href="javascript:void(0);" @onclick="() => GoToPage(pageNum)">@pageNum</a>
+                                    </li>
+                                }
+                                <li class="page-item @(CurrentPage == TotalPages ? "disabled" : "")">
+                                    <a class="page-link" href="javascript:void(0);" @onclick="NextPage">
+                                        <i class="ti ti-chevron-right"></i>
+                                    </a>
+                                </li>
+                            </ul>
+                        </nav>
+                    </div>
+                }
+            </div>
+        </div>
+
+
+
+        <!-- Activate Modal -->
+        <div class="modal fade" id="activate-modal" data-bs-backdrop="static" data-bs-keyboard="false">
+            <div class="modal-dialog modal-dialog-centered">
+                <div class="modal-content">
+                    <div class="page-wrapper-new p-0">
+                        <div class="p-5 px-3 text-center">
+                            <span class="rounded-circle d-inline-flex p-2 bg-success-transparent mb-2">
+                                <i class="ti ti-toggle-right fs-24 text-success"></i>
+                            </span>
+                            <h4 class="fs-20 text-gray-9 fw-bold mb-2 mt-1">Activate Country</h4>
+                            <p class="text-gray-6 mb-0 fs-16">
+                                Are you sure you want to activate <strong>@SelectedCountry?.CountryName</strong>?
+                            </p>
+                            <div class="modal-footer-btn mt-4 d-flex justify-content-center gap-3">
+                                <button type="button" class="btn btn-outline-secondary fs-13 fw-medium p-2 px-4" data-bs-dismiss="modal"><i class="ti ti-x me-1"></i>Cancel</button>
+                                <button type="button" class="btn btn-success fs-13 fw-medium p-2 px-4" @onclick="ActivateConfirmed" data-bs-dismiss="modal"><i class="ti ti-toggle-right me-1"></i>Yes, Activate</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Deactivate Modal -->
+        <div class="modal fade" id="deactivate-modal" data-bs-backdrop="static" data-bs-keyboard="false">
+            <div class="modal-dialog modal-dialog-centered">
+                <div class="modal-content">
+                    <div class="page-wrapper-new p-0">
+                        <div class="p-5 px-3 text-center">
+                            <span class="rounded-circle d-inline-flex p-2 bg-warning-transparent mb-2">
+                                <i class="ti ti-toggle-left fs-24 text-warning"></i>
+                            </span>
+                            <h4 class="fs-20 text-gray-9 fw-bold mb-2 mt-1">Deactivate Country</h4>
+                            <p class="text-gray-6 mb-0 fs-16">
+                                @if (!canDeactivate)
+                                {
+                                    <span class="text-danger">Cannot deactivate! Please deactivate all states under this country first.</span>
+                                }
+                                else
+                                {
+                                    <span>Are you sure you want to deactivate <strong>@SelectedCountry?.CountryName</strong>?</span>
+                                }
+                            </p>
+                            <div class="modal-footer-btn mt-4 d-flex justify-content-center gap-3">
+                                <button type="button" class="btn btn-outline-secondary fs-13 fw-medium p-2 px-4" data-bs-dismiss="modal"><i class="ti ti-x me-1"></i>Cancel</button>
+                                @if (canDeactivate)
+                                {
+                                    <button type="button" class="btn btn-warning fs-13 fw-medium p-2 px-4" @onclick="DeactivateConfirmed" data-bs-dismiss="modal"><i class="ti ti-toggle-left me-1"></i>Yes, Deactivate</button>
+                                }
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Delete Modal -->
+        <div class="modal fade" id="delete-modal" data-bs-backdrop="static" data-bs-keyboard="false">
+            <div class="modal-dialog modal-dialog-centered">
+                <div class="modal-content">
+                    <div class="page-wrapper-new p-0">
+                        <div class="p-5 px-3 text-center">
+                            <span class="rounded-circle d-inline-flex p-2 bg-danger-transparent mb-2">
+                                <i class="ti ti-trash fs-24 text-danger"></i>
+                            </span>
+                            <h4 class="fs-20 text-gray-9 fw-bold mb-2 mt-1">Delete Country</h4>
+                            <p class="text-gray-6 mb-0 fs-16">
+                                @if (!canDelete)
+                                {
+                                    <span class="text-danger">Cannot delete! Please delete all states under this country first.</span>
+                                }
+                                else
+                                {
+                                    <span> Are you sure you want to delete <strong>@SelectedCountry?.CountryName</strong>?</span>
+                                }
+                            </p>
+                            @if (canDelete)
+                            {
+                                <div class="alert alert-danger mt-3 text-start small">
+                                    <i class="ti ti-alert-triangle me-2"></i>
+                                    This action cannot be undone.
+                                </div>
+                            }
+                            <div class="modal-footer-btn mt-4 d-flex justify-content-center gap-3">
+                                <button type="button" class="btn btn-outline-secondary fs-13 fw-medium p-2 px-4" data-bs-dismiss="modal"><i class="ti ti-x me-1"></i>Cancel</button>
+                                @if (canDelete)
+                                {
+                                    <button type="button" class="btn btn-danger fs-13 fw-medium p-2 px-4" @onclick="DeleteConfirmed" data-bs-dismiss="modal"><i class="ti ti-trash me-1"></i>Yes, Delete</button>
+                                }
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+}
+
+
+<div class="modal fade list-Popup" id="rowDetailsModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+
+            <div class="modal-header">
+                <h5 class="modal-title">Country Details</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"
+                        style="padding:0; right:22px; position:absolute;transform:none"></button>
+            </div>
+
+            <div class="modal-body">
+                <div class="mb-2 d-flex gap-3">
+                    <strong>ISO2:</strong>
+                    <div>@SelectedCompany?.ISO2</div>
+                </div>
+
+                <div class="mb-2 d-flex gap-3">
+                    <strong>ISO3:</strong>
+                    <div>@SelectedCompany?.ISO3</div>
+                </div>
+
+                <div class="mb-2 d-flex gap-3">
+                    <strong>Region:</strong>
+                    <div>@(SelectedCompany?.Region ?? "-")</div>
+                </div>
+
+                <div class="mb-2 d-flex gap-3">
+                    <strong>DefaultCurrencyCode:</strong>
+                    <div>@(SelectedCompany?.DefaultCurrencyCode ?? "-")</div>
+                </div>
+
+                <div class="mb-2 d-flex gap-3">
+                    <strong>PhoneCountryCode:</strong>
+                    <div>@(SelectedCompany?.PhoneCountryCode ?? "-")</div>
+                </div>
+
+                <div class="mb-2 gap-3 d-md-none">
+                    <strong>Status:</strong>
+                    <span class="badge @((SelectedCompany?.IsActive ?? false) ? "bg-success" : "bg-danger")">
+                        @((SelectedCompany?.IsActive ?? false) ? "Active" : "Inactive")
+                    </span>
+
+
+                </div>
+
+
+            </div>
+
+        </div>
+    </div>
+</div>
+
+
+
+
+<!-- View Country Offcanvas -->
+<div class="offcanvas offcanvas-end offcanvas-view" tabindex="-1" id="viewCountryOffcanvas" data-bs-backdrop="true" data-bs-scroll="false">
+    @if (SelectedCountry != null)
+    {
+        <!-- Header: Avatar + Name + Status -->
+        <div class="offcanvas-header">
+            <div class="oc-avatar">@SelectedCountry.ISO2</div>
+            <div class="oc-header-info">
+                <div class="oc-header-top">
+                    <h5>@SelectedCountry.CountryName</h5>
+                    <span class="oc-status-pill @(SelectedCountry.IsActive ? "active" : "inactive")">
+                        <span class="oc-status-dot"></span>
+                        @(SelectedCountry.IsActive ? "Active" : "Inactive")
+                    </span>
+                </div>
+                <p class="oc-header-sub">@(SelectedCountry.OfficialName ?? SelectedCountry.CountryName)</p>
+            </div>
+            <button type="button" class="btn-close" data-bs-dismiss="offcanvas" aria-label="Close"></button>
+        </div>
+
+        <!-- Body -->
+        <div class="offcanvas-body">
+
+            <!-- Summary Cards -->
+            <div class="oc-summary-row">
+                <div class="oc-summary-card card-orange">
+                    <div class="oc-summary-value">@SelectedCountry.CountryCode</div>
+                    <div class="oc-summary-label">Code</div>
+                </div>
+                <div class="oc-summary-card card-blue">
+                    <div class="oc-summary-value">@(SelectedCountry.DefaultCurrencyCode ?? "—")</div>
+                    <div class="oc-summary-label">Currency</div>
+                </div>
+                <div class="oc-summary-card card-green">
+                    <div class="oc-summary-value">@(SelectedCountry.PhoneCountryCode ?? "—")</div>
+                    <div class="oc-summary-label">Phone Code</div>
+                </div>
+            </div>
+
+            <!-- Country Identity -->
+            <div class="oc-card">
+                <div class="oc-card-header hdr-orange">
+                    <i class="ti ti-flag"></i>
+                    <h6 class="oc-card-title">Country Identity</h6>
+                </div>
+                <div class="oc-card-body">
+                    <div class="oc-grid">
+                        <div class="oc-grid-item">
+                            <div class="oc-field-label"><i class="ti ti-tag"></i> Country Code</div>
+                            <div class="oc-field-value">@SelectedCountry.CountryCode</div>
+                        </div>
+                        <div class="oc-grid-item">
+                            <div class="oc-field-label"><i class="ti ti-writing"></i> Country Name</div>
+                            <div class="oc-field-value">@SelectedCountry.CountryName</div>
+                        </div>
+                        <div class="oc-grid-item">
+                            <div class="oc-field-label"><i class="ti ti-certificate"></i> Official Name</div>
+                            <div class="oc-field-value">@(SelectedCountry.OfficialName ?? "—")</div>
+                        </div>
+                        <div class="oc-grid-item">
+                            <div class="oc-field-label"><i class="ti ti-world"></i> Region</div>
+                            <div class="oc-field-value">
+                                @if (!string.IsNullOrWhiteSpace(SelectedCountry.Region))
+                                {
+                                    <span class="badge bg-purple-transparent text-purple">@SelectedCountry.Region</span>
+                                }
+                                else
+                                {
+                                    <span>—</span>
+                                }
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ISO Codes & Standards -->
+            <div class="oc-card">
+                <div class="oc-card-header hdr-blue">
+                    <i class="ti ti-barcode"></i>
+                    <h6 class="oc-card-title">ISO Codes & Standards</h6>
+                </div>
+                <div class="oc-card-body">
+                    <div class="oc-grid">
+                        <div class="oc-grid-item">
+                            <div class="oc-field-label"><i class="ti ti-letter-case"></i> ISO 2-Letter</div>
+                            <div class="oc-field-value">
+                                <span class="badge bg-info-transparent text-info">@SelectedCountry.ISO2</span>
+                            </div>
+                        </div>
+                        <div class="oc-grid-item">
+                            <div class="oc-field-label"><i class="ti ti-abc"></i> ISO 3-Letter</div>
+                            <div class="oc-field-value">
+                                @if (!string.IsNullOrWhiteSpace(SelectedCountry.ISO3))
+                                {
+                                    <span class="badge bg-info-transparent text-info">@SelectedCountry.ISO3</span>
+                                }
+                                else
+                                {
+                                    <span>—</span>
+                                }
+                            </div>
+                        </div>
+                        <div class="oc-grid-item">
+                            <div class="oc-field-label"><i class="ti ti-123"></i> Numeric Code</div>
+                            <div class="oc-field-value">@(SelectedCountry.NumericCode ?? "—")</div>
+                        </div>
+                        <div class="oc-grid-item">
+                            <div class="oc-field-label"><i class="ti ti-coin"></i> Default Currency</div>
+                            <div class="oc-field-value">
+                                @if (!string.IsNullOrWhiteSpace(SelectedCountry.DefaultCurrencyCode))
+                                {
+                                    <span class="badge bg-warning-transparent text-warning">@SelectedCountry.DefaultCurrencyCode</span>
+                                }
+                                else
+                                {
+                                    <span>—</span>
+                                }
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Address & Postal Rules -->
+            <div class="oc-card">
+                <div class="oc-card-header hdr-green">
+                    <i class="ti ti-map-pin"></i>
+                    <h6 class="oc-card-title">Address & Postal Rules</h6>
+                </div>
+                <div class="oc-card-body">
+                    <div class="oc-list">
+                        <div class="oc-list-row">
+                            <span class="oc-list-label"><i class="ti ti-building-community"></i> Has States/Provinces</span>
+                            <span class="oc-list-value">
+                                @if (SelectedCountry.HasStates)
+                                {
+                                    <span class="oc-dot-badge db-green"><span class="dot"></span> Yes</span>
+                                }
+                                else
+                                {
+                                    <span class="oc-dot-badge db-red"><span class="dot"></span> No</span>
+                                }
+                            </span>
+                        </div>
+                        <div class="oc-list-row">
+                            <span class="oc-list-label"><i class="ti ti-phone"></i> Phone Country Code</span>
+                            <span class="oc-list-value">@(SelectedCountry.PhoneCountryCode ?? "—")</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Status & Audit -->
+            <div class="oc-card">
+                <div class="oc-card-header hdr-purple">
+                    <i class="ti ti-clock-record"></i>
+                    <h6 class="oc-card-title">Status & Audit</h6>
+                </div>
+                <div class="oc-card-body">
+                    <div class="oc-list">
+                        <div class="oc-list-row">
+                            <span class="oc-list-label"><i class="ti ti-toggle-right"></i> Status</span>
+                            <span class="oc-list-value">
+                                <span class="oc-dot-badge @(SelectedCountry.IsActive ? "db-green" : "db-red")">
+                                    <span class="dot"></span>
+                                    @(SelectedCountry.IsActive ? "Active" : "Inactive")
+                                </span>
+                            </span>
+                        </div>
+                        <div class="oc-list-row">
+                            <span class="oc-list-label"><i class="ti ti-sort-ascending"></i> Sort Order</span>
+                            <span class="oc-list-value">@SelectedCountry.SortOrder</span>
+                        </div>
+                        <div class="oc-list-row">
+                            <span class="oc-list-label"><i class="ti ti-calendar-plus"></i> Created</span>
+                            <span class="oc-list-value">@SelectedCountry.CreatedAt.ToString("dd-MMM-yyyy")</span>
+                        </div>
+                        <div class="oc-list-row">
+                            <span class="oc-list-label"><i class="ti ti-user"></i> Created By</span>
+                            <span class="oc-list-value">@(SelectedCountry.CreatedBy ?? "—")</span>
+                        </div>
+                        @if (SelectedCountry.UpdatedAt.HasValue)
+                        {
+                            <div class="oc-list-row">
+                                <span class="oc-list-label"><i class="ti ti-calendar-event"></i> Updated</span>
+                                <span class="oc-list-value">@SelectedCountry.UpdatedAt.Value.ToString("dd-MMM-yyyy")</span>
+                            </div>
+                        }
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    }
+</div>
+
+

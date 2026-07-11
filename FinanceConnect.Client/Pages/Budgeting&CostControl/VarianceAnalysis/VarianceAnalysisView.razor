@@ -1,0 +1,238 @@
+@page "/variance-analysis/{Id:guid}/view"
+@using FinanceConnect.Client.ViewModels
+@using static FinanceConnect.Client.ViewModels.VarianceAnalysisViewModel
+
+@if (!isInitialized)
+{
+    <div class="page-loading-overlay">
+        <div class="whirly-loader"></div>
+    </div>
+}
+else if (Item == null)
+{
+    <div class="vb-root">
+        <div class="content">
+            <div class="alert alert-danger">
+                <i class="ti ti-alert-circle me-2"></i>
+                Variance Analysis not found.
+                <a href="/variance-analysis" class="alert-link ms-2">Return to list</a>
+            </div>
+        </div>
+    </div>
+}
+else
+{
+    <div class="vb-root">
+        <div class="content">
+
+            <!-- ═══ HEADER ═══ -->
+            <div class="vb-header-card">
+                <div class="vb-cover">
+                    <div class="vb-cover-orb vb-orb-1"></div>
+                    <div class="vb-cover-orb vb-orb-2"></div>
+                    <div class="vb-cover-orb vb-orb-3"></div>
+                </div>
+                <div class="vb-header-body">
+                    <div class="vb-avatar">
+                        @Item.AnalysisCode?.Substring(0, Math.Min(2, Item.AnalysisCode?.Length ?? 0)).ToUpper()
+                    </div>
+                    <div class="vb-header-meta">
+                        <div>
+                            <p class="vb-bill-number">@Item.AnalysisCode – @Item.AnalysisName</p>
+                            <p class="vb-bill-sub">@GetModeLabel(Item.ComparisonMode) · @Item.AnalysisScopeLevel · @Item.AnalysisTimeMode</p>
+                            <div class="vb-badges">
+                                <span class="badge @GetStatusBadge(Item.AnalysisStatus)">@Item.AnalysisStatus</span>
+                                @if (Item.IsLocked)
+                                {
+                                    <span class="badge badge-red">🔒 Locked</span>
+                                }
+                            </div>
+                        </div>
+                        <div class="vb-header-actions">
+                         
+                            @if (!Item.IsLocked)
+                            {
+                                <a href="/variance-analysis/edit/@Item.VarianceAnalysisId" class="btn btn-primary">
+                                    <i class="ti ti-pencil me-1"></i> Edit
+                                </a>
+                            }
+                            <a href="/variance-analysis" class="btn btn-outline-secondary">
+                                <i class="ti ti-arrow-left me-1"></i> Back
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ═══ SUMMARY TILES ═══ -->
+            <div class="vb-summary-grid mb-4 mt-2" style="background:transparent;border:none;box-shadow:none;">
+                <div class="vb-tile"><div class="vb-tile-label">Budget Total</div><div class="vb-tile-value primary">@Item.TotalBudgetAmount.ToString("N2")</div></div>
+                <div class="vb-tile"><div class="vb-tile-label">Actual Total</div><div class="vb-tile-value">@Item.TotalActualAmount.ToString("N2")</div></div>
+                <div class="vb-tile"><div class="vb-tile-label">Variance Amount</div><div class="vb-tile-value @(Item.TotalVarianceAmount > 0 ? "text-danger" : "text-success")">@Item.TotalVarianceAmount.ToString("N2")</div></div>
+                <div class="vb-tile"><div class="vb-tile-label">Variance %</div><div class="vb-tile-value">@Item.OverallVariancePercent.ToString("N2")%</div></div>
+                <div class="vb-tile"><div class="vb-tile-label">Favorable</div><div class="vb-tile-value text-success">@Item.FavorableVarianceAmount.ToString("N2")</div></div>
+                <div class="vb-tile"><div class="vb-tile-label">Unfavorable</div><div class="vb-tile-value text-danger">@Item.UnfavorableVarianceAmount.ToString("N2")</div></div>
+            </div>
+
+            <!-- ═══ TWO-COLUMN BODY ═══ -->
+            <div class="ac-layout mb-5">
+
+                <!-- ══ LEFT SIDEBAR ══ -->
+                <div class="ac-left">
+
+                    <!-- Comparison Definition -->
+                    <div class="vb-card">
+                        <div class="vb-card-header">
+                            <h6><i class="ti ti-arrows-exchange me-1"></i> Comparison Definition</h6>
+                        </div>
+                        <div class="vb-card-body">
+                            <div class="vb-row"><span class="vb-label">Comparison Mode</span><span class="vb-val">@GetModeLabel(Item.ComparisonMode)</span></div>
+                            <div class="vb-row"><span class="vb-label">Time Mode</span><span class="vb-val">@Item.AnalysisTimeMode</span></div>
+                            <div class="vb-row"><span class="vb-label">Scope Level</span><span class="vb-val">@Item.AnalysisScopeLevel</span></div>
+                            <div class="vb-row"><span class="vb-label">Nature Basis</span><span class="vb-val">@Item.LineNatureMode</span></div>
+                            <div class="vb-row"><span class="vb-label">Actual Source Mode</span><span class="vb-val">@Item.ActualSourceMode</span></div>
+                        </div>
+                    </div>
+
+                    <!-- Period & Scope -->
+                    <div class="vb-card">
+                        <div class="vb-card-header">
+                            <h6><i class="ti ti-calendar me-1"></i> Period & Scope</h6>
+                        </div>
+                        <div class="vb-card-body">
+                            <div class="vb-row"><span class="vb-label">From Date</span><span class="vb-val">@Item.FromDate?.ToString("dd MMM yyyy")</span></div>
+                            <div class="vb-row"><span class="vb-label">To Date</span><span class="vb-val">@Item.ToDate?.ToString("dd MMM yyyy")</span></div>
+                            <div class="vb-row"><span class="vb-label">Materiality (Amt)</span><span class="vb-val">@(Item.MaterialityThresholdAmount?.ToString("N2") ?? "–")</span></div>
+                            <div class="vb-row"><span class="vb-label">Materiality (%)</span><span class="vb-val">@(Item.MaterialityThresholdPercent?.ToString("N2") ?? "–")%</span></div>
+                        </div>
+                    </div>
+
+                    <!-- Status -->
+                    <div class="vb-card">
+                        <div class="vb-card-header">
+                            <h6><i class="ti ti-toggle-right me-1"></i> Status & Lifecycle</h6>
+                        </div>
+                        <div class="vb-card-body">
+                            <div class="vb-row">
+                                <span class="vb-label">Analysis Status</span>
+                                <span class="vb-val"><span class="badge @GetStatusBadge(Item.AnalysisStatus)">@Item.AnalysisStatus</span></span>
+                            </div>
+                            <div class="vb-row">
+                                <span class="vb-label">Locked</span>
+                                <span class="vb-val">@(Item.IsLocked ? "🔒 Yes" : "Unlocked")</span>
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+                <!-- ══ END LEFT SIDEBAR ══ -->
+
+                <!-- ══ RIGHT MAIN ══ -->
+                <div class="ac-right">
+
+                    <!-- Source Inclusion Rules -->
+                    <div class="vb-card">
+                        <div class="vb-card-header">
+                            <h6><i class="ti ti-settings me-1"></i> Source Inclusion Rules</h6>
+                        </div>
+                        <div class="vb-card-body">
+                            <div class="ac-2col">
+                                <div class="vb-row"><span class="vb-label">Allocated Values</span><span class="vb-val">@BoolBadge(Item.IncludeAllocatedValues)</span></div>
+                                <div class="vb-row"><span class="vb-label">Committed Amounts</span><span class="vb-val">@BoolBadge(Item.IncludeCommittedAmounts)</span></div>
+                                <div class="vb-row"><span class="vb-label">Tax in Actuals</span><span class="vb-val">@BoolBadge(Item.IncludeTaxInActuals)</span></div>
+                                <div class="vb-row"><span class="vb-label">Require Explanation</span><span class="vb-val">@BoolBadge(Item.RequireExplanationAboveThreshold)</span></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Notes & Commentary -->
+                    @if (!string.IsNullOrWhiteSpace(Item.Description) || !string.IsNullOrWhiteSpace(Item.ReviewNotes) || !string.IsNullOrWhiteSpace(Item.ManagementCommentary))
+                    {
+                        <div class="vb-card">
+                            <div class="vb-card-header">
+                                <h6><i class="ti ti-notes me-1"></i> Notes & Commentary</h6>
+                            </div>
+                            <div class="vb-card-body">
+                                @if (!string.IsNullOrWhiteSpace(Item.Description))
+                                {
+                                    <div class="vb-row" style="flex-direction:column;gap:4px;">
+                                        <span class="vb-label">Description</span>
+                                        <span class="vb-val" style="font-style:italic;color:var(--gray-600);">@Item.Description</span>
+                                    </div>
+                                }
+                                @if (!string.IsNullOrWhiteSpace(Item.ReviewNotes))
+                                {
+                                    <div class="vb-row" style="flex-direction:column;gap:4px;">
+                                        <span class="vb-label">Review Notes</span>
+                                        <span class="vb-val" style="font-style:italic;color:var(--gray-600);">@Item.ReviewNotes</span>
+                                    </div>
+                                }
+                                @if (!string.IsNullOrWhiteSpace(Item.ManagementCommentary))
+                                {
+                                    <div class="vb-row" style="flex-direction:column;gap:4px;">
+                                        <span class="vb-label">Management Commentary</span>
+                                        <span class="vb-val" style="font-style:italic;color:var(--gray-600);">@Item.ManagementCommentary</span>
+                                    </div>
+                                }
+                            </div>
+                        </div>
+                    }
+
+                    <!-- Audit Trail -->
+                    <div class="vb-card">
+                        <div class="vb-card-header">
+                            <h6><i class="ti ti-history me-1"></i> Audit Trail</h6>
+                        </div>
+                        <div class="vb-card-body">
+                            <div class="ac-2col">
+                                <div class="vb-row"><span class="vb-label">Generated On</span><span class="vb-val">@(Item.GeneratedOn?.ToString("dd MMM yyyy HH:mm") ?? "–")</span></div>
+                                <div class="vb-row"><span class="vb-label">Reviewed On</span><span class="vb-val">@(Item.ReviewedOn?.ToString("dd MMM yyyy HH:mm") ?? "–")</span></div>
+                                <div class="vb-row"><span class="vb-label">Approved On</span><span class="vb-val">@(Item.ApprovedOn?.ToString("dd MMM yyyy HH:mm") ?? "–")</span></div>
+                                <div class="vb-row"><span class="vb-label">Locked On</span><span class="vb-val">@(Item.LockedOn?.ToString("dd MMM yyyy HH:mm") ?? "–")</span></div>
+                                <div class="vb-row"><span class="vb-label">Created At</span><span class="vb-val">@Item.CreatedAt.ToString("dd MMM yyyy HH:mm")</span></div>
+                                <div class="vb-row"><span class="vb-label">Total Lines</span><span class="vb-val">@Item.TotalLineCount</span></div>
+                                <div class="vb-row"><span class="vb-label">Significant Variances</span><span class="vb-val">@Item.SignificantVarianceLineCount</span></div>
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+                <!-- ══ END RIGHT MAIN ══ -->
+
+            </div>
+
+        </div>
+    </div>
+}
+
+<style>
+    .ac-layout {
+        display: grid;
+        grid-template-columns: 300px 1fr;
+        gap: 16px;
+        align-items: start;
+    }
+
+    .ac-left,
+    .ac-right {
+        display: flex;
+        flex-direction: column;
+        gap: 16px;
+    }
+
+    .ac-2col {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(204px, 1fr));
+        gap: 0 32px;
+    }
+
+    @@media (max-width: 900px) {
+        .ac-layout {
+            grid-template-columns: 1fr;
+        }
+
+        .ac-2col {
+            grid-template-columns: 1fr;
+        }
+    }
+</style>

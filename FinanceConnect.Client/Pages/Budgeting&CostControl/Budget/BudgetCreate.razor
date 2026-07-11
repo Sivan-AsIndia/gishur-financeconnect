@@ -1,0 +1,815 @@
+﻿@page "/budgets/create"
+@page "/budgets/{Id:guid}"
+@inject IJSRuntime JS
+@inject NavigationManager Nav
+
+<style>
+    .form-select option:checked {
+        color: #fff;
+        background: var(--primary);
+    }
+
+    .form-select:focus {
+        border-color: var(--primary);
+        box-shadow: none;
+    }
+
+    .validation-message {
+        color: #dc3545;
+        font-size: 12px;
+    }
+
+    .header-ribbon {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        background: #f8f9fa;
+        padding: 15px 20px;
+        border-radius: 8px;
+        margin-bottom: 15px;
+    }
+
+    .badge-lg {
+        font-size: 14px;
+        padding: 6px 10px;
+    }
+
+    .form-check-label {
+        font-size: 13px;
+    }
+
+    .gl-error {
+        color: #dc3545;
+        font-size: 12px;
+        display: block;
+        margin-top: 2px;
+    }
+
+    .field-invalid {
+        border-color: #dc3545 !important;
+        box-shadow: none !important;
+    }
+
+</style>
+<div class="content Accordion-form">
+
+    <!-- HEADER -->
+    <div class="header-ribbon">
+
+        <div class="page-title">
+            <h4 class="fw-bold mb-0">
+                @(IsEdit? budget.BudgetCode: "New Budget")
+
+                <span class="badge badge-lg-tranparent text-lg @GetStatusBadge(budget.Status)">
+                    @budget.Status
+                </span>
+            </h4>
+
+            <small class="text-muted">
+                @(IsEdit ? "Manage budget lifecycle" : "Create a new budget")
+            </small>
+        </div>
+
+        <div class="d-flex gap-2">
+            <button class="btn btn-outline-secondary" @onclick="BackToList">
+                <i class="ti ti-arrow-left"></i> Back
+            </button>
+        </div>
+
+    </div>
+
+    <!-- FORM -->
+    <EditForm EditContext="_editContext" OnSubmit="HandleSubmit">
+        <DataAnnotationsValidator />
+
+        <div class="add-product" style="background:#f4f7fb; padding:24px 14px;">
+
+            <div class="tl-accordion">
+
+                <!-- LEFT PANEL -->
+                <div class="tl-left-panel">
+
+                    <!-- GENERAL -->
+                    <div class="tl-label @(ShowGeneral ? "active accent-orange" : "")"
+                         @onclick="@(() => ToggleAccordion("general"))">
+
+                        <div class="tl-label-icon ico-orange">
+                            <i data-feather="file-text"></i>
+                        </div>
+
+                        <div class="tl-label-text">
+                            <div class="tl-label-title">General</div>
+                            <div class="tl-label-sub">Basic Info</div>
+                        </div>
+
+                        <span class="tl-label-chevron @(ShowGeneral ? "open" : "")">
+                            <i data-feather="chevron-right"></i>
+                        </span>
+                    </div>
+
+                    <!-- SCOPE -->
+                    <div class="tl-label @(ShowScope ? "active accent-blue" : "")"
+                         @onclick="@(() => ToggleAccordion("scope"))">
+
+                        <div class="tl-label-icon ico-blue">
+                            <i data-feather="layers"></i>
+                        </div>
+
+                        <div class="tl-label-text">
+                            <div class="tl-label-title">Scope</div>
+                            <div class="tl-label-sub">Company / Branch</div>
+                        </div>
+
+                        <span class="tl-label-chevron @(ShowScope ? "open" : "")">
+                            <i data-feather="chevron-right"></i>
+                        </span>
+                    </div>
+
+                    <!-- PERIOD -->
+                    <div class="tl-label @(ShowPeriod ? "active accent-purple" : "")"
+                         @onclick="@(() => ToggleAccordion("period"))">
+
+                        <div class="tl-label-icon ico-purple">
+                            <i data-feather="calendar"></i>
+                        </div>
+
+                        <div class="tl-label-text">
+                            <div class="tl-label-title">Planning Period</div>
+                            <div class="tl-label-sub">Dates & granularity</div>
+                        </div>
+
+                        <span class="tl-label-chevron @(ShowPeriod ? "open" : "")">
+                            <i data-feather="chevron-right"></i>
+                        </span>
+                    </div>
+                    @* <div class="tl-label @(ShowClassification ? "active accent-green" : "")"
+                         @onclick="@(() => ToggleAccordion("classification"))">
+                        <div class="tl-label-icon ico-green">
+                            <i data-feather="tag"></i>
+                        </div>
+                        <div class="tl-label-text">
+                            <div class="tl-label-title">Classification</div>
+                            <div class="tl-label-sub">Nature & Scenario</div>
+                        </div>
+                    </div> *@
+
+                    <div class="tl-label @(ShowOwnership ? "active accent-teal" : "")"
+                         @onclick="@(() => ToggleAccordion("Ownership"))">
+                        <div class="tl-label-icon ico-teal">
+                            <i data-feather="user"></i>
+                        </div>
+                        <div class="tl-label-text">
+                            <div class="tl-label-title">Ownership</div>
+                            <div class="tl-label-sub">Owner & Workflow</div>
+                        </div>
+                        <span class="tl-label-chevron @(ShowOwnership ? "open" : "")">
+                            <i data-feather="chevron-right"></i>
+                        </span>
+                    </div>
+
+                    <div class="tl-label @(ShowVersion ? "active accent-orange" : "")"
+                         @onclick="@(() => ToggleAccordion("version"))">
+                        <div class="tl-label-icon ico-orange">
+                            <i data-feather="git-branch"></i>
+                        </div>
+                        <div class="tl-label-text">
+                            <div class="tl-label-title">Version</div>
+                            <div class="tl-label-sub">Revision tracking</div>
+                        </div>
+                        <span class="tl-label-chevron @(ShowVersion ? "open" : "")">
+                            <i data-feather="chevron-right"></i>
+                        </span>
+                    </div>
+
+                    <div class="tl-label @(ShowSummary ? "active accent-green" : "")"
+                         @onclick="@(() => ToggleAccordion("Summary"))">
+                        <div class="tl-label-icon ico-green">
+                            <i data-feather="bar-chart-2"></i>
+                        </div>
+                        <div class="tl-label-text">
+                            <div class="tl-label-title">Summary</div>
+                            <div class="tl-label-sub">Totals & usage</div>
+                        </div>
+                        <span class="tl-label-chevron @(ShowSummary ? "open" : "")">
+                            <i data-feather="chevron-right"></i>
+                        </span>
+                    </div>
+
+                    @* <div class="tl-label @(ShowGovernance ? "active accent-red" : "")"
+                         @onclick="@(() => ToggleAccordion("governance"))">
+                        <div class="tl-label-icon ico-red">
+                            <i data-feather="lock"></i>
+                        </div>
+                        <div class="tl-label-text">
+                            <div class="tl-label-title">Governance</div>
+                            <div class="tl-label-sub">Lock & archive</div>
+                        </div>
+                    </div> *@
+
+                    <!-- NOTES -->
+                    <div class="tl-label @(ShowNotes ? "active accent-rose" : "")"
+                         @onclick="@(() => ToggleAccordion("notes"))">
+
+                        <div class="tl-label-icon ico-rose">
+                            <i data-feather="file"></i>
+                        </div>
+
+                        <div class="tl-label-text">
+                            <div class="tl-label-title">Notes</div>
+                            <div class="tl-label-sub">Additional info</div>
+                        </div>
+
+                        <span class="tl-label-chevron @(ShowNotes ? "open" : "")">
+                            <i data-feather="chevron-right"></i>
+                        </span>
+                    </div>
+
+                </div>
+
+
+                <!-- RIGHT PANEL -->
+                <div class="tl-right-area">
+
+                    <!-- GENERAL -->
+                    <div class="tl-card-row @(ShowGeneral ? "row-active" : "")">
+
+                        <div class="tl-dot-col">
+                            <div class="tl-dot" @onclick="@(() => ToggleAccordion("general"))"></div>
+                        </div>
+
+                        <div class="tl-card-col">
+                            <div class="tl-card @(ShowGeneral ? "card-active border-orange" : "")">
+
+                                <div class="tl-card-header"
+                                     @onclick="@(() => ToggleAccordion("general"))">
+
+                                    <div class="tl-card-header-title">
+                                        <span class="tl-card-step step-orange">01</span>
+                                        General
+                                    </div>
+
+                                    <span class="tl-card-toggle @(ShowGeneral ? "toggle-open" : "")">
+                                        <i data-feather="chevron-down"></i>
+                                    </span>
+                                </div>
+
+                                <div class="tl-collapse @(ShowGeneral ? "tl-open" : "")">
+
+                                    <div class="tl-card-body">
+                                        <div class="row">
+
+                                            <div class="col-sm-4 mb-3">
+                                                <label>Budget Code <span class="text-danger">*</span></label>
+                                                <input class="form-control text-uppercase @(isSubmitted && string.IsNullOrWhiteSpace(budget.BudgetCode) ? "is-invalid" : "")" @bind="budget.BudgetCode" placeholder="eg., BUD-2026-001" />
+                                                <ValidationMessage For="@(() => budget.BudgetCode)" />
+                                            </div>
+
+                                            <div class="col-sm-4 mb-3">
+                                                <label>Budget Name <span class="text-danger">*</span></label>
+                                                <input class="form-control @(isSubmitted && string.IsNullOrWhiteSpace(budget.BudgetName) ? "is-invalid" : "")" @bind="budget.BudgetName" placeholder="eg., BUDGET-2026" />
+                                                <ValidationMessage For="@(() => budget.BudgetName)" />
+                                            </div>
+
+                                            <div class="col-sm-4 mb-3">
+                                                <label>Budget Type <span class="text-danger">*</span></label>
+                                                <select class="form-select" @bind="budget.BudgetType">
+                                                    <option value="">-- Select Budget Type --</option>
+                                                    @foreach (var t in Enum.GetValues<BudgetType>())
+                                                    {
+                                                        <option value="@t">@t</option>
+                                                    }
+                                                </select>
+                                                <ValidationMessage For="@(() => budget.BudgetType)" />
+                                            </div>
+
+                                            <div class="col-sm-4 mb-3">
+                                                <label>Budget Nature <span class="text-danger">*</span></label>
+                                                <select class="form-select" @bind="budget.BudgetNature">
+                                                    <option value="">-- Select Budget Nature --</option>
+                                                    @foreach (var t in Enum.GetValues<BudgetNature>())
+                                                    {
+                                                        <option value="@t">@t</option>
+                                                    }
+                                                </select>
+                                                <ValidationMessage For="@(() => budget.BudgetNature)" />
+                                            </div>
+
+                                            <div class="col-sm-4 mb-3">
+                                                <label>Planning Level <span class="text-danger">*</span></label>
+                                                <select class="form-select" @bind="budget.PlanningLevel">
+                                                    <option value="">-- Select Planning Level --</option>
+                                                    @foreach (var t in Enum.GetValues<PlanningLevel>())
+                                                    {
+                                                        <option value="@t">@t</option>
+                                                    }
+                                                </select>
+                                                <ValidationMessage For="@(() => budget.PlanningLevel)" />
+                                            </div>
+
+                                            <div class="col-sm-4 mb-3">
+                                                <label>Scenario</label>
+                                                <select class="form-select" @bind="budget.ScenarioType">
+                                                    <option value="">-- Select Scenario Type --</option>
+                                                    @foreach (var t in Enum.GetValues<ScenarioType>())
+                                                    {
+                                                        <option value="@t">@t</option>
+                                                    }
+                                                </select>
+                                            </div>
+
+                                            <div class="col-sm-12 mb-3">
+                                                <label>Description</label>
+                                                <RichTextEditor @ref="_descriptionEditor"
+                                                                Value="@budget.Description"
+                                                                Placeholder="Add Description..."
+                                                                MinHeight="80"
+                                                                MaxHeight="200" />
+                                            </div>
+
+                                        </div>
+                                    </div>
+
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- SCOPE -->
+                    <div class="tl-card-row @(ShowScope ? "row-active" : "")">
+
+                        <div class="tl-dot-col">
+                            <div class="tl-dot" @onclick="@(() => ToggleAccordion("scope"))"></div>
+                        </div>
+
+                        <div class="tl-card-col">
+                            <div class="tl-card @(ShowScope ? "card-active border-blue" : "")">
+
+                                <div class="tl-card-header"
+                                     @onclick="@(() => ToggleAccordion("scope"))">
+
+                                    <div class="tl-card-header-title">
+                                        <span class="tl-card-step step-blue">02</span>
+                                        Scope
+                                    </div>
+
+                                    <span class="tl-card-toggle @(ShowScope ? "toggle-open" : "")">
+                                        <i data-feather="chevron-down"></i>
+                                    </span>
+                                </div>
+
+                                <div class="tl-collapse @(ShowScope ? "tl-open" : "")">
+
+                                    <div class="tl-card-body">
+                                        <div class="row">
+
+                                            <div class="col-sm-4 mb-3">
+                                                <label>
+                                                    Company <span class="text-danger">*</span></label>
+                                                <select class="form-select @(budget.CompanyId == null ? "is-invalid" : "")" @bind="budget.CompanyId" @bind:after="@(async () => await OnCompanyChanged())">
+                                                    <option value="">-- Select Company --</option>
+                                                    @foreach (var c in Companies)
+                                                    {
+                                                        <option value="@c.Id">@c.LegalName</option>
+                                                    }
+                                                </select>
+                                                <ValidationMessage For="@(() => budget.CompanyId)" />
+                                            </div>
+
+                                            <div class="col-sm-4 mb-3">
+                                                <label>Branch</label>
+                                                <select class="form-select"
+                                                        @bind="budget.BranchId">
+
+                                                    <option value="">-- Select Branch --</option>
+
+                                                    @foreach (var b in Branches)
+                                                    {
+                                                        <option value="@b.Id">@b.BranchName</option>
+                                                    }
+
+                                                </select>
+                                            </div>
+
+                                            <div class="col-sm-4 mb-3">
+                                                <label>Department</label>
+                                                <select class="form-select" @bind="budget.DepartmentId"></select>
+                                            </div>
+
+                                            <div class="col-sm-4 mb-3">
+                                                <label>Project</label>
+                                                <select class="form-select" @bind="budget.ProjectId"></select>
+                                            </div>
+
+                                            <div class="col-sm-4 mb-3">
+                                                <label>Cost Center Group</label>
+                                                <select class="form-select" @bind="budget.CostCenterGroupId"></select>
+                                            </div>
+
+                                            <div class="col-sm-4 mb-3">
+                                                <label>Currency <span class="text-danger">*</span></label>
+                                                <select class="form-select @(budget.CurrencyId == null ? "is-invalid" : "")"
+                                                        @bind="budget.CurrencyId">
+
+                                                    <option value="">-- Select Currency --</option>
+
+                                                    @foreach (var c in Currency)
+                                                    {
+                                                        <option value="@c.Id">@c.CurrencyName</option>
+                                                    }
+
+                                                </select>
+                                                <ValidationMessage For="@(() => budget.CurrencyId)" />
+                                            </div>
+
+                                        </div>
+                                    </div>
+
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- PERIOD -->
+                    <div class="tl-card-row @(ShowPeriod ? "row-active" : "")">
+
+                        <div class="tl-dot-col">
+                            <div class="tl-dot" @onclick="@(() => ToggleAccordion("period"))"></div>
+                        </div>
+
+                        <div class="tl-card-col">
+                            <div class="tl-card @(ShowPeriod ? "card-active border-purple" : "")">
+
+                                <div class="tl-card-header"
+                                     @onclick="@(() => ToggleAccordion("period"))">
+
+                                    <div class="tl-card-header-title">
+                                        <span class="tl-card-step step-purple">03</span>
+                                        Planning Period
+                                    </div>
+
+                                    <span class="tl-card-toggle @(ShowPeriod ? "toggle-open" : "")">
+                                        <i data-feather="chevron-down"></i>
+                                    </span>
+                                </div>
+
+                                <div class="tl-collapse @(ShowPeriod ? "tl-open" : "")">
+
+                                    <div class="tl-card-body">
+                                        <div class="row">
+
+                                            <div class="col-sm-4 mb-3">
+                                                <label>Fiscal Year <span class="text-danger">*</span></label>
+                                                <select class="form-select @(budget.FiscalYearId == null ? "is-invalid" : "")"
+                                                        @bind="budget.FiscalYearId">
+
+                                                    <option value="">-- Select Fiscal Year --</option>
+
+                                                    @foreach (var fy in Fiscalyears)
+                                                    {
+                                                        <option value="@fy.Id">@fy.FiscalYearName</option>
+                                                    }
+
+                                                </select>
+                                                <ValidationMessage For="@(() => budget.FiscalYearId)" />
+                                            </div>
+
+                                            <div class="col-sm-4 mb-3">
+                                                <label>Start Date <span class="text-danger">*</span></label>
+                                                <input type="date"
+                                                       class="form-control @(budget.StartDate == null ? "is-invalid" : "")"
+                                                   @bind="budget.StartDate"
+                                                       @bind:after="@(async () => await OnPeriodChanged())" />
+                                                <ValidationMessage For="@(() => budget.StartDate)" />
+                                            </div>
+
+                                            <div class="col-sm-4 mb-3">
+                                                <label>End Date <span class="text-danger">*</span></label>
+                                                    <input type="date"
+                                                       class="form-control  @(budget.EndDate == null ? "is-invalid" : "")"
+                                                           @bind="budget.EndDate"
+                                                           min="@(budget.StartDate?.ToString("yyyy-MM-dd"))"
+                                                           @bind:after="OnPeriodChanged" />
+                                                <ValidationMessage For="@(() => budget.EndDate)" />
+                                            </div>
+
+                                            <div class="col-sm-4 mb-3">
+                                                <label>Granularity <span class="text-danger">*</span></label>
+                                                <select class="form-select"
+                                                        @bind="budget.PeriodGranularity"
+                                                        @bind:after="OnPeriodChanged">
+                                                    <option value="">-- Select Period Granularity --</option>
+                                                    @foreach (var g in Enum.GetValues<PeriodGranularity>())
+                                                    {
+                                                        <option value="@g">@g</option>
+                                                    }
+                                                </select>
+                                                <ValidationMessage For="@(() => budget.PeriodGranularity)" />
+                                            </div>
+
+                                            <div class="col-sm-4 mb-3">
+                                                <label>Total Periods</label>
+                                                <input class="form-control" value="@budget.TotalPeriodsPlanned" readonly />
+                                                <ValidationMessage For="@(() => budget.TotalPeriodsPlanned)" />
+                                            </div>
+
+                                        </div>
+                                    </div>
+
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- OWNERSHIP & WORKFLOW -->
+                    <div class="tl-card-row @(ShowOwnership ? "row-active" : "")">
+
+                        <div class="tl-dot-col">
+                            <div class="tl-dot" @onclick="@(() => ToggleAccordion("Ownership"))"></div>
+                        </div>
+
+                        <div class="tl-card-col">
+                            <div class="tl-card @(ShowOwnership ? "card-active border-teal" : "")">
+
+                                <div class="tl-card-header"
+                                     @onclick="@(() => ToggleAccordion("Ownership"))">
+
+                                    <div class="tl-card-header-title">
+                                        <span class="tl-card-step step-teal">04</span>
+                                        Ownership
+                                    </div>
+
+                                    <span class="tl-card-toggle @(ShowOwnership ? "toggle-open" : "")">
+                                        <i data-feather="chevron-down"></i>
+                                    </span>
+                                </div>
+
+                                <div class="tl-collapse @(ShowOwnership ? "tl-open" : "")">
+
+                                    <div class="tl-card-body">
+                                        <div class="row">
+
+                                            <div class="col-sm-4 mb-3">
+                                                <label>Budget Owner <span class="text-danger">*</span></label>
+                                                <select class="form-select @(budget.BudgetOwnerUserId == null ? "is-invalid" : "")"
+                                                        @bind="budget.BudgetOwnerUserId">
+
+                                                    <option value="">-- Select Budget Owner --</option>
+
+                                                    @foreach (var e in Employees)
+                                                    {
+                                                        <option value="@e.Id">
+                                                            @($"{e.FirstName} {e.LastName}")
+                                                        </option>
+                                                    }
+
+                                                </select>
+                                                <ValidationMessage For="@(() => budget.BudgetOwnerUserId)" />
+                                            </div>
+
+                                            <div class="col-sm-4 mb-3">
+                                                <label>Prepared By</label>
+                                                <input class="form-select" @bind="budget.PreparedByUserId" readonly></input>
+                                            </div>
+
+                                            @* <div class="col-sm-4 mb-3">
+                                                <label>Approved By</label>
+                                                <select class="form-select" @bind="budget.ApprovedByUserId"></select>
+                                            </div> *@
+
+                                            <div class="col-sm-4 mb-3">
+                                                <label>Status</label>
+                                                <select class="form-select" @bind="budget.WorkflowStatus">
+                                                    <option value="">-- Select Work flow Status --</option>
+                                                    @foreach (var s in Enum.GetValues<WorkflowStatus>())
+                                                    {
+                                                        <option value="@s">@s</option>
+                                                    }
+                                                </select>
+                                            </div>
+
+                                        </div>
+                                    </div>
+
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- VERSION & REVISION -->
+                    <div class="tl-card-row @(ShowVersion ? "row-active" : "")">
+
+                        <div class="tl-dot-col">
+                            <div class="tl-dot" @onclick="@(() => ToggleAccordion("version"))"></div>
+                        </div>
+
+                        <div class="tl-card-col">
+                            <div class="tl-card @(ShowVersion ? "card-active border-orange" : "")">
+
+                                <div class="tl-card-header"
+                                     @onclick="@(() => ToggleAccordion("version"))">
+
+                                    <div class="tl-card-header-title">
+                                        <span class="tl-card-step step-orange">05</span>
+                                        version
+                                    </div>
+
+                                    <span class="tl-card-toggle @(ShowVersion ? "toggle-open" : "")">
+                                        <i data-feather="chevron-down"></i>
+                                    </span>
+                                </div>
+
+                                <div class="tl-collapse @(ShowVersion ? "tl-open" : "")">
+
+                                    <div class="tl-card-body">
+                                        <div class="row">
+
+                                            <div class="col-sm-4 mb-3">
+                                                <label>Version No</label>
+                                                <input class="form-control" @bind="budget.VersionNumber" readonly />
+                                            </div>
+
+                                            <div class="col-sm-4 mb-3">
+                                                <label>Revision No</label>
+                                                <input class="form-control" @bind="budget.RevisionNumber" readonly />
+                                            </div>
+                                            
+                                            <div class="col-sm-4 mb-3">
+                                                <label>Previous Budget</label>
+                                                <select class="form-select"
+                                                        @bind="budget.PreviousBudgetId">
+
+                                                    <option value="">-- Select Previous Budget --</option>
+
+                                                    @foreach (var b in Budgets)
+                                                    {
+                                                        <option value="@b.BudgetId">@b.BudgetName</option>
+                                                    }
+
+                                                </select>
+                                            </div>
+
+                                          @*   <div class="col-sm-4 mb-3">
+                                                <label>Linked Financial Plan</label>
+                                                <select class="form-select"
+                                                        @bind="budget.LinkedFinancialPlanId">
+
+                                                    <option value="">-- Select Linked Plan --</option>
+
+                                                    @foreach (var p in LinkedFinPlan)
+                                                    {
+                                                        <option value="@p.BudgetId">@b.BudgetName</option>
+                                                    }
+
+                                                </select>
+                                            </div> *@
+
+                                            <div class="col-sm-3 mb-3 d-flex align-items-center gap-2 mt-2">
+                                                <InputCheckbox class="form-check-input" type="checkbox" id="IsCurrentApprovedVersion" @bind-Value="budget.IsCurrentApprovedVersion" />
+                                                <label for="IsCurrentApprovedVersion">IsCurrentApprovedVersion</label>
+                                                
+                                            </div>
+
+                                            <div class="col-sm-12 mb-3">
+                                                <label>Revision Reason</label>
+                                                <RichTextEditor @ref="_revisionEditor"
+                                                                Value="@budget.RevisionReason"
+                                                                Placeholder="Add Revision Reason..."
+                                                                MinHeight="80"
+                                                                MaxHeight="200" />
+                                            </div>
+
+                                        </div>
+                                    </div>
+
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+
+                    <!-- SUMMARY -->
+                    <div class="tl-card-row @(ShowSummary ? "row-active" : "")">
+
+                        <div class="tl-dot-col">
+                            <div class="tl-dot" @onclick="@(() => ToggleAccordion("Summary"))"></div>
+                        </div>
+
+                        <div class="tl-card-col">
+                            <div class="tl-card @(ShowSummary ? "card-active border-green" : "")">
+
+                                <div class="tl-card-header"
+                                     @onclick="@(() => ToggleAccordion("Summary"))">
+
+                                    <div class="tl-card-header-title">
+                                        <span class="tl-card-step step-green">06</span>
+                                        Summary
+                                    </div>
+
+                                    <span class="tl-card-toggle @(ShowSummary ? "toggle-open" : "")">
+                                        <i data-feather="chevron-down"></i>
+                                    </span>
+                                </div>
+
+                                <div class="tl-collapse @(ShowSummary ? "tl-open" : "")">
+
+                                    <div class="tl-card-body">
+                                        <div class="row">
+
+                                            <div class="col-sm-4 mb-3">
+                                                <label>Total Budget <span class="text-danger">*</span></label>
+                                                <input class="form-control" value="@budget.TotalBudgetAmount" readonly />
+                                                <ValidationMessage For="@(() => budget.TotalBudgetAmount)" />
+                                            </div>
+
+                                            <div class="col-sm-4 mb-3">
+                                                <label>Revenue</label>
+                                                <input class="form-control" value="@budget.TotalRevenueBudgetAmount" readonly />
+                                            </div>
+
+                                            <div class="col-sm-4 mb-3">
+                                                <label>Expense</label>
+                                                <input class="form-control" value="@budget.TotalExpenseBudgetAmount" readonly />
+                                            </div>
+
+                                            <div class="col-sm-4 mb-3">
+                                                <label>Available Balance</label>
+                                                <input class="form-control" value="@budget.AvailableBalanceAmount" readonly />
+                                            </div>
+
+                                            <div class="col-sm-4 mb-3 d-flex align-items-center gap-2 mt-2">
+                                               <InputCheckbox class="form-check-input" id="HasPeriodDistributionGenerated" @bind-Value="budget.HasPeriodDistributionGenerated" readonly />
+                                                <label for="HasPeriodDistributionGenerated">HasPeriodDistributionGenerated</label>
+                                                
+                                            </div>
+
+                                            <div class="col-sm-4 mb-3 d-flex align-items-center gap-2 mt-2">
+                                                <InputCheckbox class="form-check-input" type="checkbox" id="HasBudgetLines" @bind-Value="budget.HasBudgetLines" readonly />
+                                                <label for="HasBudgetLines">HasBudgetLines</label>
+                                                
+                                            </div>
+
+                                        </div>
+                                    </div>
+
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <!-- NOTES -->
+                    <div class="tl-card-row @(ShowNotes ? "row-active" : "")">
+
+                        <div class="tl-dot-col">
+                            <div class="tl-dot" @onclick="@(() => ToggleAccordion("notes"))"></div>
+                        </div>
+
+                        <div class="tl-card-col">
+                            <div class="tl-card @(ShowNotes ? "card-active border-rose" : "")">
+
+                                <div class="tl-card-header"
+                                     @onclick="@(() => ToggleAccordion("notes"))">
+
+                                    <div class="tl-card-header-title">
+                                        <span class="tl-card-step step-rose">07</span>
+                                        Notes
+                                    </div>
+
+                                    <span class="tl-card-toggle @(ShowNotes ? "toggle-open" : "")">
+                                        <i data-feather="chevron-down"></i>
+                                    </span>
+                                </div>
+
+                                <div class="tl-collapse @(ShowNotes ? "tl-open" : "")">
+
+                                    <div class="tl-card-body">
+                                        <RichTextEditor @ref="_notesEditor"
+                                                        Value="@budget.Notes"
+                                                        Placeholder="Additional notes..."
+                                                        MinHeight="80"
+                                                        MaxHeight="200" />
+                                    </div>
+
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+
+            </div>
+
+        </div>
+
+        <!-- ACTION -->
+        <div class="d-flex justify-content-end gap-2 mt-3 mb-5">
+            <button class="btn btn-outline-secondary" @onclick="BackToList">
+                <i class="ti ti-x"></i> Cancel
+            </button>
+
+            <button type="submit" class="btn btn-primary">
+                <i class="ti ti-device-floppy"></i> @(IsEdit ? "Update" : "Save")
+            </button>
+        </div>
+
+    </EditForm>
+
+</div>

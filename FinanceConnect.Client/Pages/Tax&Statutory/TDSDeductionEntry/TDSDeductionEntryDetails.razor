@@ -1,0 +1,375 @@
+﻿@page "/tds-deduction-entries/{Id:guid}/view"
+@using static FinanceConnect.Client.ViewModels.TDSDeductionEntryViewModel
+
+@if (!isInitialized)
+{
+    <div class="page-loading-overlay"><div class="whirly-loader"></div></div>
+}
+else if (Entry == null)
+{
+    <div class="content py-4">
+        <div class="alert alert-danger">
+            <i class="ti ti-alert-circle me-2"></i> Deduction entry not found.
+            <a href="/tds-deduction-entries" class="alert-link ms-2">Return to list</a>
+        </div>
+    </div>
+}
+else
+{
+    <style>
+        .tds-pill { display:inline-flex;align-items:center;gap:4px;font-size:12px;font-weight:600;}
+        .tds-pill.draft            { background:#fff3cd; color:#664d03; }
+        .tds-pill.posted           { background:#cfe2ff; color:#084298; }
+        .tds-pill.partial          { background:#fffacd; color:#664d03; }
+        .tds-pill.settled          { background:#d1e7dd; color:#0a3622; }
+        .tds-pill.reversed         { background:#f8d7da; color:#842029; }
+        .tds-pill.cancelled        { background:#e2e3e5; color:#41464b; }
+        .section-badge { background:#e0e7ff;color:#3730a3;font-size:13px;font-weight:700; }
+        .big-amount { font-size:2.2rem;font-weight:800;line-height:1; }
+        .detail-section { border-left:3px solid var(--bs-primary-border-subtle);padding-left:12px; }
+        .pan-missing-badge { background:#f8d7da;color:#842029;border-radius:4px;padding:2px 7px;font-size:10px;font-weight:700; }
+        .snapshot-box { background:#f8f9fa;border:1px solid #dee2e6;border-radius:6px;padding:12px;font-size:12px; }
+    </style>
+
+    <div class="content py-4 view-screen">
+
+        <!-- Page Title -->
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <div>
+                <h4 class="fw-bold mb-1">TDS Deduction Details</h4>
+                <p class="text-muted mb-0 small">Withholding event record — rate snapshot, threshold logic, and GL evidence</p>
+            </div>
+            <div class="d-flex gap-2 page-btn">
+                <a @onclick="PrintPage" class="btn btn-primary"><i class="bi bi-printer"></i> Print</a>
+
+                <a href="/tds-deduction-entries" class="btn btn-outline-secondary">
+                    <i class="ti ti-arrow-left me-1"></i> Back
+                </a>
+            </div>
+        </div>
+
+        <div class="row g-4">
+
+            <!-- ═══ HEADER BANNER ═══ -->
+            <div class="col-lg-12">
+                <div class="profile-list-card">
+                    <div class="profile-left">
+                        <div class="avatar letter-avatar" style="font-size:11px;font-weight:800;">
+                            @Entry.SectionCodeSnapshot
+                        </div>
+                    </div>
+                    <div class="profile-center">
+                        <div class="top-row">
+                            <h5>@Entry.DeductionNumber &nbsp;·&nbsp; @Entry.VendorNameSnapshot</h5>
+                        </div>
+                        <div class="sub-text">
+                            <span class="d-flex gap-1 mt-1">
+                                <i class="ti ti-file-invoice"></i>
+                                @Entry.SourceDocumentType &nbsp;·&nbsp; @Entry.SourceDocumentNumberSnapshot
+                            </span>
+                            <span class="d-flex gap-1 mt-1">
+                                <i class="ti ti-calendar"></i>
+                                Deduction Date: @Entry.DeductionDate.ToString("dd MMM yyyy")
+                                &nbsp;·&nbsp; Posted: @(Entry.PostedOn.HasValue ? Entry.PostedOn.Value.ToString("dd MMM yyyy") : "—")
+                            </span>
+                        </div>
+                        <div class="mt-2 d-flex gap-2 align-items-center">
+                            <span class="badge tds-pill @TDSDeductionEntry.GetStatusPillClass(Entry.Status)">
+                                @TDSDeductionEntry.GetStatusLabel(Entry.Status)
+                            </span>
+                            <span class="badge section-badge">@Entry.SectionCodeSnapshot</span>
+                            @if (Entry.IsAlternatePanRateApplied)
+                            {
+                                <span class="badge pan-missing-badge"><i class="ti ti-alert-triangle me-1"></i>Alt PAN Rate</span>
+                            }
+                            @if (Entry.IsSystemReversal)
+                            {
+                                <span class="badge bg-secondary-transparent">System Reversal</span>
+                            }
+                        </div>
+                    </div>
+                    <!-- TDS Amount Hero -->
+                    <div class="ms-auto pe-3 text-end d-none d-md-block">
+                        <div class="big-amount text-primary">₹@Entry.DeductionAmount.ToString("N0")</div>
+                        <small class="text-muted">on base ₹@Entry.DeductionBaseAmount.ToString("N0")</small>
+                        <br /><small class="text-muted">@Entry.RatePercentApplied%</small>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ═══ LEFT PANEL (col-8) ═══ -->
+            <div class="col-lg-8">
+                <div class="profile-card">
+
+                    <!-- Source & Vendor -->
+                    <div class="card mb-0">
+                        <div class="card-header py-2">
+                            <i class="ti ti-building-store me-2"></i> Source Document &amp; Vendor
+                        </div>
+                        <div class="card-body py-2">
+                            <div class="row">
+                                <div class="col-md-4 mb-2">
+                                    <small class="text-muted">Source Type</small>
+                                    <div class="fw-medium">@Entry.SourceDocumentType</div>
+                                </div>
+                                <div class="col-md-4 mb-2">
+                                    <small class="text-muted">Source Document No</small>
+                                    <div class="fw-medium">@Entry.SourceDocumentNumberSnapshot</div>
+                                </div>
+                                <div class="col-md-4 mb-2">
+                                    <small class="text-muted">Vendor</small>
+                                    <div class="fw-medium">@Entry.VendorNameSnapshot</div>
+                                    <div class="text-muted" style="font-size:11px;">@Entry.VendorCodeSnapshot</div>
+                                </div>
+                                <div class="col-md-4 mb-2">
+                                    <small class="text-muted">PAN</small>
+                                    <div>
+                                        @if (!string.IsNullOrWhiteSpace(Entry.VendorPANSnapshot))
+                                        {
+                                            <span class="fw-medium">@Entry.VendorPANSnapshot</span>
+                                        }
+                                        else
+                                        {
+                                            <span class="pan-missing-badge">Not Available</span>
+                                        }
+                                    </div>
+                                </div>
+                                <div class="col-md-4 mb-2">
+                                    <small class="text-muted">Residency</small>
+                                    <div>
+                                        <span class="badge @(Entry.VendorResidencySnapshot == VendorResidency.Resident ? "bg-success-transparent" : "bg-info-transparent")">
+                                            @Entry.VendorResidencySnapshot
+                                        </span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Config / Rate Snapshot -->
+                    <div class="card mt-3 mb-0">
+                        <div class="card-header py-2">
+                            <i class="ti ti-percentage me-2"></i> TDS Rule &amp; Rate Snapshot
+                        </div>
+                        <div class="card-body py-2">
+                            <div class="row">
+                                <div class="col-md-4 mb-2">
+                                    <small class="text-muted">Section</small>
+                                    <div><span class="badge section-badge">@Entry.SectionCodeSnapshot</span></div>
+                                </div>
+                                <div class="col-md-4 mb-2">
+                                    <small class="text-muted">Tax Code</small>
+                                    <div>@Entry.TaxCodeSnapshot</div>
+                                </div>
+                                <div class="col-md-4 mb-2">
+                                    <small class="text-muted">Rate Applied</small>
+                                    <div class="fw-bold text-primary" style="font-size:1.3rem;">@Entry.RatePercentApplied%</div>
+                                </div>
+                                @if (Entry.IsAlternatePanRateApplied)
+                                {
+                                    <div class="col-md-12 mb-2">
+                                        <small class="text-muted">Alternate PAN Rate Reason</small>
+                                        <div class="text-danger fst-italic" style="font-size:13px;">Higher rate applied — PAN not available</div>
+                                    </div>
+                                }
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Threshold Logic -->
+                    <div class="card mt-3 mb-0">
+                        <div class="card-header py-2">
+                            <i class="ti ti-filter me-2"></i> Threshold Evaluation Snapshot
+                        </div>
+                        <div class="card-body py-2">
+                            <div class="row">
+                                <div class="col-md-4 mb-2">
+                                    <small class="text-muted">Evaluation Mode</small>
+                                    <div>@Entry.ThresholdEvaluationModeSnapshot</div>
+                                </div>
+                                <div class="col-md-4 mb-2">
+                                    <small class="text-muted">Threshold Triggered</small>
+                                    <div>
+                                        <span class="badge @(Entry.ThresholdTriggeredFlag ? "bg-success-transparent" : "bg-secondary-transparent text-secondary")">
+                                            @(Entry.ThresholdTriggeredFlag ? "Yes" : "No")
+                                        </span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Amounts -->
+                    <div class="card mt-3 mb-0">
+                        <div class="card-header py-2">
+                            <i class="ti ti-currency-rupee me-2"></i> Deduction Amounts
+                        </div>
+                        <div class="card-body py-2">
+                            <div class="row">
+                                <div class="col-md-4 mb-2">
+                                    <small class="text-muted">TDS Base Amount</small>
+                                    <div class="fw-bold">₹@Entry.DeductionBaseAmount.ToString("N2")</div>
+                                </div>
+                                <div class="col-md-4 mb-2">
+                                    <small class="text-muted">TDS Amount</small>
+                                    <div class="fw-bold text-primary" style="font-size:1.2rem;">₹@Entry.DeductionAmount.ToString("N2")</div>
+                                </div>
+                                <div class="col-md-4 mb-2">
+                                    <small class="text-muted">Outstanding</small>
+                                    <div class="fw-bold @(Entry.OutstandingAmount > 0 ? "text-warning" : "text-muted")">
+                                        ₹@Entry.OutstandingAmount.ToString("N2")
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- GL Evidence -->
+                    <div class="card mt-3 mb-0">
+                        <div class="card-header py-2">
+                            <i class="ti ti-file-text me-2"></i> Posting &amp; GL Evidence
+                        </div>
+                        <div class="card-body py-2">
+                            <div class="row">
+                                <div class="col-md-4 mb-2">
+                                    <small class="text-muted">Posting Date</small>
+                                    <div>@Entry.PostingDate.ToString("dd MMM yyyy")</div>
+                                </div>
+                                <div class="col-md-4 mb-2">
+                                    <small class="text-muted">Posted On</small>
+                                    <div>@(Entry.PostedOn.HasValue ? Entry.PostedOn.Value.ToString("dd MMM yyyy HH:mm") : "—")</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+
+            <!-- ═══ RIGHT PANEL (col-4) ═══ -->
+            <div class="col-lg-4">
+                <div class="profile-card">
+
+                    <!-- Settlement Tracking -->
+                    <div class="card mb-0">
+                        <div class="card-header py-2">
+                            <i class="ti ti-receipt me-2"></i> Settlement &amp; Remittance
+                        </div>
+                        <div class="card-body py-2">
+                            <div class="mb-2">
+                                <small class="text-muted">Settlement Status</small>
+                                <div class="mt-1">
+                                    <span class="badge @TDSDeductionEntry.GetSettlementStatusClass(Entry.SettlementStatus)">
+                                        @TDSDeductionEntry.GetSettlementStatusLabel(Entry.SettlementStatus)
+                                    </span>
+                                </div>
+                            </div>
+                            <div class="mb-2">
+                                <small class="text-muted">TDS Amount</small>
+                                <div class="fw-bold">₹@Entry.DeductionAmount.ToString("N2")</div>
+                            </div>
+                            <div class="mb-2">
+                                <small class="text-muted">Settled Amount</small>
+                                <div class="fw-bold text-success">₹@Entry.SettledAmount.ToString("N2")</div>
+                            </div>
+                            <div class="mb-2">
+                                <small class="text-muted">Outstanding</small>
+                                <div class="fw-bold @(Entry.OutstandingAmount > 0 ? "text-warning" : "text-muted")">
+                                    ₹@Entry.OutstandingAmount.ToString("N2")
+                                </div>
+                            </div>
+                            @if (Entry.LastSettlementDate.HasValue)
+                            {
+                                <div class="mb-2">
+                                    <small class="text-muted">Last Settlement Date</small>
+                                    <div>@Entry.LastSettlementDate.Value.ToString("dd MMM yyyy")</div>
+                                </div>
+                            }
+
+                            <!-- Progress Bar -->
+                            @{
+                                var pct = Entry.DeductionAmount > 0
+                                    ? (int)(Entry.SettledAmount / Entry.DeductionAmount * 100)
+                                    : 0;
+                            }
+                            <div class="mt-2">
+                                <div class="d-flex justify-content-between" style="font-size:11px;">
+                                    <span class="text-muted">Settlement Progress</span>
+                                    <span>@pct%</span>
+                                </div>
+                                <div class="progress" style="height:6px;">
+                                    <div class="progress-bar @(pct == 100 ? "bg-success" : "bg-warning")"
+                                         style="width:@pct%"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Reversal Info -->
+                    @if (Entry.ReversalOfTDSDeductionEntryId.HasValue || Entry.IsSystemReversal)
+                    {
+                        <div class="card mt-3 mb-0">
+                            <div class="card-header py-2">
+                                <i class="ti ti-rotate-2 me-2 text-warning"></i> Reversal Info
+                            </div>
+                            <div class="card-body py-2">
+                                @if (Entry.ReversalOfTDSDeductionEntryId.HasValue)
+                                {
+                                    <div class="mb-2">
+                                        <small class="text-muted">Reversal Of</small>
+                                        <div style="font-size:11px;">@Entry.ReversalOfTDSDeductionEntryId.Value.ToString()[..8]...</div>
+                                    </div>
+                                }
+                                @if (Entry.IsSystemReversal)
+                                {
+                                    <span class="badge bg-secondary-transparent">System-generated Reversal</span>
+                                }
+                            </div>
+                        </div>
+                    }
+
+                    <!-- Timeline -->
+                    <div class="card mt-3 mb-0">
+                        <div class="card-header py-2">
+                            <i class="ti ti-timeline me-2"></i> Activity Timeline
+                        </div>
+                        <div class="card-body py-2">
+                            <ul class="list-unstyled mb-0">
+                                @foreach (var t in Timeline)
+                                {
+                                    <li class="d-flex align-items-start mb-2 gap-2">
+                                        <span class="rounded-circle @t.DotClass"
+                                              style="width:10px;height:10px;min-width:10px;margin-top:5px;"></span>
+                                        <div>
+                                            <div class="fw-medium" style="font-size:13px;">@t.Label</div>
+                                            <div class="text-muted" style="font-size:12px;">@t.Note</div>
+                                        </div>
+                                    </li>
+                                }
+                            </ul>
+                        </div>
+                    </div>
+
+                    <!-- Audit -->
+                    <div class="card mt-3 mb-0">
+                        <div class="card-header py-2">
+                            <i class="ti ti-clock me-2"></i> Audit
+                        </div>
+                        <div class="card-body py-2">
+                            <div class="mb-2">
+                                <small class="text-muted">Created At</small>
+                                <div>@Entry.CreatedAt.ToString("dd MMM yyyy")</div>
+                            </div>
+                            <div class="mb-2">
+                                <small class="text-muted">Updated At</small>
+                                <div>@(Entry.UpdatedAt.HasValue ? Entry.UpdatedAt.Value.ToString("dd MMM yyyy") : "—")</div>
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+
+        </div>
+    </div>
+}

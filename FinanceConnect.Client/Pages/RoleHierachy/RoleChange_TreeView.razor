@@ -1,0 +1,1009 @@
+﻿@page "/rolehierarchy"
+@using FinanceConnect.Client.ViewModels
+@using static FinanceConnect.Client.ViewModels.RoleChangeViewModel
+@implements IDisposable
+@inject RoleChangingService Services
+@inject IJSRuntime JS
+
+<PageTitle>Hierarchy</PageTitle>
+
+<style>
+
+    :root {
+        --ink: #0C0E14;
+        --ink2: #141720;
+        --ink3: #1C2030;
+        --ink4: #252B3B;
+        --ink5: #2E3549;
+        --bd: #252B3B;
+        --bd2: #313A52;
+        --bd3: #3D4760;
+        --t1: #E8EBF4;
+        --t2: #8892AA;
+        --t3: #4F5A72;
+        --A: #F5A623;
+        --A-dk: #D4851A;
+        --A-lt: rgba(245,166,35,.10);
+        --A-mid: rgba(245,166,35,.25);
+        --A-glow: rgba(245,166,35,.18);
+        --A-ring: rgba(245,166,35,.30);
+        --wire: #8080803b;
+        --card: #161A27;
+        --card2: #1A1F2E;
+        --stripe: #131621;
+        --s1: 0 1px 3px rgba(0,0,0,.4);
+        --s2: 0 4px 20px rgba(0,0,0,.5);
+        --s3: 0 12px 40px rgba(0,0,0,.6);
+        --f: 'DM Sans', sans-serif;
+        --m: 'DM Mono', monospace;
+        --NW: 186px;
+        scroll-behavior: smooth;
+    }
+
+    /* ── Avatar image ── */
+    .av-img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        display: block;
+        border-radius: inherit;
+    }
+    .av-fallback {
+        position: absolute;
+        inset: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: 700;
+        color: #fff;
+        opacity: 0;
+        pointer-events: none;
+        font-size: inherit;
+    }
+
+    .hdr {
+        background: rgba(12,14,20,.92);
+        backdrop-filter: blur(18px);
+        border-bottom: 1px solid var(--bd);
+        padding: 0 28px;
+        height: 58px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 16px;
+        position: sticky;
+        top: 0;
+        z-index: 200;
+        box-shadow: 0 1px 0 var(--bd), var(--s1);
+        flex-shrink: 0;
+    }
+
+    .hdr-left { display: flex; align-items: center; gap: 16px; }
+
+    .hdr-logo {
+        width: 34px; height: 34px; border-radius: 9px;
+        background: linear-gradient(135deg, var(--A), var(--A-dk));
+        display: flex; align-items: center; justify-content: center;
+        font-size: 15px; font-weight: 800; color: #fff; flex-shrink: 0;
+        box-shadow: 0 4px 14px var(--A-ring); letter-spacing: -.5px;
+    }
+
+    .hdr-title {
+        font-size: 15px; font-weight: 700; color: black;
+        letter-spacing: -.3px; margin: 0;
+        display: flex; align-items: center; gap: 10px;
+    }
+
+    .hdr-badge {
+        font-size: 10px; font-weight: 600;
+        background: var(--A-lt); color: var(--A);
+        border: 1px solid var(--A-mid);
+        padding: 3px 10px; border-radius: 20px; letter-spacing: .03em;
+    }
+
+    .hdr-divider { width: 1px; height: 22px; background: var(--bd2); flex-shrink: 0; }
+    .hdr-sub { font-size: 11.5px; color: black; display: flex; align-items: center; gap: 12px; }
+    .hdr-sub span { display: flex; align-items: center; gap: 5px; color: black; }
+    .hdr-sub span::before { content: '·'; color: var(--bd3); font-size: 14px; }
+    .hdr-sub span:first-child::before { display: none; }
+    .hdr-r { display: flex; align-items: center; gap: 8px; }
+
+    .btn-exp {
+        display: flex; align-items: center; gap: 6px;
+        padding: 7px 14px; border-radius: 8px;
+        border: 1px solid var(--bd2); background: var(--ink3);
+        color: var(--t2); font-size: 12px; font-weight: 600;
+        cursor: pointer; transition: all .18s; letter-spacing: -.1px;
+    }
+    .btn-exp:hover { border-color: var(--A-mid); color: var(--A); background: var(--A-lt); }
+
+    .btn-add {
+        display: flex; align-items: center; gap: 7px;
+        padding: 8px 18px; border-radius: 8px; border: none;
+        background: linear-gradient(135deg, var(--A), var(--A-dk));
+        color: #fff; font-size: 12.5px; font-weight: 700;
+        cursor: pointer; box-shadow: 0 4px 18px var(--A-ring);
+        transition: all .2s; letter-spacing: -.15px;
+    }
+    .btn-add:hover { transform: translateY(-1px); box-shadow: 0 8px 26px var(--A-ring); }
+
+    /* Force the page content area to be a vertical flex column */
+    .page-wrapper > .content,
+    .main-content > .content,
+    .content-page > .content,
+    body > .content {
+        display: flex !important;
+        flex-direction: column !important;
+    }
+
+    .ht-canvas-wrap {
+        flex: 1;
+        overflow: auto;
+        position: relative;
+        padding: 40px 60px 80px 60px;
+        box-sizing: border-box;
+        z-index: 1;
+        /* NO flex centering — tree must start top-left */
+     display:flex;
+    align-items:flex-start;
+    justify-content:flex-start;
+    }
+    .ht-canvas-wrap::-webkit-scrollbar { width: 5px; height: 5px; }
+    .ht-canvas-wrap::-webkit-scrollbar-track { background: transparent; }
+    .ht-canvas-wrap::-webkit-scrollbar-thumb { background: var(--primary); border-radius: 4px; }
+    .ht-canvas-wrap::-webkit-scrollbar-corner { background: transparent; }
+
+    .ht-canvas { position: relative; }
+    .ht-svg { position: absolute; top: 0; left: 0; pointer-events: none; overflow: visible; }
+
+    .hn {
+        position: absolute; cursor: pointer;
+        transition: transform .22s cubic-bezier(.22,.68,0,1.2);
+        user-select: none;
+    }
+    .hn:hover { transform: translateY(-3px); }
+    .hn:hover .hc { box-shadow: rgba(149, 157, 165, 0.2) 0px 8px 24px; }
+    .hn.drag-src .hc { opacity: .15; transform: scale(.9); }
+    .hn.drag-over .hc { box-shadow: rgba(149, 157, 165, 0.2) 0px 8px 24px; transform: scale(1.04); }
+    .hn.drop-left .hc { box-shadow: -4px 0 0 0 var(--A), rgba(245,166,35,.15) 0px 8px 24px; transform: scale(1.03); }
+    .hn.drop-right .hc { box-shadow: 4px 0 0 0 var(--A), rgba(245,166,35,.15) 0px 8px 24px; transform: scale(1.03); }
+    .hn.sel .hc { border-color: var(--A); box-shadow: 0 0 0 3px var(--A-ring), var(--s2); }
+
+    .hc { border-radius: 12px; overflow: hidden; transition: all .2s ease; position: relative; }
+    .hc-bar { height: 3px; width: 100%; }
+    .hc-body { padding: 11px 12px 7px 14px; }
+    .hc-av-row { display: flex; align-items: center; gap: 9px; margin-bottom: 6px; }
+
+    /* ── Node card avatar ── */
+    .hc-av {
+        width: 32px; height: 32px; border-radius: 15px;
+        flex-shrink: 0; position: relative;
+        box-shadow: 0 2px 8px rgba(0,0,0,.3);
+        /* overflow: hidden; */
+        font-size: 11px;
+    }
+
+    .hc-dot {
+        position: absolute; bottom: -1px; right: -1px;
+        width: 8px; height: 8px; border-radius: 50%;
+        border: 1.5px solid white; z-index: 2;
+    }
+
+    .hc-nm {
+        font-size: 12.5px; font-weight: 700; color: black;
+        white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+        letter-spacing: -.2px; line-height: 1.2;
+    }
+    .hc-jt {
+        font-size: 9.5px; color: black; margin-top: 2px;
+        white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+        letter-spacing: .01em;
+    }
+    .hc-foot { display: flex; align-items: center; justify-content: space-between; padding: 0 12px 9px 14px; }
+    .hc-pill { font-size: 8.5px; padding: 5px 8px; border: 1px solid; white-space: nowrap; }
+    .hc-tc { font-size: 9px; color: black; display: flex; align-items: center; gap: 3px; font-weight: 600; }
+
+    .hc-grip {
+        position: absolute; top: 9px; right: 9px;
+        display: grid; grid-template-columns: 1fr 1fr; gap: 2px;
+        opacity: 0; transition: opacity .15s; cursor: grab;
+    }
+    .hc-grip span { display: block; width: 2.5px; height: 2.5px; border-radius: 50%; background: black; }
+    .hn:hover .hc-grip { opacity: 1; }
+
+    .hc-edot {
+        position: absolute; left: 50%; transform: translateX(-50%);
+        width: 20px; height: 20px; border-radius: 50%;
+        background: var(--primary); border: 1.5px solid var(--primary);
+        display: flex; align-items: center; justify-content: center;
+        font-size: 11px; font-weight: 800; color: white;
+        cursor: pointer; z-index: 5; transition: all .18s;
+    }
+    .hc-edot:hover {
+        background: white; color: var(--primary); border-color: var(--primary);
+        transform: translateX(-50%) scale(1.2);
+        box-shadow: rgba(0, 0, 0, 0.24) 0px 3px 8px;
+    }
+
+    .dhint {
+        position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%);
+        background: linear-gradient(135deg, var(--A), var(--A-dk));
+        color: #fff; font-size: 12px; font-weight: 600;
+        padding: 9px 22px; border-radius: 24px;
+        box-shadow: 0 6px 24px var(--A-ring);
+        pointer-events: none; z-index: 500; opacity: 0; transition: opacity .22s;
+        letter-spacing: -.1px;
+    }
+    .dhint.show { opacity: 1; }
+
+    .oc-panel {
+        position: fixed; top: 0; right: 0; width: 427px; height: 100vh;
+        background: white; z-index: 1055;
+        display: flex; flex-direction: column;
+        transform: translateX(100%);
+        transition: transform .32s cubic-bezier(.4,0,.2,1);
+        visibility: hidden;
+    }
+    .oc-panel.open { transform: translateX(0); visibility: visible; }
+
+    .oc-overlay {
+        position: fixed; inset: 0;
+        background: rgba(0,0,0,.5); backdrop-filter: blur(4px);
+        z-index: 1054; animation: ocFade .2s ease;
+    }
+    @@keyframes ocFade { from { opacity: 0 } to { opacity: 1 } }
+
+    .oc-hd { display: flex; align-items: flex-start; gap: 14px; padding: 18px 20px 16px; flex-shrink: 0; }
+
+    /* ── Offcanvas header avatar ── */
+    .oc-av {
+        width: 50px; height: 50px; border-radius: 13px;
+        flex-shrink: 0; position: relative;
+        overflow: hidden;
+        font-size: 17px;
+    }
+
+    .oc-av-dot {
+        position: absolute; bottom: -2px; right: -2px;
+        width: 12px; height: 12px; border-radius: 50%;
+        border: 2px solid white; z-index: 2;
+    }
+
+    .oc-nm { font-size: 15px; font-weight: 700; color: black; margin-bottom: 3px; letter-spacing: -.3px; line-height: 1.2; }
+    .oc-jt { font-size: 11px; color: black; margin-bottom: 9px; letter-spacing: .01em; }
+    .oc-bdg { display: flex; gap: 6px; flex-wrap: wrap; }
+    .oc-dc { font-size: 10px; padding: 3px 10px; border-radius: 6px; }
+
+    .oc-cls {
+        margin-left: auto; flex-shrink: 0;
+        width: 20px; height: 20px; border-radius: 20px;
+        border: 1px solid #ffffff; background: red; color: white;
+        display: flex; align-items: center; justify-content: center;
+        font-size: 12px; transition: all .14s;
+    }
+
+    .oc-stats { display: grid; grid-template-columns: repeat(3,1fr); gap: 0; flex-shrink: 0; background: #8080800a; }
+    .oc-st { padding: 14px 8px; text-align: center; border-right: 1px solid #252b3b21; transition: background .14s; }
+    .oc-st:last-child { border-right: none; }
+    .oc-sn { font-size: 22px; font-weight: 800; line-height: 1; margin-bottom: 5px; }
+    .oc-sl { font-size: 9px; color: black; font-weight: 600; text-transform: uppercase; letter-spacing: .08em; }
+
+    .oc-body { flex: 1; overflow-y: auto; padding: 18px 20px; }
+    .oc-body::-webkit-scrollbar { width: 3px; }
+    .oc-body::-webkit-scrollbar-thumb { background: var(--primary); border-radius: 3px; }
+
+    .oc-lbl {
+        font-size: 9.5px; font-weight: 700; text-transform: uppercase;
+        letter-spacing: .12em; color: black;
+        display: flex; align-items: center; gap: 10px; margin-bottom: 10px;
+    }
+    .oc-lbl::after { content: ''; flex: 1; height: 1px; background: #252b3b42; }
+
+    .oc-note {
+        border-radius: 9px; padding: 10px 13px; font-size: 12px;
+        display: flex; align-items: center; gap: 9px; margin-bottom: 10px;
+        line-height: 1.5; background: #80808014; border: 1px solid #8080806b;
+    }
+
+    .oc-mem {
+        display: flex; align-items: center; gap: 10px;
+        padding: 9px 12px; border-radius: 9px; background: white;
+        margin-bottom: 6px; cursor: pointer; border: 1px solid #8080805c;
+        transition: all .15s;
+    }
+
+    /* ── Team member row avatar ── */
+    .oc-mav {
+        width: 28px; height: 28px; border-radius: 7px;
+        flex-shrink: 0; position: relative;
+        overflow: hidden;
+        font-size: 10px;
+    }
+
+    .oc-mn { font-size: 12px; font-weight: 600; }
+    .oc-ms { font-size: 10px; margin-top: 1.5px; }
+
+    .oc-promo {
+        width: 100%; padding: 10px; border-radius: 9px; border: 1px solid;
+        font-size: 12.5px; font-weight: 700; cursor: pointer; transition: all .18s;
+        display: flex; align-items: center; justify-content: center;
+        gap: 7px; margin-top: 8px; letter-spacing: -.1px;
+    }
+    .oc-promo:disabled { opacity: .3; cursor: not-allowed; }
+
+    .oc-hist {
+        display: flex; align-items: center; gap: 9px;
+        padding: 9px 12px; border-radius: 9px;
+        background: #1c20300a; border: 1px solid #252b3b30; margin-bottom: 5px;
+    }
+    .oc-hi { width: 26px; height: 26px; border-radius: 7px; display: flex; align-items: center; justify-content: center; font-size: 13px; flex-shrink: 0; }
+    .oc-ht { margin-left: auto; font-size: 9.5px; color: black; white-space: nowrap; }
+
+    .oc-foot { padding: 14px 20px 20px; display: flex; gap: 9px; flex-shrink: 0; }
+    .oc-rem {
+        padding: 9px 16px; border-radius: 8px;
+        background: rgba(239,68,68,.08); border: 1px solid rgba(239,68,68,.22);
+        color: #f87171; font-size: 12.5px; font-weight: 600;
+        cursor: pointer; transition: all .14s;
+    }
+    .oc-rem:hover { background: rgba(239,68,68,.15); border-color: rgba(239,68,68,.4); }
+
+    .m-bg {
+        position: fixed; inset: 0; background: rgba(0,0,0,.65);
+        backdrop-filter: blur(6px); z-index: 2000;
+        display: flex; align-items: center; justify-content: center;
+    }
+    .m-box {
+        background: white; border-radius: 16px;
+        width: min(430px, 95vw); overflow: hidden;
+        animation: mIn .26s cubic-bezier(.22,.68,0,1.1);
+    }
+    @@keyframes mIn { from { transform: translateY(20px) scale(.96); opacity: 0 } to { transform: none; opacity: 1 } }
+
+    .m-hd {
+        padding: 18px 22px 14px; border-bottom: 1px solid #252b3b17;
+        position: relative; display: flex; align-items: flex-start; justify-content: space-between;
+    }
+    .m-hd::after { content: ''; position: absolute; bottom: 0; left: 0; width: 60px; height: 2px; background: linear-gradient(90deg, var(--P), transparent); }
+    .m-t { font-size: 14px; font-weight: 500; color: black; }
+    .m-s { font-size: 11px; color: black; margin-top: 3px; }
+    .m-body { padding: 18px 22px; }
+    .m-ft { padding: 14px 22px 18px; background: white; display: flex; gap: 10px; }
+    .lbl { display: block; font-size: 10px; font-weight: 500; text-transform: uppercase; margin-bottom: 6px; }
+</style>
+
+<div class="content">
+    <div class="page-header">
+        <!--!--><div class="add-item d-flex">
+            <div class="page-title" id="CompanyPageTitle">
+                <h4 class="fw-bold">
+                    Hierarchy
+                    <span class="badge bg-primary-transparent">@Services.People.Count people</span>
+                </h4>
+                <h6>Role Hierachy Mapping Details</h6>
+            </div>
+        </div>
+        <div class="page-btn">
+            <button class="btn btn-primary" @onclick="ToggleExpandAll">
+                <i class="ti @(allExpanded ? "ti-arrows-minimize" : "ti-arrows-maximize")"></i>
+                @(allExpanded ? "Collapse All" : "Expand All")
+            </button>
+            <a @onclick="() => showAdd = true" id="CreateButton" class="btn btn-primary">
+                <i class="ti ti-circle-plus me-1"></i>
+                Add Member
+            </a>
+        </div>
+    </div>
+
+    <div class="ht-canvas-wrap">
+        @{
+            const int NW = 186;
+            const int NH = 90;
+            const int HGAP = 44;
+            const int VGAP = 76;
+            const int DOT = 20;
+            const int STEM = 14;
+
+            Func<int?, List<Person>> SortedKids = (managerId) =>
+            {
+                return Services.People
+                    .Where(p => p.ManagerId == managerId)
+                    .OrderBy(p => siblingOrder.ContainsKey(p.Id) ? siblingOrder[p.Id] : p.Id)
+                    .ToList();
+            };
+
+            Func<int, int> SubW = null!;
+            SubW = (id) =>
+            {
+                var kids = collapsedIds.Contains(id) ? new List<Person>() : SortedKids(id);
+                if (!kids.Any()) return NW;
+                int total = kids.Sum(k => SubW(k.Id)) + HGAP * (kids.Count - 1);
+                return Math.Max(NW, total);
+            };
+
+            var pos = new Dictionary<int, (double cx, double cy)>();
+
+            Action<int, double, double> Lay = null!;
+            Lay = (id, left, top) =>
+            {
+                double sw = SubW(id);
+                double cx = left + sw / 2.0;
+                pos[id] = (cx, top);
+                var kids = collapsedIds.Contains(id) ? new List<Person>() : SortedKids(id);
+                if (!kids.Any()) return;
+                double childTop = top + NH + STEM + DOT + STEM + VGAP;
+                double cur = left;
+                foreach (var kid in kids)
+                {
+                    double sw2 = SubW(kid.Id);
+                    Lay(kid.Id, cur, childTop);
+                    cur += sw2 + HGAP;
+                }
+            };
+
+            var roots = SortedKids(null);
+            double rootLeft = 0;
+            foreach (var root in roots)
+            {
+                Lay(root.Id, rootLeft, 0);
+                rootLeft += SubW(root.Id) + HGAP;
+            }
+
+            double cW = pos.Any() ? pos.Values.Max(v => v.cx + NW / 2.0) + 40 : 600;
+            double cH = pos.Any() ? pos.Values.Max(v => v.cy + NH) + 60 : 400;
+
+            string Px(double v) => ((int)Math.Round(v)).ToString();
+            string Pf(double v) => v.ToString("0.0", System.Globalization.CultureInfo.InvariantCulture);
+        }
+
+        <div style="display:block; width:max-content; min-width:100%;">
+        <div class="ht-canvas" style="width:@(Px(cW))px; height:@(Px(cH))px;">
+
+            <svg class="ht-svg" width="@(Px(cW))" height="@(Px(cH))">
+                @foreach (var person in Services.People)
+                {
+                    if (!pos.ContainsKey(person.Id)) continue;
+                    var kids2 = collapsedIds.Contains(person.Id) ? new List<Person>() : SortedKids(person.Id);
+                    if (!kids2.Any()) continue;
+
+                    double pcx = pos[person.Id].cx;
+                    double pcy = pos[person.Id].cy;
+                    double pBot = pcy + NH;
+                    double dotCy = pBot + STEM + DOT / 2.0;
+                    double aftDot = dotCy + DOT / 2.0 + STEM;
+
+                    <line x1="@Pf(pcx)" y1="@Pf(pBot)"
+                          x2="@Pf(pcx)" y2="@Pf(dotCy - DOT / 2.0)"
+                          stroke="var(--wire)" stroke-width="1.5" stroke-linecap="round" />
+
+                    <line x1="@Pf(pcx)" y1="@Pf(dotCy + DOT / 2.0)"
+                          x2="@Pf(pcx)" y2="@Pf(aftDot)"
+                          stroke="var(--wire)" stroke-width="1.5" stroke-linecap="round" />
+
+                    foreach (var kid in kids2)
+                    {
+                        if (!pos.ContainsKey(kid.Id)) continue;
+                        double ccx = pos[kid.Id].cx;
+                        double ccy = pos[kid.Id].cy;
+                        double cp = (aftDot + ccy) / 2.0;
+                        string d = "M " + Pf(pcx) + "," + Pf(aftDot)
+                            + " C " + Pf(pcx) + "," + Pf(cp)
+                            + " " + Pf(ccx) + "," + Pf(cp)
+                            + " " + Pf(ccx) + "," + Pf(ccy);
+                        <path d="@d" fill="none" stroke="var(--wire)"
+                              stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" opacity=".8" />
+                    }
+                }
+            </svg>
+
+            @foreach (var person in Services.People)
+            {
+                if (!pos.ContainsKey(person.Id)) continue;
+
+                double pcx2 = pos[person.Id].cx;
+                double pcy2 = pos[person.Id].cy;
+                double cLeft = pcx2 - NW / 2.0;
+                double dotTop2 = NH + STEM;
+
+                var r = RoleChangingService.Roles[person.Role];
+                var sc = RoleChangingService.StatusColor(person.Status);
+                var tc = Services.GetTeam(person).Count;
+                bool hasKids = Services.People.Any(p => p.ManagerId == person.Id);
+                bool isCol = collapsedIds.Contains(person.Id);
+                bool isSel = modalPersonId == person.Id && isOcOpen;
+                bool isDrSrc = draggingId == person.Id;
+                bool isDropLeft = dragOverId == person.Id && draggingId != 0 && IsSibling(draggingId, person.Id) && IsDropLeft(draggingId, person.Id);
+                bool isDropRight = dragOverId == person.Id && draggingId != 0 && IsSibling(draggingId, person.Id) && !IsDropLeft(draggingId, person.Id);
+                bool isDrOver = dragOverId == person.Id && !IsSibling(draggingId, person.Id);
+
+                string leftPx = Px(cLeft);
+                string topPx = Px(pcy2);
+                string dotTopPx = Px(dotTop2);
+
+                <div class="hn @(isSel ? "sel" : "") @(isDrSrc ? "drag-src" : "") @(isDrOver ? "drag-over" : "") @(isDropLeft ? "drop-left" : "") @(isDropRight ? "drop-right" : "")"
+                     style="left:@(leftPx)px; top:@(topPx)px; width:@(NW)px;"
+                     draggable="true"
+                     @ondragstart="() => OnDragStart(person.Id)"
+                     @ondragend="OnDragEnd"
+                     @ondragover="() => OnDragOver(person.Id)"
+                     @ondragover:preventDefault
+                     @ondragleave="OnDragLeave"
+                     @ondrop="() => HandleDrop(person.Id)"
+                     @onclick="() => OpenModal(person.Id)">
+
+                    <div class="card hc">
+                        <div class="hc-bar" style="background:linear-gradient(90deg,@r.Color,@(r.Color)44);"></div>
+                        <div class="hc-body">
+                            <div class="hc-av-row">
+
+                                
+                                <div class="hc-av" style="background:linear-gradient(135deg,@r.Color,@(r.Color)88);">
+                                    <img class="av-img"
+                                         src="@person.AvatarUrl"
+                                         alt="@person.Initials"
+                                         onerror="this.style.display='none';this.nextElementSibling.style.opacity='1'" />
+                                    <span class="av-fallback">@person.Initials</span>
+                                    <span class="hc-dot" style="background:@sc;"></span>
+                                </div>
+
+                                <div style="flex:1;min-width:0;">
+                                    <div class="hc-nm">@person.FullName</div>
+                                    <div class="hc-jt">@person.Title</div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="hc-foot">
+                            <span class="badge hc-pill" style="background:@(r.Color)18;color:@r.Color;border-color:@(r.Color)40;">@r.Icon @r.Label</span>
+                            @if (tc > 0)
+                            {
+                                <span class="hc-tc"><i class="ti ti-users" style="font-size:9px;"></i>@tc</span>
+                            }
+                        </div>
+                        <div class="hc-grip"><span></span><span></span><span></span><span></span><span></span><span></span></div>
+                    </div>
+
+                    @if (hasKids)
+                    {
+                        <div class="hc-edot" id="MinusPlus"
+                             style="top:@(dotTopPx)px;"
+                             @onclick:stopPropagation="true"
+                             @onclick="() => ToggleNode(person.Id)">
+                            @(isCol ? "+" : "−")
+                        </div>
+                    }
+                </div>
+            }
+        </div>
+        </div>
+    </div>
+</div>
+
+<div class="dhint @(draggingId > 0 ? "show" : "")">
+    @if (draggingId > 0 && dragOverId > 0 && IsSibling(draggingId, dragOverId))
+    {
+        <span>↔ Release to reorder siblings</span>
+    }
+    else
+    {
+        <span>Drop onto a person to reassign manager</span>
+    }
+</div>
+
+<!-- OFFCANVAS -->
+<div class="oc-panel @(isOcOpen ? "open" : "")">
+    @if (modalPersonId.HasValue)
+    {
+        var p = Services.People.FirstOrDefault(x => x.Id == modalPersonId.Value);
+        @if (p != null)
+        {
+            var r = RoleChangingService.Roles[p.Role];
+            var team = Services.GetTeam(p);
+            var tns = team.Where(m => m.Role != p.Role).ToList();
+            var dir = Services.People.Where(x => x.ManagerId == p.Id).ToList();
+            var sc = RoleChangingService.StatusColor(p.Status);
+
+            <div class="oc-hd">
+
+                
+                <div class="oc-av" style="background:linear-gradient(135deg,@r.Color,@(r.Color)88);">
+                    <img class="av-img"
+                         src="@p.AvatarUrl"
+                         alt="@p.Initials"
+                         onerror="this.style.display='none';this.nextElementSibling.style.opacity='1'" />
+                    <span class="av-fallback">@p.Initials</span>
+                    <span class="oc-av-dot" style="background:@sc;"></span>
+                </div>
+
+                <div style="flex:1;min-width:0;">
+                    <div class="oc-nm">@p.FullName</div>
+                    <div class="oc-jt">@p.Title</div>
+                    <div class="oc-bdg">
+                        <span class="badge" style="background:@(r.Color)18;color:@r.Color;border-color:@(r.Color)40;">@r.Icon @r.Label</span>
+                        <span class="badge bg-primary-transparent">@p.Dept</span>
+                    </div>
+                </div>
+                <button class="oc-cls" @onclick="CloseModal"><i class="ti ti-x"></i></button>
+            </div>
+
+            <div class="oc-stats">
+                <div class="oc-st"><div class="oc-sn" style="color:var(--primary);">@dir.Count</div><div class="oc-sl">Direct</div></div>
+                <div class="oc-st"><div class="oc-sn" style="color:var(--primary);">@team.Count</div><div class="oc-sl">Full Team</div></div>
+                <div class="oc-st"><div class="oc-sn" style="color:var(--primary);">@p.History.Count</div><div class="oc-sl">Changes</div></div>
+            </div>
+
+            <div class="oc-body">
+                @if (team.Any())
+                {
+                    <div class="mb-4">
+                        <div class="oc-lbl">Team Members</div>
+                        <div class="oc-note">
+                            @if (tns.Any())
+                            {
+                                <i class="ti ti-info-circle" style="color:var(--A);flex-shrink:0;"></i>
+                                <span><b>@tns.Count</b> member@(tns.Count > 1 ? "s" : "") on different roles</span>
+                            }
+                            else
+                            {
+                                <i class="ti ti-circle-check" style="color:#22c55e;flex-shrink:0;"></i>
+                                <span>All <b>@team.Count</b> are <b style="color:@r.Color;">@r.Label</b></span>
+                            }
+                        </div>
+                        @foreach (var member in team)
+                        {
+                            var mr = RoleChangingService.Roles[member.Role];
+                            var same = member.Role == p.Role;
+                            <div class="oc-mem" @onclick="() => NavigateToMember(member.Id)" style="border-left:3px solid @mr.Color">
+
+                                
+                                <div class="oc-mav" style="background:linear-gradient(135deg,@mr.Color,@(mr.Color)88);">
+                                    <img class="av-img"
+                                         src="@member.AvatarUrl"
+                                         alt="@member.Initials"
+                                         onerror="this.style.display='none';this.nextElementSibling.style.opacity='1'" />
+                                    <span class="av-fallback">@member.Initials</span>
+                                </div>
+
+                                <div style="flex:1;min-width:0;">
+                                    <div class="oc-mn">@member.FullName</div>
+                                    <div class="oc-ms">@member.Title</div>
+                                </div>
+                                <div style="display:flex;align-items:center;gap:4px;flex-shrink:0;">
+                                    @if (same)
+                                    {
+                                        <span class="badge oc-chip" style="background:@(mr.Color)15;color:@mr.Color;border-color:@(mr.Color)33;">✓ @mr.Label</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="badge oc-chip" style="background:@(mr.Color)15;color:@mr.Color;border-color:@(mr.Color)33;">@mr.Label</span>
+                                        <i class="ti ti-arrow-right" style="color:black;font-size:10px;"></i>
+                                        <span class="badge oc-chip" style="background:@(r.Color)15;color:@r.Color;border-color:@(r.Color)33;">@r.Label</span>
+                                    }
+                                    <i class="ti ti-chevron-right" style="color:black;font-size:11px;margin-left:2px;"></i>
+                                </div>
+                            </div>
+                        }
+                        <button class="badge bg-primary-transparent oc-promo"
+                                disabled="@(!tns.Any())"
+                                style="@(tns.Any()
+                                    ? "background:var(--A-lt);border-color:var(--A-mid);color:var(--A);"
+                                    : "background:var(--ink3);border-color:var(--bd);color:black;")"
+                                @onclick="PromoteTeam">
+                            @if (!tns.Any())
+                            {
+                                <i class="ti ti-circle-check"></i>
+                                <span>All are @r.Label</span>
+                            }
+                            else
+                            {
+                                <i class="ti ti-rocket"></i>
+                                <span>Promote all @tns.Count → @r.Label</span>
+                            }
+                        </button>
+                    </div>
+                }
+
+                @if (p.History.Any())
+                {
+                    <div>
+                        <div class="oc-lbl">Role History</div>
+                        @foreach (var h in p.History)
+                        {
+                            var fr = RoleChangingService.Roles[h.From];
+                            var tr = RoleChangingService.Roles[h.To];
+                            var up = fr.Level > tr.Level;
+                            <div class="oc-hist">
+                                <div class="oc-hi"
+                                     style="background:@(up ? "rgba(34,197,94,.12)" : "rgba(239,68,68,.10)");
+                                            color:@(up ? "#4ade80" : "#f87171");">
+                                    <i class="ti @(up ? "ti-trending-up" : "ti-trending-down")"></i>
+                                </div>
+                                <div style="display:flex;align-items:center;gap:5px;flex:1;flex-wrap:wrap;">
+                                    <span class="badge" style="background:@(fr.Color)15;color:@fr.Color;border-color:@(fr.Color)33;">@fr.Icon @fr.Label</span>
+                                    <i class="ti ti-arrow-right" style="color:black;font-size:10px;"></i>
+                                    <span class="badge" style="background:@(tr.Color)15;color:@tr.Color;border-color:@(tr.Color)33;">@tr.Icon @tr.Label</span>
+                                </div>
+                                <div class="oc-ht"><i class="ti ti-clock me-1"></i>@RoleChangingService.TimeAgo(h.Timestamp)</div>
+                            </div>
+                        }
+                    </div>
+                }
+            </div>
+
+            <div class="oc-foot">
+                <button class="btn btn-outline-secondary w-100" @onclick="RemovePerson">
+                    <i class="ti ti-trash me-1"></i> Remove
+                </button>
+                <button class="btn btn-primary w-100" @onclick="CloseModal">
+                    <i class="ti ti-check me-1"></i> Done
+                </button>
+            </div>
+        }
+    }
+</div>
+
+@if (isOcOpen)
+{
+    <div class="oc-overlay" @onclick="CloseModal"></div>
+}
+
+<!-- ADD MODAL -->
+@if (showAdd)
+{
+    <div class="m-bg">
+        <div class="card m-box">
+            <div class="m-hd">
+                <div>
+                    <div class="m-t"><i class="ti ti-user-plus me-2" style="color:var(--primary);"></i>Add Team Member</div>
+                    <div class="m-s">Fill details to add to the hierarchy</div>
+                </div>
+                <button class="oc-cls" @onclick="CloseAddModal"><i class="ti ti-x"></i></button>
+            </div>
+            <div class="m-body">
+                <div class="row g-3 mb-3">
+                    <div class="col-6"><label class="lbl">First Name</label><input class="form-control" placeholder="Rani" @bind="addFirst" /></div>
+                    <div class="col-6"><label class="lbl">Last Name</label><input class="form-control" placeholder="Kumar" @bind="addLast" /></div>
+                </div>
+                <div class="mb-3"><label class="lbl">Job Title</label><input class="form-control" placeholder="e.g. Team Leader" @bind="addTitle" /></div>
+                <div class="mb-3"><label class="lbl">Department</label><input class="form-control" placeholder="e.g. Engineering" @bind="addDept" /></div>
+                <div class="row g-3 mb-3">
+                    <div class="col-6">
+                        <label class="lbl">Role</label>
+                        <select class="form-select" @bind="addRole">
+                            @foreach (RoleType rt in Enum.GetValues<RoleType>())
+                            {
+                                var ri = RoleChangingService.Roles[rt];
+                                <option value="@rt">@ri.Icon @ri.Label</option>
+                            }
+                        </select>
+                    </div>
+                    <div class="col-6">
+                        <label class="lbl">Status</label>
+                        <select class="form-select" @bind="addStatus">
+                            <option value="@StatusType.Online">🟢 Online</option>
+                            <option value="@StatusType.Away">🟡 Away</option>
+                            <option value="@StatusType.Offline">⚫ Offline</option>
+                        </select>
+                    </div>
+                </div>
+                <div>
+                    <label class="lbl">Reports To</label>
+                    <select class="form-select" @bind="addManagerId">
+                        <option value="0">— No Manager —</option>
+                        @foreach (var mgr in Services.People)
+                        {
+                            var mr = RoleChangingService.Roles[mgr.Role];
+                            <option value="@mgr.Id">@mgr.FullName (@mr.Label)</option>
+                        }
+                    </select>
+                </div>
+            </div>
+            <div class="m-ft">
+                <button class="btn btn-outline-secondary w-100" @onclick="CloseAddModal"><i class="ti ti-x me-1"></i>Cancel</button>
+                <button class="btn btn-primary w-100" @onclick="ConfirmAdd"><i class="ti ti-user-plus me-1"></i>Add Member</button>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    private Dictionary<int, int> siblingOrder = new();
+
+    private bool IsSibling(int idA, int idB)
+    {
+        if (idA == 0 || idB == 0 || idA == idB) return false;
+        var a = Services.People.FirstOrDefault(p => p.Id == idA);
+        var b = Services.People.FirstOrDefault(p => p.Id == idB);
+        return a != null && b != null && a.ManagerId == b.ManagerId;
+    }
+
+    private bool IsDropLeft(int draggingNodeId, int targetId)
+    {
+        int orderA = siblingOrder.ContainsKey(draggingNodeId) ? siblingOrder[draggingNodeId] : draggingNodeId;
+        int orderB = siblingOrder.ContainsKey(targetId) ? siblingOrder[targetId] : targetId;
+        return orderA < orderB;
+    }
+
+    private void SwapSiblingOrder(int idA, int idB)
+    {
+        var siblings = Services.People
+            .Where(p => { var a = Services.People.FirstOrDefault(x => x.Id == idA); return p.ManagerId == a?.ManagerId; })
+            .OrderBy(p => siblingOrder.ContainsKey(p.Id) ? siblingOrder[p.Id] : p.Id)
+            .ToList();
+        for (int i = 0; i < siblings.Count; i++)
+            if (!siblingOrder.ContainsKey(siblings[i].Id))
+                siblingOrder[siblings[i].Id] = i;
+        int tmp = siblingOrder[idA];
+        siblingOrder[idA] = siblingOrder[idB];
+        siblingOrder[idB] = tmp;
+    }
+
+    private HashSet<int> collapsedIds = new();
+    private bool allExpanded = true;
+
+    private void ToggleNode(int id)
+    {
+        if (collapsedIds.Contains(id)) collapsedIds.Remove(id);
+        else collapsedIds.Add(id);
+        allExpanded = collapsedIds.Count == 0;
+        StateHasChanged();
+    }
+
+    private void ToggleExpandAll()
+    {
+        if (allExpanded)
+        {
+            foreach (var p in Services.People.Where(x => Services.People.Any(c => c.ManagerId == x.Id)))
+                collapsedIds.Add(p.Id);
+            allExpanded = false;
+        }
+        else { collapsedIds.Clear(); allExpanded = true; }
+        StateHasChanged();
+    }
+
+    private int draggingId = 0;
+    private int dragOverId = 0;
+
+    private void OnDragStart(int id) { draggingId = id; StateHasChanged(); }
+    private void OnDragLeave() { dragOverId = 0; StateHasChanged(); }
+    private void OnDragEnd() { draggingId = 0; dragOverId = 0; StateHasChanged(); }
+    private void OnDragOver(int id) { if (id != draggingId) { dragOverId = id; StateHasChanged(); } }
+
+    private void HandleDrop(int targetId)
+    {
+        dragOverId = 0;
+        if (draggingId == 0 || draggingId == targetId) { draggingId = 0; StateHasChanged(); return; }
+        var moving = Services.People.FirstOrDefault(p => p.Id == draggingId);
+        var target = Services.People.FirstOrDefault(p => p.Id == targetId);
+        if (moving == null || target == null) { draggingId = 0; StateHasChanged(); return; }
+        if (moving.ManagerId == target.ManagerId)
+        {
+            SwapSiblingOrder(draggingId, targetId);
+            ShowToast($"↔ Reordered: {moving.FullName} ⟷ {target.FullName}", "t1");
+            draggingId = 0; StateHasChanged(); return;
+        }
+        if (IsDescendant(draggingId, targetId))
+        {
+            ShowToast("Cannot place a parent under its own child", "t3");
+            draggingId = 0; StateHasChanged(); return;
+        }
+        Services.ReassignManager(draggingId, targetId);
+        siblingOrder.Remove(draggingId);
+        ShowToast($"✓ {moving.FullName} → {target.FullName}", "t1");
+        draggingId = 0; StateHasChanged();
+    }
+
+    private bool IsDescendant(int ancestorId, int checkId)
+    {
+        var cur = Services.People.FirstOrDefault(p => p.Id == checkId);
+        var visited = new HashSet<int>();
+        while (cur?.ManagerId != null)
+        {
+            if (visited.Contains(cur.Id)) break;
+            visited.Add(cur.Id);
+            if (cur.ManagerId == ancestorId) return true;
+            cur = Services.People.FirstOrDefault(p => p.Id == cur.ManagerId);
+        }
+        return false;
+    }
+
+    private int? modalPersonId;
+    private bool isOcOpen = false;
+
+    private async Task OpenModal(int id)
+    { modalPersonId = id; StateHasChanged(); await Task.Delay(30); isOcOpen = true; StateHasChanged(); }
+
+    private async Task CloseModal()
+    { isOcOpen = false; StateHasChanged(); await Task.Delay(320); modalPersonId = null; StateHasChanged(); }
+
+    private async Task NavigateToMember(int id)
+    { isOcOpen = false; StateHasChanged(); await Task.Delay(180); modalPersonId = id; StateHasChanged(); await Task.Delay(30); isOcOpen = true; StateHasChanged(); }
+
+    private void PromoteTeam()
+    {
+        if (!modalPersonId.HasValue) return;
+        var person = Services.People.FirstOrDefault(p => p.Id == modalPersonId.Value);
+        if (person == null) return;
+        var toChange = Services.GetTeam(person).Count(m => m.Role != person.Role);
+        if (toChange == 0) { ShowToast($"All already {RoleChangingService.Roles[person.Role].Label}", "t3"); return; }
+        Services.PromoteTeam(modalPersonId.Value);
+        ShowToast($"↑ {toChange} promoted to {RoleChangingService.Roles[person.Role].Label}", "t1");
+        StateHasChanged();
+    }
+
+    private async Task RemovePerson()
+    {
+        if (!modalPersonId.HasValue) return;
+        var p = Services.People.FirstOrDefault(x => x.Id == modalPersonId.Value);
+        if (p == null) return;
+        var name = p.FullName;
+        siblingOrder.Remove(modalPersonId.Value);
+        Services.RemovePerson(modalPersonId.Value);
+        await CloseModal();
+        ShowToast($"{name} removed", "t2");
+    }
+
+    private bool showAdd = false;
+    private string addFirst = "", addLast = "", addTitle = "", addDept = "";
+    private RoleType addRole = RoleType.TeamLeader;
+    private StatusType addStatus = StatusType.Online;
+    private int addManagerId = 0;
+
+    private void ConfirmAdd()
+    {
+        if (string.IsNullOrWhiteSpace(addFirst) || string.IsNullOrWhiteSpace(addLast))
+        { ShowToast("Enter first & last name", "t3"); return; }
+        var person = Services.AddPerson(
+            addFirst.Trim(), addLast.Trim(),
+            string.IsNullOrWhiteSpace(addTitle) ? "Team Member" : addTitle.Trim(),
+            string.IsNullOrWhiteSpace(addDept) ? "General" : addDept.Trim(),
+            addRole, addStatus, addManagerId > 0 ? addManagerId : null);
+        CloseAddModal();
+        ShowToast($"{person.FullName} joined as {RoleChangingService.Roles[person.Role].Label}", "t1");
+    }
+
+    private void CloseAddModal()
+    {
+        showAdd = false;
+        addFirst = ""; addLast = ""; addTitle = ""; addDept = "";
+        addRole = RoleType.TeamLeader;
+        addStatus = StatusType.Online;
+        addManagerId = 0;
+    }
+
+    private string toastMsg = "", toastType = "t2";
+    private bool toastVisible = false;
+    private System.Timers.Timer? toastTimer;
+
+    protected override void OnInitialized()
+    {
+        Services.OnChange += StateHasChanged;
+        toastTimer = new System.Timers.Timer(3000) { AutoReset = false };
+        toastTimer.Elapsed += (_, _) => { toastVisible = false; InvokeAsync(StateHasChanged); };
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            // Scroll so the Director (root) node is centered horizontally
+            await JS.InvokeVoidAsync("eval", @"
+            var w = document.querySelector('.ht-canvas-wrap');
+            if (w) {
+                w.scrollTop = 0;
+                // Center the root: canvas total width minus viewport width, divided by 2
+                var canvas = w.querySelector('.ht-canvas');
+                if (canvas) {
+                    var canvasW = canvas.offsetWidth;
+                    var viewW = w.clientWidth;
+                    w.scrollLeft = Math.max(0, (canvasW - viewW) / 2);
+                }
+            }
+        ");
+        }
+    }
+
+    public void Dispose() { Services.OnChange -= StateHasChanged; toastTimer?.Dispose(); }
+
+    private void ShowToast(string msg, string type = "t2")
+    { toastMsg = msg; toastType = type; toastVisible = true; toastTimer?.Stop(); toastTimer?.Start(); StateHasChanged(); }
+}

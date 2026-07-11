@@ -1,0 +1,336 @@
+﻿@page "/transaction-status/{StatusId:guid}/view"
+
+@using FinanceConnect.Client.ViewModels
+@using FinanceConnect.Client.Services
+@inject TransactionStatusService StatusService
+@inject NavigationManager Nav
+
+@if (SelectedStatus != null)
+{
+    <div class="content view-screen py-3">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <div>
+                <h4 class="fw-bold mb-1">Transaction Status Master Details</h4>
+                <p class="text-muted mb-0 small">Manage transaction status definitions and usage</p>
+            </div>
+            <a class="btn btn-outline-secondary" @onclick="GoBack">
+                <i class="ti ti-arrow-left me-1"></i> Back
+            </a>
+        </div>
+        <div class="row g-3">
+
+            <!-- ================= HEADER ================= -->
+            <div class="col-lg-12">
+                <div class="card mb-0">
+                    <div class="header-card">
+                        <div class="header-inner">
+
+                            <!-- LEFT SIDE -->
+                            <div class="header-left1">
+
+                                <!-- Status Logo / Initials -->
+                                <div class="company-logo">
+                                    <span class="logo-initials">
+                                        @SelectedStatus?.Code?.Substring(0, Math.Min(2, SelectedStatus.Code.Length)).ToUpper()
+                                    </span>
+                                </div>
+
+                                <!-- Status Meta Info -->
+                                <div class="header-meta">
+
+                                    <!-- Status Name -->
+                                    <h2 class="company-title">
+                                        @SelectedStatus.Name
+                                    </h2>
+
+                                    <!-- Subtitle -->
+                                    <div class="company-subtitle">
+                                        <span>@SelectedStatus.StageCategory</span>
+                                        <span class="dot">·</span>
+                                        <span>Display Order: @SelectedStatus.DisplayOrder</span>
+                                    </div>
+
+                                    <!-- Tags -->
+                                    <div class="header-tags">
+
+                                        <span class="tag tag-info">
+                                            <i class="ti ti-shield-check me-1"></i>
+                                            @SelectedStatus.StageCategory
+                                        </span>
+
+                                        @if (!string.IsNullOrWhiteSpace(SelectedStatus.BadgeLabel))
+                                        {
+                                            <span class="tag tag-secondary">
+                                                <i class="ti ti-tag me-1"></i>
+                                                @SelectedStatus.BadgeLabel
+                                            </span>
+                                        }
+
+                                        @if (SelectedStatus.IsFinal)
+                                        {
+                                            <span class="tag tag-warning">
+                                                <i class="ti ti-lock me-1"></i>
+                                                Final State
+                                            </span>
+                                        }
+
+                                        @if (SelectedStatus.IsSystemDefined)
+                                        {
+                                            <span class="tag tag-danger">
+                                                <i class="ti ti-shield-lock me-1"></i>
+                                                System Defined
+                                            </span>
+                                        }
+
+                                    </div>
+
+                                </div>
+                            </div>
+
+                            <!-- RIGHT SIDE -->
+                            <div class="header-right">
+
+                                @if (SelectedStatus.IsActive)
+                                {
+                                    <span class="status-badge status-active">● ACTIVE</span>
+                                }
+                                else
+                                {
+                                    <span class="status-badge status-inactive">● INACTIVE</span>
+                                }
+
+                                <div class="created-info">
+                                    Created @SelectedStatus.CreatedAt.ToString("dd MMM yyyy")
+                                </div>
+
+                            </div>
+
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ================= LEFT PANEL ================= -->
+            <div class="col-lg-8">
+                <div class="profile-card">
+
+                    <!-- ================= IDENTITY ================= -->
+                    <div class="card mb-3">
+                        <div class="card-header py-2">
+                            <i class="ti ti-id me-2"></i> Status Identity
+                        </div>
+                        <div class="card-body py-2">
+                            <div class="row">
+                                <div class="col-md-3">
+                                    <small class="text-muted">Status Code</small>
+                                    <div class="fw-medium">@SelectedStatus.Code</div>
+                                </div>
+
+                                <div class="col-md-5">
+                                    <small class="text-muted">Status Name</small>
+                                    <div>@SelectedStatus.Name</div>
+                                </div>
+
+                                <div class="col-md-4">
+                                    <small class="text-muted">Stage Category</small>
+                                    <div>
+                                        <span class="badge bg-info-transparent text-info">
+                                            @SelectedStatus.StageCategory
+                                        </span>
+                                    </div>
+                                </div>
+
+                                <div class="col-md-12 mt-2">
+                                    <small class="text-muted">Description</small>
+                                    <div class="ql-editor">
+                                        @((MarkupString)(SelectedStatus.Description ?? string.Empty))
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <!-- ================= CONTROL POLICY ================= -->
+                    <div class="card mb-3">
+                        <div class="card-header py-2">
+                            <i class="ti ti-lock me-2"></i> Control Policy
+                        </div>
+                        <div class="card-body py-2">
+                            <div class="row">
+
+                                <div class="col-md-3">
+                                    <small class="text-muted">Header Editable</small>
+                                    <div>
+                                        <span class="badge @(SelectedStatus.AllowHeaderEdit
+                                                            ? "bg-success-transparent text-success"
+                                                            : "bg-secondary-transparent text-secondary")">
+                                            @(SelectedStatus.AllowHeaderEdit ? "Yes" : "No")
+                                        </span>
+                                    </div>
+                                </div>
+
+                                <div class="col-md-3">
+                                    <small class="text-muted">Line Editable</small>
+                                    <div>
+                                        <span class="badge @(SelectedStatus.AllowLineEdit
+                                                            ? "bg-success-transparent text-success"
+                                                            : "bg-secondary-transparent text-secondary")">
+                                            @(SelectedStatus.AllowLineEdit ? "Yes" : "No")
+                                        </span>
+                                    </div>
+                                </div>
+
+                                <div class="col-md-3">
+                                    <small class="text-muted">Delete Allowed</small>
+                                    <div>
+                                        <span class="badge @(SelectedStatus.AllowDelete
+                                                            ? "bg-info-transparent text-info"
+                                                            : "bg-secondary-transparent text-secondary")">
+                                            @(SelectedStatus.AllowDelete ? "Yes" : "No")
+                                        </span>
+                                    </div>
+                                </div>
+
+                                <div class="col-md-3">
+                                    <small class="text-muted">Submit Allowed</small>
+                                    <div>
+                                        <span class="badge @(SelectedStatus.AllowSubmit
+                                                            ? "bg-info-transparent text-info"
+                                                            : "bg-secondary-transparent text-secondary")">
+                                            @(SelectedStatus.AllowSubmit ? "Yes" : "No")
+                                        </span>
+                                    </div>
+                                </div>
+
+                                <div class="col-md-3 mt-2">
+                                    <small class="text-muted">Approve / Reject</small>
+                                    <div>
+                                        <span class="badge @(SelectedStatus.AllowApproveReject
+                                                            ? "bg-warning-transparent text-warning"
+                                                            : "bg-secondary-transparent text-secondary")">
+                                            @(SelectedStatus.AllowApproveReject ? "Yes" : "No")
+                                        </span>
+                                    </div>
+                                </div>
+
+                                <div class="col-md-3 mt-2">
+                                    <small class="text-muted">Post Allowed</small>
+                                    <div>
+                                        <span class="badge @(SelectedStatus.AllowPost
+                                                            ? "bg-success-transparent text-success"
+                                                            : "bg-secondary-transparent text-secondary")">
+                                            @(SelectedStatus.AllowPost ? "Yes" : "No")
+                                        </span>
+                                    </div>
+                                </div>
+
+                                <div class="col-md-3 mt-2">
+                                    <small class="text-muted">Reverse Allowed</small>
+                                    <div>
+                                        <span class="badge @(SelectedStatus.AllowReverse
+                                                            ? "bg-warning-transparent text-warning"
+                                                            : "bg-secondary-transparent text-secondary")">
+                                            @(SelectedStatus.AllowReverse ? "Yes" : "No")
+                                        </span>
+                                    </div>
+                                </div>
+
+                                <div class="col-md-3 mt-2">
+                                    <small class="text-muted">Cancel Allowed</small>
+                                    <div>
+                                        <span class="badge @(SelectedStatus.AllowCancel
+                                                            ? "bg-danger-transparent text-danger"
+                                                            : "bg-secondary-transparent text-secondary")">
+                                            @(SelectedStatus.AllowCancel ? "Yes" : "No")
+                                        </span>
+                                    </div>
+                                </div>
+
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- ================= UI DISPLAY ================= -->
+                    <div class="card mb-0">
+                        <div class="card-header py-2">
+                            <i class="ti ti-layout-dashboard me-2"></i> UI Display
+                        </div>
+                        <div class="card-body py-2">
+                            <div class="row">
+                                <div class="col-md-4">
+                                    <small class="text-muted">Badge Label</small>
+                                    <div>@(string.IsNullOrWhiteSpace(SelectedStatus.BadgeLabel) ? "—" : SelectedStatus.BadgeLabel)</div>
+                                </div>
+
+                                <div class="col-md-4">
+                                    <small class="text-muted">Badge Tone</small>
+                                    <div>@SelectedStatus.BadgeTone</div>
+                                </div>
+
+                                <div class="col-md-4">
+                                    <small class="text-muted">Scope</small>
+                                    <div>@SelectedStatus.CompanyScopeMode</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+
+            <!-- ================= RIGHT PANEL ================= -->
+            <div class="col-lg-4">
+                <div class="profile-card mb-3">
+
+                    <!-- ================= STATUS & AUDIT ================= -->
+                    <div class="card mb-0">
+                        <div class="card-header py-2">
+                            <i class="ti ti-database me-2"></i> Status & Audit
+                        </div>
+                        <div class="card-body py-2">
+                            <div class="row">
+
+                                <div class="col-12">
+                                    <small class="text-muted">Active</small>
+                                    <div>
+                                        <span class="badge @(SelectedStatus.IsActive ? "bg-success-transparent text-success" : "bg-secondary-transparent text-secondary")">
+                                            @(SelectedStatus.IsActive ? "Yes" : "No")
+                                        </span>
+                                    </div>
+                                </div>
+
+                                <div class="col-12 mt-2">
+                                    <small class="text-muted">System Defined</small>
+                                    <div>
+                                        <span class="badge @(SelectedStatus.IsSystemDefined ? "bg-warning-transparent text-warning" : "bg-secondary-transparent text-secondary")">
+                                            @(SelectedStatus.IsSystemDefined ? "System" : "User")
+                                        </span>
+                                    </div>
+                                </div>
+
+                                <div class="col-12 mt-2">
+                                    <small class="text-muted">Created</small>
+                                    <div>@SelectedStatus.CreatedAt.ToString("dd MMM yyyy")</div>
+                                </div>
+
+                                <div class="col-12 mt-2">
+                                    <small class="text-muted">Updated</small>
+                                    <div>@(SelectedStatus.UpdatedAt?.ToString("dd MMM yyyy") ?? "—")</div>
+                                </div>
+
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+
+        </div>
+    </div>
+}
+else
+{
+    <div class="page-loading-overlay">
+        <div class="whirly-loader"></div>
+    </div>
+}
+

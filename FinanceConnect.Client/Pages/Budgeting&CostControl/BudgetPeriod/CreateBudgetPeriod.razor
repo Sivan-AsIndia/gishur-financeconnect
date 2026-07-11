@@ -1,0 +1,231 @@
+@page "/budget-periods/create"
+@page "/budget-periods/edit/{Id:guid}"
+@using FinanceConnect.Client.ViewModels
+@using FinanceConnect.Client.Services
+@using static FinanceConnect.Client.ViewModels.BudgetPeriodViewModel
+
+<style>.validation-message{color:#dc3545;font-size:12px;}.form-check-label{font-size:13px;}</style>
+
+<div class="content flat-form">
+    <div class="page-header">
+        <div class="page-title"><h4 class="fw-bold">@(IsEdit ? "Edit Budget Period" : "Create Budget Period")</h4><h6>Define time-segment buckets for budget control</h6></div>
+        <div class="page-btn"><a href="/budget-periods" class="btn btn-outline-secondary"><i class="ti ti-arrow-left"></i> Back</a></div>
+    </div>
+
+    <EditForm EditContext="_editContext" OnSubmit="Save">
+        <DataAnnotationsValidator />
+
+        <!-- SECTION 1: CORE IDENTITY -->
+        <div class="card mt-4"><div class="card-body">
+                <h6 class="text-primary mb-3 d-flex align-items-center"><i class="ti ti-id me-2" style="font-size: 22px;"></i> Core Identity</h6>
+            <div class="row g-3">
+                <div class="col-md-2">
+                    <label class="form-label">Period Sequence <span class="text-danger">*</span></label>
+                    <InputNumber class="form-control" @bind-Value="Model.PeriodSequenceNo" title="Sequential period number (1, 2, 3...)" placeholder="e.g. 1" />
+                    <ValidationMessage For="@(() => Model.PeriodSequenceNo)" />
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">Period Code <span class="text-danger">*</span></label>
+                    @if (IsEdit)
+                    {
+                        <div class="fw-semibold fs-14 mt-1">@Model.PeriodCode</div>
+                    }
+                    else
+                    {
+                        <InputText class="form-control text-uppercase" @bind-Value="Model.PeriodCode" placeholder="e.g. FY26-M01" title="Unique period code within this budget" />
+                        <ValidationMessage For="@(() => Model.PeriodCode)" />
+                    }
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">Period Name <span class="text-danger">*</span></label>
+                    <InputText class="form-control" @bind-Value="Model.PeriodName" placeholder="e.g. April 2026" title="Descriptive period name" />
+                    <ValidationMessage For="@(() => Model.PeriodName)" />
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">Status <span class="text-danger">*</span></label>
+                    <InputSelect class="form-select" @bind-Value="Model.PeriodStatus" title="Current period status">
+                        @foreach (var s in Enum.GetValues<PeriodStatusEnum>()) { <option value="@s">@s</option> }
+                    </InputSelect>
+                    <ValidationMessage For="@(() => Model.PeriodStatus)" />
+                </div>
+            </div>
+        </div></div>
+
+        <!-- SECTION 2: PERIOD CLASSIFICATION -->
+        <div class="card mt-4"><div class="card-body">
+                <h6 class="text-primary mb-3 d-flex align-items-center"><i class="ti ti-category me-2" style="font-size: 22px;"></i> Period Classification</h6>
+            <div class="row g-3">
+                <div class="col-md-3">
+                    <label class="form-label">Period Type <span class="text-danger">*</span></label>
+                    <InputSelect class="form-select" @bind-Value="Model.PeriodType" title="Granularity of this period">
+                        @foreach (var v in Enum.GetValues<PeriodTypeEnum>()) { <option value="@v">@v</option> }
+                    </InputSelect>
+                    <ValidationMessage For="@(() => Model.PeriodType)" />
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">Fiscal Month No</label>
+                    <InputNumber class="form-control" @bind-Value="Model.FiscalMonthNo" placeholder="1–12" title="Fiscal month number (1 to 12)" />
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">Fiscal Quarter No</label>
+                    <InputNumber class="form-control" @bind-Value="Model.FiscalQuarterNo" placeholder="1–4" title="Fiscal quarter number (1 to 4)" />
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">Fiscal Half No</label>
+                    <InputNumber class="form-control" @bind-Value="Model.FiscalHalfNo" placeholder="1–2" title="Fiscal half number (1 or 2)" />
+                </div>
+            </div>
+        </div></div>
+
+        <!-- SECTION 3: DATE RANGE -->
+        <div class="card mt-4"><div class="card-body">
+                <h6 class="text-primary mb-3 d-flex align-items-center"><i class="ti ti-calendar me-2" style="font-size: 22px;"></i> Date Range</h6>
+            <div class="row g-3">
+                <div class="col-md-3">
+                    <label class="form-label">Period Start Date <span class="text-danger">*</span></label>
+                    <InputDate class="form-control" @bind-Value="Model.StartDate" title="Period start date" />
+                    <ValidationMessage For="@(() => Model.StartDate)" />
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">Period End Date <span class="text-danger">*</span></label>
+                    <InputDate class="form-control" @bind-Value="Model.EndDate" title="Period end date" />
+                    <ValidationMessage For="@(() => Model.EndDate)" />
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">Period Length (Days)</label>
+                    <div class="form-control bg-light" title="Auto-calculated from start/end dates">@Model.PeriodLengthDays</div>
+                </div>
+                <div class="col-md-3 d-flex align-items-end">
+                    <div class="d-flex align-items-center gap-2 mb-2">
+                        <InputCheckbox class="form-check-input" @bind-Value="Model.OpenForConsumptionFlag" />
+                        <label class="form-check-label" title="Controls whether period accepts actual budget usage monitoring">Open for Consumption</label>
+                    </div>
+                </div>
+            </div>
+        </div></div>
+
+        <!-- SECTION 4: PLANNED VALUES -->
+        <div class="card mt-4"><div class="card-body">
+                <h6 class="text-primary mb-3 d-flex align-items-center"><i class="ti ti-currency-dollar me-2" style="font-size: 22px;"></i> Planned Values</h6>
+            <div class="row g-3">
+                <div class="col-md-3">
+                    <label class="form-label">Planned Amount <span class="text-danger">*</span></label>
+                    <InputNumber class="form-control" @bind-Value="Model.PlannedBudgetAmount" placeholder="0.00" title="Planned budget amount for this period" />
+                    <ValidationMessage For="@(() => Model.PlannedBudgetAmount)" />
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">Revised Amount</label>
+                    <InputNumber class="form-control" @bind-Value="Model.RevisedBudgetAmount" placeholder="0.00" title="Revised budget amount (if revised after approval)" />
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">Effective Amount</label>
+                    <div class="form-control bg-light fw-medium" title="Revised if available, else Planned">@Model.EffectiveBudgetAmount.ToString("N2")</div>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">Released Amount</label>
+                    <InputNumber class="form-control" @bind-Value="Model.ReleasedBudgetAmount" placeholder="0.00" title="Amount released for use (phased release)" />
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">Reserved Commitment</label>
+                    <InputNumber class="form-control" @bind-Value="Model.ReservedCommitmentAmount" placeholder="0.00" title="Reserved commitment or pre-obligation amount" />
+                </div>
+            </div>
+        </div></div>
+
+        <!-- SECTION 5: ACTUAL CONSUMPTION (read-only summary) -->
+        @if (IsEdit)
+        {
+            <div class="card mt-4"><div class="card-body">
+                    <h6 class="text-primary mb-3 d-flex align-items-center"><i class="ti ti-chart-bar me-2" style="font-size: 22px;"></i> Actual Consumption (Read-Only)</h6>
+                <div class="row g-3">
+                    <div class="col-md-3">
+                        <label class="form-label">Actual Consumed</label>
+                        <div class="form-control bg-light">@Model.ActualConsumedAmount.ToString("N2")</div>
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">Committed Amount</label>
+                        <div class="form-control bg-light">@(Model.CommittedAmount?.ToString("N2") ?? "0.00")</div>
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">Available Balance</label>
+                        <div class="form-control bg-light @(Model.AvailableBalanceAmount < 0 ? "text-danger fw-bold" : "")">@Model.AvailableBalanceAmount.ToString("N2")</div>
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">Utilization %</label>
+                        <div class="form-control bg-light">@Model.UtilizationPercent.ToString("N2")%</div>
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">Overspend Amount</label>
+                        <div class="form-control bg-light @(Model.IsOverspent ? "text-danger fw-bold" : "")">@Model.OverspendAmount.ToString("N2")</div>
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">Is Overspent</label>
+                        <div class="form-control bg-light">@(Model.IsOverspent ? "Yes" : "No")</div>
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">Within Budget Range</label>
+                        <div class="form-control bg-light">@(Model.IsWithinBudgetRange ? "Yes" : "No")</div>
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">Attachment Count</label>
+                        <div class="form-control bg-light">@Model.AttachmentCount</div>
+                    </div>
+                </div>
+            </div></div>
+        }
+
+        <!-- SECTION 7: LINKAGE TO PLANNING INTELLIGENCE -->
+        <div class="card mt-4"><div class="card-body">
+                <h6 class="text-primary mb-3 d-flex align-items-center"><i class="ti ti-link me-2" style="font-size: 22px;"></i> Planning Linkage (Optional)</h6>
+            <div class="row g-3">
+                <div class="col-md-6">
+                    <label class="form-label">Revision Reason</label>
+                    <InputTextArea class="form-control" rows="2" @bind-Value="Model.RevisionReason" placeholder="Required when status is Revised..." title="Reason for period revision" />
+                </div>
+                <div class="col-md-6"></div>
+                <div class="col-md-3">
+                    <label class="form-label">Forecast Reference</label>
+                    <InputText class="form-control" @bind-Value="forecastRefDisplay" placeholder="Forecast ID (optional)" title="FK → Forecast, if forecast re-baselines remaining periods" />
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">Variance Analysis Ref</label>
+                    <InputText class="form-control" @bind-Value="varianceRefDisplay" placeholder="Variance Analysis ID (optional)" title="FK → VarianceAnalysis, convenience link" />
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">Carry Forward From</label>
+                    <InputText class="form-control" @bind-Value="carryFromDisplay" placeholder="Period ID (optional)" title="FK → BudgetPeriod (self), spillover source" />
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">Carry Forward To</label>
+                    <InputText class="form-control" @bind-Value="carryToDisplay" placeholder="Period ID (optional)" title="FK → BudgetPeriod (self), spillover target" />
+                </div>
+            </div>
+        </div></div>
+
+        <!-- SECTION 8: NOTES & ASSUMPTIONS -->
+        <div class="card mt-4"><div class="card-body">
+                <h6 class="text-primary mb-3 d-flex align-items-center"><i class="ti ti-notes me-2" style="font-size: 22px;"></i> Notes & Assumptions</h6>
+            <div class="row g-3">
+                <div class="col-md-6">
+                    <label class="form-label">Period Notes</label>
+                    <InputTextArea class="form-control" rows="3" @bind-Value="Model.PeriodNotes" placeholder="Notes about this period..." title="Additional notes for the period" />
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label">Planning Assumption Summary</label>
+                    <InputTextArea class="form-control" rows="3" @bind-Value="Model.PlanningAssumptionSummary" placeholder="Key assumptions..." title="Summary of planning assumptions for this period" />
+                </div>
+            </div>
+        </div></div>
+
+        <!-- Action Buttons -->
+        <div class="d-flex justify-content-end mt-4 mb-5 gap-2">
+            <button type="button" class="btn btn-outline-secondary" @onclick='() => Nav.NavigateTo("/budget-periods")'>
+                <i class="ti ti-x"></i> Cancel
+            </button>
+            <button type="submit" class="btn btn-primary">
+                <i class="ti ti-device-floppy"></i>
+                @(IsEdit ? "Update" : "Create")
+            </button>
+        </div>
+    </EditForm>
+</div>

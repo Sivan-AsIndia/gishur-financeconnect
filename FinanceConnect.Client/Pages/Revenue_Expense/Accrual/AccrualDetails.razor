@@ -1,0 +1,207 @@
+@page "/accruals/{Id:guid}/view"
+@using static FinanceConnect.Client.ViewModels.AccrualViewModel
+
+
+
+@if (!isInitialized)
+{ <div class="page-loading-overlay"><div class="whirly-loader"></div></div> }
+else if (Item == null)
+{ <div class="vb-root"><div class="content"><div class="alert alert-danger"><i class="ti ti-alert-circle me-2"></i>Accrual not found. <a href="/accruals" class="alert-link ms-2">Return to list</a></div></div></div> }
+else
+{
+<div class="vb-root"><div class="content">
+    <!-- HEADER -->
+    <div class="vb-header-card">
+        <div class="vb-cover"><div class="vb-cover-orb vb-orb-1"></div><div class="vb-cover-orb vb-orb-2"></div><div class="vb-cover-orb vb-orb-3"></div></div>
+        <div class="vb-header-body">
+            <div class="vb-avatar">@Item.AccrualCode?.Substring(0, Math.Min(2, Item.AccrualCode?.Length ?? 0)).ToUpper()</div>
+            <div class="vb-header-meta">
+                <div>
+                    <p class="vb-bill-number">@Item.AccrualCode – @Item.AccrualTitle</p>
+                    <p class="vb-bill-sub">@Item.AccrualType &nbsp;·&nbsp; @Item.SourceType &nbsp;·&nbsp; @Item.AccrualBasisType</p>
+                    <div class="vb-badges">
+                        <span class="badge @GetStatusBadgeClass(Item.AccrualStatus)">@Item.AccrualStatus</span>
+                        @if (Item.IsLocked) { <span class="badge badge-red">🔒 Locked</span> }
+                        @if (Item.PolicyExceptionFlag) { <span class="badge badge-purple">⚠ Policy Exception</span> }
+                    </div>
+                </div>
+                <div class="vb-header-actions">
+                    @if (!Item.IsLocked && Item.AccrualStatus == AccrualStatusEnum.Draft)
+                    { <a href="/accruals/edit/@Item.AccrualId" class="btn btn-primary"><i class="ti ti-pencil me-1"></i> Edit</a> }
+                    <a href="/accruals" class="btn btn-outline-secondary"><i class="ti ti-arrow-left me-1"></i> Back</a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- SUMMARY TILES -->
+    <div class="vb-summary-grid mb-4 mt-2" style="background:transparent;border:none;box-shadow:none;">
+        <div class="vb-tile"><div class="vb-tile-label">Original Amount</div><div class="vb-tile-value primary">@Item.OriginalAccrualAmount.ToString("N2")</div></div>
+        <div class="vb-tile"><div class="vb-tile-label">Reversed</div><div class="vb-tile-value">@Item.ReversedAmountToDate.ToString("N2")</div></div>
+        <div class="vb-tile"><div class="vb-tile-label">Cleared</div><div class="vb-tile-value">@Item.ClearedAmountToDate.ToString("N2")</div></div>
+        <div class="vb-tile"><div class="vb-tile-label">Open Balance</div><div class="vb-tile-value @(Item.OpenAccrualBalance > 0 ? "text-danger" : "")">@Item.OpenAccrualBalance.ToString("N2")</div></div>
+        <div class="vb-tile"><div class="vb-tile-label">Posting Status</div><div class="vb-tile-value">@Item.PostingStatus</div></div>
+        <div class="vb-tile"><div class="vb-tile-label">Reversal Status</div><div class="vb-tile-value">@Item.ReversalStatus</div></div>
+    </div>
+
+    <!-- ROW 1: Core Identity + Source Context -->
+    <div class="ec-grid-row mb-3">
+        <div class="vb-card">
+            <div class="vb-card-header"><h6><i class="ti ti-id me-1"></i> Core Identity</h6></div>
+            <div class="vb-card-body">
+                <div class="ec-2col">
+                    <div class="vb-row"><span class="vb-label">Accrual Code</span><span class="vb-val">@Item.AccrualCode</span></div>
+                    <div class="vb-row"><span class="vb-label">Accrual Title</span><span class="vb-val">@Item.AccrualTitle</span></div>
+                    <div class="vb-row"><span class="vb-label">Accrual Type</span><span class="vb-val">@Item.AccrualType</span></div>
+                    <div class="vb-row"><span class="vb-label">Source Type</span><span class="vb-val">@Item.SourceType</span></div>
+                    <div class="vb-row"><span class="vb-label">Materiality</span><span class="vb-val">@(Item.MaterialityLevel?.ToString() ?? "–")</span></div>
+                </div>
+                @if (!string.IsNullOrWhiteSpace(Item.Description))
+                { <div class="vb-row mt-2" style="flex-direction:column;gap:4px;"><span class="vb-label">Description</span><span class="vb-val" style="font-style:italic;color:var(--gray-600);">@Item.Description</span></div> }
+            </div>
+        </div>
+        <div class="vb-card">
+            <div class="vb-card-header"><h6><i class="ti ti-file-text me-1"></i> Source Context</h6></div>
+            <div class="vb-card-body">
+                <div class="ec-2col">
+                    <div class="vb-row"><span class="vb-label">Document Type</span><span class="vb-val">@(Item.SourceDocumentType ?? "–")</span></div>
+                    <div class="vb-row"><span class="vb-label">Document Number</span><span class="vb-val">@(Item.SourceDocumentNumber ?? "–")</span></div>
+                    <div class="vb-row"><span class="vb-label">Supplier</span><span class="vb-val">@(Item.SupplierName ?? "–")</span></div>
+                    <div class="vb-row"><span class="vb-label">Customer</span><span class="vb-val">@(Item.CustomerName ?? "–")</span></div>
+                    <div class="vb-row"><span class="vb-label">Project</span><span class="vb-val">@(Item.ProjectName ?? "–")</span></div>
+                    <div class="vb-row"><span class="vb-label">Contract</span><span class="vb-val">@(Item.ContractName ?? "–")</span></div>
+                    <div class="vb-row"><span class="vb-label">Basis Reference</span><span class="vb-val">@Item.BasisReferenceText</span></div>
+                    <div class="vb-row"><span class="vb-label">Basis Type</span><span class="vb-val">@Item.AccrualBasisType</span></div>
+                    <div class="vb-row"><span class="vb-label">Supporting Ref</span><span class="vb-val">@(Item.SupportingAmountReference ?? "–")</span></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ROW 2: Period & Dates + Amounts -->
+    <div class="ec-grid-row mb-3">
+        <div class="vb-card">
+            <div class="vb-card-header"><h6><i class="ti ti-calendar me-1"></i> Period & Dates</h6></div>
+            <div class="vb-card-body">
+                <div class="ec-2col">
+                    <div class="vb-row"><span class="vb-label">Accrual Date</span><span class="vb-val">@Item.AccrualDate?.ToString("dd MMM yyyy")</span></div>
+                    <div class="vb-row"><span class="vb-label">Accounting Period</span><span class="vb-val">@(Item.AccountingPeriodName ?? "–")</span></div>
+                    <div class="vb-row"><span class="vb-label">Fiscal Year</span><span class="vb-val">FY 2025-26</span></div>
+                    <div class="vb-row"><span class="vb-label">Coverage From</span><span class="vb-val">@(Item.ServiceOrCoverageFrom?.ToString("dd MMM yyyy") ?? "–")</span></div>
+                    <div class="vb-row"><span class="vb-label">Coverage To</span><span class="vb-val">@(Item.ServiceOrCoverageTo?.ToString("dd MMM yyyy") ?? "–")</span></div>
+                    <div class="vb-row"><span class="vb-label">Expected Actual Doc Date</span><span class="vb-val">@(Item.ExpectedActualDocumentDate?.ToString("dd MMM yyyy") ?? "–")</span></div>
+                </div>
+            </div>
+        </div>
+        <div class="vb-card">
+            <div class="vb-card-header"><h6><i class="ti ti-currency-dollar me-1"></i> Amounts</h6></div>
+            <div class="vb-card-body">
+                <div class="ec-2col">
+                    <div class="vb-row"><span class="vb-label">Original Amount</span><span class="vb-val fw-bold text-primary">@Item.OriginalAccrualAmount.ToString("N2")</span></div>
+                    <div class="vb-row"><span class="vb-label">Estimated Actual</span><span class="vb-val">@(Item.EstimatedActualAmount?.ToString("N2") ?? "–")</span></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ROW 3: Reversal & Clearance + GL Accounts & Dimensions -->
+    <div class="ec-grid-row mb-3">
+        <div class="vb-card">
+            <div class="vb-card-header"><h6><i class="ti ti-repeat me-1"></i> Reversal & Clearance</h6></div>
+            <div class="vb-card-body">
+                <div class="ec-2col">
+                    <div class="vb-row"><span class="vb-label">Reversal Strategy</span><span class="vb-val">@Item.ReversalStrategy</span></div>
+                    <div class="vb-row"><span class="vb-label">Auto-Reverse Date</span><span class="vb-val">@(Item.AutoReverseDate?.ToString("dd MMM yyyy") ?? "–")</span></div>
+                    <div class="vb-row"><span class="vb-label">Clearance Mode</span><span class="vb-val">@Item.ExpectedClearanceMode</span></div>
+                    <div class="vb-row"><span class="vb-label">Reversal Status</span><span class="vb-val">@Item.ReversalStatus</span></div>
+                    <div class="vb-row"><span class="vb-label">Clearance Status</span><span class="vb-val">@Item.ClearanceStatus</span></div>
+                    <div class="vb-row"><span class="vb-label">Clearance Ref</span><span class="vb-val">@(Item.ClearanceReferenceNumber ?? "–")</span></div>
+                    <div class="vb-row"><span class="vb-label">Last Reversal Date</span><span class="vb-val">@(Item.LastReversalDate?.ToString("dd MMM yyyy") ?? "–")</span></div>
+                    <div class="vb-row"><span class="vb-label">Last Clearance Date</span><span class="vb-val">@(Item.LastClearanceDate?.ToString("dd MMM yyyy") ?? "–")</span></div>
+                </div>
+            </div>
+        </div>
+        <div class="vb-card">
+            <div class="vb-card-header"><h6><i class="ti ti-building-bank me-1"></i> GL Accounts & Dimensions</h6></div>
+            <div class="vb-card-body">
+                <div class="ec-2col">
+                    <div class="vb-row"><span class="vb-label">GL Account</span><span class="vb-val">@(Item.GLAccountName ?? "–")</span></div>
+                    <div class="vb-row"><span class="vb-label">Liability/Asset GL</span><span class="vb-val">@(Item.AccrualLiabilityOrAssetGLName ?? "–")</span></div>
+                    <div class="vb-row"><span class="vb-label">Branch</span><span class="vb-val">@(Item.BranchName ?? "–")</span></div>
+                    <div class="vb-row"><span class="vb-label">Cost Center</span><span class="vb-val">@(Item.CostCenterName ?? "–")</span></div>
+                    <div class="vb-row"><span class="vb-label">Department</span><span class="vb-val">@(Item.DepartmentName ?? "–")</span></div>
+                    <div class="vb-row"><span class="vb-label">Expense Category</span><span class="vb-val">@(Item.ExpenseCategoryName ?? "–")</span></div>
+                    <div class="vb-row"><span class="vb-label">Project Cost Owner</span><span class="vb-val">@(Item.ProjectCostOwnerName ?? "–")</span></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ROW 4: Workflow + Notes & Evidence -->
+    <div class="ec-grid-row mb-3">
+        <div class="vb-card">
+            <div class="vb-card-header"><h6><i class="ti ti-user me-1"></i> Workflow</h6></div>
+            <div class="vb-card-body">
+                <div class="ec-2col">
+                    <div class="vb-row"><span class="vb-label">Prepared By</span><span class="vb-val">@(Item.PreparedByUserId ?? "–")</span></div>
+                    <div class="vb-row"><span class="vb-label">Posting Status</span><span class="vb-val">@Item.PostingStatus</span></div>
+                    <div class="vb-row"><span class="vb-label">Submitted On</span><span class="vb-val">@(Item.SubmittedOn?.ToString("dd MMM yyyy") ?? "–")</span></div>
+                    <div class="vb-row"><span class="vb-label">Reviewed By</span><span class="vb-val">@(Item.ReviewedByUserId ?? "–")</span></div>
+                    <div class="vb-row"><span class="vb-label">Reviewed On</span><span class="vb-val">@(Item.ReviewedOn?.ToString("dd MMM yyyy") ?? "–")</span></div>
+                    <div class="vb-row"><span class="vb-label">Approved By</span><span class="vb-val">@(Item.ApprovedByUserId ?? "–")</span></div>
+                    <div class="vb-row"><span class="vb-label">Approved On</span><span class="vb-val">@(Item.ApprovedOn?.ToString("dd MMM yyyy") ?? "–")</span></div>
+                    @if (Item.IsLocked)
+                    {
+                        <div class="vb-row"><span class="vb-label">Locked By</span><span class="vb-val">@(Item.LockedBy ?? "–")</span></div>
+                        <div class="vb-row"><span class="vb-label">Locked On</span><span class="vb-val">@(Item.LockedOn?.ToString("dd MMM yyyy") ?? "–")</span></div>
+                    }
+                </div>
+            </div>
+        </div>
+        <div class="vb-card">
+            <div class="vb-card-header"><h6><i class="ti ti-notes me-1"></i> Notes & Evidence</h6></div>
+            <div class="vb-card-body">
+                <div class="ec-2col">
+                    <div class="vb-row"><span class="vb-label">Assumption</span><span class="vb-val">@(Item.AssumptionText ?? "–")</span></div>
+                    <div class="vb-row"><span class="vb-label">Finance Notes</span><span class="vb-val">@(Item.FinanceNotes ?? "–")</span></div>
+                    <div class="vb-row"><span class="vb-label">Attachments</span><span class="vb-val">@Item.AttachmentCount</span></div>
+                    @if (Item.PolicyExceptionFlag)
+                    { <div class="vb-row"><span class="vb-label">Policy Exception</span><span class="vb-val text-warning">@(Item.PolicyExceptionReason ?? "Yes")</span></div> }
+                    @if (!string.IsNullOrWhiteSpace(Item.CancellationReason))
+                    { <div class="vb-row"><span class="vb-label">Cancellation Reason</span><span class="vb-val text-danger">@Item.CancellationReason</span></div> }
+                </div>
+            </div>
+        </div>
+    </div>
+
+</div></div>
+}
+
+@code {
+    private static string BoolText(bool v) => v ? "Yes" : "No";
+}
+
+<style>
+    .ec-grid-row {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(355px, 1fr));
+        gap: 16px;
+        align-items: start;
+    }
+    .ec-2col {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(237px, 1fr));
+        gap: 0 24px;
+    }
+    .ec-3col {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+        gap: 0 24px;
+    }
+    @@media (max-width: 992px) {
+        .ec-grid-row { grid-template-columns: 1fr; }
+    }
+    @@media (max-width: 768px) {
+        .ec-2col, .ec-3col { grid-template-columns: 1fr; }
+    }
+</style>

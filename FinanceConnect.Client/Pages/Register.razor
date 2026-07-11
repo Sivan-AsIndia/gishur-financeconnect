@@ -1,0 +1,251 @@
+@page "/Register"
+@layout AuthLayout
+@inject AuthService AuthService
+@inject NavigationManager Navigation
+@inject ToastService ToastService
+
+<style>
+    .login-wrapper-centered {
+        min-height: 100vh;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: linear-gradient(135deg, #1a1c2e 0%, #2d3154 50%, #1a1c2e 100%);
+        position: relative;
+        overflow: hidden;
+    }
+
+    .login-wrapper-centered::before {
+        content: '';
+        position: absolute;
+        top: -50%;
+        left: -50%;
+        width: 200%;
+        height: 200%;
+        background: radial-gradient(circle, rgba(254, 159, 67, 0.1) 0%, transparent 50%);
+        animation: pulse 15s ease-in-out infinite;
+    }
+
+    .login-wrapper-centered::after {
+        content: '';
+        position: absolute;
+        bottom: -50%;
+        right: -50%;
+        width: 200%;
+        height: 200%;
+        background: radial-gradient(circle, rgba(254, 159, 67, 0.05) 0%, transparent 40%);
+        animation: pulse 20s ease-in-out infinite reverse;
+    }
+
+    @@keyframes pulse {
+        0%, 100% { transform: scale(1); opacity: 0.5; }
+        50% { transform: scale(1.1); opacity: 0.8; }
+    }
+
+    .login-card {
+        background: rgba(255, 255, 255, 0.98);
+        border-radius: 20px;
+        box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+        padding: 40px;
+        width: 100%;
+        max-width: 480px;
+        position: relative;
+        z-index: 10;
+        backdrop-filter: blur(10px);
+    }
+
+    .login-card .login-logo {
+        text-align: center;
+        margin-bottom: 25px;
+    }
+
+    .login-card .login-logo img {
+        max-height: 55px;
+        width: auto;
+    }
+
+    .login-card .login-userheading {
+        text-align: center;
+        margin-bottom: 25px;
+    }
+
+    .login-card .login-userheading h3 {
+        color: #1a1c2e;
+        font-weight: 700;
+        font-size: 26px;
+        margin-bottom: 8px;
+    }
+
+    .login-card .login-userheading h4 {
+        color: #6c757d;
+        font-weight: 400;
+    }
+
+    .copyright-text p {
+        color: #6c757d;
+        font-size: 10px;
+    }
+
+    .text-orange {
+        color: color-mix(in srgb, var(--primary) 94%, white) !important;
+    }
+
+        .text-orange:hover {
+            color: var(--primary) !important;
+        }
+</style>
+
+<div class="login-wrapper-centered">
+    <div class="login-card">
+        <EditForm Model="@registerModel" OnValidSubmit="HandleRegister">
+            <div class="login-logo">
+                <img src="assets/images/logo.png" alt="Gishur Finance">
+            </div>
+            <div class="login-userheading">
+                <h3>Register</h3>
+                <h4 class="fs-16">Create your new account</h4>
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label">Name <span class="text-danger">*</span></label>
+                <div class="input-group">
+                    <InputText @bind-Value="registerModel.Name" class="form-control border-end-0" placeholder="Enter your name" />
+                    <span class="input-group-text border-start-0">
+                        <i class="ti ti-user"></i>
+                    </span>
+                </div>
+            </div>
+            <div class="mb-3">
+                <label class="form-label">Email <span class="text-danger">*</span></label>
+                <div class="input-group">
+                    <InputText @bind-Value="registerModel.Email" class="form-control border-end-0" placeholder="Enter your email" />
+                    <span class="input-group-text border-start-0">
+                        <i class="ti ti-mail"></i>
+                    </span>
+                </div>
+            </div>
+            <div class="mb-3">
+                <label class="form-label">Password <span class="text-danger">*</span></label>
+                <div class="pass-group">
+                    <InputText type="@(showPassword ? "text" : "password")" @bind-Value="registerModel.Password" class="pass-input form-control" placeholder="Enter password" />
+                    <span class="ti toggle-password @(showPassword ? "ti-eye" : "ti-eye-off") text-gray-9" @onclick="TogglePasswordVisibility" style="cursor: pointer;"></span>
+                </div>
+            </div>
+            <div class="mb-3">
+                <label class="form-label">Confirm Password <span class="text-danger">*</span></label>
+                <div class="pass-group">
+                    <InputText type="@(showConfirmPassword ? "text" : "password")" @bind-Value="registerModel.ConfirmPassword" class="pass-inputs form-control" placeholder="Confirm password" />
+                    <span class="ti toggle-passwords @(showConfirmPassword ? "ti-eye" : "ti-eye-off") text-gray-9" @onclick="ToggleConfirmPasswordVisibility" style="cursor: pointer;"></span>
+                </div>
+            </div>
+            <div class="form-login authentication-check mb-3">
+                <div class="custom-control custom-checkbox">
+                    <label class="checkboxs ps-4 mb-0 pb-0 line-height-1" style="font-size: 14px !important;">
+                        <input type="checkbox" @bind="agreeTerms">
+                        <span class="checkmarks" style="border: 1px solid var(--primary);"></span>I agree to the <a href="#" class="text-orange">Terms & Privacy</a>
+                    </label>
+                </div>
+            </div>
+            <div class="form-login mt-4">
+                <button type="submit" class="btn btn-primary w-100" disabled="@isLoading">
+                    @if (isLoading)
+                    {
+                        <span class="spinner-border spinner-border-sm me-2" role="status"></span>
+                        <span>Signing Up...</span>
+                    }
+                    else
+                    {
+                        <span>Sign Up</span>
+                    }
+                </button>
+            </div>
+            <div class="signinform mt-4 text-center">
+                <h4 style="font-size: 14px !important;">Already have an account? <a href="/Login" class="text-orange fw-medium">Sign In Instead</a></h4>
+            </div>
+            <div class="mt-4 d-flex justify-content-center align-items-center copyright-text">
+                <p class="mb-0">Copyright © 2026 FinanceConnect. All rights reserved.</p>
+            </div>
+        </EditForm>
+    </div>
+</div>
+
+@code {
+    private RegisterRequest registerModel = new();
+    private bool isLoading = false;
+    private bool showPassword = false;
+    private bool showConfirmPassword = false;
+    private bool agreeTerms = false;
+
+    private void TogglePasswordVisibility()
+    {
+        showPassword = !showPassword;
+    }
+
+    private void ToggleConfirmPasswordVisibility()
+    {
+        showConfirmPassword = !showConfirmPassword;
+    }
+
+    private async Task HandleRegister()
+    {
+        if (string.IsNullOrWhiteSpace(registerModel.Name))
+        {
+            ToastService.ShowError("Name is required.", "Validation Error");
+            return;
+        }
+
+        if (string.IsNullOrWhiteSpace(registerModel.Email))
+        {
+            ToastService.ShowError("Email is required.", "Validation Error");
+            return;
+        }
+
+        if (string.IsNullOrWhiteSpace(registerModel.Password))
+        {
+            ToastService.ShowError("Password is required.", "Validation Error");
+            return;
+        }
+
+        if (registerModel.Password.Length < 6)
+        {
+            ToastService.ShowError("Password must be at least 6 characters long.", "Validation Error");
+            return;
+        }
+
+        if (registerModel.Password != registerModel.ConfirmPassword)
+        {
+            ToastService.ShowError("Passwords do not match.", "Validation Error");
+            return;
+        }
+
+        if (!agreeTerms)
+        {
+            ToastService.ShowWarning("You must agree to the Terms & Privacy.", "Terms Required");
+            return;
+        }
+
+        isLoading = true;
+        try
+        {
+            var response = await AuthService.RegisterAsync(registerModel);
+            if (response.Success)
+            {
+                ToastService.ShowSuccess(response.Message, "Registration Successful");
+                await Task.Delay(2000);
+                Navigation.NavigateTo("/Login");
+            }
+            else
+            {
+                ToastService.ShowError(response.Message, "Registration Failed");
+            }
+        }
+        catch (Exception ex)
+        {
+            ToastService.ShowError($"An error occurred: {ex.Message}", "Error");
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+}

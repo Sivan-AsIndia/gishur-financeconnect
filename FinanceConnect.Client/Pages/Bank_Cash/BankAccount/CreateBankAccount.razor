@@ -1,0 +1,802 @@
+@page "/bank-accounts/create"
+@page "/bank-accounts/edit/{Code}"
+@using FinanceConnect.Client.ViewModels
+@using FinanceConnect.Client.Services
+@inject NavigationManager Nav
+@inject IJSRuntime JS
+@inject BankAccountService BankAccountService
+@inject MasterDataService MasterDataService
+@inject BranchService BranchService
+@inject ToastService ToastService
+
+<style>
+    .form-select option:checked {
+        color: #fff;
+        background: var(--primary);
+    }
+
+    .form-select:focus {
+        border-color: var(--primary);
+        box-shadow: none;
+    }
+
+    .validation-message {
+        color: #dc3545;
+        font-size: 12px;
+    }
+
+    .form-select.is-invalid {
+        border-color: #dc3545;
+    }
+
+    .field-validation-error {
+        color: #dc3545;
+        font-size: 12px;
+        display: block;
+        margin-top: 4px;
+    }
+</style>
+
+@if (!isInitialized)
+{
+    <div class="page-loading-overlay"><div class="whirly-loader"></div></div>
+}
+else
+{
+    <div class="content Accordion-form">
+
+        <div class="page-header">
+            <div class="add-item d-flex">
+                <div class="page-title">
+                    <h4 class="fw-bold">@PageTitle</h4>
+                    <h6>@PageSubTitle</h6>
+                </div>
+            </div>
+
+            <div class="page-btn mt-0">
+                <a href="/bank-accounts" class="btn btn-outline-secondary">
+                    <i class="ti ti-arrow-left"></i> Back
+                </a>
+            </div>
+        </div>
+
+        <EditForm EditContext="_editContext" OnSubmit="HandleSubmit">
+            <DataAnnotationsValidator />
+
+            <div class="add-product" style="background:#f4f7fb; padding:24px 14px;">
+                <div class="tl-accordion">
+
+                    <!-- ================= LEFT PANEL ================= -->
+                    <div class="tl-left-panel">
+
+                        <!-- 1. General Info -->
+                        <div class="tl-label @(ShowIdentity ? "active accent-orange" : "")"
+                             @onclick="@(() => ToggleAccordion("identity"))">
+                            <div class="tl-label-icon ico-orange">
+                                <i data-feather="file-text"></i>
+                            </div>
+                            <div class="tl-label-text">
+                                <div class="tl-label-title">General Info</div>
+                                <div class="tl-label-sub">Basic bank account information</div>
+                            </div>
+                            <span class="tl-label-chevron @(ShowIdentity ? "open" : "")">
+                                <i data-feather="chevron-right"></i>
+                            </span>
+                        </div>
+
+                        <!-- 2. Bank Details -->
+                        <div class="tl-label @(ShowDetails ? "active accent-blue" : "")"
+                             @onclick="@(() => ToggleAccordion("details"))">
+                            <div class="tl-label-icon ico-blue">
+                                <i data-feather="briefcase"></i>
+                            </div>
+                            <div class="tl-label-text">
+                                <div class="tl-label-title">Bank Details</div>
+                                <div class="tl-label-sub">Bank information and IFSC</div>
+                            </div>
+                            <span class="tl-label-chevron @(ShowDetails ? "open" : "")">
+                                <i data-feather="chevron-right"></i>
+                            </span>
+                        </div>
+
+                        <!-- 3. Controls -->
+                        <div class="tl-label @(ShowControls ? "active accent-purple" : "")"
+                             @onclick="@(() => ToggleAccordion("controls"))">
+                            <div class="tl-label-icon ico-purple">
+                                <i data-feather="shield"></i>
+                            </div>
+                            <div class="tl-label-text">
+                                <div class="tl-label-title">Controls & Limits</div>
+                                <div class="tl-label-sub">Overdraft, lock and block settings</div>
+                            </div>
+                            <span class="tl-label-chevron @(ShowControls ? "open" : "")">
+                                <i data-feather="chevron-right"></i>
+                            </span>
+                        </div>
+
+                        <!-- 4. Accounting -->
+                        <div class="tl-label @(ShowAccounting ? "active accent-teal" : "")"
+                             @onclick="@(() => ToggleAccordion("accounting"))">
+                            <div class="tl-label-icon ico-teal">
+                                <i data-feather="book"></i>
+                            </div>
+                            <div class="tl-label-text">
+                                <div class="tl-label-title">Accounting Mapping</div>
+                                <div class="tl-label-sub">GL account configuration</div>
+                            </div>
+                            <span class="tl-label-chevron @(ShowAccounting ? "open" : "")">
+                                <i data-feather="chevron-right"></i>
+                            </span>
+                        </div>
+
+                        <!-- 5. Reconciliation -->
+                        <div class="tl-label @(ShowRecon ? "active accent-orange" : "")"
+                             @onclick="@(() => ToggleAccordion("recon"))">
+                            <div class="tl-label-icon ico-orange">
+                                <i data-feather="layers"></i>
+                            </div>
+                            <div class="tl-label-text">
+                                <div class="tl-label-title">Statement & Reconciliation</div>
+                                <div class="tl-label-sub">Import and matching setup</div>
+                            </div>
+                            <span class="tl-label-chevron @(ShowRecon ? "open" : "")">
+                                <i data-feather="chevron-right"></i>
+                            </span>
+                        </div>
+
+                        <!-- 6. Status -->
+                        <div class="tl-label @(ShowStatus ? "active accent-blue" : "")"
+                             @onclick="@(() => ToggleAccordion("status"))">
+                            <div class="tl-label-icon ico-blue">
+                                <i data-feather="check-circle"></i>
+                            </div>
+                            <div class="tl-label-text">
+                                <div class="tl-label-title">Status</div>
+                                <div class="tl-label-sub">Bank account status</div>
+                            </div>
+                            <span class="tl-label-chevron @(ShowStatus ? "open" : "")">
+                                <i data-feather="chevron-right"></i>
+                            </span>
+                        </div>
+
+                    </div>
+
+                    <!-- ================= RIGHT AREA ================= -->
+                    <div class="tl-right-area">
+
+                        <!-- ================= 01 GENERAL INFO ================= -->
+                        <div class="tl-card-row @(ShowIdentity ? "row-active" : "")">
+
+                            <div class="tl-dot-col">
+                                <div class="tl-dot"
+                                     @onclick="@(() => ToggleAccordion("identity"))"></div>
+                            </div>
+
+                            <div class="tl-card-col">
+
+                                <div class="tl-card @(ShowIdentity ? "card-active border-orange" : "")">
+
+                                    <div class="tl-card-header"
+                                         @onclick="@(() => ToggleAccordion("identity"))">
+                                        <div class="tl-card-header-title">
+                                            <span class="tl-card-step step-orange">01</span>
+                                            General Info
+                                        </div>
+                                        <span class="tl-card-toggle @(ShowIdentity ? "toggle-open" : "")">
+                                            <i data-feather="chevron-down"></i>
+                                        </span>
+                                    </div>
+
+                                    <div class="tl-collapse @(ShowIdentity ? "tl-open" : "")">
+                                        <div class="tl-card-body">
+                                            <div class="tl-card-body-inner @(IdentityTouched ? "touched" : "")">
+                                                <div class="row">
+                                                    <div class="col-sm-6 col-md-3 mb-3">
+                                                        <label class="form-label">Bank Account Code <span class="text-danger ms-1">*</span></label>
+                                                        <input class="form-control text-uppercase @(BankAccountCodeValidationError != null ? "is-invalid" : "")"
+                                                               @bind="Model.BankAccountCode"
+                                                               @bind:event="oninput"
+                                                               @bind:after="OnBankAccountCodeChanged"
+                                                               placeholder="e.g., BA001" disabled="@IsEdit"
+                                                               maxlength="30" />
+
+                                                        @if (BankAccountCodeValidationError != null)
+                                                        {
+                                                            <span class="field-validation-error">@BankAccountCodeValidationError</span>
+                                                        }
+                                                    </div>
+
+                                                    <div class="col-sm-6 col-md-5 mb-3">
+                                                        <label class="form-label">Bank Account Name <span class="text-danger ms-1">*</span></label>
+                                                        <input class="form-control @(BankAccountNameValidationError != null ? "is-invalid" : "")"
+                                                               @bind="Model.BankAccountName"
+                                                               @bind:after="OnBankAccountNameChanged"
+                                                               placeholder="Main operating account" maxlength="150" />
+                                                        @if (BankAccountNameValidationError != null)
+                                                        {
+                                                            <span class="field-validation-error">@BankAccountNameValidationError</span>
+                                                        }
+                                                    </div>
+
+                                                    <div class="col-sm-6 col-md-4 mb-3">
+                                                        <label class="form-label">Company <span class="text-danger ms-1">*</span></label>
+                                                        <select class="form-select @(CompanyValidationError != null ? "is-invalid" : "")"
+                                                                @bind="SelectedCompanyId"
+                                                                @bind:after="OnCompanyChanged"
+                                                                disabled="@(IsEdit)">
+                                                            <option value="@Guid.Empty">-- Select Company --</option>
+                                                            @foreach (var company in Companies)
+                                                            {
+                                                                <option value="@company.Id">@company.CompanyCode - @company.LegalName</option>
+                                                            }
+                                                        </select>
+                                                        @if (CompanyValidationError != null)
+                                                        {
+                                                            <span class="field-validation-error">@CompanyValidationError</span>
+                                                        }
+                                                    </div>
+
+                                                    <div class="col-sm-6 col-md-4 mb-3">
+                                                        <label class="form-label">Branch (Owner) <span class="text-danger ms-1">*</span></label>
+                                                        <select class="form-select @(BranchValidationError != null ? "is-invalid" : "")"
+                                                                @bind="Model.BranchId"
+                                                                @bind:after="OnBranchChanged"
+                                                                disabled="@(IsBranchDisabled)">
+                                                            <option value="@Guid.Empty">-- Select Branch --</option>
+                                                            @foreach (var b in FilteredBranches)
+                                                            {
+                                                                <option value="@b.Id">@b.BranchCode - @b.BranchName</option>
+                                                            }
+                                                        </select>
+                                                        @if (BranchValidationError != null)
+                                                        {
+                                                            <span class="field-validation-error">@BranchValidationError</span>
+                                                        }
+                                                    </div>
+
+                                                    <div class="col-12 mb-3">
+                                                        <label class="form-label">Description</label>
+                                                        @* <textarea class="form-control"
+                                                  @bind="Model.Description"
+                                                  rows="2" placeholder="Purpose of this account..." maxlength="500"
+                                                  @oninput="TouchIdentity"></textarea> *@
+
+                                                        <RichTextEditor @ref="descriptionEditor"
+                                                                        Value="@Model.Description"
+                                                                        Placeholder="Purpose of this account..."
+                                                                        MaxHeight="500" />
+                                                    </div>
+                                                </div>
+
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                </div>
+
+                            </div>
+                        </div>
+
+
+                        <!-- ================= 02 BANK DETAILS ================= -->
+
+                        <div class="tl-card-row @(ShowDetails ? "row-active" : "")">
+
+                            <div class="tl-dot-col">
+                                <div class="tl-dot"
+                                     @onclick="@(() => ToggleAccordion("details"))"></div>
+                            </div>
+
+                            <div class="tl-card-col">
+
+                                <div class="tl-card @(ShowDetails ? "card-active border-blue" : "")">
+
+                                    <div class="tl-card-header"
+                                         @onclick="@(() => ToggleAccordion("details"))">
+                                        <div class="tl-card-header-title">
+                                            <span class="tl-card-step step-blue">02</span>
+                                            Bank Details
+                                        </div>
+                                        <span class="tl-card-toggle @(ShowDetails ? "toggle-open" : "")">
+                                            <i data-feather="chevron-down"></i>
+                                        </span>
+                                    </div>
+
+                                    <div class="tl-collapse @(ShowDetails ? "tl-open" : "")">
+                                        <div class="tl-card-body">
+                                            <div class="tl-card-body-inner @(DetailsTouched ? "touched" : "")">
+
+                                                <div class="row">
+                                                    <div class="col-sm-6 col-md-3 mb-3">
+                                                        <label class="form-label">Bank Name <span class="text-danger ms-1">*</span></label>
+                                                        <input class="form-control @(BankNameValidationError != null ? "is-invalid" : "")" @bind="Model.BankName" placeholder="Bank name" maxlength="150"
+                                                               @oninput="OnBankType" />
+                                                        @if (BankNameValidationError != null)
+                                                        {
+                                                            <span class="field-validation-error">@BankNameValidationError</span>
+                                                        }
+                                                    </div>
+
+                                                    <div class="col-sm-6 col-md-3 mb-3">
+                                                        <label class="form-label">Branch Name</label>
+                                                        <input class="form-control" @bind="Model.BankBranchName" placeholder="Branch name" maxlength="150"
+                                                               @oninput="OnBankType" />
+                                                    </div>
+
+                                                    <div class="col-sm-6 col-md-3 mb-3">
+                                                        <label class="form-label text-uppercase">IFSC Code <span class="text-danger ms-1">*</span></label>
+                                                        <input class="form-control @(IFSCValidationError != null ? "is-invalid" : "")" @bind="Model.IFSCCode" placeholder="e.g., HDFC0001234" maxlength="11"
+                                                               @bind:event="oninput" @bind:after="OnIFSCChanged" />
+                                                        @if (IFSCValidationError != null)
+                                                        {
+                                                            <span class="field-validation-error">@IFSCValidationError</span>
+                                                        }
+                                                    </div>
+
+                                                    <div class="col-sm-6 col-md-3 mb-3">
+                                                        <label class="form-label">MICR Code</label>
+                                                        <input class="form-control" @bind="Model.MICRCode" placeholder="Optional" maxlength="9" />
+                                                    </div>
+
+                                                    <div class="col-sm-6 col-md-3 mb-3">
+                                                        <label class="form-label">Account Holder Name <span class="text-danger ms-1">*</span></label>
+                                                        <input class="form-control @(AccountHolderValidationError != null ? "is-invalid" : "")" @bind="Model.AccountHolderName" placeholder="Company legal name" maxlength="150"
+                                                               @bind:after="OnAccountHolderChanged" />
+                                                        @if (AccountHolderValidationError != null)
+                                                        {
+                                                            <span class="field-validation-error">@AccountHolderValidationError</span>
+                                                        }
+                                                    </div>
+
+                                                    <div class="col-sm-6 col-md-3 mb-3">
+                                                        <label class="form-label">Account Number <span class="text-danger ms-1">*</span></label>
+                                                        <input class="form-control @(AccountNumberValidationError != null ? "is-invalid" : "")" @bind="Model.BankAccountNumber" placeholder="Bank account number" maxlength="30"
+                                                               @bind:after="OnAccountNumberChanged" />
+                                                        @if (AccountNumberValidationError != null)
+                                                        {
+                                                            <span class="field-validation-error">@AccountNumberValidationError</span>
+                                                        }
+                                                    </div>
+
+                                                    <div class="col-sm-6 col-md-3 mb-3">
+                                                        <label class="form-label">Currency <span class="text-danger ms-1">*</span></label>
+                                                        <select class="form-select @(CurrencyValidationError != null ? "is-invalid" : "")"
+                                                                @bind="Model.CurrencyId" @bind:after="OnCurrencyChanged">
+                                                            <option value="@Guid.Empty">--Select Currency--</option>
+                                                            @foreach (var c in Currencies)
+                                                            {
+                                                                <option value="@c.Id">@c.CurrencyCode - @c.CurrencyName</option>
+                                                            }
+                                                        </select>
+                                                        @if (CurrencyValidationError != null)
+                                                        {
+                                                            <span class="field-validation-error">@CurrencyValidationError</span>
+                                                        }
+                                                    </div>
+
+                                                    <div class="col-sm-6 col-md-3 mb-3">
+                                                        <label class="form-label">Account Type <span class="text-danger ms-1">*</span></label>
+                                                        <select class="form-select @(AccountTypeValidationError != null ? "is-invalid" : "")"
+                                                                @bind="Model.BankAccountType"
+                                                                @bind:after="OnAccountTypeChanged">
+                                                            <option value="">-- Select Account Type --</option>
+                                                            <option value="Current">Current</option>
+                                                            <option value="Savings">Savings</option>
+                                                            <option value="Overdraft">Overdraft</option>
+                                                            <option value="Collection">Collection</option>
+                                                            <option value="Salary">Salary</option>
+                                                            <option value="Escrow">Escrow</option>
+                                                            <option value="Other">Other</option>
+                                                        </select>
+                                                        @if (AccountTypeValidationError != null)
+                                                        {
+                                                            <span class="field-validation-error">@AccountTypeValidationError</span>
+                                                        }
+                                                    </div>
+
+                                                    <div class="col-sm-6 col-md-3 mb-3">
+                                                        <label class="form-label">UPI Id</label>
+                                                        <input class="form-control" @bind="Model.UPIId" placeholder="Optional – for collection accounts" maxlength="100" />
+                                                    </div>
+
+                                                    <div class="col-sm-6 col-md-3 mb-3">
+                                                        <label class="form-label">SWIFT Code</label>
+                                                        <input class="form-control" @bind="Model.SWIFTCode" placeholder="Optional – for international" maxlength="20" />
+                                                    </div>
+
+                                                    <div class="col-sm-6 col-md-3 mb-3">
+                                                        <label class="form-label">IBAN</label>
+                                                        <input class="form-control" @bind="Model.IBAN" placeholder="Optional – global readiness" maxlength="34" />
+                                                    </div>
+
+                                                    <div class="col-sm-6 col-md-3 mb-3 d-flex align-items-end">
+                                                        <div class="form-check form-switch">
+                                                            <InputCheckbox class="form-check-input" id="IsPrimary" @bind-Value="Model.IsPrimaryOperatingAccount" />
+                                                            <label class="form-check-label" for="IsPrimary">Primary Bank Account</label>
+                                                        </div>
+                                                    </div>
+                                                </div>
+
+
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                </div>
+
+                            </div>
+                        </div>
+
+
+                        <!-- ================= 03 CONTROLS & LIMITS ================= -->
+
+                        <div class="tl-card-row @(ShowControls ? "row-active" : "")">
+
+                            <div class="tl-dot-col">
+                                <div class="tl-dot"
+                                     @onclick="@(() => ToggleAccordion("controls"))"></div>
+                            </div>
+
+                            <div class="tl-card-col">
+
+                                <div class="tl-card @(ShowControls ? "card-active border-purple" : "")">
+
+                                    <div class="tl-card-header"
+                                         @onclick="@(() => ToggleAccordion("controls"))">
+
+                                        <div class="tl-card-header-title">
+                                            <span class="tl-card-step step-purple">03</span>
+                                            Controls & Limits
+                                        </div>
+
+                                        <span class="tl-card-toggle @(ShowControls ? "toggle-open" : "")">
+                                            <i data-feather="chevron-down"></i>
+                                        </span>
+
+                                    </div>
+
+                                    <div class="tl-collapse @(ShowControls ? "tl-open" : "")">
+                                        <div class="tl-card-body">
+                                            <div class="tl-card-body-inner">
+
+
+                                                <div class="row">
+                                                    <div class="col-sm-6 col-md-3 mb-3 d-flex align-items-end">
+                                                        <div class="form-check form-switch">
+                                                            <InputCheckbox class="form-check-input" id="IsOverdraftAllowed" @bind-Value="Model.IsOverdraftAllowed" />
+                                                            <label class="form-check-label" for="IsOverdraftAllowed">Allow Overdraft</label>
+                                                        </div>
+                                                    </div>
+
+                                                    @if (Model.IsOverdraftAllowed)
+                                                    {
+                                                        <div class="col-sm-6 col-md-3 mb-3">
+                                                            <label class="form-label">Overdraft Limit <span class="text-danger ms-1">*</span></label>
+                                                            <InputNumber class="form-control" min="0" @bind-Value="Model.OverdraftLimitAmount" placeholder="0.00" />
+                                                            @if (_submitted && Model.IsOverdraftAllowed && (Model.OverdraftLimitAmount == null || Model.OverdraftLimitAmount < 0))
+                                                            {
+                                                                <span class="field-validation-error">Overdraft Limit is required when overdraft is allowed</span>
+                                                            }
+                                                        </div>
+                                                    }
+
+                                                    <div class="col-sm-6 col-md-3 mb-3">
+                                                        <label class="form-label">Minimum Balance Amount</label>
+                                                        <InputNumber class="form-control" min="0" @bind-Value="Model.MinimumBalanceAmount" placeholder="0.00" />
+                                                    </div>
+
+                                                    <div class="col-sm-6 col-md-3 mb-3 d-flex align-items-end">
+                                                        <div class="form-check form-switch">
+                                                            <InputCheckbox class="form-check-input" id="IsLocked" @bind-Value="Model.IsLockedForTransactions" />
+                                                            <label class="form-check-label" for="IsLocked">Lock Bank Account</label>
+                                                        </div>
+                                                    </div>
+
+                                                    @if (Model.IsLockedForTransactions)
+                                                    {
+                                                        <div class="col-sm-6 col-md-6 mb-3">
+                                                            <label class="form-label">Lock Reason <span class="text-danger ms-1">*</span></label>
+                                                            <input class="form-control" @bind="Model.LockReason" placeholder="Reason for locking..." maxlength="500" />
+                                                            @if (_submitted && Model.IsLockedForTransactions && string.IsNullOrWhiteSpace(Model.LockReason))
+                                                            {
+                                                                <span class="field-validation-error">Lock Reason is required when account is locked</span>
+                                                            }
+                                                        </div>
+                                                    }
+
+                                                    <div class="col-sm-6 col-md-3 mb-3 d-flex align-items-end">
+                                                        <div class="form-check form-switch">
+                                                            <InputCheckbox class="form-check-input" id="IsBlocked" @bind-Value="Model.IsBlocked" />
+                                                            <label class="form-check-label" for="IsBlocked">Block Account (Operational)</label>
+                                                        </div>
+                                                    </div>
+
+                                                    @if (Model.IsBlocked)
+                                                    {
+                                                        <div class="col-sm-6 col-md-6 mb-3">
+                                                            <label class="form-label">Block Reason <span class="text-danger ms-1">*</span></label>
+                                                            <input class="form-control" @bind="Model.BlockReason" placeholder="Reason for blocking..." maxlength="500" />
+                                                            @if (_submitted && Model.IsBlocked && string.IsNullOrWhiteSpace(Model.BlockReason))
+                                                            {
+                                                                <span class="field-validation-error">Block Reason is required when account is blocked</span>
+                                                            }
+                                                        </div>
+                                                    }
+                                                </div>
+
+
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                </div>
+
+                            </div>
+                        </div>
+
+                        <!-- ================= Accounting Mapping ================= -->
+
+                        <div class="tl-card-row @(ShowAccounting ? "row-active" : "")">
+
+                            <div class="tl-dot-col">
+                                <div class="tl-dot"
+                                     @onclick="@(() => ToggleAccordion("accounting"))"></div>
+                            </div>
+
+                            <div class="tl-card-col">
+
+                                <div class="tl-card @(ShowAccounting ? "card-active border-teal" : "")">
+
+                                    <div class="tl-card-header"
+                                         @onclick="@(() => ToggleAccordion("accounting"))">
+
+                                        <div class="tl-card-header-title">
+                                            <span class="tl-card-step step-teal">04</span>
+                                            Accounting Mapping
+                                        </div>
+
+                                        <span class="tl-card-toggle @(ShowAccounting ? "toggle-open" : "")">
+                                            <i data-feather="chevron-down"></i>
+                                        </span>
+
+                                    </div>
+
+                                    <div class="tl-collapse @(ShowAccounting ? "tl-open" : "")">
+                                        <div class="tl-card-body">
+                                            <div class="tl-card-body-inner">
+
+
+                                                <div class="row">
+                                                    <div class="col-sm-6 col-md-4 mb-3">
+                                                        <label class="form-label">Bank GL Account (Asset) <span class="text-danger ms-1">*</span></label>
+                                                        <input class="form-control @(BankGLValidationError != null ? "is-invalid" : "")" @bind="Model.BankGLAccountCode" placeholder="e.g., 10101-BANK"
+                                                               @bind:after="OnBankGLChanged" />
+                                                        @if (BankGLValidationError != null)
+                                                        {
+                                                            <span class="field-validation-error">@BankGLValidationError</span>
+                                                        }
+                                                    </div>
+
+                                                    <div class="col-sm-6 col-md-4 mb-3">
+                                                        <label class="form-label">Bank Clearing Account</label>
+                                                        <input class="form-control" @bind="Model.ClearingGLAccountCode" placeholder="Optional – for transit items" />
+                                                    </div>
+
+                                                    <div class="col-sm-6 col-md-4 mb-3">
+                                                        <label class="form-label">Bank Charges Expense GL</label>
+                                                        <input class="form-control" @bind="Model.BankChargesExpenseGLCode" placeholder="Optional" />
+                                                    </div>
+
+                                                    <div class="col-sm-6 col-md-4 mb-3">
+                                                        <label class="form-label">Interest Income GL</label>
+                                                        <input class="form-control" @bind="Model.InterestIncomeGLCode" placeholder="Optional" />
+                                                    </div>
+
+                                                    <div class="col-sm-6 col-md-4 mb-3">
+                                                        <label class="form-label">Round Off GL</label>
+                                                        <input class="form-control" @bind="Model.RoundOffGLCode" placeholder="Optional" />
+                                                    </div>
+                                                </div>
+
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                </div>
+
+                            </div>
+                        </div>
+
+
+                        <!-- ================= Statement & Reconciliation ================= -->
+
+                        <div class="tl-card-row @(ShowRecon ? "row-active" : "")">
+
+                            <div class="tl-dot-col">
+                                <div class="tl-dot"
+                                     @onclick="@(() => ToggleAccordion("recon"))"></div>
+                            </div>
+
+                            <div class="tl-card-col">
+
+                                <div class="tl-card @(ShowRecon ? "card-active border-orange" : "")">
+
+                                    <div class="tl-card-header"
+                                         @onclick="@(() => ToggleAccordion("recon"))">
+
+                                        <div class="tl-card-header-title">
+                                            <span class="tl-card-step step-orange">05</span>
+                                            Statement & Reconciliation
+                                        </div>
+
+                                        <span class="tl-card-toggle @(ShowRecon ? "toggle-open" : "")">
+                                            <i data-feather="chevron-down"></i>
+                                        </span>
+
+                                    </div>
+
+                                    <div class="tl-collapse @(ShowRecon ? "tl-open" : "")">
+                                        <div class="tl-card-body">
+                                            <div class="tl-card-body-inner">
+
+
+                                                <div class="row">
+                                                    <div class="col-sm-6 col-md-3 mb-3 d-flex align-items-end">
+                                                        <div class="form-check form-switch">
+                                                            <InputCheckbox class="form-check-input" id="stmtImport" @bind-Value="Model.IsStatementImportEnabled" />
+                                                            <label class="form-check-label" for="stmtImport">Enable Statement Import</label>
+                                                        </div>
+                                                    </div>
+
+                                                    @if (Model.IsStatementImportEnabled)
+                                                    {
+                                                        <div class="col-sm-6 col-md-3 mb-3">
+                                                            <label class="form-label">Statement Profile <span class="text-danger ms-1">*</span></label>
+                                                            <select class="form-select @(StatementProfileValidationError != null ? "is-invalid" : "")"
+                                                                    @bind="Model.StatementProfile"
+                                                                    @bind:after="OnStatementProfileChanged">
+                                                                <option value="">-- Select Statement Profile --</option>
+                                                                <option value="HDFC_CSV_V1">HDFC CSV V1</option>
+                                                                <option value="SBI_CSV_V1">SBI CSV V1</option>
+                                                                <option value="ICICI_XLSX_V1">ICICI XLSX V1</option>
+                                                                <option value="Generic_CSV">Generic CSV</option>
+                                                                <option value="OFX">OFX</option>
+                                                                <option value="MT940">MT940</option>
+                                                            </select>
+                                                            @if (StatementProfileValidationError != null)
+                                                            {
+                                                                <span class="field-validation-error">@StatementProfileValidationError</span>
+                                                            }
+                                                        </div>
+                                                    }
+
+                                                    <div class="col-sm-6 col-md-3 mb-3 d-flex align-items-end">
+                                                        <div class="form-check form-switch">
+                                                            <InputCheckbox class="form-check-input" id="reconMandatory" @bind-Value="Model.IsBankReconciliationMandatory" />
+                                                            <label class="form-check-label" for="reconMandatory">Reconciliation Mandatory</label>
+                                                        </div>
+                                                    </div>
+
+                                                    <div class="col-sm-6 col-md-3 mb-3 d-flex align-items-end">
+                                                        <div class="form-check form-switch">
+                                                            <InputCheckbox class="form-check-input" id="autoMatch" @bind-Value="Model.AutoMatchEnabled" />
+                                                            <label class="form-check-label" for="autoMatch">Auto Match Enabled</label>
+                                                        </div>
+                                                    </div>
+
+                                                    @if (Model.AutoMatchEnabled)
+                                                    {
+                                                        <div class="col-sm-6 col-md-3 mb-3">
+                                                            <label class="form-label">Auto Match Date Window (Days)</label>
+                                                            <InputNumber class="form-control" min="0" @bind-Value="Model.AutoMatchDateWindowDays" />
+                                                        </div>
+
+                                                        <div class="col-sm-6 col-md-3 mb-3">
+                                                            <label class="form-label">Auto Match Amount Tolerance</label>
+                                                            <InputNumber class="form-control" min="0" @bind-Value="Model.AutoMatchAmountTolerance" />
+                                                        </div>
+                                                    }
+                                                </div>
+
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                </div>
+
+                            </div>
+                        </div>
+
+
+                        <!-- ================= 06 STATUS ================= -->
+
+                        <div class="tl-card-row @(ShowStatus ? "row-active" : "")">
+
+                            <div class="tl-dot-col">
+                                <div class="tl-dot"
+                                     @onclick="@(() => ToggleAccordion("status"))"></div>
+                            </div>
+
+                            <div class="tl-card-col">
+
+                                <div class="tl-card @(ShowStatus ? "card-active border-blue" : "")">
+
+                                    <div class="tl-card-header"
+                                         @onclick="@(() => ToggleAccordion("status"))">
+
+                                        <div class="tl-card-header-title">
+                                            <span class="tl-card-step step-blue">06</span>
+                                            Status
+                                        </div>
+
+                                        <span class="tl-card-toggle @(ShowStatus ? "toggle-open" : "")">
+                                            <i data-feather="chevron-down"></i>
+                                        </span>
+
+                                    </div>
+
+                                    <div class="tl-collapse @(ShowStatus ? "tl-open" : "")">
+                                        <div class="tl-card-body">
+                                            <div class="tl-card-body-inner @(StatusTouched ? "touched" : "")">
+
+                                                <div class="row">
+                                                    <div class="col-sm-6 col-md-3 mb-3">
+                                                        <label class="form-label">Status <span class="text-danger ms-1">*</span></label>
+                                                        <select class="form-select @(StatusValidationError != null ? "is-invalid" : "")"
+                                                                @bind="Model.BankAccountStatus"
+                                                                @bind:after="OnStatusChanged">
+                                                            <option value="">-- Select Status --</option>
+                                                            <option value="Active">Active</option>
+                                                            <option value="Blocked">Blocked</option>
+                                                            <option value="Inactive">Inactive</option>
+                                                            <option value="Closed">Closed</option>
+                                                        </select>
+                                                        @if (StatusValidationError != null)
+                                                        {
+                                                            <span class="field-validation-error">@StatusValidationError</span>
+                                                        }
+                                                    </div>
+
+                                                    @if (Model.BankAccountStatus == "Closed")
+                                                    {
+                                                        <div class="col-sm-6 col-md-6 mb-3">
+                                                            <label class="form-label">Close Reason <span class="text-danger ms-1">*</span></label>
+                                                            <input class="form-control" @bind="Model.CloseReason" placeholder="Reason for closing..." maxlength="500" />
+                                                            @if (_submitted && Model.BankAccountStatus == "Closed" && string.IsNullOrWhiteSpace(Model.CloseReason))
+                                                            {
+                                                                <span class="field-validation-error">Close Reason is required when status is Closed</span>
+                                                            }
+                                                        </div>
+                                                    }
+                                                </div>
+
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                </div>
+
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+
+
+
+            <div class="d-flex justify-content-end mb-4">
+                <a href="/bank-accounts" class="btn btn-outline-secondary me-2"><i class="ti ti-x"></i> Cancel</a>
+                <button type="submit" class="btn btn-primary" disabled="@isSaving">
+                    @if (isSaving)
+                    {
+                        <span class="spinner-border spinner-border-sm me-1"></span>
+                    }
+                    <i class="ti ti-device-floppy"></i> @(IsEdit ? "Update" : "Save")
+                </button>
+            </div>
+
+        </EditForm>
+
+    </div>
+}

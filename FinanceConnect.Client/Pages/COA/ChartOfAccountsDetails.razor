@@ -1,0 +1,417 @@
+@page "/chart-of-accounts/{ChartId:guid}/view"
+@using FinanceConnect.Client.ViewModels
+@using FinanceConnect.Client.Services
+@inject COADataService COADataService
+@inject NavigationManager Nav
+@inject IJSRuntime JS
+
+@if (SelectedChart != null)
+{
+
+    <div class="content">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <div>
+                <h4 class="fw-bold mb-1">Chart of Accounts Details</h4>
+                <p class="text-muted mb-0 small">View account structure and classifications</p>
+            </div>
+            <div class="d-flex gap-2 page-btn">
+                <a @onclick="PrintPage" class="btn bg-primary text-white">
+                    <i class="bi bi-printer"></i> Print
+                </a>
+                <a class="btn btn-outline-secondary" href="/chart-of-accounts">
+                    <i class="ti ti-arrow-left me-1"></i> Back
+                </a>
+            </div>
+
+        </div>
+
+
+        <div class="card">
+
+            <!-- TOP HEADER CARD -->
+            <div class="header-card">
+                <div class="header-inner">
+
+                    <div class="header-left1">
+                        <div class="company-logo">
+                            <span class="logo-initials">
+                                @SelectedChart?.ChartCode?.Substring(0, Math.Min(2, SelectedChart.ChartCode.Length)).ToUpper()
+                            </span>
+                        </div>
+
+                        <div class="header-meta">
+                            <h2 class="company-title">@SelectedChart?.ChartName</h2>
+
+                            <div class="company-subtitle">
+                                <span>@SelectedChart?.CompanyName</span>
+                                <span class="dot">·</span>
+                                <span>@SelectedChart?.ChartType</span>
+                                <span class="dot">·</span>
+                                <span>Effective @SelectedChart?.EffectiveFrom.ToString("dd MMM yyyy")</span>
+                            </div>
+
+                            <div class="header-tags">
+                                <span class="tag tag-default">
+                                    @SelectedChart?.ChartType
+                                </span>
+
+                                @if (SelectedChart.IsDefaultForCompany)
+                                {
+                                    <span class="tag tag-default"
+                                          style="border:1px solid #00c853;background:#e8f5e9;color:#00a844;">
+                                        Default Chart
+                                    </span>
+                                }
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="header-right">
+                        @if (SelectedChart.Status?.ToLower() == "active")
+                        {
+                            <span class="status-badge status-active">● ACTIVE</span>
+                        }
+                        else if (SelectedChart.Status?.ToLower() == "draft")
+                        {
+                            <span class="status-badge status-draft">● DRAFT</span>
+                        }
+                        else
+                        {
+                            <span class="status-badge status-inactive">● INACTIVE</span>
+                        }
+
+                        <div class="created-info">
+                            Created @SelectedChart?.CreatedAt.ToString("dd MMM yyyy")
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+
+            <!-- SCROLLABLE BODY -->
+            <div class="details-body">
+
+                <!-- CHART IDENTITY -->
+                <div class="section-block">
+                    <div class="section-header">
+                        <span class="section-icon"
+                              style="background:#fe6dde36;border:1px solid #ff79f2;color:#eb0091;padding: 2px 6px 0px 6px;
+                            border-radius: 5px;">
+                            <i class="ti ti-id"></i>
+                        </span>
+                        <span class="section-title">CHART IDENTITY</span>
+                        <div class="line"></div>
+                    </div>
+
+                    <div class="section-content">
+                        <div class="fields-grid fields-grid-3">
+
+                            <div class="field-item">
+                                <div class="field-label">CHART CODE</div>
+                                <div class="field-value">@SelectedChart?.ChartCode</div>
+                            </div>
+
+                            <div class="field-item">
+                                <div class="field-label">CHART NAME</div>
+                                <div class="field-value fw">@SelectedChart?.ChartName</div>
+                            </div>
+                            <div class="field-item">
+                                <div class="field-label">CHART TYPE</div>
+                                <div class="field-value">
+                                    <span class="pill pill-yes">@SelectedChart?.ChartType</span>
+                                </div>
+                            </div>
+
+
+                        </div>
+                    </div>
+                </div>
+
+                <!-- SCOPE & EFFECTIVE PERIOD -->
+                <div class="section-block">
+                    <div class="section-header">
+                        <span class="section-icon"
+                              style="background:#dae4ff6e;border:1px solid #3741ff;color:#0037ff;padding: 2px 6px 0px 6px;
+                            border-radius: 5px;">
+                            <i class="ti ti-target"></i>
+                        </span>
+                        <span class="section-title">SCOPE & EFFECTIVE PERIOD</span>
+                        <div class="line"></div>
+                    </div>
+
+                    <div class="section-content">
+                        <div class="fields-grid fields-grid-3">
+
+                            <div class="field-item">
+                                <div class="field-label">COMPANY</div>
+                                <div class="field-value">@SelectedChart?.CompanyName</div>
+                            </div>
+
+                            <div class="field-item">
+                                <div class="field-label">EFFECTIVE FROM</div>
+                                <div class="field-value">@SelectedChart?.EffectiveFrom.ToString("dd MMM yyyy")</div>
+                            </div>
+
+                            <div class="field-item">
+                                <div class="field-label">EFFECTIVE TO</div>
+                                <div class="field-value">
+                                    @(SelectedChart?.EffectiveTo?.ToString("dd MMM yyyy") ?? "Ongoing")
+                                </div>
+                            </div>
+                            <div class="field-item">
+                                <div class="field-label">DESCRIPTION</div>
+                                <div class="field-value ql-editor">
+                                    @if (string.IsNullOrWhiteSpace(SelectedChart?.Description))
+                                    {
+                                        @("-")
+                                    }
+                                    else
+                                    {
+                                        @((MarkupString)SelectedChart.Description)
+                                    }
+                                </div>
+                            </div>
+
+                        </div>
+                    </div>
+                </div>
+
+                <!-- ACCOUNT CODE RULES -->
+                <div class="section-block">
+                    <div class="section-header">
+                        <span class="section-icon"
+                              style="background:#6debfe2b;border:1px solid #00a785;color:#008f9c;padding: 2px 6px 0px 6px;
+                            border-radius: 5px;">
+                            <i class="ti ti-hash"></i>
+                        </span>
+                        <span class="section-title">ACCOUNT CODE RULES</span>
+                        <div class="line"></div>
+                    </div>
+
+                    <div class="section-content">
+                        <div class="fields-grid fields-grid-3">
+
+                            <div class="field-item">
+                                <div class="field-label">CODE MODE</div>
+                                <div class="field-value">@SelectedChart?.AccountCodeMode</div>
+                            </div>
+
+                            <div class="field-item">
+                                <div class="field-label">CODE FORMAT</div>
+                                <div class="field-value">
+                                    @(SelectedChart?.AccountCodeFormat ?? "-")
+                                </div>
+                            </div>
+
+                            <div class="field-item">
+                                <div class="field-label">NEXT NUMBER</div>
+                                <div class="field-value">
+                                    @(SelectedChart?.NextAccountNumber?.ToString() ?? "-")
+                                </div>
+                            </div>
+
+                            <div class="field-item">
+                                <div class="field-label">ENFORCE UNIQUE CODE</div>
+                                <div class="field-value ql-editor">
+                                    @(SelectedChart?.EnforceUniqueAccountCode == true
+                                        ? (MarkupString)"<span class='pill pill-yes'>✓ Yes</span>"
+                                        : (MarkupString)"<span class='pill pill-no'>✕ No</span>")
+                                </div>
+                            </div>
+
+                            <div class="field-item">
+                                <div class="field-label">ENFORCE UNIQUE NAME</div>
+                                <div class="field-value ql-editor">
+                                    @(SelectedChart?.EnforceUniqueAccountName == true
+                                        ? (MarkupString)"<span class='pill pill-yes'>✓ Yes</span>"
+                                        : (MarkupString)"<span class='pill pill-no'>✕ No</span>")
+                                </div>
+                            </div>
+
+                        </div>
+                    </div>
+                </div>
+
+                <!-- POSTING & GOVERNANCE CONTROLS -->
+                <div class="section-block">
+                    <div class="section-header">
+                        <span class="section-icon"
+                              style="background:#6debfe2b;border:1px solid #00a785;color:#008f9c;padding: 2px 6px 0px 6px;
+                            border-radius: 5px;">
+                            <i class="ti ti-shield-lock"></i>
+                        </span>
+                        <span class="section-title">POSTING & GOVERNANCE CONTROLS</span>
+                        <div class="line"></div>
+                    </div>
+
+                    <div class="section-content">
+                        <div class="fields-grid fields-grid-3">
+
+                            <div class="field-item">
+                                <div class="field-label">CHANGE REQUEST REQUIRED</div>
+                                <div class="field-value">
+                                    @if (SelectedChart?.ChangeRequestRequired == true)
+                                    {
+                                        <span class="pill pill-yes">✓ Yes</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="pill pill-no">✕ No</span>
+                                    }
+                                </div>
+                            </div>
+
+                            @if (SelectedChart?.LockedAt.HasValue == true)
+                            {
+                                <div class="field-item">
+                                    <div class="field-label">LOCKED AT</div>
+                                    <div class="field-value">
+                                        @SelectedChart.LockedAt?.ToString("dd MMM yyyy")
+                                    </div>
+                                </div>
+
+                                <div class="field-item">
+                                    <div class="field-label">LOCKED BY</div>
+                                    <div class="field-value">
+                                        @(SelectedChart.LockedBy ?? "-")
+                                    </div>
+                                </div>
+                            }
+
+                            @if (!string.IsNullOrWhiteSpace(SelectedChart?.LockReason))
+                            {
+                                <div class="field-item field-span-2">
+                                    <div class="field-label">
+                                        @(SelectedChart.Status == COAStatuses.Retired
+                                            ? "RETIREMENT REASON"
+                                            : "LOCK REASON")
+                                    </div>
+                                    <div class="field-value ql-editor">
+                                        @((MarkupString)(SelectedChart.LockReason ?? string.Empty))
+                                    </div>
+                                </div>
+                            }
+
+                        </div>
+                    </div>
+                </div>
+
+                <!-- IMPORT / TEMPLATE SETUP -->
+                <div class="section-block">
+                    <div class="section-header">
+                        <span class="section-icon"
+                              style="background:#ffe0b230;border:1px solid #ff9800;color:#e65100;padding: 2px 6px 0px 6px;
+                            border-radius: 5px;">
+                            <i class="ti ti-upload"></i>
+                        </span>
+                        <span class="section-title">IMPORT / TEMPLATE SETUP</span>
+                        <div class="line"></div>
+                    </div>
+
+                    <div class="section-content">
+                        <div class="fields-grid fields-grid-3">
+
+                            <div class="field-item">
+                                <div class="field-label">TEMPLATE SOURCE</div>
+                                <div class="field-value fw">
+                                    @TemplateSources.GetDisplayName(SelectedChart.TemplateSource)
+                                </div>
+                            </div>
+
+                            <div class="field-item">
+                                <div class="field-label">TEMPLATE REFERENCE</div>
+                                <div class="field-value">
+                                    @(SelectedChart.TemplateReferenceId ?? "-")
+                                </div>
+                            </div>
+
+                        </div>
+                    </div>
+                </div>
+                <!-- GOVERNANCE & STATUS -->
+                <div class="section-block">
+                    <div class="section-header">
+                        <span class="section-icon"
+                              style="background:#ff708d30;border:1px solid #ff2173;color:#ff1b2d;padding: 2px 6px 0px 6px;
+                            border-radius: 5px;">
+                            <i class="ti ti-shield"></i>
+                        </span>
+                        <span class="section-title">GOVERNANCE & STATUS</span>
+                        <div class="line"></div>
+                    </div>
+
+                    <div class="section-content">
+                        <div class="fields-grid fields-grid-3">
+
+                            <div class="field-item">
+                                <div class="field-label">STATUS</div>
+                                <div class="field-value">
+                                    <span class="pill pill-yes">@SelectedChart?.Status</span>
+                                </div>
+                            </div>
+
+                            <div class="field-item">
+                                <div class="field-label">CHANGE REQUEST REQUIRED</div>
+                                <div class="field-value ql-editor">
+                                    @(SelectedChart?.ChangeRequestRequired == true
+                                        ? (MarkupString)"<span class='pill pill-yes'>✓ Yes</span>"
+                                        : (MarkupString)"<span class='pill pill-no'>✕ No</span>")
+                                </div>
+                            </div>
+
+                                <div class="field-item">
+                                <div class="field-label">LOCK REASON</div>
+                                <div class="field-value ql-editor">
+                                    @((MarkupString)(SelectedChart?.LockReason ?? string.Empty))
+                                </div>
+                            </div>
+
+                        </div>
+                    </div>
+                </div>
+
+
+
+                <!-- STATISTICS -->
+                <div class="section-block">
+                    <div class="section-header">
+                        <span class="section-icon"
+                              style="background:#f8c5051f;border:1px solid #a7b500;color:#c0a700;padding: 2px 6px 0px 6px;
+                            border-radius: 5px;">
+                            <i class="ti ti-chart-bar"></i>
+                        </span>
+                        <span class="section-title">STATISTICS</span>
+                        <div class="line"></div>
+                    </div>
+
+                    <div class="section-content">
+                        <div class="fields-grid fields-grid-3">
+
+                            <div class="field-item">
+                                <div class="field-label">ACCOUNT GROUPS</div>
+                                <div class="field-value fw text-primary">
+                                    @SelectedChart?.AccountGroupCount
+                                </div>
+                            </div>
+
+                            <div class="field-item">
+                                <div class="field-label">TOTAL ACCOUNTS</div>
+                                <div class="field-value fw text-info">
+                                    @SelectedChart?.AccountCount
+                                </div>
+                            </div>
+
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </div>
+}
+else
+{
+    <div class="page-loading-overlay">
+        <div class="whirly-loader"></div>
+    </div>
+}

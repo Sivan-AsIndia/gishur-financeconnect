@@ -1,0 +1,362 @@
+﻿@page "/asset-disposals/{Id:guid}/view"
+
+@using FinanceConnect.Client.ViewModels
+@using FinanceConnect.Client.Services
+
+<PageTitle>Asset Disposal Details - FinanceConnect</PageTitle>
+
+@if (!isInitialized)
+{
+    <div class="fc-loading-overlay">
+        <div class="fc-spinner">
+            <div class="fc-spinner-ring"></div>
+            <span class="fc-spinner-label">Loading disposal...</span>
+        </div>
+    </div>
+}
+else if (Disposal == null)
+{
+    <div class="content fc-empty-state">
+        <div class="fc-empty-icon">
+            <i class="ti ti-file-off"></i>
+        </div>
+        <h4>Disposal Not Found</h4>
+        <p>The requested asset disposal could not be located.</p>
+        <a href="/asset-disposals" class="fc-btn fc-btn-secondary">
+            <i class="ti ti-arrow-left"></i> Back to Asset Disposals
+        </a>
+    </div>
+}
+else
+{
+    <div class="content mb-4">
+
+        <!-- HEADER -->
+        <div class="fc-page-header">
+
+            <div class="fc-breadcrumb">
+                <a href="/asset-disposals" class="fc-breadcrumb-link">
+                    <i class="ti ti-layout-list"></i> Asset Disposals
+                </a>
+
+                <span class="fc-breadcrumb-sep">
+                    <i class="ti ti-chevron-right"></i>
+                </span>
+
+                <span class="fc-breadcrumb-current">
+                    Disposal Details
+                </span>
+            </div>
+
+            <div class="d-flex gap-2 page-btn">
+
+                @if (Disposal.DisposalStatus == AssetDisposalStatus.Draft)
+                {
+                    <a href="/asset-disposals/edit/@Disposal.AssetDisposalId" class="btn btn-primary">
+                        <i class="ti ti-edit"></i> Edit
+                    </a>
+                }
+
+                <a @onclick="PrintPage" class="btn bg-primary text-white">
+                    <i class="bi bi-printer"></i> Print
+                </a>
+
+                <a href="/asset-disposals" class="btn btn-outline-secondary">
+                    <i class="ti ti-arrow-left"></i> Back
+                </a>
+
+            </div>
+
+        </div>
+
+
+        <!-- HERO BANNER -->
+        <div class="fc-hero">
+
+            <div class="fc-hero-accent"></div>
+
+            <div class="fc-hero-body">
+
+                <div class="fc-hero-icon-wrap">
+                    <div class="fc-hero-icon">
+                        <i class="ti ti-trash"></i>
+                    </div>
+                </div>
+
+                <div class="fc-hero-info">
+
+                    <div class="fc-hero-title-row">
+                        <h2 class="fc-hero-title">@Disposal.DisposalNumber</h2>
+                    </div>
+
+                    <div class="fc-hero-meta">
+
+                        <span class="fc-meta-item">
+                            <i class="ti ti-package"></i>
+                            @Disposal.AssetNumberSnapshot — @Disposal.AssetNameSnapshot
+                        </span>
+
+                        <span class="fc-meta-divider"></span>
+
+                        <span class="fc-meta-item">
+                            <i class="ti ti-calendar"></i>
+                            @Disposal.DisposalDate?.ToString("dd MMM yyyy")
+                        </span>
+
+                        <span class="fc-meta-divider"></span>
+
+                        <span class="fc-status-badge @GetStatusBadge(Disposal.DisposalStatus)">
+                            @Disposal.DisposalStatus
+                        </span>
+
+                    </div>
+
+                </div>
+
+                <div class="fc-hero-amount">
+
+                    <div class="fc-amount-label">Gain / Loss</div>
+
+                    <div class="fc-amount-value">
+                        ₹@Disposal.GainLossAmount.ToString("N2")
+                    </div>
+
+                    <div class="fc-amount-sub">
+                        @Disposal.GainLossType
+                    </div>
+
+                </div>
+
+            </div>
+
+        </div>
+
+
+        <div class="fc-grid">
+
+            <!-- LEFT COLUMN -->
+            <div class="fc-col-main">
+
+
+                <!-- ASSET SNAPSHOT -->
+                <div class="fc-card">
+
+                    <div class="fc-card-header">
+                        <span class="fc-card-header-icon fc-icon-blue">
+                            <i class="ti ti-camera"></i>
+                        </span>
+                        <h3>Asset Snapshot</h3>
+                    </div>
+
+                    <div class="fc-card-body">
+
+                        <div class="row g-4">
+
+                            <div class="col-md-3">
+                                <div class="fc-field">
+                                    <label>Asset Number</label>
+                                    <div class="fc-field-value">@Disposal.AssetNumberSnapshot</div>
+                                </div>
+                            </div>
+
+                            <div class="col-md-3">
+                                <div class="fc-field">
+                                    <label>Asset Name</label>
+                                    <div class="fc-field-value">@Disposal.AssetNameSnapshot</div>
+                                </div>
+                            </div>
+
+                            <div class="col-md-3">
+                                <div class="fc-field">
+                                    <label>Category</label>
+                                    <div class="fc-field-value">@Disposal.AssetCategoryNameSnapshot</div>
+                                </div>
+                            </div>
+
+                            <div class="col-md-3">
+                                <div class="fc-field">
+                                    <label>Status</label>
+                                    <div class="fc-field-value">@Disposal.AssetStatusSnapshot</div>
+                                </div>
+                            </div>
+
+                            <div class="col-md-3">
+                                <div class="fc-field">
+                                    <label>In Service Date</label>
+                                    <div class="fc-field-value">
+                                        @Disposal.InServiceDateSnapshot?.ToString("dd MMM yyyy")
+                                    </div>
+                                </div>
+                            </div>
+
+                        </div>
+
+                    </div>
+
+                </div>
+
+
+                <!-- PROCEEDS -->
+                <div class="fc-card">
+
+                    <div class="fc-card-header">
+                        <span class="fc-card-header-icon fc-icon-emerald">
+                            <i class="ti ti-cash"></i>
+                        </span>
+                        <h3>Disposal Proceeds</h3>
+                    </div>
+
+                    <div class="fc-card-body">
+
+                        <div class="row g-4">
+
+                            <div class="col-md-3">
+                                <div class="fc-field">
+                                    <label>Proceeds Amount</label>
+                                    <div class="fc-field-value">
+                                        ₹@Disposal.ProceedsAmount.ToString("N2")
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="col-md-3">
+                                <div class="fc-field">
+                                    <label>Disposal Expenses</label>
+                                    <div class="fc-field-value">
+                                        ₹@Disposal.DisposalExpenseAmount.ToString("N2")
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="col-md-3">
+                                <div class="fc-field">
+                                    <label>Net Proceeds</label>
+                                    <div class="fc-field-value">
+                                        ₹@Disposal.NetProceedsAmount.ToString("N2")
+                                    </div>
+                                </div>
+                            </div>
+
+                        </div>
+
+                    </div>
+
+                </div>
+
+
+                <!-- NARRATION -->
+                @if (!string.IsNullOrEmpty(Disposal.Narration))
+                {
+                    <div class="fc-card">
+
+                        <div class="fc-card-header">
+                            <span class="fc-card-header-icon fc-icon-amber">
+                                <i class="ti ti-notes"></i>
+                            </span>
+                            <h3>Narration</h3>
+                        </div>
+
+                        <div class="fc-card-body">
+                            <p>@Disposal.Narration</p>
+                        </div>
+
+                    </div>
+                }
+
+            </div>
+
+
+            <!-- RIGHT COLUMN -->
+            <div class="fc-col-side">
+
+                <!-- AMOUNT SUMMARY -->
+                <div class="fc-card fc-amount-card">
+
+                    <div class="fc-card-header">
+                        <span class="fc-card-header-icon fc-icon-blue">
+                            <i class="ti ti-calculator"></i>
+                        </span>
+                        <h3>Amount Summary</h3>
+                    </div>
+
+                    <div class="fc-card-body">
+
+                        <div class="fc-amount-row">
+                            <span>Asset Cost</span>
+                            <span>₹@Disposal.TotalCapitalizedCostSnapshot.ToString("N2")</span>
+                        </div>
+
+                        <div class="fc-amount-row">
+                            <span>Accumulated Depreciation</span>
+                            <span>₹@Disposal.AccumulatedDepreciationAsOfDisposalSnapshot.ToString("N2")</span>
+                        </div>
+
+                        <div class="fc-amount-row">
+                            <span>NBV</span>
+                            <span>₹@Disposal.NetBookValueAsOfDisposalSnapshot.ToString("N2")</span>
+                        </div>
+
+                        <div class="fc-amount-row fc-amount-net">
+                            <span>Gain / Loss</span>
+                            <span>₹@Disposal.GainLossAmount.ToString("N2")</span>
+                        </div>
+
+                    </div>
+
+                </div>
+
+
+                <!-- HISTORY -->
+                <div class="fc-card">
+
+                    <div class="fc-card-header">
+                        <span class="fc-card-header-icon fc-icon-slate">
+                            <i class="ti ti-history"></i>
+                        </span>
+                        <h3>History</h3>
+                    </div>
+
+                    <div class="fc-card-body">
+
+                        <div class="fc-timeline">
+
+                            <div class="fc-timeline-item">
+                                <div class="fc-tl-dot"></div>
+
+                                <div class="fc-tl-content">
+                                    <div class="fc-tl-label">Created</div>
+                                    <div class="fc-tl-time">
+                                        @Disposal.CreatedAt.ToString("dd MMM yyyy HH:mm")
+                                    </div>
+                                </div>
+
+                            </div>
+
+                            @if (Disposal.PostedOn.HasValue)
+                            {
+                                <div class="fc-timeline-item">
+
+                                    <div class="fc-tl-dot"></div>
+
+                                    <div class="fc-tl-content">
+                                        <div class="fc-tl-label">Posted</div>
+                                        <div class="fc-tl-time">
+                                            @Disposal.PostedOn.Value.ToString("dd MMM yyyy HH:mm")
+                                        </div>
+                                    </div>
+
+                                </div>
+                            }
+
+                        </div>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>
+}

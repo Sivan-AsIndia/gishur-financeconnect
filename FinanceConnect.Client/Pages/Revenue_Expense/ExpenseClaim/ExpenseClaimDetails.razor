@@ -1,0 +1,184 @@
+@page "/expense-claims/{Id:guid}/view"
+@using static FinanceConnect.Client.ViewModels.ExpenseClaimViewModel
+
+@if(!isInitialized){<div class="page-loading-overlay"><div class="whirly-loader"></div></div>}
+else if(Claim==null){<div class="vb-root"><div class="content"><div class="alert alert-danger"><i class="ti ti-alert-circle me-2"></i>Expense Claim not found.<a href="/expense-claims" class="alert-link ms-2">Return to list</a></div></div></div>}
+else{
+<div class="vb-root"><div class="content">
+
+    <!-- ═══ HEADER ═══ -->
+    <div class="vb-header-card">
+        <div class="vb-cover"><div class="vb-cover-orb vb-orb-1"></div><div class="vb-cover-orb vb-orb-2"></div><div class="vb-cover-orb vb-orb-3"></div></div>
+        <div class="vb-header-body">
+            <div class="vb-avatar">@Claim.ClaimCode?.Substring(0,Math.Min(4,Claim.ClaimCode?.Length??0)).ToUpper()</div>
+            <div class="vb-header-meta">
+                <div>
+                    <p class="vb-bill-number">@Claim.ClaimCode – @Claim.ClaimTitle</p>
+                    <p class="vb-bill-sub">@(Claim.ClaimantNameSnapshot ?? "–") (@(Claim.ClaimantCodeSnapshot ?? "–")) · Submitted: @(Claim.ClaimSubmissionDate?.ToString("dd MMM yyyy") ?? "–")</p>
+                    <div class="vb-badges">
+                        <span class="badge @GetStatusBadge(Claim.ClaimStatus)">@Claim.ClaimStatus</span>
+                        <span class="badge @GetReimbBadge(Claim.ReimbursementStatus)">@Claim.ReimbursementStatus</span>
+                        @if(Claim.IsLocked){<span class="badge badge-red">🔒 Locked</span>}
+                    </div>
+                </div>
+                <div class="vb-header-actions">
+                    @if(Claim.ClaimStatus == ClaimStatusEnum.Draft){<a href="/expense-claims/edit/@Claim.ExpenseClaimId" class="btn btn-primary"><i class="ti ti-pencil me-1"></i> Edit</a>}
+                    <a class="btn btn-outline-secondary" href="/expense-claims"><i class="ti ti-arrow-left me-1"></i> Back</a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ═══ SUMMARY TILES ═══ -->
+    <div class="vb-summary-grid mb-4 mt-2" style="background:transparent;border:none;box-shadow:none;">
+        <div class="vb-tile"><div class="vb-tile-label">Claimed</div><div class="vb-tile-value primary">₹@Claim.TotalClaimedAmount.ToString("N2")</div></div>
+        <div class="vb-tile"><div class="vb-tile-label">Approved</div><div class="vb-tile-value text-primary">₹@Claim.TotalApprovedAmount.ToString("N2")</div></div>
+        <div class="vb-tile"><div class="vb-tile-label">Rejected</div><div class="vb-tile-value text-danger">₹@Claim.TotalRejectedAmount.ToString("N2")</div></div>
+        <div class="vb-tile"><div class="vb-tile-label">Reimbursed</div><div class="vb-tile-value text-success">₹@Claim.TotalReimbursedAmount.ToString("N2")</div></div>
+        <div class="vb-tile"><div class="vb-tile-label">Outstanding</div><div class="vb-tile-value @(Claim.OutstandingReimbursementAmount > 0 ? "text-warning" : "text-success")">₹@Claim.OutstandingReimbursementAmount.ToString("N2")</div></div>
+    </div>
+
+    <!-- ═══ TWO-COLUMN BODY ═══ -->
+    <div class="ecl-layout mb-3">
+        <!-- LEFT SIDE -->
+        <div class="ecl-left">
+            <!-- Claim Header -->
+            <div class="vb-card">
+                <div class="vb-card-header"><h6><i class="ti ti-file-description me-1"></i> Claim Header</h6></div>
+                <div class="vb-card-body">
+                    <div class="ecl-2col">
+                        <div class="vb-row"><span class="vb-label">Claim Code</span><span class="vb-val">@Claim.ClaimCode</span></div>
+                        <div class="vb-row"><span class="vb-label">Claim Title</span><span class="vb-val">@Claim.ClaimTitle</span></div>
+                        <div class="vb-row"><span class="vb-label">Status</span><span class="vb-val"><span class="badge @GetStatusBadge(Claim.ClaimStatus)">@Claim.ClaimStatus</span></span></div>
+                    </div>
+                    @if(!string.IsNullOrEmpty(Claim.Description)){<div class="vb-row mt-1" style="flex-direction:column;gap:4px;"><span class="vb-label">Description</span><span class="vb-val">@Claim.Description</span></div>}
+                </div>
+            </div>
+            <!-- Claimant & Business Purpose -->
+            <div class="vb-card">
+                <div class="vb-card-header"><h6><i class="ti ti-user me-1"></i> Claimant & Business Purpose</h6></div>
+                <div class="vb-card-body">
+                    <div class="ecl-2col">
+                        <div class="vb-row"><span class="vb-label">Claimant</span><span class="vb-val">@(Claim.ClaimantNameSnapshot ?? "–") (@(Claim.ClaimantCodeSnapshot ?? "–"))</span></div>
+                        <div class="vb-row"><span class="vb-label">Submission Date</span><span class="vb-val">@(Claim.ClaimSubmissionDate?.ToString("dd MMM yyyy") ?? "–")</span></div>
+                        <div class="vb-row"><span class="vb-label">Claim Period</span><span class="vb-val">@(Claim.ClaimPeriodFrom?.ToString("dd MMM") ?? "–") — @(Claim.ClaimPeriodTo?.ToString("dd MMM yyyy") ?? "–")</span></div>
+                        <div class="vb-row"><span class="vb-label">Branch</span><span class="vb-val">@(Claim.BranchName ?? "–")</span></div>
+                        <div class="vb-row"><span class="vb-label">Department</span><span class="vb-val">@(Claim.DepartmentName ?? "–")</span></div>
+                        <div class="vb-row"><span class="vb-label">Cost Center</span><span class="vb-val">@(Claim.CostCenterName ?? "–")</span></div>
+                        <div class="vb-row"><span class="vb-label">Project</span><span class="vb-val">@(Claim.ProjectName ?? "–")</span></div>
+                        <div class="vb-row"><span class="vb-label">Manager Approver</span><span class="vb-val">@(Claim.ManagerApproverId ?? "–")</span></div>
+                    </div>
+                    <div class="vb-row mt-1" style="flex-direction:column;gap:4px;"><span class="vb-label">Business Purpose</span><span class="vb-val">@Claim.BusinessPurpose</span></div>
+                </div>
+            </div>
+        </div>
+        <!-- RIGHT SIDE -->
+        <div class="ecl-right">
+            <!-- Amount Summary -->
+            <div class="vb-card">
+                <div class="vb-card-header"><h6><i class="ti ti-currency-rupee me-1"></i> Amount Summary</h6></div>
+                <div class="vb-card-body">
+                    <div class="d-flex justify-content-between py-1"><span class="vb-label">Claimed</span><span class="fw-medium">₹@Claim.TotalClaimedAmount.ToString("N2")</span></div>
+                    <div class="d-flex justify-content-between py-1"><span class="vb-label">Approved</span><span class="fw-medium text-primary">₹@Claim.TotalApprovedAmount.ToString("N2")</span></div>
+                    <div class="d-flex justify-content-between py-1"><span class="vb-label">Rejected</span><span class="text-danger">₹@Claim.TotalRejectedAmount.ToString("N2")</span></div>
+                    <div class="d-flex justify-content-between py-1"><span class="vb-label">Reimbursed</span><span class="fw-medium text-success">₹@Claim.TotalReimbursedAmount.ToString("N2")</span></div>
+                    <hr class="my-1"/>
+                    <div class="d-flex justify-content-between py-1"><span class="vb-label">Outstanding</span><span class="fw-bold">₹@Claim.OutstandingReimbursementAmount.ToString("N2")</span></div>
+                </div>
+            </div>
+            <!-- Policy & Compliance -->
+            <div class="vb-card">
+                <div class="vb-card-header"><h6><i class="ti ti-shield-check me-1"></i> Policy & Compliance</h6></div>
+                <div class="vb-card-body">
+                    <div class="d-flex justify-content-between py-1"><span class="vb-label">Receipt Compliance</span><span class="badge @GetCompBadge(Claim.ReceiptComplianceStatus)">@Claim.ReceiptComplianceStatus</span></div>
+                    <div class="d-flex justify-content-between py-1"><span class="vb-label">Policy Check</span><span class="badge @GetPolBadge(Claim.PolicyCheckStatus)">@Claim.PolicyCheckStatus</span></div>
+                    <div class="d-flex justify-content-between py-1"><span class="vb-label">Duplicate Check</span><span>@Claim.DuplicateCheckStatus</span></div>
+                    <div class="d-flex justify-content-between py-1"><span class="vb-label">Posting Status</span><span>@Claim.PostingStatus</span></div>
+                </div>
+            </div>
+            <!-- Workflow -->
+            <div class="vb-card">
+                <div class="vb-card-header"><h6><i class="ti ti-git-merge me-1"></i> Workflow</h6></div>
+                <div class="vb-card-body">
+                    <div class="d-flex justify-content-between py-1"><span class="vb-label">Submitted By</span><span>@(Claim.SubmittedByUserId ?? "–")</span></div>
+                    <div class="d-flex justify-content-between py-1"><span class="vb-label">Reviewed By</span><span>@(Claim.ReviewedByUserId ?? "–")</span></div>
+                    <div class="d-flex justify-content-between py-1"><span class="vb-label">Approved By</span><span>@(Claim.ApprovedByUserId ?? "–")</span></div>
+                    <div class="d-flex justify-content-between py-1"><span class="vb-label">Approved On</span><span>@(Claim.ApprovedOn?.ToString("dd MMM yyyy") ?? "–")</span></div>
+                    @if(!string.IsNullOrEmpty(Claim.RejectedByUserId)){<div class="d-flex justify-content-between py-1"><span class="vb-label">Rejected By</span><span class="text-danger">@Claim.RejectedByUserId</span></div>}
+                    @if(Claim.IsLocked){<div class="d-flex justify-content-between py-1"><span class="vb-label">Locked On</span><span>@(Claim.LockedOn?.ToString("dd MMM yyyy") ?? "–")</span></div>}
+                </div>
+            </div>
+            <!-- Reimbursement -->
+            <div class="vb-card">
+                <div class="vb-card-header"><h6><i class="ti ti-cash me-1"></i> Reimbursement</h6></div>
+                <div class="vb-card-body">
+                    <div class="d-flex justify-content-between py-1"><span class="vb-label">Status</span><span class="badge @GetReimbBadge(Claim.ReimbursementStatus)">@Claim.ReimbursementStatus</span></div>
+                    @if(Claim.ReimbursementMethod.HasValue){<div class="d-flex justify-content-between py-1"><span class="vb-label">Method</span><span>@Claim.ReimbursementMethod</span></div>}
+                    @if(Claim.ReimbursementDate.HasValue){<div class="d-flex justify-content-between py-1"><span class="vb-label">Date</span><span>@Claim.ReimbursementDate?.ToString("dd MMM yyyy")</span></div>}
+                    @if(!string.IsNullOrEmpty(Claim.ReimbursementReferenceNumber)){<div class="d-flex justify-content-between py-1"><span class="vb-label">Reference No</span><span>@Claim.ReimbursementReferenceNumber</span></div>}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ═══ FULL-WIDTH: Claim Lines ═══ -->
+    @if(Claim.Lines.Any()){
+    <div class="vb-card mb-3">
+        <div class="vb-card-header"><h6><i class="ti ti-list me-1"></i> Claim Lines</h6></div>
+        <div class="vb-card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-sm table-bordered align-middle mb-0">
+                    <thead class="table-light">
+                        <tr><th style="width:40px">#</th><th>Date</th><th>Description</th><th>Category</th><th class="text-end">Claimed</th><th class="text-end">Approved</th><th>Receipt</th><th>Status</th></tr>
+                    </thead>
+                    <tbody>@foreach(var l in Claim.Lines.OrderBy(x=>x.LineNumber)){
+                        <tr>
+                            <td class="text-center">@l.LineNumber</td>
+                            <td>@(l.ExpenseDate?.ToString("dd MMM") ?? "–")</td>
+                            <td>@l.LineDescription</td>
+                            <td>@(l.ExpenseCategoryName ?? "–")</td>
+                            <td class="text-end">₹@l.ClaimedAmount.ToString("N2")</td>
+                            <td class="text-end">₹@l.ApprovedAmount.ToString("N2")</td>
+                            <td class="text-center">@if(l.ReceiptAttachedFlag){<span class="badge bg-success-transparent">✓</span>}else{<span class="badge bg-danger-transparent">✗</span>}</td>
+                            <td><span class="badge @GetLineApprovalBadge(l.ApprovalStatus)">@l.ApprovalStatus</span></td>
+                        </tr>
+                        @if(!string.IsNullOrEmpty(l.RejectionReason)){<tr><td></td><td colspan="7"><small class="text-danger"><i class="ti ti-alert-circle me-1"></i>@l.RejectionReason</small></td></tr>}
+                    }</tbody>
+                    <tfoot class="table-light fw-bold">
+                        <tr>
+                            <td colspan="4" class="text-end">Totals</td>
+                            <td class="text-end">₹@Claim.Lines.Sum(l => l.ClaimedAmount).ToString("N2")</td>
+                            <td class="text-end">₹@Claim.Lines.Sum(l => l.ApprovedAmount).ToString("N2")</td>
+                            <td colspan="2"></td>
+                        </tr>
+                    </tfoot>
+                </table>
+            </div>
+        </div>
+    </div>}
+
+    <!-- ═══ Notes (full width) ═══ -->
+    @if(!string.IsNullOrEmpty(Claim.Notes)||!string.IsNullOrEmpty(Claim.ApprovalNotes)||!string.IsNullOrEmpty(Claim.SupportingCommentary)||!string.IsNullOrEmpty(Claim.CancellationReason)){
+    <div class="vb-card mb-5">
+        <div class="vb-card-header"><h6><i class="ti ti-notes me-1"></i> Notes</h6></div>
+        <div class="vb-card-body">
+            <div class="ecl-notes-grid">
+                @if(!string.IsNullOrEmpty(Claim.ApprovalNotes)){<div class="vb-row" style="flex-direction:column;gap:4px;"><span class="vb-label">Approval Notes</span><span class="vb-val">@Claim.ApprovalNotes</span></div>}
+                @if(!string.IsNullOrEmpty(Claim.CancellationReason)){<div class="vb-row" style="flex-direction:column;gap:4px;"><span class="vb-label text-danger">Cancellation Reason</span><span class="vb-val text-danger">@Claim.CancellationReason</span></div>}
+                @if(!string.IsNullOrEmpty(Claim.PolicyOverrideReason)){<div class="vb-row" style="flex-direction:column;gap:4px;"><span class="vb-label">Policy Override Reason</span><span class="vb-val">@Claim.PolicyOverrideReason</span></div>}
+                @if(!string.IsNullOrEmpty(Claim.SupportingCommentary)){<div class="vb-row" style="flex-direction:column;gap:4px;"><span class="vb-label">Supporting Commentary</span><span class="vb-val">@Claim.SupportingCommentary</span></div>}
+                @if(!string.IsNullOrEmpty(Claim.Notes)){<div class="vb-row" style="flex-direction:column;gap:4px;"><span class="vb-label">Notes</span><span class="vb-val">@Claim.Notes</span></div>}
+            </div>
+        </div>
+    </div>}
+
+</div></div>
+}
+
+<style>
+    .ecl-layout { display: grid; grid-template-columns: 1fr 340px; gap: 16px; align-items: start; }
+    .ecl-left, .ecl-right { display: flex; flex-direction: column; gap: 16px; }
+    .ecl-2col { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 0 24px; }
+    .ecl-notes-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 8px 24px; }
+    @@media (max-width: 992px) { .ecl-layout { grid-template-columns: 1fr; } }
+</style>

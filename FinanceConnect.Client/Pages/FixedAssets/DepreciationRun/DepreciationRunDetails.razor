@@ -1,0 +1,346 @@
+﻿@page "/depreciation-runs/{Id:guid}/view"
+@using FinanceConnect.Client.ViewModels
+
+@if (!isInitialized)
+{
+    <div class="page-loading-overlay">
+        <div class="whirly-loader"></div>
+    </div>
+}
+else if (Run == null)
+{
+    <div class="vb-root">
+    <div class="content">
+        <div class="alert alert-danger">
+            <i class="ti ti-alert-circle me-2"></i>
+            Depreciation Run not found.
+            <a href="/depreciation-runs" class="alert-link ms-2">Return to list</a>
+        </div>
+    </div>
+    </div>
+}
+else
+{
+    <div class="vb-root">
+    <div class="content">
+
+        <!-- HEADER -->
+        <div class="vb-header-card">
+            <div class="vb-cover">
+                <div class="vb-cover-orb vb-orb-1"></div>
+                <div class="vb-cover-orb vb-orb-2"></div>
+                <div class="vb-cover-orb vb-orb-3"></div>
+            </div>
+
+            <div class="vb-header-body">
+                <div class="vb-avatar">
+                    DR
+                </div>
+
+                <div class="vb-header-meta">
+
+                    <div>
+                        <p class="vb-bill-number">@Run.RunNumber</p>
+                        <p class="vb-bill-sub">
+                                @GetCompanyName(Run.CompanyId) · @Run.AccountingPeriodName
+                        </p>
+
+                        <div class="vb-badges">
+                            <span class="badge @GetStatusBadge(Run.RunStatus)">
+                                @Run.RunStatus
+                            </span>
+
+                            <span class="badge bg-info-transparent text-info">
+                                @Run.RunType
+                            </span>
+                        </div>
+                    </div>
+
+                    <div class="vb-header-actions">
+                       
+                        <a @onclick="PrintPage" class="btn btn-primary">
+                            <i class="bi bi-printer"></i> Print
+                        </a>
+                            <a href="/depreciation-runs" class="btn btn-outline-secondary">
+                                <i class="ti ti-arrow-left me-1"></i> Back
+                            </a>
+
+                    </div>
+
+                </div>
+            </div>
+        </div>
+
+
+        <!-- SUMMARY -->
+        <div class="vb-summary-grid mb-4 mt-2">
+
+            <div class="vb-tile">
+                <div class="vb-tile-label">Eligible Assets</div>
+                <div class="vb-tile-value">@Run.EligibleAssetsCount</div>
+            </div>
+
+            <div class="vb-tile">
+                <div class="vb-tile-label">Excluded Assets</div>
+                <div class="vb-tile-value">@Run.ExcludedAssetCount</div>
+            </div>
+
+            <div class="vb-tile">
+                <div class="vb-tile-label">Generated Lines</div>
+                <div class="vb-tile-value">@Run.GeneratedLineCount</div>
+            </div>
+
+            <div class="vb-tile-wide">
+                <div class="vb-tile-label">Total Depreciation</div>
+                <div class="vb-tile-value primary" style="font-size:26px;">
+                    ₹ @Run.TotalDepreciationAmount.ToString("N2")
+                </div>
+            </div>
+
+            <div class="vb-tile">
+                <div class="vb-tile-label">Expense Amount</div>
+                <div class="vb-tile-value">
+                    ₹ @Run.TotalExpenseAmount.ToString("N2")
+                </div>
+            </div>
+
+            <div class="vb-tile">
+                <div class="vb-tile-label">Accumulated Dep.</div>
+                <div class="vb-tile-value">
+                    ₹ @Run.TotalAccumDepAmount.ToString("N2")
+                </div>
+            </div>
+
+        </div>
+
+
+
+        <div class="vb-two-col mb-4">
+
+            <!-- SIDEBAR -->
+            <aside class="vb-sidebar">
+
+                <div class="vb-card">
+                    <div class="vb-card-header">
+                        <h6><i class="ti ti-calendar"></i> Period Details</h6>
+                    </div>
+
+                    <div class="vb-card-body">
+
+                        <div class="vb-row">
+                            <span class="vb-label">Period</span>
+                            <span class="vb-val">@Run.AccountingPeriodName</span>
+                        </div>
+
+                        <div class="vb-row">
+                            <span class="vb-label">Start Date</span>
+                            <span class="vb-val">@Run.PeriodStartDateSnapshot?.ToString("dd MMM yyyy")</span>
+                        </div>
+
+                        <div class="vb-row">
+                            <span class="vb-label">End Date</span>
+                            <span class="vb-val">@Run.PeriodEndDateSnapshot?.ToString("dd MMM yyyy")</span>
+                        </div>
+
+                        <div class="vb-row">
+                            <span class="vb-label">As Of Date</span>
+                            <span class="vb-val">@Run.AsOfDate?.ToString("dd MMM yyyy")</span>
+                        </div>
+
+                    </div>
+                </div>
+
+
+                <div class="vb-card">
+                    <div class="vb-card-header">
+                        <h6><i class="ti ti-settings"></i> Run Settings</h6>
+                    </div>
+
+                    <div class="vb-card-body">
+
+                        <div class="vb-row">
+                            <span class="vb-label">Run Type</span>
+                            <span class="vb-val">@Run.RunType</span>
+                        </div>
+
+                        <div class="vb-row">
+                            <span class="vb-label">Selection Mode</span>
+                            <span class="vb-val">@Run.SelectionMode</span>
+                        </div>
+
+                        <div class="vb-row">
+                            <span class="vb-label">Schedule Policy</span>
+                            <span class="vb-val">@Run.ScheduleVersionPolicy</span>
+                        </div>
+
+                        @if (Run.IncludeSuspendedAssets)
+                        {
+                            <div class="vb-row">
+                                <span class="vb-label">Suspended Assets</span>
+                                <span class="vb-val badge badge-blue">Included</span>
+                            </div>
+                        }
+
+                        @if (Run.IncludeZeroDepreciationAssets)
+                        {
+                            <div class="vb-row">
+                                <span class="vb-label">Zero Dep Assets</span>
+                                <span class="vb-val badge badge-purple">Included</span>
+                            </div>
+                        }
+
+                    </div>
+                </div>
+
+
+                <div class="vb-card">
+                    <div class="vb-card-header">
+                        <h6><i class="ti ti-history"></i> Audit</h6>
+                    </div>
+
+                    <div class="vb-card-body">
+
+                        <div class="vb-row">
+                            <span class="vb-label">Created</span>
+                            <span class="vb-val">@Run.CreatedAt.ToString("dd MMM yyyy")</span>
+                        </div>
+
+                        @if (Run.GeneratedOn.HasValue)
+                        {
+                            <div class="vb-row">
+                                <span class="vb-label">Generated</span>
+                                <span class="vb-val">@Run.GeneratedOn.Value.ToString("dd MMM yyyy")</span>
+                            </div>
+                        }
+
+                        @if (Run.PostedOn.HasValue)
+                        {
+                            <div class="vb-row">
+                                <span class="vb-label">Posted</span>
+                                <span class="vb-val">@Run.PostedOn.Value.ToString("dd MMM yyyy")</span>
+                            </div>
+                        }
+
+                    </div>
+                </div>
+
+            </aside>
+
+
+            <!-- MAIN -->
+            <div class="vb-main">
+
+                <div class="vb-card">
+                    <div class="vb-card-header">
+                        <h6><i class="ti ti-asset"></i> Run Statistics</h6>
+                    </div>
+
+                    <div class="vb-card-body">
+
+                        <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px">
+
+                            <div class="vb-row">
+                                <span class="vb-label">Eligible Assets</span>
+                                <span class="vb-val">@Run.EligibleAssetsCount</span>
+                            </div>
+
+                            <div class="vb-row">
+                                <span class="vb-label">Excluded Assets</span>
+                                <span class="vb-val">@Run.ExcludedAssetCount</span>
+                            </div>
+
+                            <div class="vb-row">
+                                <span class="vb-label">Generated Lines</span>
+                                <span class="vb-val">@Run.GeneratedLineCount</span>
+                            </div>
+
+                            <div class="vb-row">
+                                <span class="vb-label">Exceptions</span>
+                                <span class="vb-val">
+                                    @if (Run.HasExceptions)
+                                    {
+                                        <span class="badge badge-red">@Run.ExceptionSeverityLevel</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="badge badge-green">None</span>
+                                    }
+                                </span>
+                            </div>
+
+                        </div>
+
+                    </div>
+                </div>
+
+
+
+                @if (!string.IsNullOrWhiteSpace(Run.RunNotes))
+                {
+                    <div class="vb-card">
+                        <div class="vb-card-header">
+                            <h6><i class="ti ti-notes"></i> Notes</h6>
+                        </div>
+
+                        <div class="vb-card-body">
+                            <p>@Run.RunNotes</p>
+                        </div>
+                    </div>
+                }
+
+
+
+                <!-- WORKFLOW -->
+                <div class="vb-card">
+                    <div class="vb-card-header">
+                        <h6><i class="ti ti-git-branch"></i> Workflow History</h6>
+                    </div>
+
+                    <div class="vb-card-body">
+
+                        <div class="vb-timeline">
+
+                            @if (Run.GeneratedOn.HasValue)
+                            {
+                                <div class="vb-tl-item">
+                                    <div class="vb-tl-dot"><i class="ti ti-settings"></i></div>
+                                    <div class="vb-tl-content">
+                                        <div class="vb-tl-title">Generated</div>
+                                        <div class="vb-tl-meta">@Run.GeneratedOn.Value.ToString("dd MMM yyyy HH:mm")</div>
+                                    </div>
+                                </div>
+                            }
+
+                            @if (Run.PostedOn.HasValue)
+                            {
+                                <div class="vb-tl-item">
+                                    <div class="vb-tl-dot" style="color:green"><i class="ti ti-book"></i></div>
+                                    <div class="vb-tl-content">
+                                        <div class="vb-tl-title">Posted</div>
+                                        <div class="vb-tl-meta">@Run.PostedOn.Value.ToString("dd MMM yyyy HH:mm")</div>
+                                    </div>
+                                </div>
+                            }
+
+                            @if (Run.FinalizedOn.HasValue)
+                            {
+                                <div class="vb-tl-item">
+                                    <div class="vb-tl-dot" style="color:blue"><i class="ti ti-check"></i></div>
+                                    <div class="vb-tl-content">
+                                        <div class="vb-tl-title">Finalized</div>
+                                        <div class="vb-tl-meta">@Run.FinalizedOn.Value.ToString("dd MMM yyyy HH:mm")</div>
+                                    </div>
+                                </div>
+                            }
+
+                        </div>
+
+                    </div>
+                </div>
+
+            </div>
+        </div>
+
+    </div>
+    </div>
+}

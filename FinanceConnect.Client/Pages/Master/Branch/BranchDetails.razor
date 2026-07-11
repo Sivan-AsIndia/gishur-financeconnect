@@ -1,0 +1,267 @@
+﻿@page "/branches/{BranchId:guid}/view"
+@using FinanceConnect.Client.ViewModels
+@using FinanceConnect.Client.Services
+@inject BranchService service
+@inject NavigationManager Nav
+@inject IJSRuntime JS
+
+
+<div class="content py-4 view-screen">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <div>
+            <h4 class="fw-bold mb-1">Branch Details</h4>
+            <p class="text-muted mb-0 small">Track branch information and status</p>
+        </div>
+        <div class="d-flex gap-2 page-btn">
+            <a @onclick="PrintPage" class="btn bg-primary text-white">
+                <i class="bi bi-printer"></i> Print
+            </a>
+            <a class="btn btn-outline-secondary" @onclick="GoBack">
+                <i class="ti ti-arrow-left me-1"></i> Back
+            </a>
+        </div>
+
+    </div>
+    <div class="row g-4">
+
+        <!-- HEADER PANEL -->
+        <div class="col-lg-12">
+            <div class="profile-list-card">
+
+                <!-- LEFT -->
+                <div class="profile-left">
+                    <div class="avatar letter-avatar">
+                        @SelectedBranch?.BranchName?.Substring(0, 2).ToUpper()
+                    </div>
+                </div>
+
+                <!-- CENTER -->
+                <div class="profile-center">
+                    <div class="top-row">
+                        <h5>@SelectedBranch.BranchName</h5>
+
+                        @if (SelectedBranch.Status?.ToLower() == "active")
+                        {
+                            <span class="bg-success rounded-circle"
+                                  data-bs-toggle="tooltip"
+                                  title="Active"
+                                  style="font-size:10px;color:white;width:16px;height:16px;
+                                                 display:flex;align-items:center;justify-content:center;">
+                                <i class="ti ti-checks"></i>
+                            </span>
+                        }
+                    </div>
+
+                    <div class="sub-text">
+                        <span class="d-flex gap-1 mt-1">
+                            <i class="ti ti-building"></i> @service.GetCompanyNameById(SelectedBranch.CompanyId)
+                        </span>
+                        <span class="d-flex gap-1 mt-1">
+                            <i class="ti ti-map-pin"></i>
+                            @service.GetCityNameById(SelectedBranch.CityId), @service.GetStateNameById(SelectedBranch.StateId)
+                        </span>
+                    </div>
+                </div>
+
+                <!-- RIGHT -->
+                @* <div class="profile-right">
+                    <button class="btn btn-secondary btn-sm" @onclick="GoBack">
+                        <i class="ti ti-arrow-left"></i> Back
+                    </button>
+                </div> *@
+
+            </div>
+        </div>
+
+        <!-- LEFT PANEL -->
+        <div class="col-lg-8">
+
+            <div class="profile-card">
+
+                <!-- Branch Identity -->
+                <div class="card mb-0">
+                    <div class="card-header py-2">
+                        <i class="ti ti-id me-2"></i> Branch Identity
+                    </div>
+                    <div class="card-body py-2">
+                        <div class="row">
+
+                            <div class="col-md-3 mb-2">
+                                <small class="text-muted">Branch Code</small>
+                                <div class="fw-medium">@SelectedBranch.BranchCode</div>
+                            </div>
+
+                            <div class="col-md-5 mb-2">
+                                <small class="text-muted">Branch Name</small>
+                                <div class="fw-medium">@SelectedBranch.BranchName</div>
+                            </div>
+
+                            <div class="col-md-4 mb-2">
+                                <small class="text-muted">Branch Type</small>
+                                <div>@SelectedBranch.BranchType</div>
+                            </div>
+
+
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Location -->
+                <div class="card mt-3 mb-0">
+                    <div class="card-header py-2">
+                        <i class="ti ti-map-pin me-2"></i> Location & Address
+                    </div>
+                    <div class="card-body py-2">
+                        <div class="row">
+
+                            <div class="col-md-6 mb-2">
+                                <small class="text-muted">Address Line 1</small>
+                                <div>@SelectedBranch.AddressLine1</div>
+                            </div>
+
+                            <div class="col-md-6 mb-2">
+                                <small class="text-muted">Address Line 2</small>
+                                <div>@(SelectedBranch.AddressLine2 ?? "-")</div>
+                            </div>
+
+                            <div class="col-md-3 mb-2">
+                                <small class="text-muted">Country</small>
+                                <div>@service.GetCountryNameById(SelectedBranch.CountryId)</div>
+                            </div>
+
+                            <div class="col-md-3 mb-2">
+                                <small class="text-muted">State</small>
+                                <div>@service.GetStateNameById(SelectedBranch.StateId)</div>
+                            </div>
+
+                            <div class="col-md-3 mb-2">
+                                <small class="text-muted">City</small>
+                                <div>@service.GetCityNameById(SelectedBranch.CityId)</div>
+                            </div>
+
+                            <div class="col-md-3 mb-2">
+                                <small class="text-muted">Postal Code</small>
+                                <div>@SelectedBranch.PostalCode</div>
+                            </div>
+
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Contact -->
+                <div class="card mt-3 mb-0">
+                    <div class="card-header py-2">
+                        <i class="ti ti-phone me-2"></i> Contact & Operations
+                    </div>
+                    <div class="card-body py-2">
+                        <div class="row">
+
+                            <div class="col-md-4 mb-2">
+                                <small class="text-muted">Manager</small>
+                                <div>@(SelectedBranch.BranchManagerName ?? "-")</div>
+                            </div>
+
+                            <div class="col-md-4 mb-2">
+                                <small class="text-muted">Phone</small>
+                                <div>@(SelectedBranch.BranchPhone ?? "-")</div>
+                            </div>
+
+                            <div class="col-md-4 mb-2">
+                                <small class="text-muted">Email</small>
+                                <div>@(SelectedBranch.BranchEmail ?? "-")</div>
+                            </div>
+
+                            <div class="col-md-12 mb-2">
+                                <small class="text-muted">Operating Notes</small>
+                                <div class="ql-editor">@((MarkupString)(SelectedBranch.OperatingHoursNote ?? string.Empty))</div>
+                            </div>
+
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+
+        <!-- RIGHT PANEL -->
+        <div class="col-lg-4">
+
+            <div class="profile-card">
+
+                <!-- Status -->
+                <div class="card mb-0">
+                    <div class="card-header py-2">
+                        <i class="ti ti-circle-check me-2"></i> Status & Defaults
+                    </div>
+                    <div class="card-body py-2">
+
+                        <div class="mb-2">
+                            <small class="text-muted">Status</small>
+                            <div>
+                                <span class="badge @GetStatusBadge(SelectedBranch.Status)">
+                                    @SelectedBranch.Status
+                                </span>
+                            </div>
+                        </div>
+
+                        <div class="mb-2">
+                            <small class="text-muted">Default Branch</small>
+                            <div>
+                                @if (SelectedBranch.IsDefaultBranch)
+                                {
+                                    <span class="badge bg-success-transparent text-success">Yes</span>
+                                }
+                                else
+                                {
+                                    <span class="badge bg-secondary-transparent text-secondary">No</span>
+                                }
+                            </div>
+                        </div>
+
+                        <div class="mb-2">
+                            <small class="text-muted">Time Zone</small>
+                            <div>@service.GetTZNameById(SelectedBranch.TimeZoneId)</div>
+                        </div>
+
+                    </div>
+                </div>
+
+                <!-- Reporting -->
+                <div class="card mt-3 mb-0">
+                    <div class="card-header py-2">
+                        <i class="ti ti-chart-bar me-2"></i> Reporting & Visibility
+                    </div>
+                    <div class="card-body py-2">
+
+                        <div class="mb-2">
+                            <small class="text-muted">Reporting Enabled</small>
+                            <div>
+                                @if (SelectedBranch.IsReportingEnabled)
+                                {
+                                    <span class="badge bg-success-transparent text-success">Enabled</span>
+                                }
+                                else
+                                {
+                                    <span class="badge bg-secondary-transparent text-secondary">Disabled</span>
+                                }
+                            </div>
+                        </div>
+
+                        <div class="mb-2">
+                            <small class="text-muted">Sort Order</small>
+                            <div>@SelectedBranch.ReportSortOrder</div>
+                        </div>
+
+                        <div class="mb-2">
+                            <small class="text-muted">Color Tag</small>
+                            <div>@(SelectedBranch.BranchColorTag ?? "-")</div>
+                        </div>
+
+                    </div>
+                </div>
+
+            </div>
+        </div>
+
+    </div>
+</div>

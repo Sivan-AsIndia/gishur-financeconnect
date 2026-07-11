@@ -1,0 +1,348 @@
+@page "/accruals/create"
+@page "/accruals/edit/{Id:guid}"
+@using FinanceConnect.Client.ViewModels
+@using FinanceConnect.Client.Services
+@using static FinanceConnect.Client.ViewModels.AccrualViewModel
+
+<style>.validation-message{color:#dc3545;font-size:12px;}.form-check-label{font-size:13px;}</style>
+
+<div class="content flat-form">
+    <div class="page-header">
+        <div class="page-title"><h4 class="fw-bold">@(IsEdit ? "Edit Accrual" : "Create Accrual")</h4><h6>Period-end timing adjustment record</h6></div>
+        <div class="page-btn"><a href="/accruals" class="btn btn-outline-secondary"><i class="ti ti-arrow-left"></i> Back</a></div>
+    </div>
+
+    <EditForm EditContext="_editContext" OnSubmit="Save">
+        <DataAnnotationsValidator />
+
+        <!-- SECTION 1: CORE IDENTITY -->
+        <div class="card mt-4"><div class="card-body">
+            <h6 class="text-primary mb-3 d-flex align-items-center"><i class="ti ti-id me-2" style="font-size:22px;"></i> Core Identity</h6>
+            <div class="row g-3">
+                <div class="col-md-3">
+                    <label class="form-label">Accrual Code <span class="text-danger">*</span></label>
+                    @if (IsEdit) { <div class="fw-semibold fs-14 mt-1">@(Model.AccrualCode ?? "–")</div> }
+                    else { <InputText class="form-control text-uppercase" @bind-Value="Model.AccrualCode" placeholder="e.g. ACCR-2026-0001" title="Unique accrual code per company" /> }
+                    <ValidationMessage For="@(() => Model.AccrualCode)" />
+                </div>
+                <div class="col-md-5">
+                    <label class="form-label">Accrual Title <span class="text-danger">*</span></label>
+                    <InputText class="form-control" @bind-Value="Model.AccrualTitle" placeholder="e.g. March Utility Accrual" title="Descriptive title (max 200)" />
+                    <ValidationMessage For="@(() => Model.AccrualTitle)" />
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label">Accrual Type <span class="text-danger">*</span></label>
+                    <InputSelect class="form-select" @bind-Value="Model.AccrualType" title="Expense or Revenue accrual">
+                        @foreach (var v in Enum.GetValues<AccrualTypeEnum>()) { <option value="@v">@v</option> }
+                    </InputSelect>
+                    <ValidationMessage For="@(() => Model.AccrualType)" />
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label">Status <span class="text-danger">*</span></label>
+                    <InputSelect class="form-select" @bind-Value="Model.AccrualStatus" title="Current accrual status">
+                        @foreach (var v in Enum.GetValues<AccrualStatusEnum>()) { <option value="@v">@v</option> }
+                    </InputSelect>
+                </div>
+                <div class="col-md-12">
+                    <label class="form-label">Description</label>
+                    <InputTextArea class="form-control" rows="2" @bind-Value="Model.Description" placeholder="Optional..." title="Detailed description (max 1000)" />
+                </div>
+            </div>
+        </div></div>
+
+        <!-- SECTION 2: SOURCE CONTEXT -->
+        <div class="card mt-4"><div class="card-body">
+            <h6 class="text-primary mb-3 d-flex align-items-center"><i class="ti ti-file-text me-2" style="font-size:22px;"></i> Source Context</h6>
+            <div class="row g-3">
+                <div class="col-md-3">
+                    <label class="form-label">Source Type <span class="text-danger">*</span></label>
+                    <InputSelect class="form-select" @bind-Value="Model.SourceType" title="Origin of accrual need">
+                        @foreach (var v in Enum.GetValues<SourceTypeEnum>()) { <option value="@v">@v</option> }
+                    </InputSelect>
+                    <ValidationMessage For="@(() => Model.SourceType)" />
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">Source Document Type</label>
+                    <InputText class="form-control" @bind-Value="Model.SourceDocumentType" placeholder="e.g. VendorBillPending" title="Type of source document" />
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">Source Document Number</label>
+                    <InputText class="form-control" @bind-Value="Model.SourceDocumentNumber" placeholder="e.g. WO-ALPHA-PH1" title="Reference document number" />
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">Accrual Basis Type <span class="text-danger">*</span></label>
+                    <InputSelect class="form-select" @bind-Value="Model.AccrualBasisType" title="Basis for estimate">
+                        @foreach (var v in Enum.GetValues<AccrualBasisTypeEnum>()) { <option value="@v">@v</option> }
+                    </InputSelect>
+                    <ValidationMessage For="@(() => Model.AccrualBasisType)" />
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">Supplier</label>
+                    <InputText class="form-control" @bind-Value="Model.SupplierName" placeholder="e.g. TANGEDCO" title="Supplier name (for expense accruals)" />
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">Customer</label>
+                    <InputText class="form-control" @bind-Value="Model.CustomerName" placeholder="e.g. Luxury Interiors" title="Customer name (for revenue accruals)" />
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">Project</label>
+                    <InputText class="form-control" @bind-Value="Model.ProjectName" placeholder="e.g. Project Alpha" title="Associated project" />
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">Contract</label>
+                    <InputText class="form-control" @bind-Value="Model.ContractName" placeholder="e.g. CTR-2026-001" title="Associated contract" />
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label">Basis Reference <span class="text-danger">*</span></label>
+                    <InputText class="form-control" @bind-Value="Model.BasisReferenceText" placeholder="e.g. estimated utility usage for March" title="Evidence or estimate basis (max 500)" />
+                    <ValidationMessage For="@(() => Model.BasisReferenceText)" />
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label">Supporting Amount Reference</label>
+                    <InputText class="form-control" @bind-Value="Model.SupportingAmountReference" placeholder="e.g. meter estimate, timesheet summary" title="Supporting reference (max 500)" />
+                </div>
+            </div>
+        </div></div>
+
+        <!-- SECTION 3: PERIOD & DATE -->
+        <div class="card mt-4"><div class="card-body">
+            <h6 class="text-primary mb-3 d-flex align-items-center"><i class="ti ti-calendar me-2" style="font-size:22px;"></i> Period & Date Context</h6>
+            <div class="row g-3">
+                <div class="col-md-3">
+                    <label class="form-label">Accrual Date <span class="text-danger">*</span></label>
+                    <InputDate class="form-control" @bind-Value="Model.AccrualDate" title="Date the accrual is processed" />
+                    <ValidationMessage For="@(() => Model.AccrualDate)" />
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">Accounting Period <span class="text-danger">*</span></label>
+                    <InputSelect class="form-select" @bind-Value="Model.AccountingPeriodId" title="Target period for accrual">
+                        <option value="">-- Select Period --</option>
+                        @foreach (var p in AccountingPeriods) { <option value="@p.Key">@p.Value</option> }
+                    </InputSelect>
+                    <ValidationMessage For="@(() => Model.AccountingPeriodId)" />
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">Fiscal Year <span class="text-danger">*</span></label>
+                    <InputSelect class="form-select" @bind-Value="Model.FiscalYearId" title="Fiscal year">
+                        <option value="">-- Select FY --</option>
+                        @foreach (var f in FiscalYears) { <option value="@f.Key">@f.Value</option> }
+                    </InputSelect>
+                    <ValidationMessage For="@(() => Model.FiscalYearId)" />
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">Materiality Level</label>
+                    <InputSelect class="form-select" @bind-Value="Model.MaterialityLevel" title="Materiality classification">
+                        <option value="">-- Select --</option>
+                        @foreach (var v in Enum.GetValues<MaterialityLevelEnum>()) { <option value="@v">@v</option> }
+                    </InputSelect>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">Coverage From</label>
+                    <InputDate class="form-control" @bind-Value="Model.ServiceOrCoverageFrom" title="Service coverage start" />
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">Coverage To</label>
+                    <InputDate class="form-control" @bind-Value="Model.ServiceOrCoverageTo" title="Service coverage end" />
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">Expected Actual Doc Date</label>
+                    <InputDate class="form-control" @bind-Value="Model.ExpectedActualDocumentDate" title="When actual bill/invoice expected" />
+                </div>
+            </div>
+        </div></div>
+
+        <!-- SECTION 4: AMOUNTS -->
+        <div class="card mt-4"><div class="card-body">
+            <h6 class="text-primary mb-3 d-flex align-items-center"><i class="ti ti-currency-dollar me-2" style="font-size:22px;"></i> Amounts & Basis</h6>
+            <div class="row g-3">
+                <div class="col-md-3">
+                    <label class="form-label">Currency <span class="text-danger">*</span></label>
+                    <InputSelect class="form-select" @bind-Value="Model.CurrencyId" title="Transaction currency">
+                        <option value="">-- Select Currency --</option>
+                        @foreach (var c in CurrencyList) { <option value="@c.Key">@c.Value</option> }
+                    </InputSelect>
+                    <ValidationMessage For="@(() => Model.CurrencyId)" />
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">Original Accrual Amount <span class="text-danger">*</span></label>
+                    <InputNumber class="form-control" @bind-Value="Model.OriginalAccrualAmount" placeholder="0.00" title="Must be > 0" />
+                    <ValidationMessage For="@(() => Model.OriginalAccrualAmount)" />
+                </div>
+                @if (IsEdit)
+                {
+                    <div class="col-md-2"><label class="form-label">Reversed To Date</label><div class="form-control bg-light">@Model.ReversedAmountToDate.ToString("N2")</div></div>
+                    <div class="col-md-2"><label class="form-label">Cleared To Date</label><div class="form-control bg-light">@Model.ClearedAmountToDate.ToString("N2")</div></div>
+                    <div class="col-md-2"><label class="form-label">Open Balance</label><div class="form-control bg-light @(Model.OpenAccrualBalance > 0 ? "text-danger fw-bold" : "")">@Model.OpenAccrualBalance.ToString("N2")</div></div>
+                }
+                <div class="col-md-3">
+                    <label class="form-label">Estimated Actual Amount</label>
+                    <InputNumber class="form-control" @bind-Value="Model.EstimatedActualAmount" placeholder="0.00" title="For estimate vs actual comparison" />
+                </div>
+            </div>
+        </div></div>
+
+        <!-- SECTION 5: REVERSAL & CLEARANCE -->
+        <div class="card mt-4"><div class="card-body">
+            <h6 class="text-primary mb-3 d-flex align-items-center"><i class="ti ti-repeat me-2" style="font-size:22px;"></i> Reversal & Clearance Strategy</h6>
+            <div class="row g-3">
+                <div class="col-md-3">
+                    <label class="form-label">Reversal Strategy <span class="text-danger">*</span></label>
+                    <InputSelect class="form-select" @bind-Value="Model.ReversalStrategy" title="How this accrual will be reversed">
+                        @foreach (var v in Enum.GetValues<ReversalStrategyEnum>()) { <option value="@v">@v</option> }
+                    </InputSelect>
+                    <ValidationMessage For="@(() => Model.ReversalStrategy)" />
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">Auto-Reverse Date</label>
+                    <InputDate class="form-control" @bind-Value="Model.AutoReverseDate" title="Required for AutoReverseNextPeriod strategy" />
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">Expected Clearance Mode <span class="text-danger">*</span></label>
+                    <InputSelect class="form-select" @bind-Value="Model.ExpectedClearanceMode" title="How accrual will be cleared">
+                        @foreach (var v in Enum.GetValues<ExpectedClearanceModeEnum>()) { <option value="@v">@v</option> }
+                    </InputSelect>
+                    <ValidationMessage For="@(() => Model.ExpectedClearanceMode)" />
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">Clearance Reference Number</label>
+                    <InputText class="form-control" @bind-Value="Model.ClearanceReferenceNumber" placeholder="e.g. VB-LOG-2026-0045" title="Linked actual document reference" />
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">Reversal Status <span class="text-danger">*</span></label>
+                    <InputSelect class="form-select" @bind-Value="Model.ReversalStatus">
+                        @foreach (var v in Enum.GetValues<ReversalStatusEnum>()) { <option value="@v">@v</option> }
+                    </InputSelect>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">Clearance Status <span class="text-danger">*</span></label>
+                    <InputSelect class="form-select" @bind-Value="Model.ClearanceStatus">
+                        @foreach (var v in Enum.GetValues<ClearanceStatusEnum>()) { <option value="@v">@v</option> }
+                    </InputSelect>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">Posting Status <span class="text-danger">*</span></label>
+                    <InputSelect class="form-select" @bind-Value="Model.PostingStatus">
+                        @foreach (var v in Enum.GetValues<PostingStatusEnum>()) { <option value="@v">@v</option> }
+                    </InputSelect>
+                </div>
+                @if (IsEdit)
+                {
+                    <div class="col-md-3"><label class="form-label">Last Reversal Date</label><div class="form-control bg-light">@(Model.LastReversalDate?.ToString("dd MMM yyyy") ?? "–")</div></div>
+                    <div class="col-md-3"><label class="form-label">Last Clearance Date</label><div class="form-control bg-light">@(Model.LastClearanceDate?.ToString("dd MMM yyyy") ?? "–")</div></div>
+                }
+            </div>
+        </div></div>
+
+        <!-- SECTION 6: GL & DIMENSIONS -->
+        <div class="card mt-4"><div class="card-body">
+            <h6 class="text-primary mb-3 d-flex align-items-center"><i class="ti ti-building-bank me-2" style="font-size:22px;"></i> GL Accounts & Dimensions</h6>
+            <div class="row g-3">
+                <div class="col-md-4">
+                    <label class="form-label">GL Account <span class="text-danger">*</span></label>
+                    <InputSelect class="form-select" @bind-Value="Model.GLAccountId" title="Base expense/revenue account">
+                        <option value="">-- Select GL Account --</option>
+                        @foreach (var g in GLAccounts) { <option value="@g.Key">@g.Value</option> }
+                    </InputSelect>
+                    <ValidationMessage For="@(() => Model.GLAccountId)" />
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">Accrual Liability/Asset GL <span class="text-danger">*</span></label>
+                    <InputSelect class="form-select" @bind-Value="Model.AccrualLiabilityOrAssetGLId" title="Offset account for accrual entry">
+                        <option value="">-- Select GL Account --</option>
+                        @foreach (var g in GLAccounts) { <option value="@g.Key">@g.Value</option> }
+                    </InputSelect>
+                    <ValidationMessage For="@(() => Model.AccrualLiabilityOrAssetGLId)" />
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">Branch</label>
+                    <InputSelect class="form-select" @bind-Value="Model.BranchId" title="Organizational branch">
+                        <option value="">-- Select Branch --</option>
+                        @foreach (var b in Branches) { <option value="@b.Key">@b.Value</option> }
+                    </InputSelect>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">Cost Center</label>
+                    <InputText class="form-control" @bind-Value="Model.CostCenterName" placeholder="e.g. CC-FACTORY" title="Cost center" />
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">Department</label>
+                    <InputText class="form-control" @bind-Value="Model.DepartmentName" placeholder="e.g. Production" title="Department" />
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">Expense Category</label>
+                    <InputText class="form-control" @bind-Value="Model.ExpenseCategoryName" placeholder="e.g. Utilities" title="Expense category (#84)" />
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">Project Cost Owner</label>
+                    <InputText class="form-control" @bind-Value="Model.ProjectCostOwnerName" placeholder="e.g. John Doe" title="Cost owner for project accruals" />
+                </div>
+            </div>
+        </div></div>
+
+        <!-- SECTION 7: WORKFLOW -->
+        <div class="card mt-4"><div class="card-body">
+            <h6 class="text-primary mb-3 d-flex align-items-center"><i class="ti ti-user me-2" style="font-size:22px;"></i> Workflow</h6>
+            <div class="row g-3">
+                <div class="col-md-3">
+                    <label class="form-label">Prepared By <span class="text-danger">*</span></label>
+                    <InputText class="form-control" @bind-Value="Model.PreparedByUserId" placeholder="e.g. finance.admin" title="User who prepared this accrual" />
+                    <ValidationMessage For="@(() => Model.PreparedByUserId)" />
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">Reviewed By</label>
+                    <InputText class="form-control" @bind-Value="Model.ReviewedByUserId" placeholder="e.g. controller" title="Reviewer" />
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">Approved By</label>
+                    <InputText class="form-control" @bind-Value="Model.ApprovedByUserId" placeholder="e.g. cfo" title="Approver" />
+                </div>
+                @if (IsEdit)
+                {
+                    <div class="col-md-3 d-flex align-items-center gap-2 mt-3">
+                        <InputCheckbox class="form-check-input" @bind-Value="Model.IsLocked" />
+                        <label class="form-check-label" title="Lock this accrual from further edits">Locked</label>
+                    </div>
+                }
+            </div>
+        </div></div>
+
+        <!-- SECTION 8: NOTES -->
+        <div class="card mt-4"><div class="card-body">
+            <h6 class="text-primary mb-3 d-flex align-items-center"><i class="ti ti-notes me-2" style="font-size:22px;"></i> Notes & Evidence</h6>
+            <div class="row g-3">
+                <div class="col-md-6">
+                    <label class="form-label">Assumption Text</label>
+                    <InputTextArea class="form-control" rows="2" @bind-Value="Model.AssumptionText" placeholder="Estimate logic narrative..." title="Main estimate logic (max 1500)" />
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label">Finance Notes</label>
+                    <InputTextArea class="form-control" rows="2" @bind-Value="Model.FinanceNotes" placeholder="Additional finance notes..." title="Finance notes (max 1500)" />
+                </div>
+                <div class="col-md-3 d-flex align-items-center gap-2 mt-3">
+                    <InputCheckbox class="form-check-input" @bind-Value="Model.PolicyExceptionFlag" />
+                    <label class="form-check-label" title="Flag if policy exception applies">Policy Exception</label>
+                </div>
+                @if (Model.PolicyExceptionFlag)
+                {
+                    <div class="col-md-9">
+                        <label class="form-label">Policy Exception Reason</label>
+                        <InputText class="form-control" @bind-Value="Model.PolicyExceptionReason" placeholder="Required when exception is flagged" />
+                    </div>
+                }
+                @if (Model.AccrualStatus == AccrualStatusEnum.Cancelled)
+                {
+                    <div class="col-md-12">
+                        <label class="form-label">Cancellation Reason <span class="text-danger">*</span></label>
+                        <InputTextArea class="form-control" rows="2" @bind-Value="Model.CancellationReason" placeholder="Required for cancelled accruals" />
+                    </div>
+                }
+            </div>
+        </div></div>
+
+        <!-- SUBMIT -->
+        <div class="text-end mt-4 mb-5">
+            <a href="/accruals" class="btn btn-outline-secondary me-2"><i class="ti ti-x me-1"></i> Cancel</a>
+            <button type="submit" class="btn btn-primary"><i class="ti ti-device-floppy me-1"></i> @(IsEdit ? "Update" : "Create")</button>
+        </div>
+    </EditForm>
+</div>

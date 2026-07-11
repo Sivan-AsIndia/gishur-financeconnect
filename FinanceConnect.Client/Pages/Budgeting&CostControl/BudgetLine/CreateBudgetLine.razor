@@ -1,0 +1,309 @@
+@page "/budget-lines/create"
+@page "/budget-lines/edit/{Id:guid}"
+@using FinanceConnect.Client.ViewModels
+@using FinanceConnect.Client.Services
+@using static FinanceConnect.Client.ViewModels.BudgetLineViewModel
+
+<style>.validation-message{color:#dc3545;font-size:12px;}.form-check-label{font-size:13px;}</style>
+
+<div class="content flat-form">
+    <div class="page-header">
+        <div class="page-title"><h4 class="fw-bold">@(IsEdit ? "Edit Budget Line" : "Create Budget Line")</h4><h6>Define detailed budget planning rows</h6></div>
+        <div class="page-btn"><a href="/budget-lines" class="btn btn-outline-secondary"><i class="ti ti-arrow-left"></i> Back</a></div>
+    </div>
+
+    <EditForm EditContext="_editContext" OnSubmit="Save">
+        <DataAnnotationsValidator />
+
+        <!-- SECTION 1: CORE IDENTITY -->
+        <div class="card mt-4"><div class="card-body">
+                <h6 class="text-primary mb-3 d-flex align-items-center"><i class="ti ti-id me-2" style="font-size: 22px;"></i> Core Identity</h6>
+            <div class="row g-3">
+                <div class="col-md-2">
+                    <label class="form-label">Line No <span class="text-danger">*</span></label>
+                    <InputNumber class="form-control" @bind-Value="Model.LineNumber" placeholder="e.g. 10" title="Sequential line number (10, 20, 30 recommended)" />
+                    <ValidationMessage For="@(() => Model.LineNumber)" />
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label">Line Code</label>
+                    @if (IsEdit)
+                    {
+                        <div class="fw-semibold fs-14 mt-1">@(Model.LineCode ?? "–")</div>
+                    }
+                    else
+                    {
+                        <InputText class="form-control text-uppercase" @bind-Value="Model.LineCode" placeholder="e.g. BL-SAL-001" title="Optional unique line code within budget" />
+                    }
+                </div>
+                <div class="col-md-5">
+                    <label class="form-label">Line Name <span class="text-danger">*</span></label>
+                    <InputText class="form-control" @bind-Value="Model.LineName" placeholder="e.g. Sales Travel Expense" title="Descriptive budget line name" />
+                    <ValidationMessage For="@(() => Model.LineName)" />
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">Status <span class="text-danger">*</span></label>
+                    <InputSelect class="form-select" @bind-Value="Model.LineStatus" title="Current line status">
+                        @foreach (var s in Enum.GetValues<LineStatusEnum>()) { <option value="@s">@s</option> }
+                    </InputSelect>
+                    <ValidationMessage For="@(() => Model.LineStatus)" />
+                </div>
+                <div class="col-md-12">
+                    <label class="form-label">Description</label>
+                    <InputTextArea class="form-control" rows="2" @bind-Value="Model.Description" placeholder="Optional description..." title="Detailed description of this budget line" />
+                </div>
+            </div>
+        </div></div>
+
+        <!-- SECTION 2: LINE CLASSIFICATION -->
+        <div class="card mt-4"><div class="card-body">
+                <h6 class="text-primary mb-3 d-flex align-items-center"><i class="ti ti-category me-2" style="font-size: 22px;"></i> Line Classification</h6>
+            <div class="row g-3">
+                <div class="col-md-3">
+                    <label class="form-label">Line Type <span class="text-danger">*</span></label>
+                    <InputSelect class="form-select" @bind-Value="Model.LineType" title="Type of budget line">
+                        @foreach (var v in Enum.GetValues<LineTypeEnum>()) { <option value="@v">@v</option> }
+                    </InputSelect>
+                    <ValidationMessage For="@(() => Model.LineType)" />
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">Budget Category <span class="text-danger">*</span></label>
+                    <InputText class="form-control" @bind-Value="Model.BudgetCategoryCode" placeholder="e.g. Salary, Travel, Rent" title="Budget category code" />
+                    <ValidationMessage For="@(() => Model.BudgetCategoryCode)" />
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">Expense Nature</label>
+                    <InputText class="form-control" @bind-Value="Model.ExpenseNature" placeholder="e.g. Operational, Administrative" title="Helps reporting classification" />
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">GL Account</label>
+                    <InputText class="form-control" @bind-Value="Model.GLAccountName" placeholder="GL Account name" title="GL Account for precise actual mapping" />
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">GL Account Group</label>
+                    <InputText class="form-control" @bind-Value="Model.GLAccountGroupName" placeholder="GL Account Group" title="Account group for grouped-level planning" />
+                </div>
+                <div class="col-md-3 d-flex align-items-end">
+                    <div class="d-flex align-items-center gap-2 mb-2">
+                        <InputCheckbox class="form-check-input" @bind-Value="Model.IsCapexFlag" />
+                        <label class="form-check-label" title="Mark this line as capital expenditure">Is Capex</label>
+                    </div>
+                </div>
+            </div>
+        </div></div>
+
+        <!-- SECTION 3: OWNERSHIP & DIMENSIONS -->
+        <div class="card mt-4"><div class="card-body">
+                <h6 class="text-primary mb-3 d-flex align-items-center"><i class="ti ti-building me-2" style="font-size: 22px;"></i> Ownership & Dimensions</h6>
+            <div class="row g-3">
+                <div class="col-md-3">
+                    <label class="form-label">Cost Center Name</label>
+                    <InputText class="form-control" @bind-Value="Model.CostCenterName" placeholder="e.g. Head Office" title="Cost center owning this line" />
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">Department Name</label>
+                    <InputText class="form-control" @bind-Value="Model.DepartmentName" placeholder="e.g. Finance" title="Department" />
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">Branch Name</label>
+                    <InputText class="form-control" @bind-Value="Model.BranchName" placeholder="e.g. Chennai" title="Branch" />
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">Project Name</label>
+                    <InputText class="form-control" @bind-Value="Model.ProjectName" placeholder="e.g. Digital Transformation" title="Project" />
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">Line Owner</label>
+                    <InputText class="form-control" @bind-Value="Model.OwnerUserName" placeholder="Owner name" title="Line owner if different from budget owner" />
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">Responsibility Type</label>
+                    <InputSelect class="form-select" @bind-Value="Model.ResponsibilityType" title="Ownership classification">
+                        <option value="">-- Select --</option>
+                        @foreach (var v in Enum.GetValues<ResponsibilityTypeEnum>()) { <option value="@v">@v</option> }
+                    </InputSelect>
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label">Dimension Scope (JSON)</label>
+                    <InputTextArea class="form-control" rows="2" @bind-Value="Model.DimensionScopeJson" placeholder='e.g. {"region":"South","segment":"Enterprise"}' title="Advanced matching rules as JSON" />
+                </div>
+            </div>
+        </div></div>
+
+        <!-- SECTION 4: PLANNED AMOUNTS -->
+        <div class="card mt-4"><div class="card-body">
+                <h6 class="text-primary mb-3 d-flex align-items-center"><i class="ti ti-currency-dollar me-2" style="font-size: 22px;"></i> Planned Amounts</h6>
+            <div class="row g-3">
+                <div class="col-md-3">
+                    <label class="form-label">Original Planned Amount <span class="text-danger">*</span></label>
+                    <InputNumber class="form-control" @bind-Value="Model.OriginalPlannedAmount" placeholder="0.00" title="Original planned amount for this line" />
+                    <ValidationMessage For="@(() => Model.OriginalPlannedAmount)" />
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">Revised Amount</label>
+                    <InputNumber class="form-control" @bind-Value="Model.RevisedAmount" placeholder="0.00" title="Revised amount if changed after approval" />
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">Effective Budget</label>
+                    <div class="form-control bg-light fw-medium" title="Revised if available, else Original Planned">@Model.EffectiveBudgetAmount.ToString("N2")</div>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">Released Amount</label>
+                    <InputNumber class="form-control" @bind-Value="Model.ReleasedAmount" placeholder="0.00" title="Phased release amount" />
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">Reserved Amount</label>
+                    <InputNumber class="form-control" @bind-Value="Model.ReservedAmount" placeholder="0.00" title="Pre-reserved or committed amount" />
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">Adjustment Amount</label>
+                    <InputNumber class="form-control" @bind-Value="Model.AdjustmentAmount" placeholder="0.00" title="Controlled line-level adjustment" />
+                </div>
+            </div>
+        </div></div>
+
+        <!-- SECTION 5: ACTUAL CONSUMPTION (read-only in edit) -->
+        @if (IsEdit)
+        {
+            <div class="card mt-4"><div class="card-body">
+                    <h6 class="text-primary mb-3 d-flex align-items-center"><i class="ti ti-chart-bar me-2" style="font-size: 22px;"></i> Actual Consumption (Read-Only)</h6>
+                <div class="row g-3">
+                    <div class="col-md-3">
+                        <label class="form-label">Actual Consumed</label>
+                        <div class="form-control bg-light">@Model.ActualConsumedAmount.ToString("N2")</div>
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">Committed Amount</label>
+                        <div class="form-control bg-light">@(Model.CommittedAmount?.ToString("N2") ?? "0.00")</div>
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">Available Balance</label>
+                        <div class="form-control bg-light @(Model.AvailableBalanceAmount < 0 ? "text-danger fw-bold" : "")">@Model.AvailableBalanceAmount.ToString("N2")</div>
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">Utilization %</label>
+                        <div class="form-control bg-light">@Model.UtilizationPercent.ToString("N2")%</div>
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">Variance To Date</label>
+                        <div class="form-control bg-light">@(Model.VarianceToDateAmount?.ToString("N2") ?? "–")</div>
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">Over Budget Amount</label>
+                        <div class="form-control bg-light @(Model.IsOverBudget ? "text-danger fw-bold" : "")">@Model.OverBudgetAmount.ToString("N2")</div>
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">Is Over Budget</label>
+                        <div class="form-control bg-light">@(Model.IsOverBudget ? "Yes" : "No")</div>
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">Is Under Utilized</label>
+                        <div class="form-control bg-light">@(Model.IsUnderUtilized ? "Yes" : "No")</div>
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">Attachment Count</label>
+                        <div class="form-control bg-light">@Model.AttachmentCount</div>
+                    </div>
+                </div>
+            </div></div>
+        }
+
+        <!-- SECTION 6: PERIOD DISTRIBUTION -->
+        <div class="card mt-4"><div class="card-body">
+                <h6 class="text-primary mb-3 d-flex align-items-center"><i class="ti ti-calendar-stats me-2" style="font-size: 22px;"></i> Period Distribution</h6>
+            <div class="row g-3">
+                <div class="col-md-3">
+                    <label class="form-label">Distribution Mode <span class="text-danger">*</span></label>
+                    <InputSelect class="form-select" @bind-Value="Model.DistributionMode" title="How the line amount is distributed across periods">
+                        @foreach (var v in Enum.GetValues<DistributionModeEnum>()) { <option value="@v">@v</option> }
+                    </InputSelect>
+                    <ValidationMessage For="@(() => Model.DistributionMode)" />
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">Distribution Template</label>
+                    <InputText class="form-control" @bind-Value="Model.DistributionTemplateCode" placeholder="e.g. EQUAL_MONTHLY" title="Optional distribution template code" />
+                </div>
+                <div class="col-md-3 d-flex align-items-end">
+                    <div class="d-flex align-items-center gap-2 mb-2">
+                        <InputCheckbox class="form-check-input" @bind-Value="Model.HasPeriodDistribution" />
+                        <label class="form-check-label" title="Whether this line has period-level distribution">Has Period Distribution</label>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label">Period Distribution (JSON)</label>
+                    <InputTextArea class="form-control" rows="2" @bind-Value="Model.PeriodDistributionJson" placeholder='e.g. {"M01":50000,"M02":50000,...}' title="Period-level amounts as JSON (optional)" />
+                </div>
+                @if (IsEdit)
+                {
+                    <div class="col-md-3">
+                        <label class="form-label">Line Period Total Check</label>
+                        <div class="form-control bg-light" title="Sum of distributed amounts — must match Effective Budget">@(Model.LinePeriodTotalCheck?.ToString("N2") ?? "–")</div>
+                    </div>
+                }
+            </div>
+        </div></div>
+
+        <!-- SECTION 7: ACTUAL MATCHING RULES -->
+        <div class="card mt-4"><div class="card-body">
+                <h6 class="text-primary mb-3 d-flex align-items-center"><i class="ti ti-link me-2" style="font-size: 22px;"></i> Actual Matching Rules</h6>
+            <div class="row g-3">
+                <div class="col-md-3">
+                    <label class="form-label">Actual Match Mode <span class="text-danger">*</span></label>
+                    <InputSelect class="form-select" @bind-Value="Model.ActualMatchMode" title="How actuals are matched to this line">
+                        @foreach (var v in Enum.GetValues<ActualMatchModeEnum>()) { <option value="@v">@v</option> }
+                    </InputSelect>
+                    <ValidationMessage For="@(() => Model.ActualMatchMode)" />
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">Actual Source Scope</label>
+                    <InputSelect class="form-select" @bind-Value="Model.ActualSourceScope" title="Source of actual data for matching">
+                        @foreach (var v in Enum.GetValues<ActualSourceScopeEnum>()) { <option value="@v">@v</option> }
+                    </InputSelect>
+                </div>
+                <div class="col-md-3 d-flex flex-column gap-2 mt-4">
+                    <div class="d-flex align-items-center gap-2">
+                        <InputCheckbox class="form-check-input" @bind-Value="Model.IncludeAllocatedActuals" />
+                        <label class="form-check-label" title="Include actuals after cost allocation">Include Allocated Actuals</label>
+                    </div>
+                    <div class="d-flex align-items-center gap-2">
+                        <InputCheckbox class="form-check-input" @bind-Value="Model.IncludeTaxInActuals" />
+                        <label class="form-check-label" title="Include tax in actual amounts">Include Tax in Actuals</label>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label">Actual Match Rule (JSON)</label>
+                    <InputTextArea class="form-control" rows="2" @bind-Value="Model.ActualMatchRuleJson" placeholder='e.g. {"glAccount":"4010","costCenter":"CC01"}' title="Custom matching rules as JSON (required if CustomRule mode)" />
+                </div>
+            </div>
+        </div></div>
+
+        <!-- SECTION 8: REVISION & NOTES -->
+        <div class="card mt-4"><div class="card-body">
+                <h6 class="text-primary mb-3 d-flex align-items-center"><i class="ti ti-notes me-2" style="font-size: 22px;"></i> Revision, Notes & Assumptions</h6>
+            <div class="row g-3">
+                <div class="col-md-12">
+                    <label class="form-label">Revision Reason</label>
+                    <InputTextArea class="form-control" rows="2" @bind-Value="Model.RevisionReason" placeholder="Required when status is Revised..." title="Reason for line revision" />
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label">Planning Assumption</label>
+                    <InputTextArea class="form-control" rows="3" @bind-Value="Model.PlanningAssumptionText" placeholder="Key planning assumptions..." title="Assumptions driving this line amount" />
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label">Notes</label>
+                    <InputTextArea class="form-control" rows="3" @bind-Value="Model.Notes" placeholder="Additional notes..." title="General notes for the budget line" />
+                </div>
+            </div>
+        </div></div>
+
+        <!-- Action Buttons -->
+        <div class="d-flex justify-content-end mt-4 mb-5 gap-2">
+            <button type="button" class="btn btn-outline-secondary" @onclick='() => Nav.NavigateTo("/budget-lines")'>
+                <i class="ti ti-x"></i> Cancel
+            </button>
+            <button type="submit" class="btn btn-primary">
+                <i class="ti ti-device-floppy"></i>
+                @(IsEdit ? "Update" : "Create")
+            </button>
+        </div>
+    </EditForm>
+</div>

@@ -1,0 +1,644 @@
+@page "/revenues/{Id:guid}/view"
+@using FinanceConnect.Client.ViewModels
+@using FinanceConnect.Client.Services
+@using static FinanceConnect.Client.ViewModels.RevenueViewModel
+
+<PageTitle>Revenue Details - FinanceConnect</PageTitle>
+
+@if (!isInitialized)
+{
+    <div class="d-flex justify-content-center align-items-center" style="min-height: 400px;">
+        <div class="spinner-border text-primary" role="status">
+            <span class="visually-hidden">Loading...</span>
+        </div>
+    </div>
+}
+else if (Revenue == null)
+{
+    <div class="container-xl mt-4">
+        <div class="alert alert-warning">
+            <i class="ti ti-alert-triangle me-2"></i>
+            Revenue record not found.
+        </div>
+        <a href="/revenues" class="btn btn-secondary">
+            <i class="ti ti-arrow-left me-1"></i> Back to List
+        </a>
+    </div>
+}
+else
+{
+    <div class="content view-screen py-4">
+
+        <!-- Page Header -->
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <div>
+                <h4 class="fw-bold mb-1">Revenue Details</h4>
+                <p class="text-muted mb-0 small">Operational income event record &amp; recognition tracking</p>
+            </div>
+            <div class="d-flex gap-2">
+                <a href="/revenues/@Revenue.RevenueId" class="btn btn-primary">
+                    <i class="ti ti-edit me-1"></i> Edit
+                </a>
+                <a href="/revenues" class="btn btn-outline-secondary">
+                    <i class="ti ti-arrow-left me-1"></i> Back
+                </a>
+            </div>
+        </div>
+
+        <div class="row g-4">
+
+            <!-- Profile Header Card -->
+            <div class="col-lg-12">
+                <div class="profile-list-card">
+                    <div class="profile-left">
+                        <div class="avatar letter-avatar">
+                            @Revenue.RevenueCode.Substring(0, Math.Min(2, Revenue.RevenueCode.Length)).ToUpper()
+                        </div>
+                    </div>
+                    <div class="profile-center">
+                        <div class="top-row">
+                            <h5>@Revenue.RevenueName</h5>
+                            <span class="badge @GetStatusBadgeClass(Revenue.Status)">@Revenue.Status</span>
+                            @if (Revenue.IsLocked)
+                            {
+                                <span class="badge bg-danger-transparent text-danger">
+                                    <i class="ti ti-lock me-1"></i>Locked
+                                </span>
+                            }
+                            @if (Revenue.IsAdvanceReceipt)
+                            {
+                                <span class="badge bg-info-transparent text-info">
+                                    <i class="ti ti-cash-banknote me-1"></i>Advance Receipt
+                                </span>
+                            }
+                        </div>
+                        <div class="sub-text">
+                            <span style="display:flex; gap:4px; margin-top:7px;">
+                                <i class="ti ti-tag"></i> @Revenue.RevenueCode
+                            </span>
+                            <span style="display:flex; gap:4px; margin-top:7px;">
+                                <i class="ti ti-layers"></i> @Revenue.RevenueType
+                            </span>
+                            <span style="display:flex; gap:4px; margin-top:7px;">
+                                <i class="ti ti-coin"></i> @GetCurrencyCode(Revenue.CurrencyId)
+                            </span>
+                            @if (!string.IsNullOrWhiteSpace(Revenue.CustomerNameSnapshot))
+                            {
+                                <span style="display:flex; gap:4px; margin-top:7px;">
+                                    <i class="ti ti-user"></i> @Revenue.CustomerNameSnapshot
+                                </span>
+                            }
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Summary Metric Cards (6 key metrics per doc spec) -->
+            <div class="col-lg-12">
+                <div class="row g-3">
+                    <div class="col-md-3">
+                        <div class="card text-white mb-0" style="background:linear-gradient(135deg,#b60352,#f50075);">
+                            <div class="card-body py-3">
+                                <div class="d-flex align-items-center justify-content-between">
+                                    <div>
+                                        <div class="small text-white">Gross Revenue</div>
+                                        <div class="text-white mb-0">@GetCurrencySymbol(Revenue.CurrencyId) @Revenue.GrossRevenueAmount.ToString("N2")</div>
+                                    </div>
+                                    <div class="avatar bg-opacity-25">
+                                        <i class="ti ti-trending-up fs-24 text-white"></i>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="card text-white mb-0" style="background:linear-gradient(135deg,#003797,#002cf5);">
+                            <div class="card-body py-3">
+                                <div class="d-flex align-items-center justify-content-between">
+                                    <div>
+                                        <div class="small text-white">Recognised To Date</div>
+                                        <div class="text-white mb-0">@GetCurrencySymbol(Revenue.CurrencyId) @Revenue.RecognizedAmountToDate.ToString("N2")</div>
+                                    </div>
+                                    <div class="avatar bg-opacity-25">
+                                        <i class="ti ti-check-circle fs-24 text-white"></i>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="card text-white mb-0" style="background:linear-gradient(135deg,#6200a3,#9c27b0);">
+                            <div class="card-body py-3">
+                                <div class="d-flex align-items-center justify-content-between">
+                                    <div>
+                                        <div class="small text-white">Deferred Amount</div>
+                                        <div class="text-white mb-0">@GetCurrencySymbol(Revenue.CurrencyId) @Revenue.DeferredAmountToDate.ToString("N2")</div>
+                                    </div>
+                                    <div class="avatar bg-opacity-25">
+                                        <i class="ti ti-clock-pause fs-24 text-white"></i>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="card text-white mb-0" style="background:linear-gradient(135deg,#e67100,#fe9f43);">
+                            <div class="card-body py-3">
+                                <div class="d-flex align-items-center justify-content-between">
+                                    <div>
+                                        <div class="small text-white">Unrecognised Balance</div>
+                                        <div class="text-white mb-0">@GetCurrencySymbol(Revenue.CurrencyId) @Revenue.UnrecognizedAmount.ToString("N2")</div>
+                                    </div>
+                                    <div class="avatar bg-opacity-25">
+                                        <i class="ti ti-alert-circle fs-24 text-white"></i>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Second row: Billing + Recognition status -->
+                <div class="row g-3 mt-1">
+                    <div class="col-md-3">
+                        <div class="card text-white mb-0" style="background:linear-gradient(135deg,#009f0e,#05d436);">
+                            <div class="card-body py-3">
+                                <div class="d-flex align-items-center justify-content-between">
+                                    <div>
+                                        <div class="small text-white">Billing Status</div>
+                                        <div class="text-white mb-0 fw-semibold">@Revenue.BillingStatus</div>
+                                    </div>
+                                    <div class="avatar bg-opacity-25">
+                                        <i class="ti ti-file-invoice fs-24 text-white"></i>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="card text-white mb-0" style="background:linear-gradient(135deg,#007a8a,#00bcd4);">
+                            <div class="card-body py-3">
+                                <div class="d-flex align-items-center justify-content-between">
+                                    <div>
+                                        <div class="small text-white">Recognition Status</div>
+                                        <div class="text-white mb-0 fw-semibold">@Revenue.RecognitionStatus</div>
+                                    </div>
+                                    <div class="avatar bg-opacity-25">
+                                        <i class="ti ti-activity fs-24 text-white"></i>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Left Column (col-lg-8) — Main Content -->
+            <div class="col-lg-8">
+                <div class="profile-card">
+
+                    <!-- Section 1: Core Identity -->
+                    <div class="card mb-3">
+                        <div class="card-header py-2">
+                            <i class="ti ti-tag me-2"></i> Core Identity
+                        </div>
+                        <div class="card-body py-2">
+                            <div class="row">
+                                <div class="col-md-4 col-6 mb-2">
+                                    <small class="text-muted">Revenue Code</small>
+                                    <div class="fw-medium">@Revenue.RevenueCode</div>
+                                </div>
+                                <div class="col-md-8 col-6 mb-2">
+                                    <small class="text-muted">Revenue Name</small>
+                                    <div class="fw-medium">@Revenue.RevenueName</div>
+                                </div>
+                                <div class="col-md-4 col-6 mb-2">
+                                    <small class="text-muted">Status</small>
+                                    <div>
+                                        <span class="badge @GetStatusBadgeClass(Revenue.Status)">@Revenue.Status</span>
+                                    </div>
+                                </div>
+                                @if (!string.IsNullOrWhiteSpace(Revenue.Description))
+                                {
+                                    <div class="col-md-12 mb-2">
+                                        <small class="text-muted">Description</small>
+                                        <div>@Revenue.Description</div>
+                                    </div>
+                                }
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Section 2: Customer / Source Context -->
+                    <div class="card mb-3">
+                        <div class="card-header py-2">
+                            <i class="ti ti-user me-2"></i> Customer / Source Context
+                        </div>
+                        <div class="card-body py-2">
+                            <div class="row">
+                                <div class="col-md-6 col-6 mb-2">
+                                    <small class="text-muted">Customer Name</small>
+                                    <div class="fw-medium">@(Revenue.CustomerNameSnapshot ?? "—")</div>
+                                </div>
+                                <div class="col-md-3 col-6 mb-2">
+                                    <small class="text-muted">Customer Code</small>
+                                    <div>@(Revenue.CustomerCodeSnapshot ?? "—")</div>
+                                </div>
+                                <div class="col-md-3 col-6 mb-2">
+                                    <small class="text-muted">Source Document Type</small>
+                                    <div>
+                                        <span class="badge bg-secondary-transparent text-secondary">@Revenue.RevenueSourceDocType</span>
+                                    </div>
+                                </div>
+                                <div class="col-md-4 col-6 mb-2">
+                                    <small class="text-muted">Source Document Number</small>
+                                    <div>@(Revenue.SourceDocumentNumber ?? "—")</div>
+                                </div>
+                                <div class="col-md-4 col-6 mb-2">
+                                    <small class="text-muted">Contract Reference</small>
+                                    <div>@(Revenue.ContractReference ?? "—")</div>
+                                </div>
+                                <div class="col-md-4 col-6 mb-2">
+                                    <small class="text-muted">Subscription Reference</small>
+                                    <div>@(Revenue.SubscriptionReference ?? "—")</div>
+                                </div>
+                                <div class="col-md-4 col-6 mb-2">
+                                    <small class="text-muted">Project Reference</small>
+                                    <div>@(Revenue.ProjectReference ?? "—")</div>
+                                </div>
+                                <div class="col-md-8 col-6 mb-2">
+                                    <small class="text-muted">Milestone Reference</small>
+                                    <div>@(Revenue.MilestoneReference ?? "—")</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Section 3: Revenue Classification -->
+                    <div class="card mb-3">
+                        <div class="card-header py-2">
+                            <i class="ti ti-layers me-2"></i> Revenue Classification
+                        </div>
+                        <div class="card-body py-2">
+                            <div class="row">
+                                <div class="col-md-4 col-6 mb-2">
+                                    <small class="text-muted">Revenue Type</small>
+                                    <div>
+                                        <span class="badge bg-info-transparent text-info">@Revenue.RevenueType</span>
+                                    </div>
+                                </div>
+                                <div class="col-md-4 col-6 mb-2">
+                                    <small class="text-muted">Revenue Category</small>
+                                    <div>@(Revenue.RevenueCategoryCode ?? "—")</div>
+                                </div>
+                                <div class="col-md-4 col-6 mb-2">
+                                    <small class="text-muted">Revenue Nature</small>
+                                    <div>
+                                        <span class="badge bg-purple-transparent text-purple">@Revenue.RevenueNature</span>
+                                    </div>
+                                </div>
+                                <div class="col-md-4 col-6 mb-2">
+                                    <small class="text-muted">Revenue GL Account</small>
+                                    <div>@(Revenue.GLAccountName ?? "—")</div>
+                                </div>
+                                <div class="col-md-4 col-6 mb-2">
+                                    <small class="text-muted">Revenue Event Date</small>
+                                    <div class="fw-medium">@(Revenue.BusinessEventDate?.ToString("dd MMM yyyy") ?? "—")</div>
+                                </div>
+                                <div class="col-md-4 col-6 mb-2">
+                                    <small class="text-muted">Operational Period</small>
+                                    <div>
+                                        @if (Revenue.OperationalPeriodFrom.HasValue)
+                                        {
+                                            @($"{Revenue.OperationalPeriodFrom:dd MMM yyyy} – {Revenue.OperationalPeriodTo:dd MMM yyyy}")
+                                        }
+                                        else
+                                        {
+                                            <span>—</span>
+                                        }
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Section 4: Revenue Amounts -->
+                    <div class="card mb-3">
+                        <div class="card-header py-2">
+                            <i class="ti ti-coin me-2"></i> Revenue Amounts
+                        </div>
+                        <div class="card-body py-2">
+                            <div class="row">
+                                <div class="col-md-4 col-6 mb-2">
+                                    <small class="text-muted">Gross Revenue Amount</small>
+                                    <div class="fw-medium">@GetCurrencySymbol(Revenue.CurrencyId) @Revenue.GrossRevenueAmount.ToString("N2")</div>
+                                </div>
+                                <div class="col-md-4 col-6 mb-2">
+                                    <small class="text-muted">Net Revenue Base (Excl. Tax)</small>
+                                    <div>@(Revenue.TaxExclusiveRevenueAmount.HasValue ? $"{GetCurrencySymbol(Revenue.CurrencyId)} {Revenue.TaxExclusiveRevenueAmount.Value:N2}" : "—")</div>
+                                </div>
+                                <div class="col-md-4 col-6 mb-2">
+                                    <small class="text-muted">Adjustment Amount</small>
+                                    <div>@(Revenue.AdjustmentAmount.HasValue ? $"{GetCurrencySymbol(Revenue.CurrencyId)} {Revenue.AdjustmentAmount.Value:N2}" : "—")</div>
+                                </div>
+                                <div class="col-md-4 col-6 mb-2">
+                                    <small class="text-muted">Recognised To Date</small>
+                                    <div class="fw-medium text-success">@GetCurrencySymbol(Revenue.CurrencyId) @Revenue.RecognizedAmountToDate.ToString("N2")</div>
+                                </div>
+                                <div class="col-md-4 col-6 mb-2">
+                                    <small class="text-muted">Deferred Amount</small>
+                                    <div class="fw-medium text-warning">@GetCurrencySymbol(Revenue.CurrencyId) @Revenue.DeferredAmountToDate.ToString("N2")</div>
+                                </div>
+                                <div class="col-md-4 col-6 mb-2">
+                                    <small class="text-muted">Unrecognised Balance</small>
+                                    <div class="fw-bold">@GetCurrencySymbol(Revenue.CurrencyId) @Revenue.UnrecognizedAmount.ToString("N2")</div>
+                                </div>
+                                <div class="col-md-4 col-6 mb-2">
+                                    <small class="text-muted">Currency</small>
+                                    <div>
+                                        <span class="badge bg-light text-dark">@GetCurrencyCode(Revenue.CurrencyId)</span>
+                                    </div>
+                                </div>
+                                <div class="col-md-4 col-6 mb-2">
+                                    <small class="text-muted">Exchange Rate Applied</small>
+                                    <div>
+                                        <span class="badge @(Revenue.ExchangeRateId.HasValue ? "bg-info-transparent text-info" : "bg-secondary-transparent text-secondary")">
+                                            @(Revenue.ExchangeRateId.HasValue ? "Yes" : "No")
+                                        </span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Section 5: Recognition Readiness -->
+                    <div class="card mb-3">
+                        <div class="card-header py-2">
+                            <i class="ti ti-check-circle me-2"></i> Recognition Readiness
+                        </div>
+                        <div class="card-body py-2">
+                            <div class="row">
+                                <div class="col-md-4 col-6 mb-2">
+                                    <small class="text-muted">Recognition Method</small>
+                                    <div>
+                                        <span class="badge bg-primary-transparent text-primary">@Revenue.RecognitionMethod</span>
+                                    </div>
+                                </div>
+                                <div class="col-md-4 col-6 mb-2">
+                                    <small class="text-muted">Recognition Status</small>
+                                    <div>
+                                        <span class="badge @GetRecognitionBadgeClass(Revenue.RecognitionStatus)">@Revenue.RecognitionStatus</span>
+                                    </div>
+                                </div>
+                                <div class="col-md-4 col-6 mb-2">
+                                    <small class="text-muted">Recognition Frequency</small>
+                                    <div>@(Revenue.RecognitionFrequency.HasValue ? Revenue.RecognitionFrequency.ToString() : "—")</div>
+                                </div>
+                                <div class="col-md-4 col-6 mb-2">
+                                    <small class="text-muted">Recognition Start Date</small>
+                                    <div>@(Revenue.RecognitionStartDate?.ToString("dd MMM yyyy") ?? "—")</div>
+                                </div>
+                                <div class="col-md-4 col-6 mb-2">
+                                    <small class="text-muted">Recognition End Date</small>
+                                    <div>@(Revenue.RecognitionEndDate?.ToString("dd MMM yyyy") ?? "—")</div>
+                                </div>
+                                <div class="col-md-4 col-6 mb-2">
+                                    <small class="text-muted">Recognition Template</small>
+                                    <div>@(Revenue.RevenueRecognitionTemplateCode ?? "—")</div>
+                                </div>
+                                <div class="col-md-4 col-6 mb-2">
+                                    <small class="text-muted">Recognition Required</small>
+                                    <div>
+                                        <span class="badge @(Revenue.IsRecognitionRequired ? "bg-success-transparent text-success" : "bg-secondary-transparent text-secondary")">
+                                            @(Revenue.IsRecognitionRequired ? "Yes" : "No")
+                                        </span>
+                                    </div>
+                                </div>
+                                <div class="col-md-4 col-6 mb-2">
+                                    <small class="text-muted">Deferred Revenue Required</small>
+                                    <div>
+                                        <span class="badge @(Revenue.IsDeferredRevenueRequired ? "bg-warning-transparent text-warning" : "bg-secondary-transparent text-secondary")">
+                                            @(Revenue.IsDeferredRevenueRequired ? "Yes" : "No")
+                                        </span>
+                                    </div>
+                                </div>
+                                <div class="col-md-4 col-6 mb-2">
+                                    <small class="text-muted">Deferred Revenue Reference</small>
+                                    <div>@(Revenue.DeferredRevenueReference ?? "—")</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Section 6: Billing / Collection References -->
+                    <div class="card mb-3">
+                        <div class="card-header py-2">
+                            <i class="ti ti-receipt me-2"></i> Billing / Collection References
+                        </div>
+                        <div class="card-body py-2">
+                            <div class="row">
+                                <div class="col-md-4 col-6 mb-2">
+                                    <small class="text-muted">Billing Status</small>
+                                    <div>
+                                        <span class="badge @GetBillingBadgeClass(Revenue.BillingStatus)">@Revenue.BillingStatus</span>
+                                    </div>
+                                </div>
+                                <div class="col-md-4 col-6 mb-2">
+                                    <small class="text-muted">Collection Status</small>
+                                    <div>
+                                        <span class="badge @GetCollectionBadgeClass(Revenue.CollectionStatus)">@Revenue.CollectionStatus</span>
+                                    </div>
+                                </div>
+                                <div class="col-md-4 col-6 mb-2">
+                                    <small class="text-muted">Advance Receipt</small>
+                                    <div>
+                                        <span class="badge @(Revenue.IsAdvanceReceipt ? "bg-info-transparent text-info" : "bg-secondary-transparent text-secondary")">
+                                            @(Revenue.IsAdvanceReceipt ? "Yes" : "No")
+                                        </span>
+                                    </div>
+                                </div>
+                                <div class="col-md-4 col-6 mb-2">
+                                    <small class="text-muted">Linked Invoice Reference</small>
+                                    <div>@(Revenue.InvoiceReference ?? "—")</div>
+                                </div>
+                                <div class="col-md-4 col-6 mb-2">
+                                    <small class="text-muted">Invoice Number (Snapshot)</small>
+                                    <div>@(Revenue.InvoiceNumberSnapshot ?? "—")</div>
+                                </div>
+                                <div class="col-md-4 col-6 mb-2">
+                                    <small class="text-muted">Billing Date</small>
+                                    <div>@(Revenue.BillingDate?.ToString("dd MMM yyyy") ?? "—")</div>
+                                </div>
+                                <div class="col-md-12 mb-2">
+                                    <small class="text-muted">Collection Reference</small>
+                                    <div>@(Revenue.CollectionReferenceText ?? "—")</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Section 9: Notes & Supporting Evidence -->
+                    <div class="card mb-3">
+                        <div class="card-header py-2">
+                            <i class="ti ti-notes me-2"></i> Notes &amp; Supporting Evidence
+                        </div>
+                        <div class="card-body py-2">
+                            <div class="row">
+                                <div class="col-md-6 mb-2">
+                                    <small class="text-muted">Revenue Assumption Text</small>
+                                    <div>@(Revenue.RevenueAssumptionText ?? "—")</div>
+                                </div>
+                                <div class="col-md-6 mb-2">
+                                    <small class="text-muted">Notes</small>
+                                    <div>@(Revenue.Notes ?? "—")</div>
+                                </div>
+                                <div class="col-md-4 col-6 mb-2">
+                                    <small class="text-muted">Attachment Count</small>
+                                    <div class="fw-medium">@Revenue.AttachmentCount</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+
+            <!-- Right Column (col-lg-4) -->
+            <div class="col-lg-4">
+                <div class="profile-card">
+
+                    <!-- Section 7: Dimensions & Ownership -->
+                    <div class="card mb-3">
+                        <div class="card-header py-2">
+                            <i class="ti ti-grid-dots me-2"></i> Dimensions &amp; Ownership
+                        </div>
+                        <div class="card-body py-2">
+                            <div class="row g-2">
+                                <div class="col-12 mb-2">
+                                    <small class="text-muted">Branch</small>
+                                    <div>@(Revenue.BranchName ?? "—")</div>
+                                </div>
+                                <div class="col-12 mb-2">
+                                    <small class="text-muted">Department</small>
+                                    <div>@(Revenue.DepartmentName ?? "—")</div>
+                                </div>
+                                <div class="col-12 mb-2">
+                                    <small class="text-muted">Cost Centre</small>
+                                    <div>@(Revenue.CostCenterName ?? "—")</div>
+                                </div>
+                                <div class="col-12 mb-2">
+                                    <small class="text-muted">Revenue Owner</small>
+                                    <div>@(Revenue.RevenueOwnerUserText ?? "—")</div>
+                                </div>
+                                <div class="col-12 mb-2">
+                                    <small class="text-muted">Business Unit Code</small>
+                                    <div>@(Revenue.BusinessUnitCode ?? "—")</div>
+                                </div>
+                                @if (!string.IsNullOrWhiteSpace(Revenue.DimensionScopeJson))
+                                {
+                                    <div class="col-12">
+                                        <small class="text-muted">Dimension Scope (JSON)</small>
+                                        <div class="small" style="word-break:break-all;font-family:monospace;">@Revenue.DimensionScopeJson</div>
+                                    </div>
+                                }
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Section 8: Workflow & Governance -->
+                    <div class="card mb-3">
+                        <div class="card-header py-2">
+                            <i class="ti ti-shield-check me-2"></i> Workflow &amp; Governance
+                        </div>
+                        <div class="card-body py-2">
+                            <div class="row g-2">
+                                <div class="col-12 mb-2">
+                                    <small class="text-muted">Prepared By</small>
+                                    <div>@(Revenue.PreparedByUserId ?? "—")</div>
+                                </div>
+                                <div class="col-12 mb-2">
+                                    <small class="text-muted">Prepared On</small>
+                                    <div>@(Revenue.PreparedOn?.ToString("dd MMM yyyy") ?? "—")</div>
+                                </div>
+                                <div class="col-12 mb-2">
+                                    <small class="text-muted">Reviewed By</small>
+                                    <div>@(Revenue.ReviewedByUserId ?? "—")</div>
+                                </div>
+                                <div class="col-12 mb-2">
+                                    <small class="text-muted">Reviewed On</small>
+                                    <div>@(Revenue.ReviewedOn?.ToString("dd MMM yyyy") ?? "—")</div>
+                                </div>
+                                <div class="col-12 mb-2">
+                                    <small class="text-muted">Approved By</small>
+                                    <div>@(Revenue.ApprovedByUserId ?? "—")</div>
+                                </div>
+                                <div class="col-12 mb-2">
+                                    <small class="text-muted">Approved On</small>
+                                    <div>@(Revenue.ApprovedOn?.ToString("dd MMM yyyy") ?? "—")</div>
+                                </div>
+                                <div class="col-12 mb-2">
+                                    <small class="text-muted">Record Locked</small>
+                                    <div>
+                                        <span class="badge @(Revenue.IsLocked ? "bg-danger-transparent text-danger" : "bg-success-transparent text-success")">
+                                            @(Revenue.IsLocked ? "Yes" : "No")
+                                        </span>
+                                    </div>
+                                </div>
+                                @if (Revenue.IsLocked)
+                                {
+                                    <div class="col-12 mb-2">
+                                        <small class="text-muted">Locked On</small>
+                                        <div>@(Revenue.LockedOn?.ToString("dd MMM yyyy HH:mm") ?? "—")</div>
+                                    </div>
+                                    <div class="col-12 mb-2">
+                                        <small class="text-muted">Locked By</small>
+                                        <div>System / Finance Admin</div>
+                                    </div>
+                                }
+                                @if (!string.IsNullOrWhiteSpace(Revenue.CancellationReason))
+                                {
+                                    <div class="col-12">
+                                        <small class="text-muted">Cancellation Reason</small>
+                                        <div class="text-danger small">@Revenue.CancellationReason</div>
+                                    </div>
+                                }
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Audit Trail -->
+                    <div class="card mb-0">
+                        <div class="card-header py-2">
+                            <i class="ti ti-clock me-2"></i> Audit Trail
+                        </div>
+                        <div class="card-body py-2 small">
+                            <div class="row">
+                                <div class="col-12 mb-2">
+                                    <small class="text-muted">Created At</small>
+                                    <div>@Revenue.CreatedAt.ToLocalTime().ToString("dd MMM yyyy HH:mm")</div>
+                                </div>
+                                <div class="col-12 mb-2">
+                                    <small class="text-muted">Created By</small>
+                                    <div>@(Revenue.CreatedBy.HasValue ? "System" : "—")</div>
+                                </div>
+                                @if (Revenue.UpdatedAt.HasValue)
+                                {
+                                    <div class="col-12 mb-2">
+                                        <small class="text-muted">Last Updated</small>
+                                        <div>@Revenue.UpdatedAt.Value.ToLocalTime().ToString("dd MMM yyyy HH:mm")</div>
+                                    </div>
+                                    <div class="col-12">
+                                        <small class="text-muted">Updated By</small>
+                                        <div>@(Revenue.UpdatedBy.HasValue ? "System" : "—")</div>
+                                    </div>
+                                }
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+
+        </div>
+    </div>
+}

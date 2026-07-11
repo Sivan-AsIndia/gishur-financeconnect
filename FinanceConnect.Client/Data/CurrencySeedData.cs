@@ -1,0 +1,26 @@
+using FinanceConnect.Client.ViewModels;
+
+namespace FinanceConnect.Client.Data
+{
+    public static class CurrencySeedData
+    {
+        public static List<CurrencyModel> GetSeedData()
+        {
+            return new List<CurrencyModel>
+            {
+                new CurrencyModel { Id = MasterDataIds.Currencies.INR, CurrencyCode = "INR", CurrencyName = "Indian Rupee", NumericCode = 356, CurrencyType = "Fiat", Symbol = "₹", SymbolPosition = "Prefix", DisplayFormat = "₹ {amount}", DecimalPlaces = 2, MinorUnitName = "Paise", RoundingMode = "Round Half Up", IsActive = true, IsDeleted = false, CreatedAt = DateTime.Now.AddDays(-30), CreatedBy = "System" },
+                new CurrencyModel { Id = MasterDataIds.Currencies.USD, CurrencyCode = "USD", CurrencyName = "US Dollar", NumericCode = 840, CurrencyType = "Fiat", Symbol = "$", SymbolPosition = "Prefix", DisplayFormat = "$ {amount}", DecimalPlaces = 2, MinorUnitName = "Cent", RoundingMode = "Round Half Up", IsActive = true, IsDeleted = false, CreatedAt = DateTime.Now.AddDays(-29), CreatedBy = "System" },
+                new CurrencyModel { Id = MasterDataIds.Currencies.AED, CurrencyCode = "AED", CurrencyName = "UAE Dirham", NumericCode = 784, CurrencyType = "Fiat", Symbol = "د.إ", SymbolPosition = "Prefix", DisplayFormat = "د.إ {amount}", DecimalPlaces = 2, MinorUnitName = "Fils", RoundingMode = "Round Half Up", IsActive = true, IsDeleted = false, CreatedAt = DateTime.Now.AddDays(-28), CreatedBy = "System" },
+                new CurrencyModel { Id = MasterDataIds.Currencies.SGD, CurrencyCode = "SGD", CurrencyName = "Singapore Dollar", NumericCode = 702, CurrencyType = "Fiat", Symbol = "S$", SymbolPosition = "Prefix", DisplayFormat = "S$ {amount}", DecimalPlaces = 2, MinorUnitName = "Cent", RoundingMode = "Round Half Up", IsActive = true, IsDeleted = false, CreatedAt = DateTime.Now.AddDays(-28), CreatedBy = "System" },
+                new CurrencyModel { Id = MasterDataIds.Currencies.GBP, CurrencyCode = "GBP", CurrencyName = "British Pound Sterling", NumericCode = 826, CurrencyType = "Fiat", Symbol = "£", SymbolPosition = "Prefix", DisplayFormat = "£ {amount}", DecimalPlaces = 2, MinorUnitName = "Penny", RoundingMode = "Round Half Up", IsActive = true, IsDeleted = false, CreatedAt = DateTime.Now.AddDays(-27), CreatedBy = "System" },
+                new CurrencyModel { Id = MasterDataIds.Currencies.EUR, CurrencyCode = "EUR", CurrencyName = "Euro", NumericCode = 978, CurrencyType = "Fiat", Symbol = "€", SymbolPosition = "Prefix", DisplayFormat = "€ {amount}", DecimalPlaces = 2, MinorUnitName = "Cent", RoundingMode = "Round Half Up", IsActive = true, IsDeleted = false, CreatedAt = DateTime.Now.AddDays(-27), CreatedBy = "System" },
+                new CurrencyModel { Id = MasterDataIds.Currencies.JPY, CurrencyCode = "JPY", CurrencyName = "Japanese Yen", NumericCode = 392, CurrencyType = "Fiat", Symbol = "¥", SymbolPosition = "Prefix", DisplayFormat = "¥ {amount}", DecimalPlaces = 0, MinorUnitName = "Sen", RoundingMode = "Round Half Up", IsActive = true, IsDeleted = false, CreatedAt = DateTime.Now.AddDays(-26), CreatedBy = "System" },
+                new CurrencyModel { Id = MasterDataIds.Currencies.AUD, CurrencyCode = "AUD", CurrencyName = "Australian Dollar", NumericCode = 36, CurrencyType = "Fiat", Symbol = "A$", SymbolPosition = "Prefix", DisplayFormat = "A$ {amount}", DecimalPlaces = 2, MinorUnitName = "Cent", RoundingMode = "Round Half Up", IsActive = true, IsDeleted = false, CreatedAt = DateTime.Now.AddDays(-26), CreatedBy = "System" },
+                new CurrencyModel { Id = MasterDataIds.Currencies.CAD, CurrencyCode = "CAD", CurrencyName = "Canadian Dollar", NumericCode = 124, CurrencyType = "Fiat", Symbol = "C$", SymbolPosition = "Prefix", DisplayFormat = "C$ {amount}", DecimalPlaces = 2, MinorUnitName = "Cent", RoundingMode = "Round Half Up", IsActive = true, IsDeleted = false, CreatedAt = DateTime.Now.AddDays(-25), CreatedBy = "System" },
+                new CurrencyModel { Id = MasterDataIds.Currencies.MYR, CurrencyCode = "MYR", CurrencyName = "Malaysian Ringgit", NumericCode = 458, CurrencyType = "Fiat", Symbol = "RM", SymbolPosition = "Prefix", DisplayFormat = "RM {amount}", DecimalPlaces = 2, MinorUnitName = "Sen", RoundingMode = "Round Half Up", IsActive = true, IsDeleted = false, CreatedAt = DateTime.Now.AddDays(-25), CreatedBy = "System" },
+                new CurrencyModel { Id = MasterDataIds.Currencies.SAR, CurrencyCode = "SAR", CurrencyName = "Saudi Riyal", NumericCode = 682, CurrencyType = "Fiat", Symbol = "SR", SymbolPosition = "Prefix", DisplayFormat = "SR {amount}", DecimalPlaces = 2, MinorUnitName = "Halala", RoundingMode = "Round Half Up", IsActive = true, IsDeleted = false, CreatedAt = DateTime.Now.AddDays(-24), CreatedBy = "System" },
+                new CurrencyModel { Id = MasterDataIds.Currencies.ZAR, CurrencyCode = "ZAR", CurrencyName = "South African Rand", NumericCode = 710, CurrencyType = "Fiat", Symbol = "R", SymbolPosition = "Prefix", DisplayFormat = "R {amount}", DecimalPlaces = 2, MinorUnitName = "Cent", RoundingMode = "Round Half Up", IsActive = false, IsDeleted = false, CreatedAt = DateTime.Now.AddDays(-24), CreatedBy = "System" },
+            };
+        }
+    }
+}

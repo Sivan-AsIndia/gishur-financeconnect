@@ -1,0 +1,146 @@
+@page "/deferred-revenues/{Id:guid}/view"
+@using static FinanceConnect.Client.ViewModels.DeferredRevenueViewModel
+
+
+
+@if (!isInitialized) { <div class="page-loading-overlay"><div class="whirly-loader"></div></div> }
+else if (Item == null) { <div class="content py-4"><div class="alert alert-danger"><i class="ti ti-alert-circle me-2"></i> Deferred Revenue not found. <a href="/deferred-revenues" class="alert-link ms-2">Return to list</a></div></div> }
+else {
+<div class="content py-4 view-screen">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <div><h4 class="fw-bold mb-1">Deferred Revenue Details</h4><p class="text-muted mb-0 small">Advance-billed revenue liability and release tracking</p></div>
+        <div class="d-flex gap-2 page-btn">
+            @if(Item.DeferredRevenueStatus==DeferredRevenueStatusEnum.Draft){<a href="/deferred-revenues/edit/@Item.DeferredRevenueId" class="btn btn-primary"><i class="ti ti-edit me-1"></i> Edit</a>}
+            <a class="btn btn-outline-secondary" href="/deferred-revenues"><i class="ti ti-arrow-left me-1"></i> Back</a>
+        </div>
+    </div>
+    <div class="row g-4">
+        <div class="col-lg-12">
+            <div class="profile-list-card">
+                <div class="profile-left"><div class="avatar letter-avatar">@Item.DeferredRevenueCode?.Substring(0, Math.Min(4, Item.DeferredRevenueCode?.Length ?? 0)).ToUpper()</div></div>
+                <div class="profile-center">
+                        <div class="top-row"><h5 style="max-width: 100%;">@Item.DeferredRevenueCode – @Item.DeferredRevenueTitle</h5></div>
+                    <div class="sub-text">
+                        <span class="d-flex gap-1 mt-1"><i class="ti ti-user"></i> @(Item.CustomerName ?? "–") &nbsp;·&nbsp; @Item.SourceType</span>
+                        <span class="d-flex gap-1 mt-1"><i class="ti ti-calendar"></i> Coverage: @Item.DeferredStartDate?.ToString("dd MMM yyyy") – @Item.DeferredEndDate?.ToString("dd MMM yyyy") &nbsp;·&nbsp; @Item.CoverageDays days</span>
+                    </div>
+                    <div class="mt-2">
+                        <span class="badge @GetStatusBadgeClass(Item.DeferredRevenueStatus)">@Item.DeferredRevenueStatus</span>
+                        @if(Item.IsLocked){<span class="badge bg-danger-transparent ms-2">🔒 Locked</span>}
+                        @if(Item.PolicyExceptionFlag){<span class="badge ms-2" style="border:1px solid #9333ea;background:#faf5ff;color:#9333ea;">⚠ Policy Exception</span>}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-8"><div class="profile-card">
+            <div class="card mb-3"><div class="card-header py-2"><i class="ti ti-id me-2"></i> Header</div><div class="card-body">
+                            <div class="row" style="display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(366px, 1fr));">
+                                <div class="col-12">
+                                    <table class="table table-borderless mb-0">
+                                        <tbody>
+                    <tr><td class="text-muted">Code</td><td>@Item.DeferredRevenueCode</td></tr>
+                    <tr><td class="text-muted">Title</td><td>@Item.DeferredRevenueTitle</td></tr>
+                    <tr><td class="text-muted">Customer</td><td>@(Item.CustomerName ?? "–")</td></tr>
+                    <tr><td class="text-muted">Source Type</td><td>@Item.SourceType</td></tr>
+                    @if (!string.IsNullOrWhiteSpace(Item.Description)) { <tr><td class="text-muted">Description</td><td style="font-style:italic">@Item.Description</td></tr> }
+                </tbody></table></div><div class="col-12"><table class="table table-borderless mb-0"><tbody>
+                    <tr><td class="text-muted">Doc Number</td><td>@(Item.SourceDocumentNumber ?? "–")</td></tr>
+                    <tr><td class="text-muted">Category Code</td><td>@(Item.RevenueCategoryCode ?? "–")</td></tr>
+                    <tr><td class="text-muted">Contract</td><td>@(Item.ContractName ?? "–")</td></tr>
+                    <tr><td class="text-muted">Subscription</td><td>@(Item.SubscriptionName ?? "–")</td></tr>
+                    <tr><td class="text-muted">Basis</td><td>@Item.BasisReferenceText</td></tr>
+                    <tr><td class="text-muted">Materiality</td><td>@(Item.MaterialityLevel?.ToString() ?? "–")</td></tr>
+                </tbody></table></div></div>
+            </div></div>
+            <div class="card mb-3"><div class="card-header py-2"><i class="ti ti-repeat me-2"></i> Coverage & Release</div><div class="card-body">
+                            <div class="row" style="display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(366px, 1fr));">
+                                <div class="col-12">
+                                    <table class="table table-borderless mb-0">
+                                        <tbody>
+                    <tr><td class="text-muted">Coverage Start</td><td>@Item.DeferredStartDate?.ToString("dd MMM yyyy")</td></tr>
+                    <tr><td class="text-muted">Coverage End</td><td>@Item.DeferredEndDate?.ToString("dd MMM yyyy")</td></tr>
+                    <tr><td class="text-muted">Method</td><td>@Item.ReleaseMethod</td></tr>
+                    <tr><td class="text-muted">Frequency</td><td>@(Item.ReleaseFrequency?.ToString() ?? "–")</td></tr>
+                    <tr><td class="text-muted">Schedule Generated</td><td>@(Item.IsScheduleGenerated ? "Yes" : "No")</td></tr>
+                </tbody></table></div><div class="col-12"><table class="table table-borderless mb-0"><tbody>
+                    <tr><td class="text-muted">Release Start</td><td>@Item.ReleaseStartDate?.ToString("dd MMM yyyy")</td></tr>
+                    <tr><td class="text-muted">Release End</td><td>@(Item.ReleaseEndDate?.ToString("dd MMM yyyy") ?? "–")</td></tr>
+                    <tr><td class="text-muted">Next Due</td><td>@(Item.NextReleaseDueDate?.ToString("dd MMM yyyy") ?? "–")</td></tr>
+                    <tr><td class="text-muted">Last Release</td><td>@(Item.LastReleaseDate?.ToString("dd MMM yyyy") ?? "–")</td></tr>
+                    <tr><td class="text-muted">Service Proof Required</td><td>@(Item.ServiceProofRequiredFlag ? "Yes" : "No")</td></tr>
+                </tbody></table></div></div>
+            </div></div>
+            @if(Item.ReleaseLines.Any()){<div class="card mb-3"><div class="card-header py-2"><i class="ti ti-list-details me-2"></i> Release Schedule</div><div class="card-body p-0">
+                <table class="table align-middle mb-0"><thead><tr><th>#</th><th>Date</th><th>Scheduled</th><th>Released</th><th>Remaining</th><th>Status</th></tr></thead><tbody>
+                    @foreach(var l in Item.ReleaseLines.OrderBy(x=>x.LineNumber)){<tr><td>@l.LineNumber</td><td>@l.ScheduleDate?.ToString("dd MMM yyyy")</td><td>@l.ScheduledReleaseAmount.ToString("N2")</td><td>@l.ReleasedAmount.ToString("N2")</td><td>@l.RemainingLineBalance.ToString("N2")</td><td><span class="badge @(l.ReleaseLineStatus==ReleaseLineStatusEnum.Released?"bg-success-transparent":"bg-info-transparent")">@l.ReleaseLineStatus</span></td></tr>}
+                </tbody></table>
+            </div></div>}
+        </div></div>
+
+        <div class="col-lg-4">
+                <div class="profile-card">
+            <div class="card mb-3"><div class="card-header py-2"><i class="ti ti-currency-dollar me-2"></i> Amounts</div><div class="card-body">
+                <table class="table table-borderless mb-0"><tbody>
+                    <tr><td class="text-muted">Original Amount</td><td class="fw-bold text-primary">@Item.OriginalDeferredAmount.ToString("N2")</td></tr>
+                    <tr><td class="text-muted">Released</td><td>@Item.ReleasedToRevenueAmount.ToString("N2")</td></tr>
+                    <tr><td class="text-muted">Remaining</td><td class="@(Item.RemainingDeferredBalance>0?"text-danger fw-bold":"")">@Item.RemainingDeferredBalance.ToString("N2")</td></tr>
+                    @if(Item.AdjustmentAmount.HasValue && Item.AdjustmentAmount != 0){<tr><td class="text-muted">Adjustment</td><td>@Item.AdjustmentAmount?.ToString("N2")</td></tr>}
+                </tbody></table>
+            </div></div>
+                </div>
+                <div class="profile-card mt-3">
+            <div class="card mb-3"><div class="card-header py-2"><i class="ti ti-building-bank me-2"></i> GL & Dimensions</div><div class="card-body">
+                <table class="table table-borderless mb-0"><tbody>
+                    <tr><td class="text-muted">Fiscal Year</td><td>FY 2025-26</td></tr>
+                    <tr><td class="text-muted">Accounting Period</td><td>@(Item.CurrentAccountingPeriodName ?? "–")</td></tr>
+                    <tr><td class="text-muted">Revenue GL</td><td>@(Item.RevenueGLAccountName ?? "–")</td></tr>
+                    <tr><td class="text-muted">Liability GL</td><td>@(Item.DeferredRevenueLiabilityGLName ?? "–")</td></tr>
+                    <tr><td class="text-muted">Branch</td><td>@(Item.BranchName ?? "–")</td></tr>
+                    <tr><td class="text-muted">Cost Center</td><td>@(Item.CostCenterName ?? "–")</td></tr>
+                    <tr><td class="text-muted">Department</td><td>@(Item.DepartmentName ?? "–")</td></tr>
+                    <tr><td class="text-muted">Project</td><td>@(Item.ProjectName ?? "–")</td></tr>
+                    <tr><td class="text-muted">Revenue Owner</td><td>@(Item.RevenueOwnerName ?? "–")</td></tr>
+                    <tr><td class="text-muted">Posting</td><td>@Item.PostingStatus</td></tr>
+                    <tr><td class="text-muted">Release</td><td>@Item.ReleaseStatus</td></tr>
+                </tbody></table>
+            </div></div>
+         </div>
+                <div class="profile-card mt-3">
+            <div class="card mb-3"><div class="card-header py-2"><i class="ti ti-user me-2"></i> Workflow</div><div class="card-body">
+                <table class="table table-borderless mb-0"><tbody>
+                    <tr><td class="text-muted">Prepared By</td><td>@(Item.PreparedByUserId ?? "–")</td></tr>
+                    <tr><td class="text-muted">Submitted</td><td>@(Item.SubmittedOn?.ToString("dd MMM yyyy") ?? "–")</td></tr>
+                    <tr><td class="text-muted">Reviewed By</td><td>@(Item.ReviewedByUserId ?? "–")</td></tr>
+                    <tr><td class="text-muted">Reviewed On</td><td>@(Item.ReviewedOn?.ToString("dd MMM yyyy") ?? "–")</td></tr>
+                    <tr><td class="text-muted">Approved By</td><td>@(Item.ApprovedByUserId ?? "–")</td></tr>
+                    <tr><td class="text-muted">Approved</td><td>@(Item.ApprovedOn?.ToString("dd MMM yyyy") ?? "–")</td></tr>
+                    <tr><td class="text-muted">Locked</td><td>@(Item.IsLocked ? "Yes" : "No")</td></tr>
+                    @if(Item.IsLocked){
+                        <tr><td class="text-muted">Locked By</td><td>@(Item.LockedBy ?? "–")</td></tr>
+                        <tr><td class="text-muted">Locked On</td><td>@(Item.LockedOn?.ToString("dd MMM yyyy") ?? "–")</td></tr>
+                    }
+                </tbody></table>
+            </div></div>
+           </div>
+                <div class="profile-card mt-3">
+            <div class="card mb-3"><div class="card-header py-2"><i class="ti ti-notes me-2"></i> Notes</div><div class="card-body">
+                <table class="table table-borderless mb-0"><tbody>
+                    <tr><td class="text-muted">Assumption</td><td>@(Item.AssumptionText ?? "–")</td></tr>
+                    <tr><td class="text-muted">Finance Notes</td><td>@(Item.FinanceNotes ?? "–")</td></tr>
+                    <tr><td class="text-muted">Attachments</td><td>@Item.AttachmentCount</td></tr>
+                    @if(Item.PolicyExceptionFlag){<tr><td class="text-muted">Policy Exception</td><td class="text-warning">@(Item.PolicyExceptionReason ?? "Yes")</td></tr>}
+                </tbody></table>
+            </div></div>
+          </div>
+            @if(!string.IsNullOrWhiteSpace(Item.CancellationReason)){
+                    <div class="profile-card mt-3">
+                <div class="card mb-3"><div class="card-header py-2 text-danger"><i class="ti ti-alert-circle me-2"></i> Cancellation</div><div class="card-body"><p class="text-danger mb-0">@Item.CancellationReason</p></div></div>
+                    </div>
+            }
+        </div>
+    </div>
+</div>
+}

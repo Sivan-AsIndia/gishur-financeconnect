@@ -1,0 +1,36 @@
+﻿@inject FinanceConnect.Client.Services.AuthService AuthService
+@namespace FinanceConnect.Client.Pages.Error
+@if (!_authReady)
+{
+    <div style="min-height:100vh;display:flex;align-items:center;justify-content:center;">
+        <div class="text-center">
+            <div class="spinner-border" role="status" aria-label="Loading"></div>
+        </div>
+    </div>
+}
+else
+{
+    <Router AppAssembly="@typeof(App).Assembly">
+        <Found Context="routeData">
+            <RouteView RouteData="@routeData" DefaultLayout="@typeof(MainLayout)" />
+            <FocusOnNavigate RouteData="@routeData" Selector="h1" />
+        </Found>
+        <NotFound>
+            <PageTitle>Not found</PageTitle>
+            <LayoutView Layout="@typeof(MainLayout)">
+          <_404Page />
+            </LayoutView>
+        </NotFound>
+    </Router>
+}
+
+@code {
+    private bool _authReady;
+
+    protected override async Task OnInitializedAsync()
+    {
+        // Restore persisted login session so browser refresh doesn't redirect to Login.
+        await AuthService.InitializeAsync();
+        _authReady = true;
+    }
+}

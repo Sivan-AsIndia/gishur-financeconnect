@@ -1,0 +1,307 @@
+@page "/opening-balance/create"
+@page "/opening-balance/edit/{Id:guid}"
+@inject NavigationManager Nav
+@inject IJSRuntime JS
+@inject FinanceDataService FinanceDataService
+@inject MasterDataService MasterDataService
+@inject BranchService BranchService
+@inject ToastService ToastService
+@inject AuthService AuthService
+
+@if (!isInitialized)
+{
+    <div class="page-loading-overlay">
+        <div class="whirly-loader"></div>
+    </div>
+}
+else
+{
+    <div class="content">
+        <!-- Page Header -->
+        <div class="page-header">
+            <div class="add-item d-flex">
+                <div class="page-title">
+                    <h4 class="fw-bold">@(IsEditMode ? "Edit Opening Balance" : "Create Opening Balance")</h4>
+                    <h6>@(IsEditMode ? "Modify opening balance details" : "Add a new fiscal year opening balance")</h6>
+                </div>
+            </div>
+            <div class="page-btn">
+                <a href="/opening-balance" class="btn btn-secondary">
+                    <i class="ti ti-arrow-left me-1"></i>
+                    Back
+                </a>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-body">
+                <EditForm Model="@Model" OnSubmit="HandleSubmit">
+                    <DataAnnotationsValidator />
+
+                    <!-- Header Section -->
+                    <div class="row mb-4">
+                        <div class="col-12">
+                            <h6 class="fw-semibold text-primary border-bottom pb-2 mb-3">
+                                <i class="ti ti-file-text me-1"></i> Basic Information
+                            </h6>
+                        </div>
+
+                        <div class="col-md-3 mb-3">
+                            <label class="form-label">OB Number</label>
+                            <input type="text" class="form-control" @bind="Model.OpeningBalanceNumber" readonly
+                                   placeholder="Auto-generated" />
+                        </div>
+
+                        <div class="col-md-3 mb-3">
+                            <label class="form-label">Company <span class="text-danger">*</span></label>
+                            <select class="form-select @(CompanyValidationError != null ? "is-invalid" : "")" @bind="SelectedCompanyId">
+                                <option value="">--Select Company--</option>
+                                @foreach (var company in Companies)
+                                {
+                                    <option value="@company.Id">@company.LegalName (@company.CompanyCode)</option>
+                                }
+                            </select>
+                            @if (CompanyValidationError != null)
+                            {
+                                <span class="text-danger" style="font-size:12px;">@CompanyValidationError</span>
+                            }
+                        </div>
+
+                        <div class="col-md-3 mb-3">
+                            <label class="form-label">Branch <span class="text-danger">*</span></label>
+                            <select class="form-select @(BranchValidationError != null ? "is-invalid" : "")" @bind="SelectedBranchId">
+                                <option value="">--Select Branch--</option>
+                                @foreach (var branch in FilteredBranches)
+                                {
+                                    <option value="@branch.Id">@branch.BranchCode - @branch.BranchName</option>
+                                }
+                            </select>
+                            @if (BranchValidationError != null)
+                            {
+                                <span class="text-danger" style="font-size:12px;">@BranchValidationError</span>
+                            }
+                        </div>
+
+                        <div class="col-md-3 mb-3">
+                            <label class="form-label">Ledger <span class="text-danger">*</span></label>
+                            <select class="form-select @(LedgerValidationError != null ? "is-invalid" : "")" @bind="SelectedLedgerId">
+                                <option value="">--Select Ledger--</option>
+                                @foreach (var ledger in FilteredLedgers)
+                                {
+                                    <option value="@ledger.Id">@ledger.LedgerName (@ledger.LedgerCode)</option>
+                                }
+                            </select>
+                            @if (LedgerValidationError != null)
+                            {
+                                <span class="text-danger" style="font-size:12px;">@LedgerValidationError</span>
+                            }
+                        </div>
+                    </div>
+
+                    <!-- Fiscal Year Section -->
+                    <div class="row mb-4">
+                        <div class="col-12">
+                            <h6 class="fw-semibold text-primary border-bottom pb-2 mb-3">
+                                <i class="ti ti-calendar me-1"></i> Fiscal Year Details
+                            </h6>
+                        </div>
+
+                        <div class="col-md-3 mb-3">
+                            <label class="form-label">Fiscal Year <span class="text-danger">*</span></label>
+                            <select class="form-select @(FiscalYearValidationError != null ? "is-invalid" : "")" @bind="SelectedFiscalYearId">
+                                <option value="">--Select Fiscal Year--</option>
+                                @foreach (var fy in FiscalYears)
+                                {
+                                    <option value="@fy.Id">@fy.FiscalYearName (@fy.FiscalYearCode)</option>
+                                }
+                            </select>
+                            @if (FiscalYearValidationError != null)
+                            {
+                                <span class="text-danger" style="font-size:12px;">@FiscalYearValidationError</span>
+                            }
+                        </div>
+
+                        <div class="col-md-3 mb-3">
+                            <label class="form-label">Accounting Period <span class="text-danger">*</span></label>
+                            <select class="form-select @(AccountingPeriodValidationError != null ? "is-invalid" : "")" @bind="SelectedAccountingPeriodId">
+                                <option value="">--Select Accounting Period--</option>
+                                @foreach (var period in FilteredAccountingPeriods)
+                                {
+                                    <option value="@period.Id">@period.PeriodName (@period.PeriodCode)</option>
+                                }
+                            </select>
+                            @if (AccountingPeriodValidationError != null)
+                            {
+                                <span class="text-danger" style="font-size:12px;">@AccountingPeriodValidationError</span>
+                            }
+                        </div>
+
+                        <div class="col-md-3 mb-3">
+                            <label class="form-label">Opening Date <span class="text-danger">*</span></label>
+                            <input type="date" class="form-control @(OpeningDateValidationError != null ? "is-invalid" : "")" @bind="Model.OpeningDate" />
+                            @if (OpeningDateValidationError != null)
+                            {
+                                <span class="text-danger" style="font-size:12px;">@OpeningDateValidationError</span>
+                            }
+                        </div>
+
+                        <div class="col-md-3 mb-3">
+                            <label class="form-label">Entry Mode <span class="text-danger">*</span></label>
+                            <select class="form-select" @bind="Model.EntryMode">
+                                <option value="">--Select Entry Mode--</option>
+                                <option value="@EntryModes.ManualEntry">Manual Entry</option>
+                                <option value="@EntryModes.BulkImport">Bulk Import</option>
+                                <option value="@EntryModes.MigrationMode">Migration Mode</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- Options Section -->
+                    <div class="row mb-4">
+                        <div class="col-12">
+                            <h6 class="fw-semibold text-primary border-bottom pb-2 mb-3">
+                                <i class="ti ti-settings me-1"></i> Options
+                            </h6>
+                        </div>
+
+                        <div class="col-md-3 mb-3">
+                            <label class="form-label">Currency Mode</label>
+                            <select class="form-select" @bind="Model.CurrencyMode">
+                                <option value="">--Select Currency Mode--</option>
+                                <option value="@CurrencyModes.SingleCurrencyOnly">Single Currency Only</option>
+                                <option value="@CurrencyModes.MultiCurrencyAllowed">Multi Currency Allowed</option>
+                            </select>
+                        </div>
+
+                        <div class="col-md-3 mb-3 d-flex align-items-center pt-4">
+                            <div class="form-check">
+                                <input type="checkbox" class="form-check-input" id="restrictBS" @bind="Model.RestrictToBalanceSheetAccounts" />
+                                <label class="form-check-label" for="restrictBS">Restrict to Balance Sheet Accounts</label>
+                            </div>
+                        </div>
+
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Notes</label>
+                            <textarea class="form-control" rows="2" @bind="Model.Notes" placeholder="Additional notes..."></textarea>
+                        </div>
+                    </div>
+
+                    <!-- Lines Section -->
+                    <div class="row mb-4">
+                        <div class="col-12">
+                            <div class="d-flex justify-content-between align-items-center border-bottom pb-2 mb-3">
+                                <h6 class="fw-semibold text-primary mb-0">
+                                    <i class="ti ti-list me-1"></i> Opening Balance Lines
+                                </h6>
+                                <button type="button" class="btn btn-sm btn-outline-primary" @onclick="AddLine">
+                                    <i class="ti ti-plus me-1"></i> Add Line
+                                </button>
+                            </div>
+                            @if (LinesValidationError != null)
+                            {
+                                <span class="text-danger" style="font-size:12px;">@LinesValidationError</span>
+                            }
+                        </div>
+
+                        <div class="col-12">
+                            <div class="table-responsive">
+                                <table class="table table-bordered">
+                                    <thead class="table-light">
+                                        <tr>
+                                            <th style="width: 50px">#</th>
+                                            <th style="width: 250px">Account <span class="text-danger">*</span></th>
+                                            <th>Description</th>
+                                            <th style="width: 150px" class="text-end">Debit Amount</th>
+                                            <th style="width: 150px" class="text-end">Credit Amount</th>
+                                            <th style="width: 80px" class="text-center">Action</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        @for (int i = 0; i < Model.Lines.Count; i++)
+                                        {
+                                            var index = i;
+                                            var line = Model.Lines[index];
+                                            <tr>
+                                                <td class="text-center align-middle">@(index + 1)</td>
+                                                <td>
+                                                    <select class="form-select form-select-sm" @bind="line.AccountId"
+                                                            @bind:after="() => OnAccountSelected(index)">
+                                                        <option value="@Guid.Empty">--Select Account--</option>
+                                                        @foreach (var account in Accounts)
+                                                        {
+                                                            <option value="@account.Id">@account.AccountCode - @account.AccountName</option>
+                                                        }
+                                                    </select>
+                                                </td>
+                                                <td>
+                                                    <input type="text" class="form-control form-control-sm" @bind="line.LineDescription"
+                                                           placeholder="Line description..." />
+                                                </td>
+                                                <td>
+                                                    <input type="number" class="form-control form-control-sm text-end" @bind="line.DebitAmountBase"
+                                                           step="0.01" min="0" @bind:after="RecalculateTotals" />
+                                                </td>
+                                                <td>
+                                                    <input type="number" class="form-control form-control-sm text-end" @bind="line.CreditAmountBase"
+                                                           step="0.01" min="0" @bind:after="RecalculateTotals" />
+                                                </td>
+                                                <td class="text-center align-middle">
+                                                    <button type="button" class="btn btn-sm btn-outline-danger" @onclick="() => RemoveLine(index)"
+                                                            disabled="@(Model.Lines.Count <= 1)">
+                                                        <i class="ti ti-trash"></i>
+                                                    </button>
+                                                </td>
+                                            </tr>
+                                        }
+                                    </tbody>
+                                    <tfoot class="table-light fw-bold">
+                                        <tr>
+                                            <td colspan="3" class="text-end">Total:</td>
+                                            <td class="text-end text-success">@TotalDebit.ToString("N2")</td>
+                                            <td class="text-end text-danger">@TotalCredit.ToString("N2")</td>
+                                            <td></td>
+                                        </tr>
+                                        <tr>
+                                            <td colspan="3" class="text-end">Difference:</td>
+                                            <td colspan="2" class="text-center @(IsBalanced ? "text-success" : "text-danger")">
+                                                @if (IsBalanced)
+                                                {
+                                                    <span><i class="ti ti-check"></i> Balanced</span>
+                                                }
+                                                else
+                                                {
+                                                    <span>@Difference.ToString("N2") (Unbalanced)</span>
+                                                }
+                                            </td>
+                                            <td></td>
+                                        </tr>
+                                    </tfoot>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Action Buttons -->
+                    <div class="row">
+                        <div class="col-12">
+                            <hr />
+                            <div class="d-flex justify-content-end gap-2">
+                                <a href="/opening-balance" class="btn btn-secondary">
+                                    <i class="ti ti-x me-1"></i> Cancel
+                                </a>
+                                <button type="submit" class="btn btn-primary" disabled="@isSaving">
+                                    @if (isSaving)
+                                    {
+                                        <span class="spinner-border spinner-border-sm me-1"></span>
+                                    }
+                                    <i class="ti ti-device-floppy me-1"></i>
+                                    @(IsEditMode ? "Update" : "Save")
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </EditForm>
+            </div>
+        </div>
+    </div>
+}

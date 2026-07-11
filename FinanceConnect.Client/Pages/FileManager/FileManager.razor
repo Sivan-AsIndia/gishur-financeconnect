@@ -1,0 +1,943 @@
+﻿@page "/file-manager"
+@using System.Collections.Generic
+@using System.Linq
+@using System.Threading
+@using Microsoft.AspNetCore.Components.Forms
+@inject FileManagerService State
+@inject NavigationManager Navigation
+@inject IJSRuntime JS
+
+<PageTitle>File Manager</PageTitle>
+
+<style>
+    /* ── Search ── */
+    .search-wrapper { width: 250px; }
+    .search-icon {
+        position: absolute; left: 12px; top: 50%;
+        transform: translateY(-50%); font-size: 16px;
+        color: #6c757d; pointer-events: none;
+    }
+
+    /* ── Folder card hover ── */
+    .folder-card-hover { transition: all .2s ease; }
+    .folder-card-hover:hover {
+        box-shadow: 0 4px 20px rgba(0,0,0,.12) !important;
+        transform: translateY(-2px);
+    }
+
+    /* ── Upload drop zone ── */
+    .fm-drop-zone {
+        border: 2px dashed #dee2e6 !important;
+        background: #f8f9fa;
+        border-radius: 10px;
+        padding: 18px 12px;
+        text-align: center;
+        cursor: pointer;
+        transition: all .2s;
+        position: relative;
+    }
+    .fm-drop-zone:hover, .fm-drop-zone.drag-over {
+        border-color: var(--primary) !important;
+        background: color-mix(in srgb, var(--primary) 6%, white);
+    }
+    .fm-drop-zone .fm-input-cover {
+        position: absolute; inset: 0;
+        opacity: 0; cursor: pointer;
+        width: 100%; height: 100%;
+    }
+
+    /* ── Upload progress bar (sidebar) ── */
+    .fm-upload-bar { height: 4px; border-radius: 99px; background: #e2e8f0; overflow: hidden; margin-top: 6px; }
+    .fm-upload-bar-fill { height: 100%; border-radius: 99px; background: var(--primary); transition: width .2s; }
+
+    /* ── Preview offcanvas ── */
+    .fm-oc-backdrop {
+        position: fixed; inset: 0;
+        background: rgba(0,0,0,.42); z-index: 1040;
+    }
+    .fm-offcanvas {
+        position: fixed; top: 0; right: 0; bottom: 0;
+        width: 400px; background: #fff; z-index: 1050;
+        display: flex; flex-direction: column;
+        box-shadow: -6px 0 40px rgba(0,0,0,.16);
+        animation: fmOcIn .25s cubic-bezier(.4,0,.2,1);
+    }
+    @@keyframes fmOcIn { from { transform: translateX(100%) } to { transform: translateX(0) } }
+
+    .fm-oc-head {
+        padding: 16px 20px;
+        background: #1e293b;
+        display: flex; align-items: center; justify-content: space-between;
+        flex-shrink: 0;
+    }
+    .fm-oc-title { font-size: 15px; font-weight: 700; color: #fff; }
+    .fm-oc-acts  { display: flex; gap: 6px; }
+    .fm-oc-btn {
+        width: 32px; height: 32px; border-radius: 8px;
+        background: rgba(255,255,255,.1); border: 1px solid rgba(255,255,255,.15);
+        display: flex; align-items: center; justify-content: center;
+        cursor: pointer; color: rgba(255,255,255,.65); font-size: 15px;
+        transition: all .15s;
+    }
+    .fm-oc-btn:hover           { background: rgba(255,255,255,.2); color: #fff; }
+    .fm-oc-btn.starred         { color: #fbbf24; }
+    .fm-oc-btn.del:hover       { background: rgba(239,68,68,.3); color: #fca5a5; }
+
+    .fm-oc-thumb {
+        padding: 24px 20px 18px; text-align: center;
+        background: linear-gradient(180deg,#f8fafc,#fff);
+        border-bottom: 1px solid #f1f5f9;
+        flex-shrink: 0;
+    }
+    .fm-oc-badge {
+        width: 72px; height: 72px; border-radius: 16px;
+        display: flex; align-items: center; justify-content: center;
+        margin: 0 auto 12px;
+        font-size: 13px; font-weight: 800; font-family: monospace;
+    }
+    .fm-oc-fname { font-size: 16px; font-weight: 700; color: #0f172a; margin-bottom: 4px; word-break: break-word; }
+    .fm-oc-fmeta { font-size: 12px; color: #94a3b8; }
+
+    .fm-preview-zone {
+        flex: 1; overflow: hidden;
+        display: flex; flex-direction: column;
+        background: #f8fafc;
+        border-bottom: 1px solid #f1f5f9;
+    }
+    .fm-prev-img {
+        width: 100%; flex: 1; object-fit: contain;
+        display: block; max-height: 320px;
+        background: repeating-conic-gradient(#e2e8f0 0% 25%, #f8fafc 0% 50%) 0 0 / 14px 14px;
+    }
+    .fm-prev-pdf { width: 100%; flex: 1; border: none; display: block; min-height: 380px; }
+    .fm-prev-video { width: 100%; display: block; background: #000; max-height: 260px; }
+    .fm-prev-audio { width: 100%; padding: 20px 16px; }
+    .fm-prev-text {
+        flex: 1; overflow: auto; padding: 14px 16px;
+        font-family: 'Courier New', monospace;
+        font-size: 11.5px; color: #475569;
+        line-height: 1.7; white-space: pre-wrap;
+        word-break: break-word; margin: 0;
+    }
+    .fm-prev-none {
+        flex: 1; display: flex; flex-direction: column;
+        align-items: center; justify-content: center;
+        gap: 10px; padding: 32px; text-align: center; color: #94a3b8;
+    }
+
+    .fm-oc-footer { padding: 14px 20px 18px; display: flex; gap: 10px; flex-shrink: 0; }
+    .fm-oc-act {
+        flex: 1; padding: 10px 8px; border-radius: 12px; border: none;
+        font-size: 13px; font-weight: 700; cursor: pointer; font-family: inherit;
+        display: flex; align-items: center; justify-content: center; gap: 6px;
+        transition: all .18s;
+    }
+    .fm-oc-primary  { background: linear-gradient(135deg,var(--primary),#7c3aed); color: #fff; box-shadow: 0 4px 12px rgba(79,70,229,.28); }
+    .fm-oc-primary:hover  { transform: translateY(-1px); box-shadow: 0 6px 16px rgba(79,70,229,.38); }
+    .fm-oc-secondary{ background: #f1f5f9; color: #475569; }
+    .fm-oc-secondary:hover{ background: #e0e7ff; color: var(--primary); }
+    .fm-oc-primary:disabled, .fm-oc-secondary:disabled { opacity: .4; cursor: not-allowed; transform: none !important; }
+
+    .fm-info-grid {
+        display: grid; grid-template-columns: repeat(3,1fr);
+        border: 1.5px solid #e9eef6; border-radius: 12px;
+        overflow: hidden; text-align: center; margin-bottom: 14px;
+    }
+    .fm-info-cell + .fm-info-cell { border-left: 1px solid #e9eef6; }
+    .fm-info-cell   { padding: 12px 8px; }
+    .fm-info-lbl    { font-size: 10px; color: #94a3b8; text-transform: uppercase; letter-spacing: .5px; margin-bottom: 3px; }
+    .fm-info-val    { font-size: 13px; font-weight: 700; color: #0f172a; font-family: monospace; }
+
+    .fm-toast {
+        position: fixed; bottom: 20px; right: 20px; z-index: 9999;
+        min-width: 260px; padding: 13px 16px; border-radius: 12px;
+        display: flex; align-items: center; gap: 9px;
+        font-size: 13px; font-weight: 600;
+        box-shadow: 0 8px 24px rgba(0,0,0,.15); animation: fmToastIn .22s ease;
+    }
+    @@keyframes fmToastIn { from { opacity:0; transform: translateY(8px) } to { opacity:1; transform: translateY(0) } }
+    .fm-toast-ok  { background: #0f172a; color: #fff; }
+    .fm-toast-err { background: #ef4444; color: #fff; }
+    .fm-toast-close { margin-left: auto; background: none; border: none; color: rgba(255,255,255,.55); cursor: pointer; font-size: 15px; padding: 0; }
+    .fm-toast-close:hover { color: #fff; }
+</style>
+
+<div class="file-manager">
+    <div class="content">
+
+        <!-- PAGE HEADER -->
+        <div class="page-header page-add-notes border-0 flex-sm-row flex-column">
+            <div class="add-item d-flex">
+                <div class="page-title">
+                    <h4>File Manager</h4>
+                    <h6 class="mb-0">Manage your files</h6>
+                </div>
+            </div>
+            <div class="d-flex flex-sm-row flex-column align-items-sm-center align-items-start gap-2 mt-sm-0 mt-3">
+                <div class="position-relative search-wrapper">
+                    <i class="ti ti-search search-icon"></i>
+                    <input type="search" class="form-control ps-5" placeholder="Search files..."
+                           @bind="GlobalSearch" @bind:event="oninput" />
+                </div>
+                <select class="form-select" style="width:130px" @bind="FilterExt">
+                    <option value="all">All Files</option>
+                    <option value="pdf">PDF</option>
+                    <option value="doc">Documents</option>
+                    <option value="jpg">Photos</option>
+                    <option value="audio">Music</option>
+                    <option value="xlsx">Excel</option>
+                    <option value="fig">Figma</option>
+                </select>
+                <button class="btn btn-primary d-flex align-items-center gap-1" @onclick="OpenCreateModal">
+                    <i class="ti ti-circle-plus"></i> Create Folder
+                </button>
+            </div>
+        </div>
+
+        <!-- DRIVE CARDS -->
+        <div class="row g-3 mb-4">
+            @foreach (var drive in State.Drives)
+            {
+                <div class="col-lg-3 col-md-6 d-flex">
+                    <div class="card flex-fill shadow-sm border-0">
+                        <div class="card-body">
+                            <div class="d-flex align-items-center justify-content-between mb-3">
+                                <div class="d-flex align-items-center gap-2">
+                                    <div class="rounded d-flex align-items-center justify-content-center"
+                                         style="width:38px;height:38px;background:@drive.IconBg;flex-shrink:0">
+                                        <i class="@drive.Icon fs-18" style="color:@drive.Color"></i>
+                                    </div>
+                                    <h6 class="mb-0 fw-semibold">@drive.Name</h6>
+                                </div>
+                                <div class="dropdown">
+                                    <a href="javascript:void(0);" class="text-muted" data-bs-toggle="dropdown">
+                                        <i class="ti ti-dots-vertical"></i>
+                                    </a>
+                                    <ul class="dropdown-menu dropdown-menu-end p-2 shadow-sm">
+                                        <li><a class="dropdown-item rounded-1 small" href="javascript:void(0);"><i class="ti ti-folder-open me-2"></i>Open</a></li>
+                                        <li><a class="dropdown-item rounded-1 small text-danger" href="javascript:void(0);"><i class="ti ti-trash me-1"></i>Delete All</a></li>
+                                    </ul>
+                                </div>
+                            </div>
+                            <div class="progress mb-2" style="height:5px;border-radius:99px">
+                                <div class="progress-bar rounded" role="progressbar"
+                                     style="width:@drive.Pct%;background:@drive.Color;transition:width .5s"></div>
+                            </div>
+                            <div class="d-flex justify-content-between">
+                                <small class="text-muted">@drive.Files files</small>
+                                <small class="fw-semibold">@drive.Used / @drive.Total</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            }
+        </div>
+
+        <!-- MAIN ROW -->
+        <div class="row g-3">
+
+            <!-- SIDEBAR -->
+            <div class="col-xl-3">
+                <div class="card border-0 shadow-sm mb-3">
+                    <div class="card-body p-3">
+                        <div class="fm-drop-zone @(IsDragOver ? "drag-over" : "")"
+                             @ondragover:preventDefault
+                             @ondragover="() => IsDragOver = true"
+                             @ondragleave="() => IsDragOver = false">
+                            <InputFile OnChange="OnFilesSelected" multiple class="fm-input-cover" />
+                            <div class="mx-auto mb-2 d-flex align-items-center justify-content-center rounded-circle bg-primary bg-opacity-10"
+                                 style="width:38px;height:38px">
+                                <i class="ti ti-upload text-primary fs-16"></i>
+                            </div>
+                            <h6 class="mb-1 fs-13">Drop files here</h6>
+                            <p class="fs-12 text-muted mb-2">Browse and choose files to upload</p>
+                            <span class="btn btn-sm btn-outline-primary" style="pointer-events:none">Browse</span>
+                        </div>
+
+                        @if (Uploading)
+                        {
+                            <div class="mt-2 px-1">
+                                <div class="d-flex align-items-center justify-content-between mb-1">
+                                    <small class="text-primary fw-600">Uploading @UploadingCount file(s)…</small>
+                                    <small class="text-muted fw-600">@UploadPct%</small>
+                                </div>
+                                <div class="fm-upload-bar">
+                                    <div class="fm-upload-bar-fill" style="width:@UploadPct%"></div>
+                                </div>
+                            </div>
+                        }
+
+                        <nav class="d-flex flex-column gap-1 mt-3 align-items-start">
+                            @foreach (var item in State.NavItems)
+                            {
+                                <button class="btn btn-sm text-start d-flex align-items-center gap-2 rounded px-2 py-2 w-100 justify-content-start
+                                               @(ActiveNav == item.Key ? "btn-primary" : "text-muted")"
+                                        style="@(ActiveNav != item.Key ? "background:transparent;border:none;justify-content: flex-start;" : "")"
+                                        @onclick="() => SetNav(item.Key)">
+                                    <i class="@item.Icon fs-14"></i>
+                                    <span class="fw-medium fs-13">@item.Label</span>
+                                    @if (item.Badge > 0)
+                                    {
+                                        <span class="badge @(ActiveNav == item.Key ? "bg-white text-primary" : "bg-primary") ms-auto fs-10"
+                                              style="border-radius:50%;width:22px;height:22px;display:flex;align-items:center;justify-content:center">
+                                            @item.Badge
+                                        </span>
+                                    }
+                                </button>
+                            }
+                        </nav>
+                    </div>
+                </div>
+
+                <!-- Storage Details -->
+                <div class="card border-0 shadow-sm mb-3">
+                    <div class="card-body p-3">
+                        <div class="d-flex align-items-center justify-content-between mb-3">
+                            <h6 class="mb-0 fw-bold">Storage Details</h6>
+                            <span class="badge bg-success-subtle text-success fs-11">@StoragePct% Used</span>
+                        </div>
+                        <div class="text-center mb-3">
+                            <svg width="110" height="110" viewBox="0 0 110 110">
+                                @{
+                                    var segs = new[] { ("#4f46e5",.35),("#10b981",.25),("#f59e0b",.20),("#ef4444",.20) };
+                                    double ang = -Math.PI/2;
+                                    foreach (var (sc,sv) in segs)
+                                    {
+                                        double e2=ang+sv*2*Math.PI;
+                                        double x1=55+44*Math.Cos(ang), y1=55+44*Math.Sin(ang);
+                                        double x2=55+44*Math.Cos(e2),  y2=55+44*Math.Sin(e2);
+                                        int lf=sv>.5?1:0;
+                                        <path d="M55,55 L@(x1.ToString("F1")),@(y1.ToString("F1")) A44,44 0 @lf,1 @(x2.ToString("F1")),@(y2.ToString("F1")) Z"
+                                              fill="@sc" opacity=".85"/>
+                                        ang=e2;
+                                    }
+                                }
+                                <circle cx="55" cy="55" r="30" fill="white"/>
+                                <text x="55" y="51" text-anchor="middle" fill="#1e293b" font-size="13" font-weight="700" font-family="inherit">@StoragePct%</text>
+                                <text x="55" y="64" text-anchor="middle" fill="#94a3b8" font-size="9" font-family="inherit">Used</text>
+                            </svg>
+                        </div>
+                        @foreach (var cat in State.StorageCats)
+                        {
+                            <div class="d-flex align-items-center justify-content-between mb-2">
+                                <div class="d-flex align-items-center gap-2">
+                                    <div class="rounded d-flex align-items-center justify-content-center"
+                                         style="width:32px;height:32px;background:@cat.Bg;flex-shrink:0">
+                                        <i class="@cat.Icon fs-14" style="color:@cat.Color"></i>
+                                    </div>
+                                    <div>
+                                        <p class="mb-0 fs-12 fw-semibold">@cat.Name</p>
+                                        <p class="mb-0 fs-11 text-muted">@cat.Count Files</p>
+                                    </div>
+                                </div>
+                                <span class="fs-12 fw-semibold text-muted">@cat.Size</span>
+                            </div>
+                        }
+                        <hr class="my-2" />
+                        <div class="d-flex justify-content-between mb-1">
+                            <small class="text-muted">Total used</small>
+                            <small class="fw-bold">@FileManagerService.FmtMB(TotalUsedMB) / @FileManagerService.FmtMB(TotalCapMB)</small>
+                        </div>
+                        <div class="progress" style="height:6px;border-radius:99px">
+                            <div class="progress-bar" style="width:@StoragePct%;background:var(--primary);transition:width .5s;border-radius:99px"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- MAIN AREA -->
+            <div class="col-xl-9">
+
+                <!-- Quick Access -->
+                <div class="card border-0 shadow-sm mb-3">
+                    <div class="card-body p-3">
+                        <div class="d-flex align-items-center justify-content-between mb-3">
+                            <h6 class="mb-0 fw-bold">Quick Access</h6>
+                            <a href="javascript:void(0);" class="fs-12 text-primary fw-medium">View All</a>
+                        </div>
+                        <div class="row row-cols-xxl-5 row-cols-xl-4 row-cols-sm-3 row-cols-2 g-2">
+                            @foreach (var f in QuickAccess)
+                            {
+                                var qf = f;
+                                <div class="col">
+                                    <div class="border rounded p-3 text-center position-relative h-100"
+                                         style="cursor:pointer;transition:all .15s"
+                                         @onclick="() => OpenPreview(qf)">
+                                        <div class="d-flex align-items-center justify-content-center rounded-3 mx-auto mb-2 fw-bold"
+                                             style="width:44px;height:44px;font-size:10px;background:@State.GetMeta(f.Ext).Bg;color:@State.GetMeta(f.Ext).Color">
+                                            @State.GetMeta(f.Ext).Label
+                                        </div>
+                                        <p class="mb-1 fs-12 fw-semibold text-truncate">@f.Name</p>
+                                        <span class="badge bg-light text-secondary fs-10">@FileManagerService.FmtMB(f.Size)</span>
+                                        <button class="btn btn-sm position-absolute top-0 end-0 p-1 border-0 @(f.Starred ? "text-warning" : "text-muted")"
+                                                @onclick="() => ToggleFileStar(qf.Id)" @onclick:stopPropagation>
+                                            <i class="@(f.Starred ? "ti ti-star-filled" : "ti ti-star") fs-12"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                            }
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Recent Folders -->
+                <div class="card border-0 shadow-sm mb-3">
+                    <div class="card-body p-3">
+                        <div class="d-flex align-items-center justify-content-between mb-3">
+                            <h6 class="mb-0 fw-bold">Recent Folders</h6>
+                            <button class="btn btn-sm btn-primary d-flex align-items-center gap-1" @onclick="OpenCreateModal">
+                                <i class="ti ti-folder-plus fs-12"></i> New Folder
+                            </button>
+                        </div>
+                        @if (!FilteredFolders.Any())
+                        {
+                            <div class="text-center py-4 text-muted">
+                                <i class="ti ti-folder-off fs-24 d-block mb-2"></i>No folders found
+                            </div>
+                        }
+                        else
+                        {
+                            <div class="row g-2">
+                                @foreach (var folder in FilteredFolders)
+                                {
+                                    var fRef = folder;
+                                    <div class="col-lg-4 col-md-6">
+                                        <!-- FIX: @onclick NavigateTo replaces broken href-on-div -->
+                                        <div class="border rounded p-3 d-flex align-items-center gap-3 folder-card-hover"
+                                             style="cursor:pointer"
+                                             @onclick='() => Navigation.NavigateTo($"/File-Manager/Folder/{fRef.Id}")'>
+                                            <i class="ti ti-folder-filled fs-28" style="color:@folder.Color;flex-shrink:0"></i>
+                                            <div class="flex-grow-1 overflow-hidden">
+                                                <p class="mb-0 fw-semibold fs-13 text-truncate">@folder.Name</p>
+                                                <p class="mb-0 fs-11 text-muted">@folder.Size GB &bull; @folder.Total GB</p>
+                                            </div>
+                                            <button class="btn btn-sm border-0 p-1 text-danger"
+                                                    @onclick="() => DelFolder(fRef.Id)" @onclick:stopPropagation>
+                                                <i class="ti ti-trash fs-13"></i>
+                                            </button>
+                                        </div>
+                                    </div>
+                                }
+                            </div>
+                        }
+                    </div>
+                </div>
+
+                <!-- Files Table -->
+                <div class="card border-0 shadow-sm">
+                    <div class="card-body p-0">
+                        <div class="d-flex align-items-center gap-2 p-3 border-bottom flex-wrap">
+                            <h6 class="mb-0 fw-bold me-auto">Files</h6>
+                            @if (SelIds.Any())
+                            {
+                                <span class="badge bg-primary rounded-pill">@SelIds.Count selected</span>
+                                <button class="btn btn-sm btn-outline-danger d-flex align-items-center gap-1" @onclick="DeleteSelected">
+                                    <i class="ti ti-trash fs-12"></i> Delete
+                                </button>
+                                <button class="btn btn-sm btn-outline-secondary" @onclick="ClearSel">Clear</button>
+                            }
+                            <div class="d-flex align-items-center border rounded px-2 py-1" style="min-width:170px">
+                                <i class="ti ti-search fs-12 text-muted me-1"></i>
+                                <input class="form-control border-0 p-0 shadow-none fs-13" placeholder="Search files…"
+                                       @bind="FileSearch" @bind:event="oninput" />
+                            </div>
+                            <select class="form-select form-select-sm" style="width:115px" @bind="FileFilter">
+                                <option value="all">All Types</option>
+                                <option value="pdf">PDF</option>
+                                <option value="doc">DOC</option>
+                                <option value="jpg">Images</option>
+                                <option value="mp3">Audio</option>
+                                <option value="txt">Text</option>
+                                <option value="xlsx">Excel</option>
+                            </select>
+                            <select class="form-select form-select-sm" style="width:125px" @bind="FileSort">
+                                <option value="name">Name A–Z</option>
+                                <option value="name-d">Name Z–A</option>
+                                <option value="size">Size ↑</option>
+                                <option value="size-d">Size ↓</option>
+                            </select>
+                        </div>
+
+                        @{
+                            var allRows = FilteredFiles;
+                            var rows    = PagedFiles(allRows);
+                            int total   = allRows.Count;
+                            int pages   = Math.Max(1, (int)Math.Ceiling((double)total / PS));
+                        }
+
+                        @if (!rows.Any())
+                        {
+                            <div class="text-center py-5 text-muted">
+                                <i class="ti ti-file-off fs-32 d-block mb-2"></i>No files found
+                            </div>
+                        }
+                        else
+                        {
+                            <div class="table-responsive">
+                                <table class="table table-hover align-middle mb-0">
+                                    <thead class="table-light">
+                                        <tr>
+                                            <th class="ps-3" style="width:40px">
+                                                <input type="checkbox" class="form-check-input"
+                                                       @onchange="e => { if ((bool)(e.Value??false)) SelectAllFiles(rows); else ClearSel(); }" />
+                                            </th>
+                                            <th>Name</th>
+                                            <th>Size</th>
+                                            <th>Type</th>
+                                            <th>Modified</th>
+                                            <th class="pe-3 text-end">Actions</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        @foreach (var f in rows)
+                                        {
+                                            var rk  = $"f-{f.Id}";
+                                            var fid = f.Id;
+                                            var rf  = f;
+                                            <tr class="@(SelIds.Contains(rk) ? "table-primary" : "")"
+                                                style="cursor:pointer" @onclick="() => OpenPreview(rf)">
+                                                <td class="ps-3" @onclick:stopPropagation>
+                                                    <input type="checkbox" class="form-check-input"
+                                                           checked="@SelIds.Contains(rk)"
+                                                           @onchange="() => ToggleSel(rk)" />
+                                                </td>
+                                                <td>
+                                                    <div class="d-flex align-items-center gap-2">
+                                                        <div class="d-flex align-items-center justify-content-center rounded fw-bold"
+                                                             style="width:34px;height:34px;flex-shrink:0;font-size:9px;background:@State.GetMeta(f.Ext).Bg;color:@State.GetMeta(f.Ext).Color">
+                                                            @State.GetMeta(f.Ext).Label
+                                                        </div>
+                                                        <div>
+                                                            <p class="mb-0 fw-semibold fs-13">@f.Name</p>
+                                                            <p class="mb-0 fs-11 text-muted text-uppercase">.@f.Ext</p>
+                                                        </div>
+                                                    </div>
+                                                </td>
+                                                <td class="text-muted fs-13">@FileManagerService.FmtMB(f.Size)</td>
+                                                <td><span class="badge bg-light text-secondary text-uppercase fs-10">@f.Ext</span></td>
+                                                <td class="fs-12 text-muted">@f.Date</td>
+                                                <td class="pe-3" @onclick:stopPropagation>
+                                                    <div class="d-flex gap-1 justify-content-end">
+                                                        <button class="btn btn-sm btn-light p-1 @(f.Starred?"text-warning":"text-muted")"
+                                                                style="width:28px;height:28px"
+                                                                @onclick="() => ToggleFileStar(fid)">
+                                                            <i class="@(f.Starred ? "ti ti-star-filled" : "ti ti-star") fs-12"></i>
+                                                        </button>
+                                                        <button class="btn btn-sm btn-light p-1 text-info"
+                                                                style="width:28px;height:28px"
+                                                                @onclick="() => OpenPreview(rf)">
+                                                            <i class="ti ti-eye fs-12"></i>
+                                                        </button>
+                                                        <button class="btn btn-sm btn-light p-1 text-danger"
+                                                                style="width:28px;height:28px"
+                                                                @onclick="() => DelFile(fid)">
+                                                            <i class="ti ti-trash fs-12"></i>
+                                                        </button>
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                        }
+                                    </tbody>
+                                </table>
+                            </div>
+
+                            <div class="d-flex align-items-center justify-content-between px-3 py-2 border-top flex-wrap gap-2">
+                                <small class="text-muted">
+                                    Showing @(Math.Min((FilePage-1)*PS+1,total))–@Math.Min(FilePage*PS,total) of @total
+                                </small>
+                                <div class="d-flex gap-1 flex-wrap">
+                                    <button class="btn px-2" disabled="@(FilePage<=1)"
+                                            @onclick="() => { if(FilePage>1) FilePage--; }">
+                                        <i class="ti ti-chevron-left fs-12"></i>
+                                    </button>
+                                    @for (int pi=1; pi<=pages; pi++)
+                                    {
+                                        var p = pi;
+                                        <button class="btn @(p==FilePage?"btn-primary":"btn-light")" @onclick="()=>FilePage=p">@p</button>
+                                    }
+                                    <button class="btn px-2" disabled="@(FilePage>=pages)"
+                                            @onclick="() => { if(FilePage<pages) FilePage++; }">
+                                        <i class="ti ti-chevron-right fs-12"></i>
+                                    </button>
+                                </div>
+                            </div>
+                        }
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- PREVIEW OFFCANVAS -->
+@if (PreviewFile != null)
+{
+    <div class="fm-oc-backdrop" @onclick="ClosePreview"></div>
+    <div class="fm-offcanvas">
+        <div class="fm-oc-head">
+            <span class="fm-oc-title">File Details</span>
+            <div class="fm-oc-acts">
+                <button class="fm-oc-btn @(PreviewFile.Starred ? "starred" : "")"
+                        @onclick="() => ToggleFileStar(PreviewFile.Id)">
+                    <i class="@(PreviewFile.Starred ? "ti ti-star-filled" : "ti ti-star")"></i>
+                </button>
+                <button class="fm-oc-btn del"
+                        @onclick="() => { DelFile(PreviewFile.Id); ClosePreview(); }">
+                    <i class="ti ti-trash"></i>
+                </button>
+                <button class="fm-oc-btn" @onclick="ClosePreview">
+                    <i class="ti ti-x"></i>
+                </button>
+            </div>
+        </div>
+
+        <div class="fm-oc-thumb">
+            <div class="fm-oc-badge"
+                 style="background:@State.GetMeta(PreviewFile.Ext).Bg;color:@State.GetMeta(PreviewFile.Ext).Color">
+                @State.GetMeta(PreviewFile.Ext).Label
+            </div>
+            <div class="fm-oc-fname">@PreviewFile.Name.@PreviewFile.Ext</div>
+            <div class="fm-oc-fmeta">@FileManagerService.FmtMB(PreviewFile.Size) &nbsp;·&nbsp; @PreviewFile.Date</div>
+        </div>
+
+        @{
+            var pext      = PreviewFile.Ext.ToLower();
+            bool hasBytes = PreviewFile.FileBytes?.Length > 0;
+        }
+        <div class="fm-preview-zone">
+            @if (hasBytes)
+            {
+                @if (pext is "jpg" or "jpeg" or "png" or "gif" or "webp" or "svg" or "bmp" or "ico")
+                {
+                    <img class="fm-prev-img" src="@PreviewFile.DataUrl" alt="@PreviewFile.Name" />
+                }
+                else if (pext == "pdf")
+                {
+                    <iframe class="fm-prev-pdf" src="@PreviewFile.DataUrl" title="@PreviewFile.Name"></iframe>
+                }
+                else if (pext is "mp4" or "webm" or "ogg" or "mov")
+                {
+                    <video class="fm-prev-video" controls>
+                        <source src="@PreviewFile.DataUrl" type="@PreviewFile.MimeType" />
+                    </video>
+                }
+                else if (pext is "mp3" or "wav" or "flac" or "aac")
+                {
+                    <div class="fm-prev-audio">
+                        <audio controls style="width:100%">
+                            <source src="@PreviewFile.DataUrl" type="@PreviewFile.MimeType" />
+                        </audio>
+                    </div>
+                }
+                else if (IsTextExt(pext))
+                {
+                    <pre class="fm-prev-text">@PreviewFile.TextContent</pre>
+                }
+                else
+                {
+                    <div class="fm-prev-none">
+                        <div style="width:56px;height:56px;border-radius:16px;background:#f1f5f9;display:flex;align-items:center;justify-content:center">
+                            <i class="ti ti-file fs-26" style="color:@State.GetMeta(pext).Color"></i>
+                        </div>
+                        <div style="font-weight:600;color:#1e293b">Preview not available</div>
+                        <small>.@pext files can't be previewed in browser</small>
+                    </div>
+                }
+            }
+            else
+            {
+                <div style="padding:18px 20px">
+                    <div class="fm-info-grid">
+                        <div class="fm-info-cell"><div class="fm-info-lbl">Type</div><div class="fm-info-val">@PreviewFile.Ext.ToUpper()</div></div>
+                        <div class="fm-info-cell"><div class="fm-info-lbl">Items</div><div class="fm-info-val">@PreviewFile.Items</div></div>
+                        <div class="fm-info-cell"><div class="fm-info-lbl">Size</div><div class="fm-info-val">@FileManagerService.FmtMB(PreviewFile.Size)</div></div>
+                    </div>
+                </div>
+                <div class="fm-prev-none">
+                    <div style="width:56px;height:56px;border-radius:16px;background:#f1f5f9;display:flex;align-items:center;justify-content:center">
+                        <i class="ti ti-cloud-upload fs-26 text-muted"></i>
+                    </div>
+                    <div style="font-weight:600;color:#475569;font-size:13px">Upload the file to enable<br/>preview &amp; download</div>
+                </div>
+            }
+        </div>
+
+        <div class="fm-oc-footer">
+            <button class="btn btn-primary w-100" disabled="@(!hasBytes)" @onclick="DownloadFile">
+                <i class="ti ti-download fs-14"></i> Download
+            </button>
+            <button class="btn btn-outline-secondary w-100" @onclick="CopyShare">
+                <i class="ti ti-share fs-14"></i> @(LinkCopied ? "Copied!" : "Share")
+            </button>
+        </div>
+    </div>
+}
+
+<!-- CREATE FOLDER MODAL -->
+@if (ModalOpen)
+{
+    <div style="position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:1040" @onclick="CloseModal"></div>
+    <div class="modal show d-flex align-items-center justify-content-center"
+         style="position:fixed;inset:0;z-index:1050">
+        <div class="modal-dialog m-0" @onclick:stopPropagation>
+            <div class="modal-content shadow-lg border-0 rounded-3">
+                <div class="modal-header border-0 pb-0">
+                    <h5 class="modal-title fw-bold">
+                        <i class="ti ti-folder-plus me-2 text-primary"></i>Create Folder
+                    </h5>
+                    <button class="btn-close" @onclick="CloseModal"></button>
+                </div>
+                <div class="modal-body">
+                    <label class="form-label fw-medium">Folder Name</label>
+                    <input class="form-control" placeholder="e.g. My Documents"
+                           @bind="NewFolderName" @bind:event="oninput"
+                           @onkeydown="OnModalKey" />
+                </div>
+                <div class="modal-footer border-0 pt-0 gap-2">
+                    <button class="btn btn-outline-secondary" @onclick="CloseModal"><i class="ti ti-x"></i> Cancel</button>
+                    <button class="btn btn-primary" @onclick="CreateFolder">
+                        <i class="ti ti-device-floppy"></i> Create
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+<!-- TOAST -->
+@if (ToastVisible)
+{
+    <div class="fm-toast @(ToastErr ? "fm-toast-err" : "fm-toast-ok")">
+        <i class="@(ToastErr ? "ti ti-alert-circle" : "ti ti-circle-check") fs-16"></i>
+        @ToastMsg
+        <button class="fm-toast-close" @onclick="() => ToastVisible = false"><i class="ti ti-x"></i></button>
+    </div>
+}
+
+@code {
+    string  ActiveNav     = "all";
+    string  GlobalSearch  = "";
+    string  FileSearch    = "";
+    string  FileFilter    = "all";
+    string  FilterExt     = "all";
+    string  FileSort      = "name";
+    int     FilePage      = 1;
+    const int PS          = 8;
+    bool    ModalOpen     = false;
+    string  NewFolderName = "";
+    bool    ToastVisible  = false;
+    bool    ToastErr      = false;
+    string  ToastMsg      = "";
+    bool    IsDragOver    = false;
+    bool    LinkCopied    = false;
+    bool    Uploading     = false;
+    int     UploadPct     = 0;
+    int     UploadingCount = 0;
+
+    FileManagerService.FileItem? PreviewFile = null;
+    HashSet<string> SelIds = new();
+    CancellationTokenSource? _cts;
+
+    double TotalUsedMB => State.Drives.Sum(d => d.UsedMB);
+    double TotalCapMB  => State.Drives.Sum(d => d.TotalMB);
+    int    StoragePct  => TotalCapMB > 0 ? (int)Math.Min(100, TotalUsedMB / TotalCapMB * 100) : 0;
+
+    List<FileManagerService.FileItem> QuickAccess =>
+        State.Files.Where(f => !f.Deleted && f.FolderId == null).Take(5).ToList();
+
+    List<FileManagerService.FolderItem> FilteredFolders
+    {
+        get
+        {
+            var q = State.Folders.Where(f => f.ParentId == 0).AsEnumerable();
+            if (ActiveNav == "starred") q = q.Where(f => f.Starred);
+            if (!string.IsNullOrEmpty(GlobalSearch))
+                q = q.Where(f => f.Name.Contains(GlobalSearch, StringComparison.OrdinalIgnoreCase));
+            return q.ToList();
+        }
+    }
+
+    List<FileManagerService.FileItem> FilteredFiles
+    {
+        get
+        {
+            IEnumerable<FileManagerService.FileItem> q;
+            if (ActiveNav == "trash")
+                q = State.Files.Where(f => f.Deleted);
+            else
+                q = State.Files.Where(f => !f.Deleted && f.FolderId == null);
+
+            if (ActiveNav == "starred") q = q.Where(f => f.Starred);
+            else if (ActiveNav == "docs")  q = q.Where(f => f.Ext is "doc" or "docx" or "pdf" or "txt" or "md");
+            else if (ActiveNav == "media") q = q.Where(f => f.Ext is "jpg" or "jpeg" or "png" or "mp3" or "mp4" or "wav");
+
+            if (FileFilter != "all") q = q.Where(f => f.Ext == FileFilter);
+
+            var s = !string.IsNullOrEmpty(GlobalSearch) ? GlobalSearch : FileSearch;
+            if (!string.IsNullOrEmpty(s))
+                q = q.Where(f => f.Name.Contains(s, StringComparison.OrdinalIgnoreCase) ||
+                                  f.Ext.Contains(s, StringComparison.OrdinalIgnoreCase));
+
+            q = FileSort switch
+            {
+                "name-d" => q.OrderByDescending(f => f.Name),
+                "size"   => q.OrderBy(f => f.Size),
+                "size-d" => q.OrderByDescending(f => f.Size),
+                _        => q.OrderBy(f => f.Name)
+            };
+            return q.ToList();
+        }
+    }
+
+    List<FileManagerService.FileItem> PagedFiles(List<FileManagerService.FileItem> src)
+    {
+        int maxP = Math.Max(1, (int)Math.Ceiling((double)src.Count / PS));
+        if (FilePage > maxP) FilePage = maxP;
+        return src.Skip((FilePage - 1) * PS).Take(PS).ToList();
+    }
+
+    async Task OnFilesSelected(InputFileChangeEventArgs e)
+    {
+        var files = e.GetMultipleFiles(20).ToList();
+        if (!files.Any()) return;
+        IsDragOver = false; Uploading = true; UploadPct = 0; UploadingCount = files.Count;
+        StateHasChanged();
+        int nextId = State.NextFileId(); double totalNewMB = 0;
+        for (int i = 0; i < files.Count; i++)
+        {
+            var file = files[i];
+            try
+            {
+                using var ms = new System.IO.MemoryStream();
+                await file.OpenReadStream(50 * 1024 * 1024).CopyToAsync(ms);
+                var bytes  = ms.ToArray();
+                var ext    = System.IO.Path.GetExtension(file.Name).TrimStart('.').ToLower();
+                var mime   = string.IsNullOrEmpty(file.ContentType) ? GetMime(ext) : file.ContentType;
+                var sizeMB = Math.Round(file.Size / 1_048_576.0, 3);
+                var dataUrl = bytes.Length > 0 ? $"data:{mime};base64,{Convert.ToBase64String(bytes)}" : "";
+                string textContent = "";
+                if (IsTextExt(ext) && bytes.Length > 0)
+                    try { textContent = System.Text.Encoding.UTF8.GetString(bytes); } catch { }
+                State.Files.Add(new FileManagerService.FileItem
+                {
+                    Id = nextId++, Name = System.IO.Path.GetFileNameWithoutExtension(file.Name),
+                    Ext = ext, Size = sizeMB, Date = DateTime.Now.ToString("dd MMM yyyy"),
+                    FolderId = null, Items = 1, FileBytes = bytes,
+                    DataUrl = dataUrl, TextContent = textContent, MimeType = mime,
+                });
+                totalNewMB += sizeMB;
+            }
+            catch { ShowToast($"Cannot read: {file.Name}", true); }
+            UploadPct = (int)((i + 1.0) / files.Count * 100);
+            StateHasChanged();
+            await Task.Delay(120);
+        }
+        State.RecalcStorage(totalNewMB);
+        Uploading = false; StateHasChanged();
+        ShowToast($"{files.Count} file(s) uploaded successfully!");
+    }
+
+    async Task DownloadFile()
+    {
+        if (PreviewFile?.FileBytes == null || PreviewFile.FileBytes.Length == 0) return;
+        var name = $"{PreviewFile.Name}.{PreviewFile.Ext}";
+        await JS.InvokeVoidAsync("downloadFileFromBytes", name, PreviewFile.MimeType ?? GetMime(PreviewFile.Ext), PreviewFile.FileBytes);
+        ShowToast($"Downloading {name}");
+    }
+
+    async void CopyShare()
+    {
+        LinkCopied = true; StateHasChanged(); ShowToast("Share link copied!");
+        await Task.Delay(2000); LinkCopied = false; StateHasChanged();
+    }
+
+    void OpenPreview(FileManagerService.FileItem f) { PreviewFile = State.Files.FirstOrDefault(x => x.Id == f.Id); LinkCopied = false; }
+    void ClosePreview() => PreviewFile = null;
+    void SetNav(string key) { ActiveNav = key; FilePage = 1; ClearSel(); }
+    void ToggleSel(string key) { if (!SelIds.Remove(key)) SelIds.Add(key); }
+    void ClearSel() => SelIds.Clear();
+    void SelectAllFiles(List<FileManagerService.FileItem> rows) { foreach (var f in rows) SelIds.Add($"f-{f.Id}"); }
+
+    void DeleteSelected()
+    {
+        int n = SelIds.Count;
+        foreach (var key in SelIds.ToList())
+        {
+            var parts = key.Split('-');
+            if (parts.Length >= 2 && parts[0] == "f" && int.TryParse(parts[1], out int fid))
+                State.Files.RemoveAll(f => f.Id == fid);
+        }
+        SelIds.Clear(); State.RecalcStorage(0); ShowToast($"{n} item(s) deleted");
+    }
+
+    void DelFile(int id)
+    {
+        State.Files.RemoveAll(f => f.Id == id); SelIds.Remove($"f-{id}");
+        if (PreviewFile?.Id == id) PreviewFile = null;
+        State.RecalcStorage(0); ShowToast("File deleted");
+    }
+
+    void DelFolder(int id)
+    {
+        State.Folders.RemoveAll(f => f.Id == id);
+        State.Files.RemoveAll(f => f.FolderId == id);
+        State.RecalcStorage(0); ShowToast("Folder deleted");
+    }
+
+    void ToggleFileStar(int id)
+    {
+        var f = State.Files.FirstOrDefault(x => x.Id == id);
+        if (f != null) f.Starred = !f.Starred;
+        if (PreviewFile?.Id == id) PreviewFile = f;
+        State.RecalcStorage(0);
+    }
+
+    void OpenCreateModal() { ModalOpen = true; NewFolderName = ""; }
+    void CloseModal() => ModalOpen = false;
+    void OnModalKey(KeyboardEventArgs e) { if (e.Key == "Enter") CreateFolder(); }
+    void CreateFolder()
+    {
+        var name = NewFolderName.Trim();
+        if (string.IsNullOrEmpty(name)) { ShowToast("Enter a folder name", true); return; }
+        var colors = new[] { "#4f46e5","#ef4444","#10b981","#4f8ef7","#8b5cf6","#06b6d4","#f59e0b","#ec4899" };
+        State.Folders.Add(new FileManagerService.FolderItem
+        {
+            Id = State.NextFolderId(), Name = name, Size = 0, Total = 10,
+            Color = colors[new Random().Next(colors.Length)], ParentId = 0
+        });
+        ModalOpen = false; ShowToast($"Folder \"{name}\" created!");
+    }
+
+    static bool IsTextExt(string e) =>
+        e is "txt" or "csv" or "json" or "xml" or "md" or "log"
+          or "html" or "htm" or "css" or "js" or "ts" or "cs"
+          or "py" or "sql" or "yaml" or "yml" or "ini" or "env";
+
+    static string GetMime(string ext) => ext switch
+    {
+        "pdf"           => "application/pdf",
+        "jpg" or "jpeg" => "image/jpeg",
+        "png"           => "image/png",
+        "gif"           => "image/gif",
+        "webp"          => "image/webp",
+        "svg"           => "image/svg+xml",
+        "mp4"           => "video/mp4",
+        "webm"          => "video/webm",
+        "mp3"           => "audio/mpeg",
+        "wav"           => "audio/wav",
+        "txt"           => "text/plain",
+        "csv"           => "text/csv",
+        "html" or "htm" => "text/html",
+        "json"          => "application/json",
+        "xml"           => "application/xml",
+        _               => "application/octet-stream"
+    };
+
+    async void ShowToast(string msg, bool err = false)
+    {
+        _cts?.Cancel(); _cts = new CancellationTokenSource(); var token = _cts.Token;
+        ToastMsg = msg; ToastErr = err; ToastVisible = true; StateHasChanged();
+        try { await Task.Delay(3000, token); ToastVisible = false; StateHasChanged(); }
+        catch (TaskCanceledException) { }
+    }
+}

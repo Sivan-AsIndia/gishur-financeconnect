@@ -1,0 +1,331 @@
+@page "/tax-settlements"
+@namespace FinanceConnect.Client.Pages.Tax___Statutory.TaxSettlement
+
+@inject TaxSettlementService SettlementService
+@inject NavigationManager Nav
+@inject ToastService ToastService
+@inject IJSRuntime JS
+
+
+<style>
+    @@media(max-width:635px) {
+        .responsivefilter {
+            flex-wrap: wrap;
+        }
+    }
+</style>
+
+@if (!isInitialized)
+{
+    <div class="page-loading-overlay"><div class="whirly-loader"></div></div>
+}
+else
+{
+    @if (isLoading)
+    {
+        <div class="page-loading-overlay"><div class="whirly-loader"></div></div>
+    }
+
+    <div class="content List-view">
+        <div class="page-header">
+            <div class="add-item d-flex">
+                <div class="page-title">
+                    <h4 class="fw-bold">Tax Settlement</h4>
+                    <h6>Settlement / remittance documents for tax liabilities</h6>
+                </div>
+            </div>
+            <ul class="table-top-head me-2">
+                <li>
+                    <a href="javascript:void(0);" title="Refresh" @onclick="OnRefreshAsync">
+                        <i class="ti ti-refresh"></i>
+                    </a>
+                </li>
+            </ul>
+            <div class="page-btn">
+                <a href="/tax-settlements/create" class="btn btn-primary">
+                    <i class="ti ti-circle-plus me-1"></i>Create
+                </a>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-header d-flex align-items-end justify-content-between flex-wrap row-gap-3">
+                <div class="search-set">
+                    <div class="search-input">
+                        <span class="btn-searchset"><i class="ti ti-search fs-14"></i></span>
+                        <input type="search" class="form-control form-control-sm"
+                               placeholder="Search settlement no, challan, period..."
+                               @bind="searchText" @oninput="OnSearch" />
+                    </div>
+                </div>
+                <div style="display:flex;gap:10px;align-items:end;" class="responsivefilter">
+                    <select class="form-select form-select-sm" style="min-width:155px" @bind="SelectedType">
+                        <option value="">All Types</option>
+                        @foreach (var t in DistinctTypes)
+                        {
+                            <option value="@t">@FormatType(t)</option>
+                        }
+                    </select>
+                    <select class="form-select form-select-sm" style="min-width:130px" @bind="SelectedStatus">
+                        <option value="">All Status</option>
+                        @foreach (var s in DistinctStatuses)
+                        {
+                            <option value="@s">@s</option>
+                        }
+                    </select>
+                    <select class="form-select form-select-sm" style="min-width:110px" @bind="SelectedScope">
+                        <option value="">All Scope</option>
+                        @foreach (var s in DistinctScopes)
+                        {
+                            <option value="@s">@s</option>
+                        }
+                    </select>
+                </div>
+            </div>
+
+            <div class="card-body p-0">
+                <div>
+                    <table class="table align-middle w-100 table-fixed">
+                        <thead class="thead-light">
+                            <tr>
+                                <th class="d-xxl-none" style="width:40px"></th>
+                                <th style="width: 207px;">Settlement No</th>
+                                <th class="d-none d-md-table-cell">Type</th>
+                                <th class="d-none d-md-table-cell">Period</th>
+                                <th class="d-none d-xl-table-cell text-center">Scope</th>
+                                <th class="d-none d-md-table-cell text-center">Status</th>
+                                <th class="d-none d-xxl-table-cell">Settlement Amt</th>
+                                @* <th class="d-none d-xxl-table-cell">Challan</th> *@
+                                <th>Action</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @if (PagedItems.Any())
+                            {
+                                @foreach (var s in PagedItems)
+                                {
+                                    <tr>
+                                        <td class="d-xxl-none text-center" style="padding:0;padding-left:15px;">
+                                            <a href="javascript:void(0);" class="TablePlus"
+                                               data-bs-toggle="modal" data-bs-target="#rowModal"
+                                               @onclick="() => Select(s)">
+                                                <i class="ti ti-plus"></i>
+                                            </a>
+                                        </td>
+                                        <td class="fw-medium">
+                                            <span>
+                                                <i class="ti ti-external-link me-2 PopupIcon"></i>
+                                                <a href="/tax-settlements/@s.Id/view"
+                                                   class="text-decoration-none link-View"
+                                                   data-bs-toggle="tooltip"
+                                                   title="@s.SettlementNumber details">
+                                                    @s.SettlementNumber
+                                                </a>
+                                            </span>
+                                            <br /><small class="text-muted">@s.SettlementDate.ToString("dd-MMM-yy")</small>
+                                        </td>
+                                        <td class="d-none d-md-table-cell">
+                                            <span class="badge @GetTypeBadge(s.SettlementType)">@FormatType(s.SettlementType)</span>
+                                        </td>
+                                        <td class="d-none d-md-table-cell">@s.TaxPeriodKey</td>
+                                        <td class="d-none d-xl-table-cell text-center">
+                                            <span class="badge @GetScopeBadge(s.TaxTypeScope)">@s.TaxTypeScope</span>
+                                        </td>
+                                        <td class="d-none d-md-table-cell text-center">
+                                            <span class="badge @GetStatusBadge(s.SettlementStatus)" data-bs-placement="top"
+                                                  data-bs-toggle="tooltip" title="@s.SettlementStatus">
+                                                <i class="@GetStatusIcon(s.SettlementStatus)"></i>
+                                            </span>
+                                        </td>
+                                        <td class="d-none d-xxl-table-cell fw-medium text-end">
+                                            <div style="width: 94px;">
+                                                @s.TotalSettlementAmount.ToString("N2")
+                                          </div>
+                                        </td>
+                                        @* <td class="d-none d-xxl-table-cell">@(s.ChallanNumber ?? "—")</td> *@
+                                        <td class="action-table-data">
+                                            <div class="edit-delete-action">
+                                                @if (s.SettlementStatus == "Draft")
+                                                {
+                                                    <a class="me-2 edit-icon p-1" href="/tax-settlements/@s.Id" title="Edit">
+                                                        <i data-feather="edit"></i>
+                                                    </a>
+                                                    <a class="me-2 p-1 action-icon Reissue" href="javascript:void(0);"
+                                                       title="Submit" data-bs-toggle="modal" data-bs-target="#actModal"
+                                                       @onclick="@(() => OpenAction(s, "Submit"))">
+                                                        <i class="ti ti-send"></i>
+                                                    </a>
+                                                    <a class="p-1 delete-icon" href="javascript:void(0);"
+                                                       title="Delete" data-bs-toggle="modal" data-bs-target="#actModal"
+                                                       @onclick="@(() => OpenAction(s, "Delete"))">
+                                                        <i data-feather="trash-2"></i>
+                                                    </a>
+                                                }
+                                                @if (s.SettlementStatus == "Submitted")
+                                                {
+                                                    <a class="me-2 p-1 action-icon Reissue" href="javascript:void(0);"
+                                                       title="Approve" data-bs-toggle="modal" data-bs-target="#actModal"
+                                                       @onclick="@(() => OpenAction(s, "Approve"))">
+                                                        <i class="ti ti-check"></i>
+                                                    </a>
+                                                    <a class="me-2 p-1 action-icon Bounce" href="javascript:void(0);"
+                                                       title="Reject" data-bs-toggle="modal" data-bs-target="#actModal"
+                                                       @onclick="@(() => OpenAction(s, "Reject"))">
+                                                        <i class="ti ti-x"></i>
+                                                    </a>
+                                                }
+                                                @if (s.SettlementStatus == "Approved")
+                                                {
+                                                    <a class="me-2 p-1 action-icon Reissue" href="javascript:void(0);"
+                                                       title="Post" data-bs-toggle="modal" data-bs-target="#actModal"
+                                                       @onclick="@(() => OpenAction(s, "Post"))">
+                                                        <i class="ti ti-file-check"></i>
+                                                    </a>
+                                                }
+                                                @if (s.SettlementStatus == "Posted")
+                                                {
+                                                    <a class="me-2 p-1 action-icon Bounce" href="javascript:void(0);"
+                                                       title="Reverse" data-bs-toggle="modal" data-bs-target="#actModal"
+                                                       @onclick="@(() => OpenAction(s, "Reverse"))">
+                                                        <i class="ti ti-rotate"></i>
+                                                    </a>
+                                                    <a class="me-2 p-1 action-icon Reissue" href="javascript:void(0);"
+                                                       title="Close" data-bs-toggle="modal" data-bs-target="#actModal"
+                                                       @onclick="@(() => OpenAction(s, "Close"))">
+                                                        <i class="ti ti-lock"></i>
+                                                    </a>
+                                                }
+                                            </div>
+                                        </td>
+                                    </tr>
+                                }
+                            }
+                            else
+                            {
+                                <tr>
+                                    <td colspan="@VisibleColumnCount" class="text-center py-4">
+                                        <div class="text-muted">
+                                            <i class="ti ti-file-off fs-1"></i>
+                                            <p class="mt-2">No settlements found</p>
+                                        </div>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Pagination -->
+            <div class="d-flex align-items-center justify-content-between flex-wrap row-gap-3 px-3 pt-3 pb-4">
+                <div class="d-flex align-items-center">
+                    <span class="me-2">Rows per page:</span>
+                    <select class="form-select form-select-sm" style="width:auto" @onchange="OnPageSizeChange">
+                        <option value="5" selected="@(PageSize == 5)">5</option>
+                        <option value="10" selected="@(PageSize == 10)">10</option>
+                        <option value="25" selected="@(PageSize == 25)">25</option>
+                    </select>
+                    <span class="ms-3 text-muted">Entries</span>
+                </div>
+                <nav>
+                    <ul class="pagination pagination-sm mb-0">
+                        <li class="page-item @(CurrentPage == 1 ? "disabled" : "")">
+                            <a class="page-link" href="javascript:void(0);" @onclick="() => GoToPage(CurrentPage - 1)">
+                                <i class="ti ti-chevron-left"></i>
+                            </a>
+                        </li>
+                        @for (int i = 1; i <= TotalPages; i++)
+                        {
+                            var pageNum = i;
+                            <li class="page-item @(CurrentPage == pageNum ? "active" : "")">
+                                <a class="page-link" href="javascript:void(0);" @onclick="() => GoToPage(pageNum)">@pageNum</a>
+                            </li>
+                        }
+                        <li class="page-item @(CurrentPage == TotalPages ? "disabled" : "")">
+                            <a class="page-link" href="javascript:void(0);" @onclick="() => GoToPage(CurrentPage + 1)">
+                                <i class="ti ti-chevron-right"></i>
+                            </a>
+                        </li>
+                    </ul>
+                </nav>
+            </div>
+        </div>
+    </div>
+}
+
+<!-- Action Confirm Modal -->
+<div class="modal fade" id="actModal" data-bs-backdrop="static" data-bs-keyboard="false">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="page-wrapper-new p-0">
+                <div class="p-5 px-3 text-center">
+                    <span class="rounded-circle d-inline-flex p-2 @ActionBg mb-2">
+                        <i class="@ActionIcon fs-24 @ActionTxt"></i>
+                    </span>
+                    <h4 class="fs-20 fw-bold mb-2 mt-1">@ActionTitle</h4>
+                    <p class="text-gray-6 mb-0 fs-16">
+                        @ActionMsg <strong>@Selected?.SettlementNumber</strong>?
+                    </p>
+                    @if (NeedReason)
+                    {
+                        <div class="mt-3 text-start">
+                            <label class="form-label">Reason <span class="text-danger">*</span></label>
+                            <textarea class="form-control" rows="3" @bind="ActionReason"
+                                      placeholder="Enter reason..."></textarea>
+                        </div>
+                    }
+                    @if (ActionName == "Delete")
+                    {
+                        <div class="alert alert-danger mt-3 text-start small">
+                            <i class="ti ti-alert-triangle me-2"></i>This action cannot be undone.
+                        </div>
+                    }
+                    @if (ActionName == "Post")
+                    {
+                        <div class="alert alert-warning mt-3 text-start small">
+                            <i class="ti ti-alert-triangle me-2"></i>Once posted, the settlement cannot be edited.
+                        </div>
+                    }
+                    <div class="modal-footer-btn mt-4 d-flex justify-content-center gap-3">
+                        <button type="button" class="btn btn-outline-secondary fs-13 fw-medium p-2 px-4"
+                                data-bs-dismiss="modal">
+                            <i class="ti ti-x me-1"></i>Cancel
+                        </button>
+                        <button type="button" class="btn @ActionBtn fs-13 fw-medium p-2 px-4"
+                                @onclick="ConfirmAction" data-bs-dismiss="modal">
+                            <i class="ti ti-check me-1"></i>Confirm
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Row Details Modal (Mobile) -->
+<div class="modal fade list-Popup" id="rowModal" tabindex="-1"
+     aria-labelledby="rowModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="rowModalLabel">Settlement Details</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"
+                        style="padding:0;right:22px;position:absolute;transform:none;"></button>
+            </div>
+            <div class="modal-body">
+                @if (Selected != null)
+                {
+                    <div class="mb-2 d-flex gap-3"><strong>Settlement No:</strong><div>@Selected.SettlementNumber</div></div>
+                    <div class="mb-2 d-flex gap-3"><strong>Type:</strong><div><span class="badge @GetTypeBadge(Selected.SettlementType)">@FormatType(Selected.SettlementType)</span></div></div>
+                    <div class="mb-2 d-flex gap-3"><strong>Period:</strong><div>@Selected.TaxPeriodKey</div></div>
+                    <div class="mb-2 d-flex gap-3"><strong>Scope:</strong><div>@Selected.TaxTypeScope</div></div>
+                    <div class="mb-2 d-flex gap-3"><strong>Date:</strong><div>@Selected.SettlementDate.ToString("dd-MMM-yyyy")</div></div>
+                    <div class="mb-2 d-flex gap-3"><strong>Amount:</strong><div>@Selected.TotalSettlementAmount.ToString("N2")</div></div>
+                    <div class="mb-2 d-flex gap-3"><strong>Challan:</strong><div>@(Selected.ChallanNumber ?? "—")</div></div>
+                    <div class="mb-2 d-flex gap-3"><strong>Payment Mode:</strong><div>@Selected.PaymentMode</div></div>
+                    <div class="mb-2 d-flex gap-3"><strong>Status:</strong><div><span class="badge @GetStatusBadge(Selected.SettlementStatus)">@Selected.SettlementStatus</span></div></div>
+                }
+            </div>
+        </div>
+    </div>
+</div>

@@ -1,0 +1,690 @@
+﻿@page "/tds-config/create"
+@page "/tds-config/{Id:guid}/edit"
+@using FinanceConnect.Client.Services
+@using static FinanceConnect.Client.ViewModels.TDSConfigViewModel
+@inject IJSRuntime JS
+@inject ToastService ToastService
+
+<style>
+    .form-select option:checked { color:white; background-color:var(--primary); }
+    .validation-message { color:#dc3545; font-size:12px; }
+</style>
+
+<div class="content Accordion-form">
+    <div class="page-header">
+        <div class="add-item d-flex">
+            <div class="page-title">
+                <h4 class="fw-bold">@(IsEdit ? "Edit TDS Config" : "New TDS Config")</h4>
+                <h6>Section-wise withholding rule master · When, on what basis, at what rate</h6>
+            </div>
+        </div>
+        <div class="page-btn mt-0">
+            <button type="button" class="btn btn-outline-secondary" @onclick="Cancel">
+                <i class="ti ti-arrow-left"></i> Back
+            </button>
+        </div>
+    </div>
+
+    @if (!isInitialized)
+    {
+        <div class="page-loading-overlay"><div class="whirly-loader"></div></div>
+    }
+    else
+    {
+        @if (!string.IsNullOrEmpty(globalError))
+        {
+            <div class="alert alert-danger py-2 mb-3 d-flex align-items-center gap-2">
+                <i class="ti ti-alert-circle"></i> @globalError
+            </div>
+        }
+
+        <EditForm EditContext="_editContext" OnSubmit="HandleSubmit">
+            <DataAnnotationsValidator />
+
+            <div class="add-product" style="background:#f4f7fb; padding:24px 14px;">
+                <div class="tl-accordion">
+
+                    <!-- LEFT PANEL -->
+                    <div class="tl-left-panel">
+
+                        <div class="tl-label @(ShowGeneral ? "active accent-orange" : "")"
+                             @onclick="@(() => ToggleAccordion("general"))">
+                            <div class="tl-label-icon ico-orange"><i data-feather="info"></i></div>
+                            <div class="tl-label-text">
+                                <div class="tl-label-title">General</div>
+                                <div class="tl-label-sub">Code, name, section &amp; dates</div>
+                            </div>
+                            <span class="tl-label-chevron @(ShowGeneral ? "open" : "")"><i data-feather="chevron-right"></i></span>
+                        </div>
+
+                        <div class="tl-label @(ShowApplicability ? "active accent-blue" : "")"
+                             @onclick="@(() => ToggleAccordion("applicability"))">
+                            <div class="tl-label-icon ico-blue"><i data-feather="users"></i></div>
+                            <div class="tl-label-text">
+                                <div class="tl-label-title">Applicability</div>
+                                <div class="tl-label-sub">Party, vendor &amp; document scope</div>
+                            </div>
+                            <span class="tl-label-chevron @(ShowApplicability ? "open" : "")"><i data-feather="chevron-right"></i></span>
+                        </div>
+
+                        <div class="tl-label @(ShowThreshold ? "active accent-purple" : "")"
+                             @onclick="@(() => ToggleAccordion("threshold"))">
+                            <div class="tl-label-icon ico-purple"><i data-feather="sliders"></i></div>
+                            <div class="tl-label-text">
+                                <div class="tl-label-title">Threshold &amp; Trigger</div>
+                                <div class="tl-label-sub">Deduction basis &amp; threshold logic</div>
+                            </div>
+                            <span class="tl-label-chevron @(ShowThreshold ? "open" : "")"><i data-feather="chevron-right"></i></span>
+                        </div>
+
+                        <div class="tl-label @(ShowRate ? "active accent-green" : "")"
+                             @onclick="@(() => ToggleAccordion("rate"))">
+                            <div class="tl-label-icon ico-green"><i data-feather="percent"></i></div>
+                            <div class="tl-label-text">
+                                <div class="tl-label-title">Rate Behavior</div>
+                                <div class="tl-label-sub">TDS rate, PAN logic &amp; certificates</div>
+                            </div>
+                            <span class="tl-label-chevron @(ShowRate ? "open" : "")"><i data-feather="chevron-right"></i></span>
+                        </div>
+
+                        <div class="tl-label @(ShowAccounting ? "active accent-rose" : "")"
+                             @onclick="@(() => ToggleAccordion("accounting"))">
+                            <div class="tl-label-icon ico-rose"><i data-feather="book-open"></i></div>
+                            <div class="tl-label-text">
+                                <div class="tl-label-title">Accounting</div>
+                                <div class="tl-label-sub">GL mapping &amp; posting mode</div>
+                            </div>
+                            <span class="tl-label-chevron @(ShowAccounting ? "open" : "")"><i data-feather="chevron-right"></i></span>
+                        </div>
+
+                        <div class="tl-label @(ShowGovernance ? "active accent-teal" : "")"
+                             @onclick="@(() => ToggleAccordion("governance"))">
+                            <div class="tl-label-icon ico-teal"><i data-feather="shield"></i></div>
+                            <div class="tl-label-text">
+                                <div class="tl-label-title">Governance</div>
+                                <div class="tl-label-sub">Lock, compliance &amp; audit</div>
+                            </div>
+                            <span class="tl-label-chevron @(ShowGovernance ? "open" : "")"><i data-feather="chevron-right"></i></span>
+                        </div>
+
+                    </div>
+
+                    <!-- RIGHT AREA -->
+                    <div class="tl-right-area">
+
+                        <!-- ── 01 GENERAL ── -->
+                        <div class="tl-card-row @(ShowGeneral ? "row-active" : "")">
+                            <div class="tl-dot-col"><div class="tl-dot" @onclick="@(() => ToggleAccordion("general"))"></div></div>
+                            <div class="tl-card-col">
+                                <div class="tl-card @(ShowGeneral ? "card-active border-orange" : "")">
+                                    <div class="tl-card-header" @onclick="@(() => ToggleAccordion("general"))">
+                                        <div class="tl-card-header-title">
+                                            <span class="tl-card-step step-orange">01</span>
+                                            General — Core Identity &amp; Effective Period
+                                        </div>
+                                        <span class="tl-card-toggle @(ShowGeneral ? "toggle-open" : "")"><i data-feather="chevron-down"></i></span>
+                                    </div>
+                                    <div class="tl-collapse @(ShowGeneral ? "tl-open" : "")">
+                                        <div class="tl-card-body">
+                                            <div class="tl-card-body-inner">
+                                                <div class="row">
+                                                    <div class="col-sm-3 mb-3">
+                                                        <label class="form-label">Config Code <span class="text-danger ms-1">*</span></label>
+                                                        <input class="form-control text-uppercase"
+                                                               value="@Form.ConfigCode"
+                                                               @oninput="e => Form.ConfigCode = e.Value?.ToString() ?? string.Empty"
+                                                               placeholder="e.g. TDS-194C-01" maxlength="30" />
+                                                        <div class="form-text">Unique per company</div>
+                                                    </div>
+                                                    <div class="col-sm-5 mb-3">
+                                                        <label class="form-label">Config Name <span class="text-danger ms-1">*</span></label>
+                                                        <input class="form-control"
+                                                               value="@Form.ConfigName"
+                                                               @oninput="e => Form.ConfigName = e.Value?.ToString() ?? string.Empty"
+                                                               placeholder="e.g. TDS Section 194C – Contractors" maxlength="150" />
+                                                    </div>
+                                                    <div class="col-sm-2 mb-3">
+                                                        <label class="form-label">Status <span class="text-danger ms-1">*</span></label>
+                                                        <select class="form-select"
+                                                                value="@Form.ConfigStatus"
+                                                                @onchange="e => { var s = e.Value?.ToString(); Form.ConfigStatus = Enum.Parse<ConfigStatus>(string.IsNullOrEmpty(s) ? nameof(ConfigStatus.Active) : s); }">
+                                                            <option value="Active">Active</option>
+                                                            <option value="Inactive">Inactive</option>
+                                                            <option value="Archived">Archived</option>
+                                                        </select>
+                                                    </div>
+                                                    <div class="col-sm-2 mb-3">
+                                                        <label class="form-label">Priority <span class="text-danger ms-1">*</span></label>
+                                                        <input type="number" class="form-control" min="1"
+                                                               value="@Form.Priority"
+                                                               @oninput="e => { if(int.TryParse(e.Value?.ToString(), out var v)) Form.Priority = v; }" />
+                                                        <div class="form-text">Lower = higher</div>
+                                                    </div>
+                                                    <div class="col-sm-3 mb-3">
+                                                        <label class="form-label">TDS Section <span class="text-danger ms-1">*</span></label>
+                                                        <input class="form-control"
+                                                               value="@Form.SectionCode"
+                                                               @oninput="e => Form.SectionCode = e.Value?.ToString() ?? string.Empty"
+                                                               placeholder="e.g. 194C, 194J, 194H" maxlength="20" />
+                                                        <div class="form-text">Income Tax Act section</div>
+                                                    </div>
+                                                    <div class="col-sm-3 mb-3">
+                                                        <label class="form-label">Effective From <span class="text-danger ms-1">*</span></label>
+                                                        <input type="date" class="form-control"
+                                                               value="@Form.EffectiveFrom.ToString("yyyy-MM-dd")"
+                                                               @onchange="e => { if(DateTime.TryParse(e.Value?.ToString(), out var d)) Form.EffectiveFrom = d; }" />
+                                                    </div>
+                                                    <div class="col-sm-3 mb-3">
+                                                        <label class="form-label">Effective To</label>
+                                                        <input type="date" class="form-control"
+                                                               value="@Form.EffectiveTo?.ToString("yyyy-MM-dd")"
+                                                               @onchange="e => { var s = e.Value?.ToString(); Form.EffectiveTo = string.IsNullOrEmpty(s) ? null : DateTime.Parse(s); }" />
+                                                        <div class="form-text">Leave blank for open-ended</div>
+                                                    </div>
+                                                    <div class="col-sm-12 mb-3">
+                                                        <label class="form-label">Description</label>
+                                                        <textarea class="form-control" rows="2" maxlength="500"
+                                                                  placeholder="Optional description or policy note"
+                                                                  @bind="Form.Description"></textarea>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- ── 02 APPLICABILITY ── -->
+                        <div class="tl-card-row @(ShowApplicability ? "row-active" : "")">
+                            <div class="tl-dot-col"><div class="tl-dot" @onclick="@(() => ToggleAccordion("applicability"))"></div></div>
+                            <div class="tl-card-col">
+                                <div class="tl-card @(ShowApplicability ? "card-active border-blue" : "")">
+                                    <div class="tl-card-header" @onclick="@(() => ToggleAccordion("applicability"))">
+                                        <div class="tl-card-header-title">
+                                            <span class="tl-card-step step-blue">02</span>
+                                            Applicability — Party, Vendor &amp; Document Scope
+                                        </div>
+                                        <span class="tl-card-toggle @(ShowApplicability ? "toggle-open" : "")"><i data-feather="chevron-down"></i></span>
+                                    </div>
+                                    <div class="tl-collapse @(ShowApplicability ? "tl-open" : "")">
+                                        <div class="tl-card-body">
+                                            <div class="tl-card-body-inner">
+                                                <div class="row">
+                                                    <div class="col-sm-3 mb-3">
+                                                        <label class="form-label">Party Applicability <span class="text-danger ms-1">*</span></label>
+                                                        <select class="form-select"
+                                                                value="@Form.PartyApplicability"
+                                                                @onchange="e => { var s = e.Value?.ToString(); Form.PartyApplicability = Enum.Parse<PartyApplicability>(string.IsNullOrEmpty(s) ? nameof(PartyApplicability.Both) : s); }">
+                                                            <option value="ResidentOnly">Resident Only</option>
+                                                            <option value="NonResidentOnly">Non-Resident Only</option>
+                                                            <option value="Both">Both</option>
+                                                        </select>
+                                                    </div>
+                                                    <div class="col-sm-3 mb-3">
+                                                        <label class="form-label">Vendor Type Filter</label>
+                                                        <select class="form-select"
+                                                                value="@Form.VendorTypeFilter"
+                                                                @onchange="e => { var s = e.Value?.ToString(); Form.VendorTypeFilter = Enum.Parse<VendorTypeFilter>(string.IsNullOrEmpty(s) ? nameof(VendorTypeFilter.Any) : s); }">
+                                                            <option value="Any">Any</option>
+                                                            <option value="Contractor">Contractor</option>
+                                                            <option value="Professional">Professional</option>
+                                                            <option value="CommissionAgent">Commission Agent</option>
+                                                            <option value="RentPayee">Rent Payee</option>
+                                                            <option value="Other">Other</option>
+                                                        </select>
+                                                    </div>
+                                                    <div class="col-sm-3 mb-3">
+                                                        <label class="form-label">Expense Nature Filter</label>
+                                                        <select class="form-select"
+                                                                value="@Form.ExpenseNatureFilter"
+                                                                @onchange="e => { var s = e.Value?.ToString(); Form.ExpenseNatureFilter = Enum.Parse<ExpenseNatureFilter>(string.IsNullOrEmpty(s) ? nameof(ExpenseNatureFilter.Any) : s); }">
+                                                            <option value="Any">Any</option>
+                                                            <option value="Contract">Contract</option>
+                                                            <option value="ProfessionalFee">Professional Fee</option>
+                                                            <option value="Rent">Rent</option>
+                                                            <option value="Commission">Commission</option>
+                                                            <option value="Interest">Interest</option>
+                                                            <option value="Other">Other</option>
+                                                        </select>
+                                                    </div>
+                                                    <div class="col-sm-3 mb-3">
+                                                        <label class="form-label">AP Document Context <span class="text-danger ms-1">*</span></label>
+                                                        <select class="form-select"
+                                                                value="@Form.APDocumentContext"
+                                                                @onchange="e => { var s = e.Value?.ToString(); Form.APDocumentContext = Enum.Parse<APDocumentContext>(string.IsNullOrEmpty(s) ? nameof(APDocumentContext.Both) : s); }">
+                                                            <option value="VendorBill">Vendor Bill</option>
+                                                            <option value="VendorPayment">Vendor Payment</option>
+                                                            <option value="Both">Both</option>
+                                                        </select>
+                                                        <div class="form-text">Where TDS evaluation is triggered</div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- ── 03 THRESHOLD & TRIGGER ── -->
+                        <div class="tl-card-row @(ShowThreshold ? "row-active" : "")">
+                            <div class="tl-dot-col"><div class="tl-dot" @onclick="@(() => ToggleAccordion("threshold"))"></div></div>
+                            <div class="tl-card-col">
+                                <div class="tl-card @(ShowThreshold ? "card-active border-purple" : "")">
+                                    <div class="tl-card-header" @onclick="@(() => ToggleAccordion("threshold"))">
+                                        <div class="tl-card-header-title">
+                                            <span class="tl-card-step step-purple">03</span>
+                                            Threshold &amp; Trigger — Deduction Basis
+                                        </div>
+                                        <span class="tl-card-toggle @(ShowThreshold ? "toggle-open" : "")"><i data-feather="chevron-down"></i></span>
+                                    </div>
+                                    <div class="tl-collapse @(ShowThreshold ? "tl-open" : "")">
+                                        <div class="tl-card-body">
+                                            <div class="tl-card-body-inner">
+                                                <div class="row">
+                                                    <div class="col-sm-4 mb-3">
+                                                        <label class="form-label">Deduction Trigger Basis <span class="text-danger ms-1">*</span></label>
+                                                        <select class="form-select"
+                                                                value="@Form.DeductionTriggerBasis"
+                                                                @onchange="e => { var s = e.Value?.ToString(); Form.DeductionTriggerBasis = Enum.Parse<DeductionTriggerBasis>(string.IsNullOrEmpty(s) ? nameof(DeductionTriggerBasis.OnPayment) : s); }">
+                                                            <option value="OnInvoiceBooking">On Invoice Booking</option>
+                                                            <option value="OnPayment">On Payment</option>
+                                                            <option value="OnBookingOrPaymentWhicheverEarlier">Whichever Earlier</option>
+                                                        </select>
+                                                    </div>
+                                                    <div class="col-sm-4 mb-3">
+                                                        <label class="form-label">Base Amount Mode <span class="text-danger ms-1">*</span></label>
+                                                        <select class="form-select"
+                                                                value="@Form.BaseAmountMode"
+                                                                @onchange="e => { var s = e.Value?.ToString(); Form.BaseAmountMode = Enum.Parse<BaseAmountMode>(string.IsNullOrEmpty(s) ? nameof(BaseAmountMode.TaxableAmountExcludingGST) : s); }">
+                                                            <option value="GrossBillAmount">Gross Bill Amount</option>
+                                                            <option value="TaxableAmountExcludingGST">Taxable Amount (excl. GST)</option>
+                                                            <option value="NetPayableBase">Net Payable Base</option>
+                                                        </select>
+                                                        <div class="form-text">TDS calculation base</div>
+                                                    </div>
+                                                    <div class="col-sm-2 mb-3">
+                                                        <label class="form-label">Apply on Advance?</label>
+                                                        <div class="form-check form-switch mt-2">
+                                                            <input class="form-check-input" type="checkbox" id="applyAdvance"
+                                                                   checked="@Form.ApplyOnAdvancePayments"
+                                                                   @onchange="e => Form.ApplyOnAdvancePayments = (bool)(e.Value ?? true)" />
+                                                            <label class="form-check-label" for="applyAdvance">
+                                                                @(Form.ApplyOnAdvancePayments ? "Yes" : "No")
+                                                            </label>
+                                                        </div>
+                                                    </div>
+                                                    <div class="col-sm-2 mb-3">
+                                                        <label class="form-label">Apply on Credit Notes?</label>
+                                                        <div class="form-check form-switch mt-2">
+                                                            <input class="form-check-input" type="checkbox" id="applyCN"
+                                                                   checked="@Form.ApplyOnCreditNotes"
+                                                                   @onchange="e => Form.ApplyOnCreditNotes = (bool)(e.Value ?? false)" />
+                                                            <label class="form-check-label" for="applyCN">
+                                                                @(Form.ApplyOnCreditNotes ? "Yes" : "No")
+                                                            </label>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                <hr style="border-top:1px dashed #e5e7eb;margin:12px 0;" />
+                                                <div class="row">
+                                                    <div class="col-sm-4 mb-3">
+                                                        <label class="form-label">Threshold Evaluation Mode <span class="text-danger ms-1">*</span></label>
+                                                        <select class="form-select"
+                                                                value="@Form.ThresholdEvaluationMode"
+                                                                @onchange="e => { var s = e.Value?.ToString(); Form.ThresholdEvaluationMode = Enum.Parse<ThresholdEvaluationMode>(string.IsNullOrEmpty(s) ? nameof(ThresholdEvaluationMode.NoThreshold) : s); }">
+                                                            <option value="NoThreshold">No Threshold — Always Deduct</option>
+                                                            <option value="PerTransaction">Per Transaction</option>
+                                                            <option value="CumulativeByVendorInFinancialYear">Cumulative – Financial Year</option>
+                                                            <option value="CumulativeByVendorInPeriod">Cumulative – Period</option>
+                                                        </select>
+                                                    </div>
+                                                    @if (Form.ThresholdEvaluationMode != ThresholdEvaluationMode.NoThreshold)
+                                                    {
+                                                        <div class="col-sm-3 mb-3">
+                                                            <label class="form-label">Threshold Amount <span class="text-danger ms-1">*</span></label>
+                                                            <div class="input-group">
+                                                                <span class="input-group-text">₹</span>
+                                                                <input type="number" class="form-control" min="0" step="1"
+                                                                       value="@Form.ThresholdAmount"
+                                                                       @oninput="e => Form.ThresholdAmount = decimal.TryParse(e.Value?.ToString(), out var v) ? v : null"
+                                                                       placeholder="e.g. 30000" />
+                                                            </div>
+                                                        </div>
+                                                        @if (Form.ThresholdEvaluationMode == ThresholdEvaluationMode.CumulativeByVendorInFinancialYear ||
+                                                             Form.ThresholdEvaluationMode == ThresholdEvaluationMode.CumulativeByVendorInPeriod)
+                                                        {
+                                                            <div class="col-sm-3 mb-3">
+                                                                <label class="form-label">Threshold Reset Basis <span class="text-danger ms-1">*</span></label>
+                                                                <select class="form-select"
+                                                                        value="@Form.ThresholdResetBasis"
+                                                                        @onchange="e => { var s = e.Value?.ToString(); Form.ThresholdResetBasis = string.IsNullOrEmpty(s) ? null : Enum.Parse<ThresholdResetBasis>(s); }">
+                                                                    <option value="">— Select —</option>
+                                                                    <option value="FinancialYear">Financial Year</option>
+                                                                    <option value="ReturnPeriod">Return Period</option>
+                                                                    <option value="Never">Never</option>
+                                                                </select>
+                                                            </div>
+                                                        }
+                                                        <div class="col-sm-2 mb-3">
+                                                            <label class="form-label">Apply Only Above Threshold?</label>
+                                                            <div class="form-check form-switch mt-2">
+                                                                <input class="form-check-input" type="checkbox" id="onlyAbove"
+                                                                       checked="@Form.ApplyOnlyAboveThreshold"
+                                                                       @onchange="e => Form.ApplyOnlyAboveThreshold = (bool)(e.Value ?? true)" />
+                                                                <label class="form-check-label" for="onlyAbove">
+                                                                    @(Form.ApplyOnlyAboveThreshold ? "Yes" : "No")
+                                                                </label>
+                                                            </div>
+                                                        </div>
+                                                        <div class="col-sm-3 mb-3">
+                                                            <label class="form-label">Deduct on Full Amount Once Crossed?</label>
+                                                            <div class="form-check form-switch mt-2">
+                                                                <input class="form-check-input" type="checkbox" id="fullAmtCrossed"
+                                                                       checked="@Form.DeductOnFullAmountOnceThresholdCrossed"
+                                                                       @onchange="e => Form.DeductOnFullAmountOnceThresholdCrossed = (bool)(e.Value ?? false)" />
+                                                                <label class="form-check-label" for="fullAmtCrossed">
+                                                                    @(Form.DeductOnFullAmountOnceThresholdCrossed ? "Yes – Full Amount" : "No – Excess Only")
+                                                                </label>
+                                                            </div>
+                                                        </div>
+                                                    }
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- ── 04 RATE BEHAVIOR ── -->
+                        <div class="tl-card-row @(ShowRate ? "row-active" : "")">
+                            <div class="tl-dot-col"><div class="tl-dot" @onclick="@(() => ToggleAccordion("rate"))"></div></div>
+                            <div class="tl-card-col">
+                                <div class="tl-card @(ShowRate ? "card-active border-green" : "")">
+                                    <div class="tl-card-header" @onclick="@(() => ToggleAccordion("rate"))">
+                                        <div class="tl-card-header-title">
+                                            <span class="tl-card-step step-green">04</span>
+                                            Rate Behavior — TDS Rate &amp; PAN Logic
+                                        </div>
+                                        <span class="tl-card-toggle @(ShowRate ? "toggle-open" : "")"><i data-feather="chevron-down"></i></span>
+                                    </div>
+                                    <div class="tl-collapse @(ShowRate ? "tl-open" : "")">
+                                        <div class="tl-card-body">
+                                            <div class="tl-card-body-inner">
+                                                <div class="row">
+                                                    <div class="col-sm-4 mb-3">
+                                                        <label class="form-label">Primary Tax Code <span class="text-danger ms-1">*</span></label>
+                                                        <input class="form-control"
+                                                               value="@Form.PrimaryTaxCodeDisplay"
+                                                               @oninput="e => Form.PrimaryTaxCodeDisplay = e.Value?.ToString() ?? string.Empty"
+                                                               placeholder="Select TDS tax code" />
+                                                        <div class="form-text">Must be TaxType = TDS</div>
+                                                    </div>
+                                                    <div class="col-sm-3 mb-3">
+                                                        <label class="form-label">Rate Source Mode <span class="text-danger ms-1">*</span></label>
+                                                        <select class="form-select"
+                                                                value="@Form.RateSourceMode"
+                                                                @onchange="e => { var s = e.Value?.ToString(); Form.RateSourceMode = Enum.Parse<TDSRateSourceMode>(string.IsNullOrEmpty(s) ? nameof(TDSRateSourceMode.FromTaxRateVersion) : s); }">
+                                                            <option value="FromTaxRateVersion">From Tax Rate Version</option>
+                                                            <option value="FixedRateOnConfig">Fixed Rate on Config</option>
+                                                        </select>
+                                                    </div>
+                                                    @if (Form.RateSourceMode == TDSRateSourceMode.FixedRateOnConfig)
+                                                    {
+                                                        <div class="col-sm-2 mb-3">
+                                                            <label class="form-label">Default Rate % <span class="text-danger ms-1">*</span></label>
+                                                            <div class="input-group">
+                                                                <input type="number" class="form-control" min="0" max="100" step="0.001"
+                                                                       value="@Form.DefaultRatePercent"
+                                                                       @oninput="e => Form.DefaultRatePercent = decimal.TryParse(e.Value?.ToString(), out var v) ? v : null"
+                                                                       placeholder="e.g. 2" />
+                                                                <span class="input-group-text">%</span>
+                                                            </div>
+                                                        </div>
+                                                    }
+                                                    <div class="col-sm-3 mb-3">
+                                                        <label class="form-label">PAN Validation Mode</label>
+                                                        <select class="form-select"
+                                                                value="@Form.PanValidationMode"
+                                                                @onchange="e => { var s = e.Value?.ToString(); Form.PanValidationMode = Enum.Parse<PanValidationMode>(string.IsNullOrEmpty(s) ? nameof(PanValidationMode.PresenceOnly) : s); }">
+                                                            <option value="NotRequired">Not Required</option>
+                                                            <option value="PresenceOnly">Presence Only</option>
+                                                            <option value="PresenceAndFormat">Presence &amp; Format</option>
+                                                        </select>
+                                                    </div>
+                                                </div>
+                                                <hr style="border-top:1px dashed #e5e7eb;margin:12px 0;" />
+                                                <div class="row">
+                                                    <div class="col-sm-3 mb-3">
+                                                        <label class="form-label">Require PAN for Standard Rate?</label>
+                                                        <div class="form-check form-switch mt-2">
+                                                            <input class="form-check-input" type="checkbox" id="requirePan"
+                                                                   checked="@Form.RequirePANForStandardRate"
+                                                                   @onchange="e => Form.RequirePANForStandardRate = (bool)(e.Value ?? false)" />
+                                                            <label class="form-check-label" for="requirePan">
+                                                                @(Form.RequirePANForStandardRate ? "Yes — PAN mandatory" : "No")
+                                                            </label>
+                                                        </div>
+                                                    </div>
+                                                    @if (Form.RequirePANForStandardRate)
+                                                    {
+                                                        <div class="col-sm-3 mb-3">
+                                                            <label class="form-label">Alternate Rate if PAN Missing <span class="text-danger ms-1">*</span></label>
+                                                            <div class="input-group">
+                                                                <input type="number" class="form-control" min="0" max="100" step="0.001"
+                                                                       value="@Form.AlternateRateIfPANMissing"
+                                                                       @oninput="e => Form.AlternateRateIfPANMissing = decimal.TryParse(e.Value?.ToString(), out var v) ? v : null"
+                                                                       placeholder="e.g. 20" />
+                                                                <span class="input-group-text">%</span>
+                                                            </div>
+                                                            <div class="form-text">Usually 20% per IT Act</div>
+                                                        </div>
+                                                    }
+                                                    <div class="col-sm-2 mb-3">
+                                                        <label class="form-label">Allow Lower Deduction Cert?</label>
+                                                        <div class="form-check form-switch mt-2">
+                                                            <input class="form-check-input" type="checkbox" id="lowerCert"
+                                                                   checked="@Form.AllowLowerDeductionCertificate"
+                                                                   @onchange="e => Form.AllowLowerDeductionCertificate = (bool)(e.Value ?? false)" />
+                                                            <label class="form-check-label" for="lowerCert">
+                                                                @(Form.AllowLowerDeductionCertificate ? "Yes" : "No")
+                                                            </label>
+                                                        </div>
+                                                        <div class="form-text text-muted">Future-ready</div>
+                                                    </div>
+                                                    <div class="col-sm-2 mb-3">
+                                                        <label class="form-label">Allow Nil Deduction Cert?</label>
+                                                        <div class="form-check form-switch mt-2">
+                                                            <input class="form-check-input" type="checkbox" id="nilCert"
+                                                                   checked="@Form.AllowNilDeductionCertificate"
+                                                                   @onchange="e => Form.AllowNilDeductionCertificate = (bool)(e.Value ?? false)" />
+                                                            <label class="form-check-label" for="nilCert">
+                                                                @(Form.AllowNilDeductionCertificate ? "Yes" : "No")
+                                                            </label>
+                                                        </div>
+                                                        <div class="form-text text-muted">Future-ready</div>
+                                                    </div>
+                                                    <div class="col-sm-2 mb-3">
+                                                        <label class="form-label">Min Deduction Amount</label>
+                                                        <div class="input-group">
+                                                            <span class="input-group-text">₹</span>
+                                                            <input type="number" class="form-control" min="0"
+                                                                   value="@Form.MinimumDeductionAmount"
+                                                                   @oninput="e => Form.MinimumDeductionAmount = decimal.TryParse(e.Value?.ToString(), out var v) ? v : null"
+                                                                   placeholder="Optional" />
+                                                        </div>
+                                                    </div>
+                                                    <div class="col-sm-2 mb-3">
+                                                        <label class="form-label">Max Deduction Amount</label>
+                                                        <div class="input-group">
+                                                            <span class="input-group-text">₹</span>
+                                                            <input type="number" class="form-control" min="0"
+                                                                   value="@Form.MaximumDeductionAmount"
+                                                                   @oninput="e => Form.MaximumDeductionAmount = decimal.TryParse(e.Value?.ToString(), out var v) ? v : null"
+                                                                   placeholder="Optional" />
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- ── 05 ACCOUNTING ── -->
+                        <div class="tl-card-row @(ShowAccounting ? "row-active" : "")">
+                            <div class="tl-dot-col"><div class="tl-dot" @onclick="@(() => ToggleAccordion("accounting"))"></div></div>
+                            <div class="tl-card-col">
+                                <div class="tl-card @(ShowAccounting ? "card-active border-rose" : "")">
+                                    <div class="tl-card-header" @onclick="@(() => ToggleAccordion("accounting"))">
+                                        <div class="tl-card-header-title">
+                                            <span class="tl-card-step step-rose">05</span>
+                                            Accounting — GL Mapping &amp; Posting Mode
+                                        </div>
+                                        <span class="tl-card-toggle @(ShowAccounting ? "toggle-open" : "")"><i data-feather="chevron-down"></i></span>
+                                    </div>
+                                    <div class="tl-collapse @(ShowAccounting ? "tl-open" : "")">
+                                        <div class="tl-card-body">
+                                            <div class="tl-card-body-inner">
+                                                <div class="row">
+                                                    <div class="col-sm-5 mb-3">
+                                                        <label class="form-label">TDS Payable GL Account <span class="text-danger ms-1">*</span></label>
+                                                        <input class="form-control"
+                                                               value="@Form.TDSPayableGLAccountDisplay"
+                                                               @oninput="e => Form.TDSPayableGLAccountDisplay = e.Value?.ToString() ?? string.Empty"
+                                                               placeholder="Select TDS payable liability GL" />
+                                                        <div class="form-text">Liability ledger for deducted TDS</div>
+                                                    </div>
+                                                    <div class="col-sm-3 mb-3">
+                                                        <label class="form-label">Allow GL Override by Posting Rule?</label>
+                                                        <div class="form-check form-switch mt-2">
+                                                            <input class="form-check-input" type="checkbox" id="glOverride"
+                                                                   checked="@Form.AllowGLOverrideByPostingRule"
+                                                                   @onchange="e => Form.AllowGLOverrideByPostingRule = (bool)(e.Value ?? true)" />
+                                                            <label class="form-check-label" for="glOverride">
+                                                                @(Form.AllowGLOverrideByPostingRule ? "Yes" : "No")
+                                                            </label>
+                                                        </div>
+                                                    </div>
+                                                    <div class="col-sm-4 mb-3">
+                                                        <label class="form-label">Settlement Category Tag</label>
+                                                        <input class="form-control"
+                                                               value="@Form.SettlementCategoryTag"
+                                                               @oninput="e => Form.SettlementCategoryTag = e.Value?.ToString()"
+                                                               placeholder="e.g. TDS_194C_MONTHLY" maxlength="50" />
+                                                        <div class="form-text">Helps TaxSettlement group remittances</div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- ── 06 GOVERNANCE ── -->
+                        <div class="tl-card-row @(ShowGovernance ? "row-active" : "")">
+                            <div class="tl-dot-col"><div class="tl-dot" @onclick="@(() => ToggleAccordion("governance"))"></div></div>
+                            <div class="tl-card-col">
+                                <div class="tl-card @(ShowGovernance ? "card-active border-teal" : "")">
+                                    <div class="tl-card-header" @onclick="@(() => ToggleAccordion("governance"))">
+                                        <div class="tl-card-header-title">
+                                            <span class="tl-card-step step-teal">06</span>
+                                            Governance &amp; Compliance
+                                        </div>
+                                        <span class="tl-card-toggle @(ShowGovernance ? "toggle-open" : "")"><i data-feather="chevron-down"></i></span>
+                                    </div>
+                                    <div class="tl-collapse @(ShowGovernance ? "tl-open" : "")">
+                                        <div class="tl-card-body">
+                                            <div class="tl-card-body-inner">
+                                                <div class="row">
+                                                    <div class="col-sm-3 mb-3">
+                                                        <label class="form-label">Lock for Changes</label>
+                                                        <div class="form-check form-switch mt-2">
+                                                            <input class="form-check-input" type="checkbox" id="lockChk"
+                                                                   checked="@Form.IsLockedForChanges"
+                                                                   @onchange="e => Form.IsLockedForChanges = (bool)(e.Value ?? false)" />
+                                                            <label class="form-check-label" for="lockChk">
+                                                                @(Form.IsLockedForChanges ? "🔒 Locked" : "🔓 Unlocked")
+                                                            </label>
+                                                        </div>
+                                                        <div class="form-text">Controller only</div>
+                                                    </div>
+                                                    @if (Form.IsLockedForChanges)
+                                                    {
+                                                        <div class="col-sm-5 mb-3">
+                                                            <label class="form-label">Lock Reason <span class="text-danger ms-1">*</span></label>
+                                                            <input class="form-control @(Form.IsLockedForChanges && string.IsNullOrWhiteSpace(Form.LockReason) ? "is-invalid" : "")"
+                                                                   value="@Form.LockReason"
+                                                                   @oninput="e => Form.LockReason = e.Value?.ToString()"
+                                                                   maxlength="300" placeholder="Reason for locking this config..." />
+                                                            @if (Form.IsLockedForChanges && string.IsNullOrWhiteSpace(Form.LockReason))
+                                                            {
+                                                                <div class="invalid-feedback d-block">Lock reason is required.</div>
+                                                            }
+                                                        </div>
+                                                    }
+                                                    <div class="col-sm-4 mb-3">
+                                                        <label class="form-label">Return Reporting Tag</label>
+                                                        <input class="form-control"
+                                                               value="@Form.ReturnReportingTag"
+                                                               @oninput="e => Form.ReturnReportingTag = e.Value?.ToString()"
+                                                               placeholder="e.g. 26Q_194C" maxlength="50" />
+                                                        <div class="form-text">For TDS return filing batches</div>
+                                                    </div>
+                                                    <div class="col-sm-12 mb-3">
+                                                        <label class="form-label">Legal Reference Note</label>
+                                                        <textarea class="form-control" rows="2" maxlength="500"
+                                                                  placeholder="Optional legal interpretation note or circular reference"
+                                                                  @bind="Form.LegalReferenceNote"></textarea>
+                                                    </div>
+                                                    @if (IsEdit)
+                                                    {
+                                                        <div class="col-sm-12">
+                                                            <div class="card" style="background:#f8f9fa;">
+                                                                <div class="card-body py-2">
+                                                                    <div class="row text-muted" style="font-size:12px;">
+                                                                        <div class="col-md-3">
+                                                                            <small class="d-block fw-bold">Created At</small>
+                                                                            <div>@Form.CreatedAt.ToString("dd MMM yyyy HH:mm")</div>
+                                                                        </div>
+                                                                        <div class="col-md-3">
+                                                                            <small class="d-block fw-bold">Created By</small>
+                                                                            <div>@(Form.CreatedBy ?? "—")</div>
+                                                                        </div>
+                                                                        <div class="col-md-3">
+                                                                            <small class="d-block fw-bold">Updated At</small>
+                                                                            <div>@(Form.UpdatedAt.HasValue ? Form.UpdatedAt.Value.ToString("dd MMM yyyy HH:mm") : "—")</div>
+                                                                        </div>
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    }
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                    </div>
+                </div>
+
+                <div class="page-btn d-flex justify-content-end gap-2">
+                    <button type="button" class="btn btn-outline-secondary" @onclick="Cancel">
+                        <i class="ti ti-x"></i> Cancel
+                    </button>
+                    <button type="submit" class="btn btn-primary" disabled="@isSaving">
+                        @if (isSaving) { <span class="spinner-border spinner-border-sm me-1"></span> }
+                        <i class="ti ti-device-floppy"></i> @(IsEdit ? "Update" : "Save")
+                    </button>
+                </div>
+            </div>
+        </EditForm>
+    }
+</div>

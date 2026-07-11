@@ -1,0 +1,526 @@
+﻿@page "/tax-codes/create"
+@page "/tax-codes/edit/{Id:guid}"
+@using TC = FinanceConnect.Client.ViewModels.TaxCodeViewModel
+
+<style>
+    .form-select option:checked {
+        color: white;
+        background-color: var(--primary);
+    }
+    .validation-message {
+        color: #dc3545;
+        font-size: 12px;
+    }
+    .section-card {
+        background: #f8f9fa42;
+        border-left: 3px solid #e9ecef;
+        padding: 12px 16px;
+        border-radius: 4px;
+    }
+    .gst-card {
+        background: #d1e7dd3a;
+        border-left: 3px solid #198754;
+    }
+    .tds-card {
+        background: #fff3cd3a;
+        border-left: 3px solid #ffc107;
+    }
+    .tcs-card {
+        background: #cff4fc3a;
+        border-left: 3px solid #0dcaf0;
+    }
+</style>
+
+@if (!isInitialized)
+{
+    <div class="page-loading-overlay">
+        <div class="whirly-loader"></div>
+    </div>
+}
+else
+{
+    <div class="content form-wizard">
+        <div class="page-header">
+            <div class="add-item d-flex">
+                <div class="page-title">
+                    <h4 class="fw-bold">@PageTitle</h4>
+                    <h6>@PageSubTitle</h6>
+                </div>
+            </div>
+            <div class="d-flex page-btn mt-0 gap-2">
+                @if (IsEdit)
+                {
+                    <button type="button" class="btn btn-primary" @onclick="Save">
+                        <i class="ti ti-device-floppy"></i> Update
+                    </button>
+                }
+                <a href="/tax-codes" class="btn btn-outline-secondary">
+                    <i class="ti ti-arrow-left"></i> Back
+                </a>
+            </div>
+        </div>
+
+        <div class="wizard-overlay d-flex mb-4">
+            <EditForm EditContext="editContext" OnSubmit="Save" style="width:100%;">
+                <div class="wizard-overlay">
+                    <div class="wizard-modal">
+
+                        <!-- LEFT STEPPER -->
+                        <div class="wizard-steps">
+                            <div class="timeline-line"></div>
+                            <div class="timeline-indicator @(IsCurrentStepValid() ? "success" : "error")"
+                                 style="top:@IndicatorToppx"></div>
+                            @for (int i = 1; i <= Steps.Count; i++)
+                            {
+                                <div class="wizard-step @StepClass(i)">
+                                    <div class="dot" style="padding:10px;">
+                                        @if (i < CurrentStep)
+                                        {
+                                            <i class="ti ti-check" style="color:white;font-size:22px;"></i>
+                                        }
+                                        else
+                                        {
+                                            <i class="@Steps[i - 1].Icon"></i>
+                                        }
+                                    </div>
+                                    <div class="label"><b>@Steps[i - 1].Title</b></div>
+                                </div>
+                            }
+                        </div>
+
+                        <!-- RIGHT CONTENT -->
+                        <div class="wizard-content" style="padding-left: 69px;">
+                            <h2 style="font-size:17px;margin-bottom:10px;">
+                                @Steps[CurrentStep - 1].Title
+                            </h2>
+
+                            @* ── Step 1: Core Identity ── *@
+                            @if (CurrentStep == 1)
+                            {
+                                <div class="accordion-body border-top pt-3 p-0">
+                                    <div class="row">
+
+                                        <div class="col-md-6 mb-3">
+                                            <label class="form-label">Tax Code <span class="text-danger">*</span></label>
+                                            <InputText class="@($"form-control {(ShowFieldError(1, "Code") ? "is-invalid" : "")}")"
+                                                       @bind-Value="Model.Code"
+                                                       placeholder="e.g. GST_CGST, TDS_194C" />
+                                            <small class="text-muted">Unique per company. Max 30 characters.</small>
+                                            @if (ShowFieldError(1, "Code"))
+                                            {
+                                                <div class="text-danger small mt-1">Tax Code is required</div>
+                                            }
+                                        </div>
+
+                                        <div class="col-md-6 mb-3">
+                                            <label class="form-label">Tax Name <span class="text-danger">*</span></label>
+                                            <InputText class="@($"form-control {(ShowFieldError(1, "TaxName") ? "is-invalid" : "")}")"
+                                                       @bind-Value="Model.TaxName"
+                                                       placeholder="e.g. CGST – Central GST" />
+                                            @if (ShowFieldError(1, "TaxName"))
+                                            {
+                                                <div class="text-danger small mt-1">Tax Name is required</div>
+                                            }
+                                        </div>
+
+                                        <div class="col-md-12 mb-3">
+                                            <label class="form-label">Description</label>
+                                            <InputTextArea class="form-control"
+                                                           @bind-Value="Model.Description"
+                                                           rows="2"
+                                                           placeholder="Optional description..." />
+                                        </div>
+
+                                    </div>
+                                </div>
+                            }
+
+                            @* ── Step 2: Tax Classification ── *@
+                            @if (CurrentStep == 2)
+                            {
+                                <div class="accordion-body border-top pt-3 p-0">
+                                    <div class="row">
+
+                                        <div class="col-md-6 mb-3">
+                                            <label class="form-label">Tax Type <span class="text-danger">*</span></label>
+                                            <InputSelect class="@($"form-select {(ShowFieldError(2, "Type") ? "is-invalid" : "")}")"
+                                                         @bind-Value="Model.Type">
+                                                <option value="">-- Select Type --</option>
+                                                <option value="@TC.TaxType.GST">GST</option>
+                                                <option value="@TC.TaxType.TDS">TDS</option>
+                                                <option value="@TC.TaxType.TCS">TCS</option>
+                                                <option value="@TC.TaxType.Other">Other</option>
+                                            </InputSelect>
+                                            @if (ShowFieldError(2, "Type"))
+                                            {
+                                                <div class="text-danger small mt-1">Tax Type is required</div>
+                                            }
+                                        </div>
+
+                                        <div class="col-md-6 mb-3">
+                                            <label class="form-label">Country</label>
+                                            <InputText class="form-control"
+                                                       @bind-Value="Model.JurisdictionCountryCode"
+                                                       placeholder="IN" />
+                                            <small class="text-muted">ISO country code (default: IN)</small>
+                                        </div>
+
+                                        <div class="col-md-6 mb-3">
+                                            <label class="form-label">Tax Direction <span class="text-danger">*</span></label>
+                                            <InputSelect class="@($"form-select {(ShowFieldError(2, "Direction") ? "is-invalid" : "")}")"
+                                                         @bind-Value="Model.Direction">
+                                                <option value="">-- Select Direction --</option>
+                                                <option value="@TC.TaxDirection.Input">Input (ITC / Credit)</option>
+                                                <option value="@TC.TaxDirection.Output">Output (Liability)</option>
+                                                <option value="@TC.TaxDirection.WithholdingPayable">Withholding Payable (TDS/TCS)</option>
+                                                <option value="@TC.TaxDirection.Other">Other</option>
+                                            </InputSelect>
+                                            @if (ShowFieldError(2, "Direction"))
+                                            {
+                                                <div class="text-danger small mt-1">Tax Direction is required</div>
+                                            }
+                                        </div>
+
+                                        @* GST-specific fields *@
+                                        @if (Model.Type == TC.TaxType.GST)
+                                        {
+                                            <div class="col-md-6 mb-3">
+                                                <label class="form-label">GST Component <span class="text-danger">*</span></label>
+                                                <InputSelect class="@($"form-select {(ShowFieldError(2, "GSTComponent") ? "is-invalid" : "")}")"
+                                                             @bind-Value="Model.GSTComponent">
+                                                    <option value="">-- Select Component --</option>
+                                                    <option value="@TC.GSTComponentType.CGST">CGST</option>
+                                                    <option value="@TC.GSTComponentType.SGST">SGST</option>
+                                                    <option value="@TC.GSTComponentType.IGST">IGST</option>
+                                                    <option value="@TC.GSTComponentType.CESS">CESS</option>
+                                                </InputSelect>
+                                                @if (ShowFieldError(2, "GSTComponent"))
+                                                {
+                                                    <div class="text-danger small mt-1">GST Component is required for GST type</div>
+                                                }
+                                            </div>
+
+                                            <div class="col-md-6 mb-3">
+                                                <div class="form-check mt-4">
+                                                    <InputCheckbox class="form-check-input"
+                                                                   @bind-Value="Model.IsReverseChargeApplicable"
+                                                                   id="rcm" style="width:auto;" />
+                                                    <label class="form-check-label" for="rcm">
+                                                        Reverse Charge Applicable (RCM)
+                                                    </label>
+                                                </div>
+                                                <small class="text-muted">Enable if this code is used in RCM scenarios</small>
+                                            </div>
+
+                                            <div class="col-md-6 mb-3">
+                                                <div class="form-check mt-2">
+                                                    <InputCheckbox class="form-check-input"
+                                                                   @bind-Value="Model.IsITCEligibleDefault"
+                                                                   id="itc" style="width:auto;" />
+                                                    <label class="form-check-label" for="itc">
+                                                        ITC Eligible (Default)
+                                                    </label>
+                                                </div>
+                                                <small class="text-muted">Default ITC eligibility; mapping can override</small>
+                                            </div>
+
+                                            <div class="col-md-6 mb-3">
+                                                <label class="form-label">GST Return Tag</label>
+                                                <InputSelect class="form-select" @bind-Value="Model.ReturnTag">
+                                                    <option value="">-- Select Tag --</option>
+                                                    <option value="@TC.GSTReturnTag.OutwardTax">Outward Tax</option>
+                                                    <option value="@TC.GSTReturnTag.InwardITC">Inward ITC</option>
+                                                    <option value="@TC.GSTReturnTag.RCM_Liability">RCM Liability</option>
+                                                    <option value="@TC.GSTReturnTag.RCM_ITC">RCM ITC</option>
+                                                    <option value="@TC.GSTReturnTag.Exempt">Exempt</option>
+                                                    <option value="@TC.GSTReturnTag.NilRated">Nil Rated</option>
+                                                    <option value="@TC.GSTReturnTag.NonGST">Non-GST</option>
+                                                </InputSelect>
+                                            </div>
+                                        }
+
+                                        @* TDS-specific fields *@
+                                        @if (Model.Type == TC.TaxType.TDS)
+                                        {
+                                            <div class="col-md-6 mb-3">
+                                                <label class="form-label">TDS Section Code <span class="text-danger">*</span></label>
+                                                <InputText class="@($"form-control {(ShowFieldError(2, "TDSSectionCode") ? "is-invalid" : "")}")"
+                                                           @bind-Value="Model.TDSSectionCode"
+                                                           placeholder="e.g. 194C, 194J" />
+                                                @if (ShowFieldError(2, "TDSSectionCode"))
+                                                {
+                                                    <div class="text-danger small mt-1">TDS Section Code is required for TDS type</div>
+                                                }
+                                            </div>
+                                        }
+
+                                        @* TCS-specific fields *@
+                                        @if (Model.Type == TC.TaxType.TCS)
+                                        {
+                                            <div class="col-md-6 mb-3">
+                                                <label class="form-label">TCS Section Code <span class="text-danger">*</span></label>
+                                                <InputText class="@($"form-control {(ShowFieldError(2, "TCSSectionCode") ? "is-invalid" : "")}")"
+                                                           @bind-Value="Model.TCSSectionCode"
+                                                           placeholder="e.g. 206C" />
+                                                @if (ShowFieldError(2, "TCSSectionCode"))
+                                                {
+                                                    <div class="text-danger small mt-1">TCS Section Code is required for TCS type</div>
+                                                }
+                                            </div>
+                                        }
+
+                                        <div class="col-md-6 mb-3">
+                                            <label class="form-label">Statutory Reporting Group</label>
+                                            <InputText class="form-control"
+                                                       @bind-Value="Model.StatutoryReportingGroup"
+                                                       placeholder="e.g. TDS_CONTRACTORS" />
+                                            <small class="text-muted">Optional – used for compliance report grouping</small>
+                                        </div>
+
+                                    </div>
+                                </div>
+                            }
+
+                            @* ── Step 3: Calculation Rules & GL Mapping ── *@
+                            @if (CurrentStep == 3)
+                            {
+                                <div class="accordion-body border-top pt-3 p-0">
+                                    <div class="row">
+
+                                        <div class="col-12 mb-3">
+                                            <p class="text-muted small fw-semibold mb-2">CALCULATION RULES</p>
+                                        </div>
+
+                                        <div class="col-md-6 mb-3">
+                                            <label class="form-label">Calculation Type</label>
+                                            <InputSelect class="form-select" @bind-Value="Model.CalcType">
+                                                <option value="@TC.CalculationType.Percentage">Percentage</option>
+                                                <option value="@TC.CalculationType.FixedAmount">Fixed Amount</option>
+                                                <option value="@TC.CalculationType.SlabBased">Slab Based (future)</option>
+                                            </InputSelect>
+                                        </div>
+
+                                        <div class="col-md-6 mb-3">
+                                            <label class="form-label">Rate Basis</label>
+                                            <InputSelect class="form-select" @bind-Value="Model.Basis">
+                                                <option value="@TC.RateBasis.OnTaxableValue">On Taxable Value</option>
+                                                <option value="@TC.RateBasis.OnGrossValue">On Gross Value</option>
+                                                <option value="@TC.RateBasis.OnNetValue">On Net Value</option>
+                                            </InputSelect>
+                                        </div>
+
+                                        <div class="col-md-4 mb-3">
+                                            <label class="form-label">Rounding Rule</label>
+                                            <InputSelect class="form-select" @bind-Value="Model.Rounding">
+                                                <option value="@TC.RoundingRule.RoundToNearest">Round to Nearest</option>
+                                                <option value="@TC.RoundingRule.RoundDown">Round Down</option>
+                                                <option value="@TC.RoundingRule.RoundUp">Round Up</option>
+                                            </InputSelect>
+                                        </div>
+
+                                        <div class="col-md-4 mb-3">
+                                            <label class="form-label">Decimal Precision (0–4)</label>
+                                            <InputNumber class="@($"form-control {(ShowFieldError(3, "RoundingPrecisionDecimals") ? "is-invalid" : "")}")"
+                                                         @bind-Value="Model.RoundingPrecisionDecimals" />
+                                            @if (ShowFieldError(3, "RoundingPrecisionDecimals"))
+                                            {
+                                                <div class="text-danger small mt-1">Must be between 0 and 4</div>
+                                            }
+                                        </div>
+
+                                        <div class="col-md-4 mb-3">
+                                            <label class="form-label">Min Tax Amount</label>
+                                            <InputNumber class="form-control" @bind-Value="Model.MinTaxAmount"
+                                                         placeholder="Optional" />
+                                        </div>
+
+                                        <div class="col-12 mb-3 mt-2">
+                                            <hr />
+                                            <p class="text-muted small fw-semibold mb-2">GL ACCOUNT MAPPING (Defaults)</p>
+                                        </div>
+
+                                        @if (Model.Type == TC.TaxType.GST && Model.Direction == TC.TaxDirection.Input)
+                                        {
+                                            <div class="col-md-12 mb-3">
+                                                <label class="form-label">Input Tax GL Account (ITC) <span class="text-danger">*</span></label>
+                                                <InputText class="@($"form-control {(ShowFieldError(3, "InputTaxGLAccountName") ? "is-invalid" : "")}")"
+                                                           @bind-Value="Model.InputTaxGLAccountName"
+                                                           placeholder="e.g. Input CGST (ITC Receivable)" />
+                                                @if (ShowFieldError(3, "InputTaxGLAccountName"))
+                                                {
+                                                    <div class="text-danger small mt-1">Input Tax GL Account is required for GST Input</div>
+                                                }
+                                            </div>
+                                        }
+
+                                        @if (Model.Type == TC.TaxType.GST && Model.Direction == TC.TaxDirection.Output)
+                                        {
+                                            <div class="col-md-12 mb-3">
+                                                <label class="form-label">Output Tax GL Account <span class="text-danger">*</span></label>
+                                                <InputText class="@($"form-control {(ShowFieldError(3, "OutputTaxGLAccountName") ? "is-invalid" : "")}")"
+                                                           @bind-Value="Model.OutputTaxGLAccountName"
+                                                           placeholder="e.g. Output CGST Liability" />
+                                                @if (ShowFieldError(3, "OutputTaxGLAccountName"))
+                                                {
+                                                    <div class="text-danger small mt-1">Output Tax GL Account is required for GST Output</div>
+                                                }
+                                            </div>
+                                        }
+
+                                        @if (Model.Type == TC.TaxType.TDS)
+                                        {
+                                            <div class="col-md-12 mb-3">
+                                                <label class="form-label">TDS Payable GL Account <span class="text-danger">*</span></label>
+                                                <InputText class="@($"form-control {(ShowFieldError(3, "TDSGLAccountName") ? "is-invalid" : "")}")"
+                                                           @bind-Value="Model.TDSGLAccountName"
+                                                           placeholder="e.g. TDS Payable" />
+                                                @if (ShowFieldError(3, "TDSGLAccountName"))
+                                                {
+                                                    <div class="text-danger small mt-1">TDS GL Account is required for TDS type</div>
+                                                }
+                                            </div>
+                                        }
+
+                                        @if (Model.Type == TC.TaxType.TCS)
+                                        {
+                                            <div class="col-md-12 mb-3">
+                                                <label class="form-label">TCS Payable GL Account <span class="text-danger">*</span></label>
+                                                <InputText class="@($"form-control {(ShowFieldError(3, "TCSGLAccountName") ? "is-invalid" : "")}")"
+                                                           @bind-Value="Model.TCSGLAccountName"
+                                                           placeholder="e.g. TCS Payable" />
+                                                @if (ShowFieldError(3, "TCSGLAccountName"))
+                                                {
+                                                    <div class="text-danger small mt-1">TCS GL Account is required for TCS type</div>
+                                                }
+                                            </div>
+                                        }
+
+                                        <div class="col-md-12 mb-3">
+                                            <div class="form-check">
+                                                <InputCheckbox class="form-check-input"
+                                                               @bind-Value="Model.IsGLOverrideAllowedByMapping"
+                                                               id="glOverride" style="width:auto;" />
+                                                <label class="form-check-label" for="glOverride">
+                                                    Allow GL Override by Tax Category Mapping (#64)
+                                                </label>
+                                            </div>
+                                        </div>
+
+                                    </div>
+                                </div>
+                            }
+
+                            @* ── Step 4: Review & Submit ── *@
+                            @if (CurrentStep == 4)
+                            {
+                                <div class="accordion-body border-top pt-3 p-0">
+                                    <div class="row">
+                                        <div class="col-md-12 mb-3">
+                                            <div class="card bg-light border-0">
+                                                <div class="card-body">
+                                                    <h6 class="text-primary mb-3">Tax Code Summary</h6>
+                                                    <div class="row">
+                                                        <div class="col-md-6">
+                                                            <p class="mb-1"><span class="text-muted">Tax Code:</span> <strong>@Model.Code</strong></p>
+                                                            <p class="mb-1"><span class="text-muted">Tax Name:</span> <strong>@Model.TaxName</strong></p>
+                                                            <p class="mb-1"><span class="text-muted">Tax Type:</span> <strong>@Model.Type</strong></p>
+                                                            <p class="mb-1"><span class="text-muted">Direction:</span> <strong>@Model.Direction</strong></p>
+                                                        </div>
+                                                        <div class="col-md-6">
+                                                            @if (Model.Type == TC.TaxType.GST)
+                                                            {
+                                                                <p class="mb-1"><span class="text-muted">GST Component:</span> <strong>@Model.GSTComponent</strong></p>
+                                                                <p class="mb-1"><span class="text-muted">Return Tag:</span> <strong>@(Model.ReturnTag.HasValue ? Model.ReturnTag.ToString() : "Not set")</strong></p>
+                                                                <p class="mb-1"><span class="text-muted">RCM:</span> <strong>@(Model.IsReverseChargeApplicable ? "Applicable" : "Not Applicable")</strong></p>
+                                                            }
+                                                            @if (Model.Type == TC.TaxType.TDS)
+                                                            {
+                                                                <p class="mb-1"><span class="text-muted">TDS Section:</span> <strong>§ @Model.TDSSectionCode</strong></p>
+                                                            }
+                                                            @if (Model.Type == TC.TaxType.TCS)
+                                                            {
+                                                                <p class="mb-1"><span class="text-muted">TCS Section:</span> <strong>§ @Model.TCSSectionCode</strong></p>
+                                                            }
+                                                            <p class="mb-1"><span class="text-muted">Calc Type:</span> <strong>@Model.CalcType</strong></p>
+                                                            <p class="mb-1"><span class="text-muted">Rounding:</span> <strong>@Model.Rounding (@Model.RoundingPrecisionDecimals dp)</strong></p>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            }
+
+                            <!-- WIZARD FOOTER -->
+                            <div class="d-flex gap-2 wizard-footer mb-4" style="justify-content:end;">
+                                @if (CurrentStep != 1)
+                                {
+                                    <button type="button" class="btn btn-outline-secondary" @onclick="Back">
+                                        <i class="ti ti-chevron-left"></i> Previous
+                                    </button>
+                                }
+                                @if (CurrentStep < Steps.Count)
+                                {
+                                    <button type="button" class="btn btn-primary" @onclick="Next">
+                                        Next <i class="ti ti-chevron-right"></i>
+                                    </button>
+                                }
+                                else
+                                {
+                                    <button type="button" class="btn btn-primary" @onclick="Save">
+                                        <i class="ti ti-device-floppy"></i> @(IsEdit ? "Update" : "Save")
+                                    </button>
+                                }
+                            </div>
+
+                        </div>
+
+                        <!-- LIVE SUMMARY SIDEBAR -->
+                        <aside class="summary p-3 rounded d-none d-xl-flex"
+                               style="height:auto;background:white;border:none;display:flex;padding-left:32px !important;padding-top:42px !important;">
+                            <div class="timeline-line1"></div>
+                            <div class="timeline-indicator1"></div>
+                            <div style="padding-left:15px;width:262px;">
+                                <h3 class="text-primary mb-3" style="font-size:17px;">Live Summary</h3>
+                                <div class="row">
+                                    @if (CurrentStep == 1)
+                                    {
+                                        <div class="col-md-12 mb-4"><span>Code: </span><b>@(string.IsNullOrEmpty(Model.Code) ? "—" : Model.Code)</b></div>
+                                        <div class="col-md-12 mb-4"><span>Name: </span><b>@(string.IsNullOrEmpty(Model.TaxName) ? "—" : Model.TaxName)</b></div>
+                                    }
+                                    @if (CurrentStep == 2)
+                                    {
+                                        <div class="col-md-12 mb-4"><span>Type: </span><b>@Model.Type</b></div>
+                                        <div class="col-md-12 mb-4"><span>Direction: </span><b>@Model.Direction</b></div>
+                                        @if (Model.Type == TC.TaxType.GST)
+                                        {
+                                            <div class="col-md-12 mb-4"><span>Component: </span><b>@Model.GSTComponent</b></div>
+                                        }
+                                        @if (Model.Type == TC.TaxType.TDS)
+                                        {
+                                            <div class="col-md-12 mb-4"><span>Section: </span><b>§ @(string.IsNullOrEmpty(Model.TDSSectionCode) ? "—" : Model.TDSSectionCode)</b></div>
+                                        }
+                                    }
+                                    @if (CurrentStep == 3)
+                                    {
+                                        <div class="col-md-12 mb-4"><span>Calc Type: </span><b>@Model.CalcType</b></div>
+                                        <div class="col-md-12 mb-4"><span>Rounding: </span><b>@Model.Rounding</b></div>
+                                        <div class="col-md-12 mb-4"><span>Precision: </span><b>@Model.RoundingPrecisionDecimals dp</b></div>
+                                    }
+                                    @if (CurrentStep == 4)
+                                    {
+                                        <div class="col-md-12 mb-4"><span>Status: </span><b class="text-success">Active</b></div>
+                                        <div class="col-md-12 mb-4"><span>Code: </span><b>@Model.Code</b></div>
+                                        <div class="col-md-12 mb-4"><span>Type: </span><b>@Model.Type</b></div>
+                                    }
+                                </div>
+                            </div>
+                        </aside>
+
+                    </div>
+                </div>
+            </EditForm>
+        </div>
+    </div>
+}

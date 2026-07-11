@@ -1,0 +1,191 @@
+﻿@page "/exchange-rates/{RateId:guid}/view"
+@using FinanceConnect.Client.ViewModels
+@using FinanceConnect.Client.Services
+@inject MasterDataService MasterDataService
+@inject NavigationManager Nav
+@inject IJSRuntime JS
+
+
+<div class="content view-screen py-4">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <div>
+            <h4 class="fw-bold mb-1">Exchange Rate Details</h4>
+            <p class="text-muted mb-0 small">View currency exchange rates and history</p>
+        </div>
+
+        <div class="d-flex gap-2 page-btn">
+            <a @onclick="PrintPage" class="btn bg-primary text-white">
+                <i class="bi bi-printer"></i> Print
+            </a>
+            <a class="btn btn-outline-secondary" @onclick="GoBack">
+                <i class="ti ti-arrow-left me-1"></i> Back
+            </a>
+        </div>
+    </div>
+    @if (SelectedRate == null)
+    {
+        <!-- LOADING -->
+        <div class="text-center py-5">
+            <div class="spinner-border text-primary"></div>
+            <div class="mt-2">Loading Exchange Rate…</div>
+        </div>
+    }
+    else
+    {
+        <div class="row g-4">
+
+            <!-- HEADER: CURRENCY INFO & STATUS -->
+            <div class="col-lg-12">
+                <div class="profile-list-card">
+
+                    <div class="profile-left">
+                        <div class="avatar letter-avatar">
+                            @SelectedRate?.BaseCurrencyCode?.Substring(0, 3).ToUpper()
+
+                        </div>
+                    </div>
+
+                    <div class="profile-center">
+                        <div class="top-row">
+                            <h5>@SelectedRate.BaseCurrencyName → @SelectedRate.QuoteCurrencyName</h5>
+
+                            @* Status icon with tooltip *@
+                            @if (!string.IsNullOrEmpty(SelectedRate.Status))
+                            {
+                                <span class="rounded-circle"
+                                      style="cursor:pointer;width:16px;height:16px;display:flex;align-items:center;justify-content:center;color:white;
+                                                             @(SelectedRate.Status.ToLower() == "active" ? "background-color:green;" : "background-color:gray;")"
+                                      data-bs-toggle="tooltip" title="@SelectedRate.Status">
+                                    <i class="ti ti-checks"></i>
+                                </span>
+                            }
+                        </div>
+
+                        <div class="sub-text">
+                            <span><i class="ti ti-calendar"></i> @SelectedRate.RateDate.ToString("dd MMM yyyy")</span>
+                            <span><i class="ti ti-arrows-exchange"></i> @RateTypes.GetDisplayName(SelectedRate.RateType)</span>
+                        </div>
+                    </div>
+
+                    @* <div class="profile-right">
+                        <button class="btn btn-secondary btn-sm" @onclick="GoBack">
+                            <i class="ti ti-arrow-left"></i> Back
+                        </button>
+                    </div> *@
+
+                </div>
+            </div>
+
+            <!-- RATE DETAILS -->
+            <div class="col-lg-8">
+                <div class="profile-card" style="height: 100% !important;">
+                    @* <h5 class="mb-3"><i class="ti ti-arrows-exchange me-2 text-primary"></i> Exchange Rate Details</h5> *@
+
+                    <div class="card mb-0" style="height: 100%;">
+                        <div class="card-header py-2">
+                            <i class="ti ti-calculator me-2"></i> Rate Value & Precision
+                        </div>
+                        <div class="card-body py-2">
+                            <div class="row">
+                                <div class="col-md-4 mb-2">
+                                    <small class="text-muted">Exchange Rate</small>
+                                    <div>@SelectedRate.Rate.ToString("N8")</div>
+                                </div>
+                                <div class="col-md-4 mb-2">
+                                    <small class="text-muted">Inverse Rate</small>
+                                    <div>@SelectedRate.InverseRate.ToString("N8")</div>
+                                </div>
+                                <div class="col-md-4 mb-2">
+                                    <small class="text-muted">Version</small>
+                                    <div>@SelectedRate.VersionNo</div>
+                                </div>
+
+                                @if (SelectedRate.IsTriangulated)
+                                {
+                                    <div class="col-md-4 mb-2">
+                                        <small class="text-muted">Triangulated</small>
+                                        <span class="badge bg-warning">Yes</span>
+                                    </div>
+                                    <div class="col-md-8 mb-2">
+                                        <small class="text-muted">Intermediate Currency</small>
+                                        <div>@(SelectedRate.TriangulationCurrencyCode ?? "-")</div>
+                                    </div>
+                                }
+
+                                <div class="p-3 bg-light rounded text-center">
+                                    <div class="fs-4 fw-bold text-primary">
+                                        1 @(SelectedRate.BaseCurrencyCode ?? "?") = @SelectedRate.Rate.ToString("N8") @(SelectedRate.QuoteCurrencyCode ?? "?")
+                                    </div>
+                                    <small class="text-muted">Inverse: 1 @(SelectedRate.QuoteCurrencyCode ?? "?") = @SelectedRate.InverseRate.ToString("N8") @(SelectedRate.BaseCurrencyCode ?? "?")</small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- SOURCE & EVIDENCE -->
+            <div class="col-lg-4">
+                <div class="profile-card">
+                    <div class="card mb-0">
+                        <div class="card-header py-2">
+                            <i class="ti ti-file-search me-2"></i> Source & Evidence
+                        </div>
+                        <div class="card-body py-2">
+                            <div class="mb-2">
+                                <small class="text-muted">Source Type</small>
+                                <div>@SourceTypes.GetDisplayName(SelectedRate.SourceType)</div>
+                            </div>
+                            <div class="mb-2">
+                                <small class="text-muted">Source Name</small>
+                                <div>@(SelectedRate.SourceName ?? "-")</div>
+                            </div>
+                            <div class="mb-2">
+                                <small class="text-muted">Evidence Document</small>
+                                <div>@(SelectedRate.EvidenceFileName ?? "-")</div>
+                            </div>
+                            <div class="mb-2">
+                                <small class="text-muted">Notes</small>
+                                <div class="ql-editor">@((MarkupString)(SelectedRate.Notes ?? "-"))</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- STATUS & AUDIT -->
+            <div class="col-lg-12">
+                <div class="profile-card">
+                    <div class="card mb-0">
+                        <div class="card-header py-2">
+                            <i class="ti ti-settings me-2"></i> Status & Audit
+                        </div>
+                        <div class="card-body py-2">
+                            <div class="row">
+                                <div class="col-md-3 mb-2">
+                                    <small class="text-muted">Created At</small>
+                                    <div>@SelectedRate.CreatedAt.ToString("dd MMM yyyy HH:mm")</div>
+                                </div>
+                                <div class="col-md-3 mb-2">
+                                    <small class="text-muted">Created By</small>
+                                    <div>@(SelectedRate.CreatedBy ?? "-")</div>
+                                </div>
+                                <div class="col-md-3 mb-2">
+                                    <small class="text-muted">Last Updated</small>
+                                    <div>@(SelectedRate.UpdatedAt?.ToString("dd MMM yyyy HH:mm") ?? "-")</div>
+                                </div>
+
+                                <div class="col-md-3 mb-2">
+                                    <small class="text-muted">Company Code</small>
+                                    <div>@SelectedRate.CompanyCode</div>
+                                </div>
+
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    }
+</div>

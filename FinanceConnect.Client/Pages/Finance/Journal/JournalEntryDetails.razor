@@ -1,0 +1,451 @@
+@page "/journal-entries/{Id:guid}/view"
+@using FinanceConnect.Client.ViewModels
+@using FinanceConnect.Client.Services
+
+<PageTitle>Journal Entry Details - FinanceConnect</PageTitle>
+
+@if (!isInitialized)
+{
+    <div class="page-loading-overlay">
+        <div class="whirly-loader"></div>
+    </div>
+}
+else if (Entry == null)
+{
+    <div class="vb-root">
+        <div class="content">
+            <div class="alert alert-danger">
+                <i class="ti ti-alert-circle me-2"></i>
+                Journal Entry not found.
+                <a href="/journal-entries" class="alert-link ms-2">Return to list</a>
+            </div>
+        </div>
+    </div>
+}
+else
+{
+    <div class="vb-root">
+        <div class="content">
+            <div>
+                <!-- PROFILE HEADER CARD -->
+                <div class="vb-header-card">
+                    <div class="vb-cover">
+                        <div class="vb-cover-orb vb-orb-1"></div>
+                        <div class="vb-cover-orb vb-orb-2"></div>
+                        <div class="vb-cover-orb vb-orb-3"></div>
+                    </div>
+                    <div class="vb-header-body">
+                        <div class="vb-avatar">
+                            @Entry.JournalEntryNumber?.Substring(0, Math.Min(2, Entry.JournalEntryNumber?.Length ?? 0)).ToUpper()
+                        </div>
+                        <div class="vb-header-meta">
+                            <div>
+                                <p class="vb-bill-number">@Entry.JournalEntryNumber</p>
+                                <p class="vb-bill-sub">@Service.GetCompanyName(Entry.CompanyId) &nbsp;·&nbsp; @Service.GetBranchName(Entry.BranchId) &nbsp;·&nbsp; @Service.GetJournalName(Entry.JournalId)</p>
+                                <div class="vb-badges">
+                                    <span class="badge @GetStatusBadgeClass(Entry.Status)">@Entry.Status</span>
+                                    @if (Entry.IsReversal)
+                                    {
+                                        <span class="badge bg-warning-transparent text-warning"><i class="ti ti-arrow-back-up me-1"></i>Reversal</span>
+                                    }
+                                    @if (Entry.IsBackdated)
+                                    {
+                                        <span class="badge bg-info-transparent text-info"><i class="ti ti-calendar-minus me-1"></i>Backdated</span>
+                                    }
+                                    @if (!IsBalanced)
+                                    {
+                                        <span class="badge badge-red"><i class="ti ti-alert-triangle me-1"></i>Unbalanced</span>
+                                    }
+                                </div>
+                            </div>
+                            <div class="vb-header-actions">
+                                <a href="/journal-entries" class="btn btn-outline-secondary">
+                                    <i class="ti ti-arrow-left me-1"></i> Back
+                                </a>
+                                <a @onclick="PrintPage" class="btn btn-primary">
+                                    <i class="bi bi-printer me-1"></i> Print
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Summary Tiles -->
+                <div class="vb-card" style="background: transparent;border: none;box-shadow: none;">
+                    <div class="vb-summary-grid mb-4 mt-2">
+                        <div class="vb-tile">
+                            <div class="vb-tile-label">Total Debit</div>
+                            <div class="vb-tile-value">@Entry.TotalDebit.ToString("N2")</div>
+                        </div>
+                        <div class="vb-tile">
+                            <div class="vb-tile-label">Total Credit</div>
+                            <div class="vb-tile-value">@Entry.TotalCredit.ToString("N2")</div>
+                        </div>
+                        <div class="vb-tile-wide">
+                            <div class="vb-tile-label">Difference</div>
+                            <div class="vb-tile-value @(Entry.Difference == 0 ? "success" : "danger")" style="font-size:26px;">
+                                @Entry.Difference.ToString("N2")
+                            </div>
+                        </div>
+                        <div class="vb-tile">
+                            <div class="vb-tile-label">Lines</div>
+                            <div class="vb-tile-value primary">@Lines.Count</div>
+                        </div>
+                        <div class="vb-tile">
+                            <div class="vb-tile-label">Currency</div>
+                            <div class="vb-tile-value">@Entry.CurrencyCode</div>
+                        </div>
+                        <div class="vb-tile">
+                            <div class="vb-tile-label">Attachments</div>
+                            <div class="vb-tile-value">@Entry.AttachmentCount</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="vb-two-col mb-4">
+                    <!-- SIDEBAR -->
+                    <aside class="vb-sidebar">
+                        <div class="vb-card">
+                            <div class="vb-card-header"><h6><i class="ti ti-file-text"></i> Entry Identity</h6></div>
+                            <div class="vb-card-body">
+                                <div class="vb-row"><span class="vb-label">Entry Number</span><span class="vb-val">@Entry.JournalEntryNumber</span></div>
+                                <div class="vb-row"><span class="vb-label">Entry Date</span><span class="vb-val">@Entry.EntryDate.ToString("dd MMM yyyy")</span></div>
+                                <div class="vb-row"><span class="vb-label">Posting Date</span><span class="vb-val">@Entry.PostingDate.ToString("dd MMM yyyy")</span></div>
+                                <div class="vb-row"><span class="vb-label">Status</span><span class="vb-val"><span class="badge @GetStatusBadgeClass(Entry.Status)">@Entry.Status</span></span></div>
+                                <div class="vb-row"><span class="vb-label">Backdated</span><span class="vb-val"><span class="badge @(Entry.IsBackdated ? "bg-success-transparent text-success" : "bg-secondary-transparent text-secondary")">@(Entry.IsBackdated ? "Yes" : "No")</span></span></div>
+                                <div class="vb-row"><span class="vb-label">Reversal</span><span class="vb-val"><span class="badge @(Entry.IsReversal ? "bg-warning-transparent text-warning" : "bg-secondary-transparent text-secondary")">@(Entry.IsReversal ? "Yes" : "No")</span></span></div>
+                            </div>
+                        </div>
+
+                        <div class="vb-card">
+                            <div class="vb-card-header"><h6><i class="ti ti-calendar"></i> Period Information</h6></div>
+                            <div class="vb-card-body">
+                                <div class="vb-row"><span class="vb-label">Fiscal Year</span><span class="vb-val">@(Entry.FiscalYearName ?? "-")</span></div>
+                                <div class="vb-row"><span class="vb-label">Accounting Period</span><span class="vb-val">@(Entry.AccountingPeriodName ?? "-")</span></div>
+                            </div>
+                        </div>
+
+                        <div class="vb-card">
+                            <div class="vb-card-header"><h6><i class="ti ti-link"></i> References</h6></div>
+                            <div class="vb-card-body">
+                                <div class="vb-row"><span class="vb-label">Reference Type</span><span class="vb-val">@Entry.ReferenceType</span></div>
+                                @if (!string.IsNullOrWhiteSpace(Entry.ExternalReferenceNumber))
+                                {
+                                    <div class="vb-row"><span class="vb-label">External Ref No</span><span class="vb-val">@Entry.ExternalReferenceNumber</span></div>
+                                }
+                            </div>
+                        </div>
+
+                        <div class="vb-card">
+                            <div class="vb-card-header"><h6><i class="ti ti-history"></i> Audit Information</h6></div>
+                            <div class="vb-card-body">
+                                <div class="vb-row"><span class="vb-label">Created</span><span class="vb-val">@Entry.CreatedAt.ToString("dd MMM yyyy")</span></div>
+                                @if (!string.IsNullOrWhiteSpace(Entry.CreatedBy))
+                                {
+                                    <div class="vb-row"><span class="vb-label">Created By</span><span class="vb-val">@Entry.CreatedBy</span></div>
+                                }
+                                @if (Entry.UpdatedAt.HasValue)
+                                {
+                                    <div class="vb-row"><span class="vb-label">Updated</span><span class="vb-val">@Entry.UpdatedAt.Value.ToString("dd MMM yyyy")</span></div>
+                                }
+                                @if (!string.IsNullOrWhiteSpace(Entry.UpdatedBy))
+                                {
+                                    <div class="vb-row"><span class="vb-label">Updated By</span><span class="vb-val">@Entry.UpdatedBy</span></div>
+                                }
+                            </div>
+                        </div>
+                    </aside>
+
+                    <!-- MAIN CONTENT -->
+                    <div class="vb-main">
+                        <div class="vb-card">
+                            <div class="vb-card-header"><h6><i class="ti ti-building"></i> Company &amp; Journal Details</h6></div>
+                            <div class="vb-card-body">
+                                <div style="display:grid; grid-template-columns:1fr 1fr; gap:0 32px;">
+                                    <div class="vb-row"><span class="vb-label">Company</span><span class="vb-val">@Service.GetCompanyName(Entry.CompanyId)</span></div>
+                                    <div class="vb-row"><span class="vb-label">Currency</span><span class="vb-val">@Entry.CurrencyCode</span></div>
+                                    <div class="vb-row"><span class="vb-label">Branch</span><span class="vb-val">@Service.GetBranchCode(Entry.BranchId) – @Service.GetBranchName(Entry.BranchId)</span></div>
+                                    <div class="vb-row"><span class="vb-label">Ledger</span><span class="vb-val">@Service.GetLedgerName(Entry.LedgerId)</span></div>
+                                    <div class="vb-row"><span class="vb-label">Journal</span><span class="vb-val">@Service.GetJournalCode(Entry.JournalId) – @Service.GetJournalName(Entry.JournalId)</span></div>
+                                    <div class="vb-row"><span class="vb-label">Attachments</span><span class="vb-val">@Entry.AttachmentCount</span></div>
+                                </div>
+                            </div>
+                        </div>
+
+                        @if (!string.IsNullOrWhiteSpace(Entry.Narration))
+                        {
+                            <div class="vb-card">
+                                <div class="vb-card-header"><h6><i class="ti ti-notes"></i> Narration</h6></div>
+                                <div class="vb-card-body ql-editor">
+                                    <p style="margin:0; font-size:13.5px; color:var(--gray-600); line-height:1.7; font-style:italic; border-left: 3px solid color-mix(in srgb, var(--primary) 70%, white); padding-left:14px;">
+                                        @((MarkupString)Entry.Narration)
+                                    </p>
+                                </div>
+                            </div>
+                        }
+
+                        @if (!string.IsNullOrWhiteSpace(Entry.PostingPolicyOverrideReason))
+                        {
+                            <div class="vb-card">
+                                <div class="vb-card-header"><h6><i class="ti ti-alert-circle"></i> Override Reason</h6></div>
+                                <div class="vb-card-body">
+                                    <p style="margin:0; font-size:13.5px; color:var(--gray-600); line-height:1.7; font-style:italic; border-left: 3px solid #ff9f43; padding-left:14px;">
+                                        @((MarkupString)Entry.PostingPolicyOverrideReason)
+                                    </p>
+                                </div>
+                            </div>
+                        }
+
+                        <!-- Journal Lines Table -->
+                        <div class="vb-card">
+                            <div class="vb-card-header"><h6><i class="ti ti-list-details"></i> Journal Lines &nbsp;<span class="badge badge-blue">@Lines.Count items</span></h6></div>
+                            <div style="overflow-x:auto;">
+                                <table class="vb-table">
+                                    <thead class="bg-light">
+                                        <tr>
+                                            <th style="width:40px;">#</th>
+                                            <th>Account</th>
+                                            <th>Branch</th>
+                                            <th>Line Narration</th>
+                                            <th class="text-end">Debit</th>
+                                            <th class="text-end">Credit</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        @if (Lines.Any())
+                                        {
+                                            @foreach (var line in Lines)
+                                            {
+                                                <tr>
+                                                    <td>@line.LineNumber</td>
+                                                    <td>
+                                                        <span style="font-size:12.5px;">@Service.GetAccountDisplayName(line.AccountId)</span>
+                                                    </td>
+                                                    <td>@Service.GetBranchName(line.BranchId)</td>
+                                                    <td>
+                                                        <span class="text-muted" style="font-size:12.5px;">@(string.IsNullOrWhiteSpace(line.LineNarration) ? "–" : line.LineNarration)</span>
+                                                    </td>
+                                                    <td class="text-end @(line.DebitAmount > 0 ? "fw-bold text-success" : "")">@(line.DebitAmount > 0 ? line.DebitAmount.ToString("N2") : "–")</td>
+                                                    <td class="text-end @(line.CreditAmount > 0 ? "fw-bold text-danger" : "")">@(line.CreditAmount > 0 ? line.CreditAmount.ToString("N2") : "–")</td>
+                                                </tr>
+                                            }
+                                            <!-- Totals Row -->
+                                            <tr class="fw-bold" style="background-color: #f8f9fa; border-top: 2px solid #dee2e6;">
+                                                <td colspan="4" class="text-end">Total</td>
+                                                <td class="text-end text-success">@Entry.TotalDebit.ToString("N2")</td>
+                                                <td class="text-end text-danger">@Entry.TotalCredit.ToString("N2")</td>
+                                            </tr>
+                                        }
+                                        else
+                                        {
+                                            <tr>
+                                                <td colspan="6" class="text-center text-muted py-4">
+                                                    <i class="ti ti-database-off fs-24 d-block mb-2"></i>
+                                                    No journal lines found
+                                                </td>
+                                            </tr>
+                                        }
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+
+                        <!-- Actions -->
+                        @if (CanEdit || CanSubmit || CanApprove || CanPost || CanCancel)
+                        {
+                            <div class="vb-card">
+                                <div class="vb-card-header"><h6><i class="ti ti-settings"></i> Actions</h6></div>
+                                <div class="vb-card-body">
+                                    <div class="d-flex flex-wrap gap-2">
+                                        @if (CanEdit)
+                                        {
+                                            <a href="/journal-entries/@Entry.Id" class="btn btn-primary btn-sm"><i class="ti ti-edit me-1"></i> Edit Entry</a>
+                                        }
+                                        @if (CanSubmit)
+                                        {
+                                            <button type="button" class="btn btn-warning btn-sm" data-bs-toggle="modal" data-bs-target="#submitModal"
+                                                    disabled="@(Entry.LineCount == 0 || Entry.TotalDebit != Entry.TotalCredit)">
+                                                <i class="ti ti-send me-1"></i> Submit
+                                            </button>
+                                        }
+                                        @if (CanApprove)
+                                        {
+                                            <button type="button" class="btn btn-success btn-sm" data-bs-toggle="modal" data-bs-target="#approveModal"><i class="ti ti-check me-1"></i> Approve</button>
+                                            <button type="button" class="btn btn-outline-danger btn-sm" data-bs-toggle="modal" data-bs-target="#rejectModal"><i class="ti ti-x me-1"></i> Reject</button>
+                                        }
+                                        @if (CanPost)
+                                        {
+                                            <button type="button" class="btn btn-info btn-sm" data-bs-toggle="modal" data-bs-target="#postModal"><i class="ti ti-book me-1"></i> Post to Ledger</button>
+                                        }
+                                        @if (CanCancel)
+                                        {
+                                            <button type="button" class="btn btn-outline-warning btn-sm" data-bs-toggle="modal" data-bs-target="#cancelModal"><i class="ti ti-ban me-1"></i> Cancel Entry</button>
+                                        }
+                                    </div>
+                                </div>
+                            </div>
+                        }
+
+                        <!-- Workflow History -->
+                        @if (Entry.Status != JournalEntryStatus.Draft)
+                        {
+                            <div class="vb-card">
+                                <div class="vb-card-header"><h6><i class="ti ti-git-branch"></i> Workflow History</h6></div>
+                                <div class="vb-card-body">
+                                    <div class="vb-timeline">
+                                        @if (Entry.SubmittedAt.HasValue)
+                                        {
+                                            <div class="vb-tl-item">
+                                                <div class="vb-tl-dot"><i class="ti ti-send"></i></div>
+                                                <div class="vb-tl-content">
+                                                    <div class="vb-tl-title">Submitted</div>
+                                                    <div class="vb-tl-meta">@Entry.SubmittedAt.Value.ToString("dd MMM yyyy HH:mm") @(!string.IsNullOrWhiteSpace(Entry.SubmittedBy) ? $"by {Entry.SubmittedBy}" : "")</div>
+                                                </div>
+                                            </div>
+                                        }
+                                        @if (Entry.ApprovedAt.HasValue)
+                                        {
+                                            <div class="vb-tl-item">
+                                                <div class="vb-tl-dot" style="background: color-mix(in srgb, var(--primary) 12%, white);border-color:#16a34a;color:#16a34a;"><i class="ti ti-check"></i></div>
+                                                <div class="vb-tl-content">
+                                                    <div class="vb-tl-title">Approved</div>
+                                                    <div class="vb-tl-meta">@Entry.ApprovedAt.Value.ToString("dd MMM yyyy HH:mm") @(!string.IsNullOrWhiteSpace(Entry.ApprovedBy) ? $"by {Entry.ApprovedBy}" : "")</div>
+                                                </div>
+                                            </div>
+                                        }
+                                        @if (Entry.RejectedAt.HasValue)
+                                        {
+                                            <div class="vb-tl-item">
+                                                <div class="vb-tl-dot" style="background: color-mix(in srgb, var(--primary) 12%, white);border-color:#dc2626;color:#dc2626;"><i class="ti ti-x"></i></div>
+                                                <div class="vb-tl-content">
+                                                    <div class="vb-tl-title">Rejected</div>
+                                                    <div class="vb-tl-meta">@Entry.RejectedAt.Value.ToString("dd MMM yyyy HH:mm") @(!string.IsNullOrWhiteSpace(Entry.RejectedBy) ? $"by {Entry.RejectedBy}" : "")</div>
+                                                </div>
+                                            </div>
+                                        }
+                                        @if (Entry.PostedAt.HasValue)
+                                        {
+                                            <div class="vb-tl-item">
+                                                <div class="vb-tl-dot" style="background: color-mix(in srgb, var(--primary) 12%, white);border-color:var(--orange);color:var(--orange-d);"><i class="ti ti-book"></i></div>
+                                                <div class="vb-tl-content">
+                                                    <div class="vb-tl-title">Posted</div>
+                                                    <div class="vb-tl-meta">@Entry.PostedAt.Value.ToString("dd MMM yyyy HH:mm") @(!string.IsNullOrWhiteSpace(Entry.PostedBy) ? $"by {Entry.PostedBy}" : "")</div>
+                                                </div>
+                                            </div>
+                                        }
+                                        @if (Entry.CancelledAt.HasValue)
+                                        {
+                                            <div class="vb-tl-item">
+                                                <div class="vb-tl-dot" style="background: color-mix(in srgb, var(--primary) 12%, white);border-color:#dc2626;color:#dc2626;"><i class="ti ti-ban"></i></div>
+                                                <div class="vb-tl-content">
+                                                    <div class="vb-tl-title">Cancelled</div>
+                                                    <div class="vb-tl-meta">@Entry.CancelledAt.Value.ToString("dd MMM yyyy HH:mm") @(!string.IsNullOrWhiteSpace(Entry.CancelledBy) ? $"by {Entry.CancelledBy}" : "")</div>
+                                                </div>
+                                            </div>
+                                        }
+                                    </div>
+                                </div>
+                            </div>
+                        }
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Submit Modal -->
+    <div class="modal fade" id="submitModal" data-bs-backdrop="static" data-bs-keyboard="false">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="page-wrapper-new p-0">
+                    <div class="p-5 px-3 text-center">
+                        <span class="rounded-circle d-inline-flex p-2 bg-warning-transparent mb-2"><i class="ti ti-send fs-24 text-warning"></i></span>
+                        <h4 class="fs-20 text-gray-9 fw-bold mb-2 mt-1">Submit Journal Entry</h4>
+                        <p class="text-gray-6 mb-0 fs-16">Do you want to submit <strong>@Entry.JournalEntryNumber</strong> for approval?</p>
+                        <div class="modal-footer-btn mt-4 d-flex justify-content-center gap-3">
+                            <button type="button" class="btn btn-secondary fs-13 fw-medium p-2 px-4" data-bs-dismiss="modal"><i class="ti ti-x me-1"></i>Cancel</button>
+                            <button type="button" class="btn btn-warning fs-13 fw-medium p-2 px-4" @onclick="SubmitEntry" data-bs-dismiss="modal"><i class="ti ti-send me-1"></i>Yes, Submit</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Approve Modal -->
+    <div class="modal fade" id="approveModal" data-bs-backdrop="static" data-bs-keyboard="false">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="page-wrapper-new p-0">
+                    <div class="p-5 px-3 text-center">
+                        <span class="rounded-circle d-inline-flex p-2 bg-success-transparent mb-2"><i class="ti ti-check fs-24 text-success"></i></span>
+                        <h4 class="fs-20 text-gray-9 fw-bold mb-2 mt-1">Approve Journal Entry</h4>
+                        <p class="text-gray-6 mb-0 fs-16">Do you want to approve <strong>@Entry.JournalEntryNumber</strong>?</p>
+                        <div class="modal-footer-btn mt-4 d-flex justify-content-center gap-3">
+                            <button type="button" class="btn btn-secondary fs-13 fw-medium p-2 px-4" data-bs-dismiss="modal"><i class="ti ti-x me-1"></i>Cancel</button>
+                            <button type="button" class="btn btn-success fs-13 fw-medium p-2 px-4" @onclick="ApproveEntry" data-bs-dismiss="modal"><i class="ti ti-check me-1"></i>Yes, Approve</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Reject Modal -->
+    <div class="modal fade" id="rejectModal" data-bs-backdrop="static" data-bs-keyboard="false">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="page-wrapper-new p-0">
+                    <div class="p-5 px-3 text-center">
+                        <span class="rounded-circle d-inline-flex p-2 bg-danger-transparent mb-2"><i class="ti ti-x fs-24 text-danger"></i></span>
+                        <h4 class="fs-20 text-gray-9 fw-bold mb-2 mt-1">Reject Journal Entry</h4>
+                        <p class="text-gray-6 mb-0 fs-16">Do you want to reject <strong>@Entry.JournalEntryNumber</strong>?</p>
+                        <div class="modal-footer-btn mt-4 d-flex justify-content-center gap-3">
+                            <button type="button" class="btn btn-secondary fs-13 fw-medium p-2 px-4" data-bs-dismiss="modal"><i class="ti ti-x me-1"></i>Cancel</button>
+                            <button type="button" class="btn btn-danger fs-13 fw-medium p-2 px-4" @onclick="RejectEntry" data-bs-dismiss="modal"><i class="ti ti-alert-circle me-1"></i>Yes, Reject</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Post Modal -->
+    <div class="modal fade" id="postModal" data-bs-backdrop="static" data-bs-keyboard="false">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="page-wrapper-new p-0">
+                    <div class="p-5 px-3 text-center">
+                        <span class="rounded-circle d-inline-flex p-2 bg-info-transparent mb-2"><i class="ti ti-book fs-24 text-info"></i></span>
+                        <h4 class="fs-20 text-gray-9 fw-bold mb-2 mt-1">Post to Ledger</h4>
+                        <p class="text-gray-6 mb-0 fs-16">Do you want to post <strong>@Entry.JournalEntryNumber</strong> to the ledger?</p>
+                        <div class="alert alert-warning mt-3 text-start small"><i class="ti ti-alert-triangle me-2"></i>Once posted, the entry cannot be edited. Any corrections must be made via a reversal entry.</div>
+                        <div class="modal-footer-btn mt-4 d-flex justify-content-center gap-3">
+                            <button type="button" class="btn btn-secondary fs-13 fw-medium p-2 px-4" data-bs-dismiss="modal"><i class="ti ti-x me-1"></i>Cancel</button>
+                            <button type="button" class="btn btn-info fs-13 fw-medium p-2 px-4" @onclick="PostEntry" data-bs-dismiss="modal"><i class="ti ti-book me-1"></i>Yes, Post</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Cancel Modal -->
+    <div class="modal fade" id="cancelModal" data-bs-backdrop="static" data-bs-keyboard="false">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="page-wrapper-new p-0">
+                    <div class="p-5 px-3 text-center">
+                        <span class="rounded-circle d-inline-flex p-2 bg-warning-transparent mb-2"><i class="ti ti-ban fs-24 text-warning"></i></span>
+                        <h4 class="fs-20 text-gray-9 fw-bold mb-2 mt-1">Cancel Journal Entry</h4>
+                        <p class="text-gray-6 mb-0 fs-16">Do you want to cancel <strong>@Entry.JournalEntryNumber</strong>?</p>
+                        <div class="modal-footer-btn mt-4 d-flex justify-content-center gap-3">
+                            <button type="button" class="btn btn-secondary fs-13 fw-medium p-2 px-4" data-bs-dismiss="modal"><i class="ti ti-x me-1"></i>Close</button>
+                            <button type="button" class="btn btn-warning fs-13 fw-medium p-2 px-4" @onclick="CancelEntry" data-bs-dismiss="modal"><i class="ti ti-ban me-1"></i>Yes, Cancel</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+}

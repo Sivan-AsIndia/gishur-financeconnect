@@ -1,0 +1,27 @@
+﻿.td-width {
+    width: 195px;
+}
+
+.td-xxxl {
+    display: none !important;
+}
+
+.td-offset-width {
+    width: 150px;
+}
+
+@media (min-width: 426px) {
+    .td-width {
+        width: 275px;
+    }
+}
+
+@media (min-width: 2560px) {
+    .td-xxxl {
+        display: table-cell !important;
+    }
+
+    .td-offset-width {
+        width: 400px;
+    }
+}

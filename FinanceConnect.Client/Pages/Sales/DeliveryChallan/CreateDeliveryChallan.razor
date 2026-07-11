@@ -1,0 +1,666 @@
+﻿@page "/deliverychallans/{Id:guid}"
+@page "/deliverychallans/create"
+
+@if (!isInitialized)
+{
+    <div class="page-loading-overlay">
+        <div class="whirly-loader"></div>
+    </div>
+}
+else
+{
+
+    <div class="content">
+
+        <!-- PAGE HEADER -->
+
+        <div class="page-header">
+
+            <div class="page-title">
+
+                <div style="display:ruby">
+
+                    <h4 class="fw-bold">Delivery Challan</h4>
+
+                </div>
+
+                <span class="badge bg-secondary-transparent text-dark">@Model.ChallanNumber</span>
+
+            </div>
+
+            <div class="page-btn mt-0">
+
+                <a href="/deliverychallans" class="btn btn-outline-secondary">
+
+                    <i class="ti ti-arrow-left me-1"></i> Back
+
+                </a>
+
+            </div>
+
+        </div>
+
+
+        <!-- CHALLAN INFORMATION -->
+
+        <div class="card">
+
+            <div class="card-body">
+
+                <div class="row mb-4">
+
+                    <div class="col-12">
+
+                        <h6 class="fw-semibold text-primary border-bottom pb-2 mb-3">
+
+                            <i class="ti ti-truck-delivery me-1"></i> Delivery Challan Information
+
+                        </h6>
+
+                    </div>
+
+
+                    <div class="col-md-3 mb-3">
+
+                        <label class="form-label">Company <span class="text-danger ms-1">*</span></label>
+
+                        <select class="@($"form-select {(ShowFieldError("CompanyId") ? "is-invalid" : "")}")"
+                                @bind="SelectedCompany">
+
+                            <option value="">--Select Company--</option>
+
+                            @foreach (var c in Companies)
+                            {
+                                <option value="@c.Id">@c.LegalName</option>
+                            }
+
+                        </select>
+                        @if (ShowFieldError("CompanyId"))
+                        {
+                            <div class="text-danger small mt-1">Company is required</div>
+                        }
+                    </div>
+
+
+                    <div class="col-md-3 mb-3">
+
+                        <label class="form-label">Customer <span class="text-danger ms-1">*</span></label>
+
+                        <select class="@($"form-select {(ShowFieldError("CustomerId") ? "is-invalid" : "")}")"
+                                @bind="Model.CustomerId">
+
+                            <option value="">--Select Customer--</option>
+
+                            @foreach (var c in Customers)
+                            {
+                                <option value="@c.Id">@c.CustomerName</option>
+                            }
+
+                        </select>
+                        @if (ShowFieldError("CustomerId"))
+                        {
+                            <div class="text-danger small mt-1">Customer is required</div>
+                        }
+                    </div>
+
+
+                    <div class="col-md-3 mb-3">
+
+                        <label class="form-label">Challan Date <span class="text-danger ms-1">*</span></label>
+
+                        <input type="date"
+                               class="@($"form-control {(ShowFieldError("ChallanDate") ? "is-invalid" : "")}")"
+                               @bind="Model.ChallanDate" />
+                        @if (ShowFieldError("ChallanDate"))
+                        {
+                            <div class="text-danger small mt-1">Customer is required</div>
+                        }
+                    </div>
+
+
+                    <div class="col-md-3 mb-3">
+
+                        <label class="form-label">Shipping Date <span class="text-danger ms-1">*</span></label>
+
+                        <input type="date"
+                               class="@($"form-control {(ShowFieldError("ShippingDate") ? "is-invalid" : "")}")"
+                               min="@(Model.ChallanDate?.ToString("yyyy-MM-dd"))"
+                               @bind="Model.ShippingDate" />
+                        @if (ShowFieldError("ShippingDate"))
+                        {
+                            <div class="text-danger small mt-1">Customer is required</div>
+                        }
+                    </div>
+
+
+                    <div class="col-md-4 mb-3">
+
+                        <label class="form-label">PO Number</label>
+
+                        <input class="form-control" maxlength="30"
+                               @bind="Model.PONumber" />
+
+                    </div>
+
+
+                </div>
+
+            </div>
+
+        </div>
+
+
+
+        <!-- ITEM LINES -->
+
+        <div class="card mt-4">
+
+            <div class="card-body">
+
+                <div class="d-flex justify-content-between align-items-center border-bottom pb-2 mb-3">
+
+                    <h6 class="fw-semibold text-primary mb-0">
+
+                        <i class="ti ti-list me-1"></i> Delivery Items
+
+                    </h6>
+
+                    <button class="btn btn-sm btn-outline-primary"
+                            @onclick="AddLine">
+
+                        <i class="ti ti-plus me-1"></i> Add Item
+
+                    </button>
+
+                </div>
+
+
+                <div class="desktop-only table-responsive">
+
+                    <table class="table align-middle w-100 table-fixed">
+
+                        <thead class="thead-light">
+
+                            <tr>
+
+                                <th width="50">#</th>
+                                <th width="240">Item</th>
+                                <th width="120">Unit</th>
+                                <th width="100" class="text-end">Qty</th>
+                                <th width="120" class="text-end">Price</th>
+                                <th width="100" class="text-end">Tax%</th>
+                                <th width="120" class="text-end">Amount</th>
+                                <th width="90">Action</th>
+
+                            </tr>
+
+                        </thead>
+
+                        <tbody>
+
+                            @foreach (var line in Model.Items)
+                            {
+
+                                <tr>
+
+                                    <td class="text-center">
+                                        @(Model.Items.IndexOf(line) + 1)
+                                    </td>
+
+                                    <td>
+
+                                        <select class="form-select form-select-sm"
+                                                @bind="line.ItemId"
+                                                @bind:after="() => OnItemChanged(line)">
+
+                                            <option value="">--Select Item--</option>
+
+                                            @foreach (var item in Items)
+                                            {
+                                                <option value="@item.Id">
+                                                    @item.ItemCode - @item.ItemName
+                                                </option>
+                                            }
+
+                                        </select>
+
+                                    </td>
+
+
+                                    <td>
+
+                                        <select class="form-select form-select-sm"
+                                                @bind="line.UnitId">
+
+                                            <option value="">--Select Unit--</option>
+
+                                            @foreach (var u in Units)
+                                            {
+                                                <option value="@u.Id">
+                                                    @u.UnitName (@u.Symbol)
+                                                </option>
+                                            }
+
+                                        </select>
+
+                                    </td>
+
+
+                                    <td>
+
+                                        <input class="form-control form-control-sm text-end"
+                                               type="number"
+                                               min="1"
+                                               @bind="line.Quantity"
+                                               @oninput="Recalculate" />
+
+                                    </td>
+
+
+                                    <td>
+
+                                        <input class="form-control form-control-sm text-end"
+                                               type="number"
+                                               min="0"
+                                               @bind="line.Rate"
+                                               @oninput="Recalculate" />
+
+                                    </td>
+
+
+                                    <td>
+
+                                        <select class="form-select form-select-sm"
+                                                @bind="line.TaxPercentage"
+                                                @bind:after="Recalculate">
+
+                                            <option value="">--Tax--</option>
+
+                                            @foreach (var t in Taxes)
+                                            {
+                                                <option value="@t.Percentage">
+                                                    @t.DisplayName
+                                                </option>
+                                            }
+
+                                        </select>
+
+                                    </td>
+
+
+                                    <td class="text-end">
+
+                                        @line.TotalAmount.ToString("N2")
+
+                                    </td>
+
+
+                                    <td class="text-center">
+
+                                        <button class="btn btn-sm btn-outline-secondary me-1"
+                                                @onclick="() => Duplicate(line)">
+
+                                            <i class="ti ti-copy"></i>
+
+                                        </button>
+
+                                        <button class="btn btn-sm btn-outline-danger"
+                                                @onclick="() => Delete(line)">
+
+                                            <i class="ti ti-trash"></i>
+
+                                        </button>
+
+                                    </td>
+
+                                </tr>
+
+                            }
+
+                        </tbody>
+
+                    </table>
+
+                </div>
+
+                <!-- MOBILE VIEW -->
+
+                <div class="mobile-only">
+
+                    @foreach (var line in Model.Items)
+                    {
+                        <div class="mobile-card">
+
+                            <!-- LINE NUMBER -->
+                            <div class="mobile-row">
+                                <div class="mobile-label">Line</div>
+                                <div class="mobile-value fw-semibold">
+                                    #@(Model.Items.IndexOf(line) + 1)
+                                </div>
+                            </div>
+
+                            <!-- ITEM -->
+                            <div class="mobile-row">
+                                <div class="mobile-label">Item</div>
+                                <div class="mobile-value">
+
+                                    <select class="form-select form-select-sm"
+                                            @bind="line.ItemId"
+                                            @bind:after="() => OnItemChanged(line)">
+
+                                        <option value="">--Select Item--</option>
+
+                                        @foreach (var item in Items)
+                                        {
+                                            <option value="@item.Id">
+                                                @item.ItemCode - @item.ItemName
+                                            </option>
+                                        }
+
+                                    </select>
+
+                                </div>
+                            </div>
+
+                            <!-- UNIT -->
+                            <div class="mobile-row">
+                                <div class="mobile-label">Unit</div>
+                                <div class="mobile-value">
+
+                                    <select class="form-select form-select-sm"
+                                            @bind="line.UnitId">
+
+                                        <option value="">--Select Unit--</option>
+
+                                        @foreach (var u in Units)
+                                        {
+                                            <option value="@u.Id">
+                                                @u.UnitName (@u.Symbol)
+                                            </option>
+                                        }
+
+                                    </select>
+
+                                </div>
+                            </div>
+
+                            <!-- QUANTITY -->
+                            <div class="mobile-row">
+                                <div class="mobile-label">Quantity</div>
+                                <div class="mobile-value">
+
+                                    <input class="form-control form-control-sm text-end"
+                                           type="number"
+                                           min="1"
+                                           @bind="line.Quantity"
+                                           @oninput="Recalculate" />
+
+                                </div>
+                            </div>
+
+                            <!-- PRICE -->
+                            <div class="mobile-row">
+                                <div class="mobile-label">Price</div>
+                                <div class="mobile-value">
+
+                                    <input class="form-control form-control-sm text-end"
+                                           type="number"
+                                           min="0"
+                                           @bind="line.Rate"
+                                           @oninput="Recalculate" />
+
+                                </div>
+                            </div>
+
+                            <!-- TAX -->
+                            <div class="mobile-row">
+                                <div class="mobile-label">Tax %</div>
+                                <div class="mobile-value">
+
+                                    <select class="form-select form-select-sm"
+                                            @bind="line.TaxPercentage"
+                                            @bind:after="Recalculate">
+
+                                        <option value="">--Tax--</option>
+
+                                        @foreach (var t in Taxes)
+                                        {
+                                            <option value="@t.Percentage">
+                                                @t.DisplayName
+                                            </option>
+                                        }
+
+                                    </select>
+
+                                </div>
+                            </div>
+
+                            <!-- AMOUNT -->
+                            <div class="mobile-row">
+                                <div class="mobile-label">Amount</div>
+                                <div class="mobile-value fw-semibold text-end">
+                                    @line.TotalAmount.ToString("N2")
+                                </div>
+                            </div>
+
+                            <!-- ACTIONS -->
+                            <div class="mobile-actions">
+
+                                <button class="btn btn-sm btn-outline-secondary"
+                                        @onclick="() => Duplicate(line)">
+                                    <i class="ti ti-copy"></i>
+                                </button>
+
+                                <button class="btn btn-sm btn-outline-danger"
+                                        @onclick="() => Delete(line)">
+                                    <i class="ti ti-trash"></i>
+                                </button>
+
+                            </div>
+
+                        </div>
+                    }
+
+                </div>
+            </div>
+
+        </div>
+
+        <!-- TRANSPORT / EWAY SECTION -->
+
+        <div class="card mt-3">
+
+            <div class="card-body">
+
+                <div class="form-check mb-3">
+
+                    <input class="form-check-input"
+                           type="checkbox"
+                           id="transportCheck"
+                           @bind="Model.ShowTransportDetails"
+                           @bind:after="OnTransportToggle" />
+
+                    <label class="form-check-label fw-semibold"
+                           for="transportCheck">
+
+                        Transport Labels and E-Way data
+
+                    </label>
+
+                </div>
+
+
+                @if (Model.ShowTransportDetails)
+                {
+
+                    <div class="row">
+
+                        <div class="col-md-3 mb-3">
+
+                            <label class="form-label">Transporter Name <span class="text-danger ms-1">*</span></label>
+
+                            <input class="@($"form-control {(ShowTransportFieldError("TransporterName") ? "is-invalid" : "")}")"
+                                   @bind="Model.TransportDetails.TransporterName" maxlength="150"/>
+                                                           @if (ShowTransportFieldError("TransporterName"))
+                        {
+                            <div class="text-danger small mt-1">Customer is required</div>
+                        }
+                        </div>
+
+
+                        <div class="col-md-3 mb-3">
+
+                            <label class="form-label">Vehicle Number <span class="text-danger ms-1">*</span></label>
+
+                            <input class="@($"form-control {(ShowTransportFieldError("VehicleNumber") ? "is-invalid" : "")}")"
+                                   @bind="Model.TransportDetails.VehicleNumber" maxlength="13" />
+                                                           @if (ShowTransportFieldError("VehicleNumber"))
+                        {
+                            <div class="text-danger small mt-1">Customer is required</div>
+                        }
+                        </div>
+
+
+                        <div class="col-md-3 mb-3">
+
+                            <label class="form-label">LR / Consignment No <span class="text-danger ms-1">*</span></label>
+
+                            <input class="@($"form-control {(ShowTransportFieldError("LRNumber") ? "is-invalid" : "")}")"
+                                   @bind="Model.TransportDetails.LRNumber" maxlength="20" />
+                        @if (ShowTransportFieldError("LRNumber"))
+                        {
+                            <div class="text-danger small mt-1">Customer is required</div>
+                        }
+                        </div>
+
+
+                        <div class="col-md-3 mb-3">
+
+                            <label class="form-label">LR Date <span class="text-danger ms-1">*</span></label>
+
+                            <input type="date"
+                                   class="@($"form-control {(ShowTransportFieldError("LRDate") ? "is-invalid" : "")}")"
+                                   @bind="Model.TransportDetails.LRDate" />
+                                                           @if (ShowTransportFieldError("LRDate"))
+                        {
+                            <div class="text-danger small mt-1">Customer is required</div>
+                        }
+                        </div>
+
+
+                        <div class="col-md-3 mb-3">
+
+                            <label class="form-label">E-Way Bill Number <span class="text-danger ms-1">*</span></label>
+
+                            <input class="@($"form-control {(ShowTransportFieldError("EWayBillNumber") ? "is-invalid" : "")}")"
+                                   @bind="Model.TransportDetails.EWayBillNumber" maxlength="12" />
+                            @if (ShowTransportFieldError("EWayBillNumber"))
+                        {
+                            <div class="text-danger small mt-1">Customer is required</div>
+                        }
+                        </div>
+
+                    </div>
+
+                }
+
+            </div>
+
+        </div>
+
+        <!-- TERMS & NOTES -->
+
+        <div class="card mt-3">
+
+            <div class="card-body">
+
+                <div class="row">
+
+                    <!-- Terms & Conditions -->
+
+                    <div class="col-md-6 mb-3">
+
+                        <label class="form-label fw-semibold">
+                            Terms & Conditions
+                        </label>
+                            <RichTextEditor @ref="_termsEditor"
+                                            @bind-Value="Model.TermsAndConditions"
+                                            Placeholder="Enter terms and conditions..."
+                                            MinHeight="80"
+                                            MaxHeight="200" />
+
+                            <small class="text-muted">
+                                @(Model.TermsAndConditions?.Length ?? 0) / 1000 characters
+                            </small>
+
+                        </div>
+
+
+                        <!-- Private Notes -->
+
+                        <div class="col-md-6 mb-3">
+
+                            <label class="form-label fw-semibold">
+                                Private Notes
+                                <span class="text-muted">(not shown to client)</span>
+                            </label>
+                                            <RichTextEditor @ref="_notesEditor"
+                                            @bind-Value="Model.PrivateNotes"
+                                            Placeholder="Internal notes..."
+                                            MinHeight="80"
+                                            MaxHeight="200" />
+
+
+                                <small class="text-muted">
+                                    @(Model.PrivateNotes?.Length ?? 0) / 1000 characters
+                                </small>
+
+                            </div>
+
+                        </div>
+
+                    </div>
+
+                </div>
+
+        <!-- TOTAL BAR -->
+
+        <div class="card mt-3">
+
+            <div class="card-body d-flex justify-content-between align-items-center totals-bar">
+
+                <div>
+
+                    <span class="me-4">
+                        Subtotal: <b>@Model.SubTotal.ToString("N2")</b>
+                    </span>
+
+                    <span class="me-4">
+                        Tax: <b>@Model.TaxAmount.ToString("N2")</b>
+                    </span>
+
+                    <span class="badge bg-success-transparent text-success fs-12 px-3 py-2">
+                        Total: @Model.GrandTotal.ToString("N2")
+                    </span>
+
+                </div>
+
+
+                <div>
+
+                    <button class="btn btn-primary"
+                            @onclick="SaveChallan">
+
+                        <i class="ti ti-device-floppy"></i> Save
+
+                    </button>
+
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>
+
+}

@@ -1,0 +1,1079 @@
+<!DOCTYPE html>
+<html lang="en" data-layout-mode="light_mode">
+<head>
+
+    <!-- Meta Tags -->
+    <meta charset="utf-8" />
+    <base href="/" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+    <title>Gishur Finance </title>
+
+    <!-- Favicon -->
+    <link rel="icon" sizes="512×512" type="image/png" href="assets/images/favicon.png" />
+    <!--<link rel="apple-touch-icon" sizes="180x180" href="assets/images/favicon1.png" />-->
+    <!-- Bootstrap Icons -->
+    <link rel="stylesheet"
+          href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" />
+
+    <!-- Core CSS -->
+    <link rel="stylesheet" href="assets/vendor/css/core.css" />
+
+    <!-- Bootstrap CSS -->
+    <link rel="stylesheet" href="assets/css/bootstrap.min.css" />
+
+    <!-- Plugin CSS -->
+    <link rel="stylesheet" href="assets/css/bootstrap-datetimepicker.min.css" />
+    <link rel="stylesheet" href="assets/css/animate.css" />
+    <link rel="stylesheet" href="assets/css/select2.min.css" />
+    <link rel="stylesheet" href="assets/css/select2-bootstrap-fix.css" />
+    <link rel="stylesheet" href="assets/css/quill.snow.css" />
+    <link rel="stylesheet" href="assets/css/nano.min.css" />
+    <link rel="stylesheet" href="assets/css/bootstrap-tagsinput.css" />
+    <link rel="stylesheet" href="assets/css/daterangepicker.css" />
+    <link rel="stylesheet" href="assets/css/feather.css" />
+    <link rel="stylesheet" href="assets/css/tabler-icons.min.css" />
+    <link rel="stylesheet" href="assets/css/fontawesome.min.css" />
+    <link rel="stylesheet" href="assets/css/all.min.css" />
+    <link rel="stylesheet" href="assets/css/dataTables.bootstrap5.min.css" />
+    <link rel="stylesheet" href="assets/css/sweetalert2.css" />
+    <link rel="stylesheet" href="assets/css/owl.carousel.min.css">
+
+    <!-- Blazor + App CSS -->
+    <link href="FinanceConnect.Client.styles.css" rel="stylesheet" />
+    <link href="css/app.css" rel="stylesheet" />
+    <link rel="stylesheet" href="assets/css/style.css" />
+    <link rel="stylesheet" href="assets/css/common.css" />
+    <link rel="stylesheet" href="css/view-screens.css" />
+    <link rel="stylesheet" href="css/alter-screens.css" />
+    <link rel="stylesheet" href="css/list-screens.css" />
+    <link rel="stylesheet" href="css/Padination.css" />
+    <link rel="stylesheet" href="css/List_View_Popup.css" />
+    <link rel="stylesheet" href="css/timeline-accordion.css" />
+    <link rel="stylesheet" href="css/offcanvas-view.css" />
+    <link rel="stylesheet" href="css/ThemeCustomize.css" />
+    <link rel="stylesheet" href="css/printScreen.css" />
+    <link rel="stylesheet" href="css/CompanyView.css" />
+    <link rel="stylesheet" href="css/VendorBillView.css" />
+    <link rel="stylesheet" href="css/VendorDebitView.css" />
+    <link rel="stylesheet" href="css/VendorPaymentView.css" />
+    <link rel="stylesheet" href="css/theme-fontfamily.css" />
+    <link rel="stylesheet" href="css/horizontal-vertical-sidebar.css" />
+
+    <link rel="stylesheet" href="assets/css/shepherd.css">
+
+</head>
+
+<body>
+
+    <div id="app">
+        <div id="global-loader">
+            <div class="whirly-loader"></div>
+        </div>
+    </div>
+
+
+
+    <div id="blazor-error-ui">
+        An unhandled error has occurred.
+        <a href="" class="reload">Reload</a>
+        <a class="dismiss">🗙</a>
+    </div>
+
+    <!-- ===================== JS FILES ===================== -->
+    <!-- jQuery (FIRST) -->
+    <script src="assets/js/jquery-3.7.1.min.js"></script>
+    <script src="assets/js/owl.carousel.min.js"></script>
+
+    <!-- Bootstrap -->
+    <script src="assets/js/bootstrap.bundle.min.js"></script>
+
+    <!-- Feather Icons -->
+    <script src="assets/js/feather.min.js"></script>
+
+    <!-- Slimscroll -->
+    <script src="assets/js/jquery.slimscroll.min.js"></script>
+
+
+    <!-- ApexChart JS -->
+    <script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
+    <script src="assets/js/chart-data.js"></script>
+
+    <!-- Chart JS -->
+    <script src="assets/js/chart.min.js"></script>
+    <script src="assets/js/chart-data_1.js"></script>
+    <!-- Date & Time -->
+    <script src="assets/js/moment.min.js"></script>
+    <script src="assets/js/daterangepicker.js"></script>
+
+    <!-- Select2 -->
+    <script src="assets/js/select2.min.js"></script>
+    <script src="assets/js/site.js"></script>
+
+    <!-- Color Picker -->
+    <script src="assets/js/pickr.es5.min.js"></script>
+    <script src="assets/js/theme-colorpicker.js"></script>
+
+    <!-- Editor & Tags -->
+    <script src="assets/js/quill.min.js"></script>
+    <script src="assets/js/bootstrap-tagsinput.js"></script>
+
+
+    <script src="assets/js/shepherd.js"></script>
+    <script src="assets/js/extended-ui-tour.js"></script>
+    <script src="assets/js/fileDownload.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
+    <script src="assets/js/kanban.js"></script>
+    <!-- Feather Init (IMPORTANT) -->
+    <script>
+        window.blazorModal = {
+            show: (id) => {
+                const el = document.getElementById(id);
+                if (!el || !window.bootstrap) return;
+                const modal = bootstrap.Modal.getOrCreateInstance(el);
+                modal.show();
+            },
+            hide: (id) => {
+                const el = document.getElementById(id);
+                if (!el || !window.bootstrap) return;
+                const modal = bootstrap.Modal.getInstance(el) || bootstrap.Modal.getOrCreateInstance(el);
+                modal.hide();
+            }
+        };
+
+        window.blazorOffcanvas = {
+            show: (id) => {
+                const el = document.getElementById(id);
+                if (!el || !window.bootstrap) return;
+                const oc = bootstrap.Offcanvas.getOrCreateInstance(el);
+                oc.show();
+            },
+            hide: (id) => {
+                const el = document.getElementById(id);
+                if (!el || !window.bootstrap) return;
+                const oc = bootstrap.Offcanvas.getInstance(el);
+                if (oc) oc.hide();
+            }
+        }; window.blazorOffcanvas = {
+            show: (id) => {
+                const el = document.getElementById(id);
+                if (!el || !window.bootstrap) return;
+                const oc = bootstrap.Offcanvas.getOrCreateInstance(el);
+                oc.show();
+            },
+            hide: (id) => {
+                const el = document.getElementById(id);
+                if (!el || !window.bootstrap) return;
+                const oc = bootstrap.Offcanvas.getInstance(el);
+                if (oc) oc.hide();
+            }
+        };
+
+        window.initFeatherIcons = () => {
+            if (window.feather) {
+                feather.replace();
+            }
+        };
+        window.closeDeleteModal = () => {
+            const modalEl = document.getElementById('delete-modal');
+            const modal = bootstrap.Modal.getInstance(modalEl);
+            if (modal) {
+                modal.hide();
+            }
+        };
+
+        window.initTooltips = (colorBadges) => {
+            // Dispose ALL existing tooltips first to prevent duplicates
+            document.querySelectorAll('[data-bs-toggle="tooltip"]').forEach(el => {
+                const existing = bootstrap.Tooltip.getInstance(el);
+                if (existing) existing.dispose();
+            });
+
+            // Now initialize all in a single pass
+            document.querySelectorAll('[data-bs-toggle="tooltip"]').forEach(el => {
+                const isBadge = el.classList.contains('badge');
+                const useColor = isBadge && colorBadges === true;
+
+                const tooltip = new bootstrap.Tooltip(el, {
+                    customClass: useColor ? 'badge-tooltip' : 'custom-tooltip'
+                });
+
+                if (useColor) {
+                    el.addEventListener('shown.bs.tooltip', function () {
+                        const color = getComputedStyle(el).color;
+                        const tip = tooltip.tip;
+                        if (tip) {
+                            const inner = tip.querySelector('.tooltip-inner');
+                            if (inner) {
+                                const match = color.match(/\d+/g);
+                                if (match) {
+                                    const [r, g, b] = match;
+                                    inner.style.backgroundColor = 'rgba(' + r + ',' + g + ',' + b + ', 0.12)';
+                                    inner.style.color = color;
+                                    inner.style.border = '1px solid rgba(' + r + ',' + g + ',' + b + ', 0.3)';
+                                    inner.style.fontWeight = '600';
+                                }
+                            }
+                        }
+                    });
+                }
+
+                el.addEventListener('click', () => {
+                    tooltip.hide();
+                });
+            });
+        };
+
+
+
+        window.toggleAccordion = function (id) {
+            document.querySelectorAll('.accordion-collapse').forEach(x => {
+                if (x.id !== id) {
+                    x.classList.remove('show');
+                }
+            });
+
+            const el = document.getElementById(id);
+            if (el) {
+                el.classList.add('show');
+            }
+        };
+
+        window.scrollToStep = function (step) {
+            const container = document.querySelector('.wizard-steps');
+            if (!container) return; // <-- safely exit if not yet rendered
+
+            const stepEl = container.children[step];
+            stepEl?.scrollIntoView({ behavior: 'smooth', inline: 'center' });
+        }
+
+        window.scrollToFirstValidationError = function () {
+            // Find the first validation error element
+            const invalidElement = document.querySelector('.is-invalid, .validation-message, .invalid-feedback');
+            if (invalidElement) {
+                // Scroll to the element with some offset
+                invalidElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+
+                // Try to focus if it's an input
+                const inputElement = invalidElement.tagName === 'INPUT' || invalidElement.tagName === 'SELECT' || invalidElement.tagName === 'TEXTAREA'
+                    ? invalidElement
+                    : invalidElement.closest('.form-group, .mb-3')?.querySelector('input, select, textarea');
+
+                if (inputElement) {
+                    setTimeout(() => inputElement.focus(), 300);
+                }
+            }
+        };
+
+
+        window.getVisibleTableColumns = () => {
+            const headers = document.querySelectorAll("thead th");
+            let count = 0;
+
+            headers.forEach(th => {
+                if (getComputedStyle(th).display !== "none") {
+                    count++;
+                }
+            });
+
+            return count;
+        };
+
+    </script>
+    <!-- Blazor WASM (LAST) -->
+    <script src="_framework/blazor.webassembly.js"></script>
+    <script>
+        window.bootstrapModal = {
+            show: (id) => new bootstrap.Modal(document.getElementById(id)).show(),
+            hide: (id) => bootstrap.Modal.getInstance(document.getElementById(id))?.hide()
+        };
+
+
+    </script>
+    <script>
+        window.openAccordion = function (id) {
+            const el = document.getElementById(id);
+            if (!el) return;
+
+            const collapse = bootstrap.Collapse.getOrCreateInstance(el);
+            collapse.show();
+
+            setTimeout(() => {
+                el.scrollIntoView({ behavior: "smooth", block: "center" });
+            }, 200);
+        };
+
+
+        $(document).on('mouseover', function (e) {
+            if ($('body').hasClass('mini-sidebar')) {
+                var targ = $(e.target).closest('.sidebar, .sidebar-right, .header-left').length;
+                if (targ) {
+                    $('body').addClass('expand-menu');
+                    $('.subdrop + ul').slideDown();
+                } else {
+                    $('body').removeClass('expand-menu');
+                    $('.subdrop + ul').slideUp();
+                }
+            }
+        });
+
+
+        //toggle_btn
+        $(document).on('click', '#toggle_btn', function () {
+            if ($('body').hasClass('mini-sidebar')) {
+                $('body').removeClass('mini-sidebar');
+                $(this).addClass('active');
+                $('.subdrop + ul');
+                localStorage.setItem('screenModeNightTokenState', 'night');
+                setTimeout(function () {
+                    $("body").removeClass("mini-sidebar");
+                    $(".sidebar-logo").addClass("active");
+                }, 100);
+            } else {
+                $('body').addClass('mini-sidebar');
+                $(this).removeClass('active');
+                $('.subdrop + ul');
+                localStorage.removeItem('screenModeNightTokenState', 'night');
+                setTimeout(function () {
+                    $("body").addClass("mini-sidebar");
+                    $(".sidebar-logo").removeClass("active");
+                }, 100);
+            }
+            return false;
+        });
+    </script>
+
+    <script>
+        document.addEventListener("DOMContentLoaded", function () {
+
+            function updateDateTime() {
+                const now = new Date();
+
+                const days = ['SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT'];
+                const months = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN',
+                    'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'];
+
+                const dayNameEl = document.getElementById("currentDayName");
+                const dateEl = document.getElementById("currentDateShort");
+                const monthEl = document.getElementById("currentMonthShort");
+                const timeHMEl = document.getElementById("currentTimeHM");
+                const timeSecEl = document.getElementById("currentTimeSec");
+                const ampmEl = document.getElementById("currentAmPm");
+
+                if (dayNameEl) dayNameEl.textContent = days[now.getDay()];
+                if (dateEl) dateEl.textContent = now.getDate().toString().padStart(2, '0');
+                if (monthEl) monthEl.textContent = months[now.getMonth()];
+
+                let hours = now.getHours();
+                const ampm = hours >= 12 ? 'PM' : 'AM';
+                hours = hours % 12 || 12;
+                const mins = now.getMinutes().toString().padStart(2, '0');
+                const secs = now.getSeconds().toString().padStart(2, '0');
+
+                if (timeHMEl) timeHMEl.textContent = hours + ':' + mins;
+                if (timeSecEl) timeSecEl.textContent = ':' + secs;
+                if (ampmEl) ampmEl.textContent = ampm;
+            }
+
+            setInterval(updateDateTime, 1000);
+            updateDateTime();
+        });
+    </script>
+    <!-- Quill Rich Text Editor Interop -->
+    <script>
+        window.quillInterop = {
+            create: function (editorId, toolbarId, placeholder) {
+                const editor = document.getElementById(editorId);
+                const toolbar = document.getElementById(toolbarId);
+                if (!editor || !toolbar) return;
+
+                const quill = new Quill('#' + editorId, {
+                    modules: {
+                        toolbar: '#' + toolbarId
+                    },
+                    theme: 'snow',
+                    placeholder: placeholder || 'Type here...'
+                });
+
+                editor._quill = quill;
+            },
+            getHtml: function (editorId) {
+                const editor = document.getElementById(editorId);
+                if (editor && editor._quill) {
+                    return editor._quill.root.innerHTML;
+                }
+                return '';
+            },
+            setHtml: function (editorId, html) {
+                const editor = document.getElementById(editorId);
+                if (editor && editor._quill) {
+                    editor._quill.root.innerHTML = html || '';
+                }
+            },
+            getText: function (editorId) {
+                const editor = document.getElementById(editorId);
+                if (editor && editor._quill) {
+                    return editor._quill.getText();
+                }
+                return '';
+            }
+        };
+    </script>
+
+    <script src="assets/js/script.js"></script>
+    <script src="assets/js/theme-horizontal-header.js"></script>
+
+    <!-- Theme Script -->
+    <script>
+
+        function hexToRgb(color) {
+
+            color = color.replace("#", "");
+
+            if (color.length === 3) {
+                color = color.split("").map(x => x + x).join("");
+            }
+
+            const bigint = parseInt(color, 16);
+
+            return {
+                r: (bigint >> 16) & 255,
+                g: (bigint >> 8) & 255,
+                b: bigint & 255
+            };
+        }
+
+        function getContrastColor(hex) {
+
+            hex = hex.replace("#", "");
+
+            if (hex.length === 3) {
+                hex = hex.split("").map(x => x + x).join("");
+            }
+
+            const r = parseInt(hex.substr(0, 2), 16);
+            const g = parseInt(hex.substr(2, 2), 16);
+            const b = parseInt(hex.substr(4, 2), 16);
+
+            const luminance = (0.299 * r + 0.587 * g + 0.114 * b);
+
+            return luminance > 160 ? "#000000" : "#ffffff";
+        }
+
+        window.themeBuilder = {
+
+            applyTheme: function (settings) {
+
+                if (!settings) return;
+
+                const root = document.documentElement;
+
+                // ---------- SECONDARY ----------
+                root.style.setProperty("--secondary", settings.secondaryColor);
+
+                const secondaryText = getContrastColor(settings.secondaryColor);
+                root.style.setProperty("--btn-secondary-text", secondaryText);
+                root.style.setProperty("--btn-secondary-icon", secondaryText);
+
+                // ---------- ICON + HEADING ----------
+                root.style.setProperty("--icon-color", settings.iconColor);
+                root.style.setProperty("--heading-color", settings.headingColor);
+
+                // ---------- FONT ----------
+                root.style.setProperty("--font-family", settings.fontFamily);
+                root.style.setProperty("--textfont-size", settings.fontSize);
+
+                // -------- RADIUS ----------
+                root.style.setProperty("--radius", settings.borderRadius + "px");
+                root.style.setProperty("--btn-radius", settings.buttonRadius + "px");
+
+                // ---------- SHADOW ----------
+                if (settings.shadowStrength !== undefined) {
+                    const strength = settings.shadowStrength / 100;
+                    root.style.setProperty("--shadow-strength", strength.toFixed(2));
+                }
+
+                // ---------- DARK MODE ----------
+                if (settings.isDarkMode) {
+                    root.setAttribute("data-theme", "dark");
+                    root.style.setProperty("--primary", "#282828");
+                    root.style.setProperty("--primary-rgb", "0, 0, 0");
+                    root.style.setProperty("--btn-primary-text", "#ffffff");
+                    root.style.setProperty("--btn-primary-icon", "#ffffff");
+
+                } else {
+                    root.removeAttribute("data-theme");
+                    root.style.setProperty("--primary", settings.primaryColor);
+                    const rgb = hexToRgb(settings.primaryColor);
+                    if (rgb) {
+                        root.style.setProperty("--primary-rgb", `${rgb.r}, ${rgb.g}, ${rgb.b}`);
+                    }
+
+                    //const primaryText = getContrastColor(settings.primaryColor);
+                    //root.style.setProperty("--btn-primary-text", primaryText);
+                    //root.style.setProperty("--btn-primary-icon", primaryText);
+                }
+
+                console.log("Theme applied OK", settings);
+            },
+
+            toggleDarkMode: function (isDark) {
+
+                const root = document.documentElement;
+
+                if (isDark) {
+                    root.setAttribute("data-theme", "dark");
+                    root.style.setProperty("--primary", "#282828");
+                    root.style.setProperty("--primary-rgb", "0, 0, 0");
+                    root.style.setProperty("--btn-primary-text", "#ffffff");
+                    root.style.setProperty("--btn-primary-icon", "#ffffff");
+
+                } else {
+                    root.removeAttribute("data-theme");
+                }
+            }
+        };
+
+        // Preview Functions
+        window.setPreviewIconColor = function (color) {
+            document.documentElement
+                .style.setProperty("--preview-icon-color", color);
+        };
+
+        window.setPreviewHeadingColor = function (color) {
+            document.documentElement
+                .style.setProperty("--preview-heading-color", color);
+        };
+
+        window.setPreviewPrimaryButtonColor = function (color) {
+
+            const root = document.documentElement;
+
+            root.style.setProperty("--preview-primary", color);
+
+            const rgb = hexToRgb(color);
+
+            if (rgb) {
+                root.style.setProperty(
+                    "--preview-primary-rgb",
+                    `${rgb.r}, ${rgb.g}, ${rgb.b}`
+                );
+            }
+        };
+
+        // Local Storage
+
+        window.themeStorage = {
+
+            saveTheme: function (settings) {
+                localStorage.setItem("app-theme", JSON.stringify(settings));
+                console.log("Theme saved to localStorage");
+            },
+            //Theme Color
+            savePrimaryColors: function (colors) {
+                localStorage.setItem("custom-primary-colors", JSON.stringify(colors));
+            },
+
+            loadPrimaryColors: function () {
+                const data = localStorage.getItem("custom-primary-colors");
+                return data ? JSON.parse(data) : null;
+            },
+            saveSecondaryColors: function (colors) {
+                localStorage.setItem("custom-secondary-colors", JSON.stringify(colors));
+            },
+            loadSecondaryColors: function () {
+                const d = localStorage.getItem("custom-secondary-colors");
+                return d ? JSON.parse(d) : null;
+            },
+
+            saveIconColors: function (colors) {
+                localStorage.setItem("custom-icon-colors", JSON.stringify(colors));
+            },
+            loadIconColors: function () {
+                const d = localStorage.getItem("custom-icon-colors");
+                return d ? JSON.parse(d) : null;
+            },
+
+            saveHeadingColors: function (colors) {
+                localStorage.setItem("custom-heading-colors", JSON.stringify(colors));
+            },
+            loadHeadingColors: function () {
+                const d = localStorage.getItem("custom-heading-colors");
+                return d ? JSON.parse(d) : null;
+            },
+
+            loadTheme: function () {
+
+                const data = localStorage.getItem("app-theme");
+
+                if (!data) return null;
+
+                return JSON.parse(data);
+            }
+        };
+
+        // Restore On Load
+        window.applyThemeFromStorage = function () {
+            const data = localStorage.getItem("app-theme");
+            if (!data) return;
+            const settings = JSON.parse(data);
+            const root = document.documentElement;
+            // SECONDARY
+            root.style.setProperty("--secondary", settings.secondaryColor);
+            //const secondaryText = getContrastColor(settings.secondaryColor);
+            //root.style.setProperty("--btn-secondary-text", secondaryText);
+            //root.style.setProperty("--btn-secondary-icon", secondaryText);
+            // ICON + HEADING
+            root.style.setProperty("--icon-color", settings.iconColor);
+            root.style.setProperty("--heading-color", settings.headingColor);
+            // FONT
+            root.style.setProperty("--font-family", settings.fontFamily);
+            root.style.setProperty("--textfont-size", settings.fontSize);
+            // RADIUS
+            root.style.setProperty("--radius", (parseInt(settings.borderRadius) || 8) + "px");
+            root.style.setProperty("--btn-radius", (parseInt(settings.buttonRadius) || 8) + "px");
+            // SHADOW
+            if (settings.shadowStrength !== undefined) {
+                const strength = settings.shadowStrength / 100;
+                root.style.setProperty("--shadow-strength", strength.toFixed(2));
+            }
+            // DARK MODE
+            if (settings.isDarkMode) {
+                root.setAttribute("data-theme", "dark");
+                root.style.setProperty("--primary", "#282828");
+                root.style.setProperty("--primary-rgb", "0, 0, 0");
+                root.style.setProperty("--btn-primary-text", "#ffffff");
+                root.style.setProperty("--btn-primary-icon", "#ffffff");
+
+            } else {
+                root.removeAttribute("data-theme");
+                root.style.setProperty("--primary", settings.primaryColor);
+                const rgb = hexToRgb(settings.primaryColor);
+                if (rgb) {
+                    root.style.setProperty("--primary-rgb", `${rgb.r}, ${rgb.g}, ${rgb.b}`);
+                }
+                //const primaryText = getContrastColor(settings.primaryColor);
+                //root.style.setProperty("--btn-primary-text", primaryText);
+                //root.style.setProperty("--btn-primary-icon", primaryText);
+            }
+
+            console.log("Theme restored from localStorage", settings);
+        };
+
+    </script>
+
+    <script>
+
+        window.previewDarkMode = function (isDark) {
+
+            const preview = document.querySelector(".dashboard-preview");
+
+            if (!preview) return;
+
+            if (isDark) {
+                preview.classList.add("preview-dark");
+            } else {
+                preview.classList.remove("preview-dark");
+            }
+        };
+
+    </script>
+    <script>
+
+        window.profilePreview = {
+
+            setActive: function (url) {
+
+                document.querySelectorAll(".img-opt")
+                    .forEach(x => x.classList.remove("active"));
+
+                const el = [...document.querySelectorAll(".img-opt")]
+                    .find(x => x.dataset.url === url);
+
+                if (el)
+                    el.classList.add("active");
+
+                const pic = document.querySelector(".profile-pic");
+
+                if (pic)
+                    pic.style.backgroundImage = `url('${url}')`;
+            }
+        };
+
+
+        window.userSessionStorage = {
+
+            load: function () {
+
+                const data = localStorage.getItem("userSession");
+
+                if (!data) return null;
+
+                return JSON.parse(data);
+            },
+
+            save: function (session) {
+
+                localStorage.setItem(
+                    "userSession",
+                    JSON.stringify(session)
+                );
+            }
+        };
+
+    </script>
+
+    <!-- SidebarBackground -->
+    <script>
+        window.setSidebarBackground = function (url) {
+
+            localStorage.setItem("sidebar-bg", url);
+
+            const sidebar = document.getElementById("PreviewSidebar");
+
+            if (!sidebar) return;
+
+            sidebar.style.backgroundImage = `url("${url}")`;
+            sidebar.classList.add("has-bg");
+        };
+        window.setSidebarBackgroundSave = function (url) {
+
+            const sidebar = document.getElementById("sidebar");
+            if (!sidebar) return;
+
+            if (!url) {
+                sidebar.style.backgroundImage = "";
+                sidebar.classList.remove("has-bg");
+                localStorage.removeItem("sidebar-bg");
+                return;
+            }
+            localStorage.setItem("sidebar-bg", url);
+            sidebar.style.backgroundImage = `url("${url}")`;
+            sidebar.classList.add("has-bg");
+        };
+
+        window.loadSidebarBackground1 = function () {
+
+            const url = localStorage.getItem("sidebar-bg");
+
+            if (!url) return null;
+
+            const sidebar = document.getElementById("PreviewSidebar");
+
+            if (sidebar) {
+                sidebar.style.backgroundImage = `url("${url}")`;
+                sidebar.classList.add("has-bg");
+            }
+
+            return url;
+        };
+        window.loadSidebarBackground = function () {
+
+            const url = localStorage.getItem("sidebar-bg");
+
+            if (!url) return null;
+
+            const sidebar = document.getElementById("sidebar");
+
+            if (sidebar) {
+                sidebar.style.backgroundImage = `url("${url}")`;
+                sidebar.classList.add("has-bg");
+            }
+
+            return url;
+        };
+
+        window.clearSidebarBg = function () {
+
+            localStorage.removeItem("sidebar-bg");
+
+            const sidebar = document.getElementById("sidebar");
+
+            if (!sidebar) return;
+
+            sidebar.style.backgroundImage = "";
+            sidebar.classList.remove("has-bg");
+        };
+
+
+    </script>
+
+    <script>
+        window.resetColorPicker = function (color) {
+            const picker = document.querySelector('input[type="color"]');
+            if (picker) {
+                picker.value = color;
+            }
+        };
+    </script>
+
+    <!-- Font Family Theme -->
+    <script>
+        (function () {
+            const data = localStorage.getItem("app-fonts");
+            if (!data) return;
+            const s = JSON.parse(data);
+            const r = document.documentElement;
+            if (s.menuFont) r.style.setProperty("--font-menu", s.menuFont);
+            if (s.headingFont) r.style.setProperty("--font-heading", s.headingFont);
+            if (s.numberFont) r.style.setProperty("--font-number", s.numberFont);
+            if (s.otherFont) r.style.setProperty("--font-other", s.otherFont);
+        })();
+
+        window.fontStorage = {
+            saveFonts: function (settings) {
+                localStorage.setItem("app-fonts", JSON.stringify(settings));
+            },
+            loadFonts: function () {
+                const data = localStorage.getItem("app-fonts");
+                if (!data) return null;
+                return JSON.parse(data);
+            }
+        };
+    </script>
+
+    <!-- Horizontal Header Theme-->
+
+    <script>
+        (function () {
+            var SCROLL_STEP = 220;
+
+            /* ── Early class on <html> before paint ── */
+            var _early = localStorage.getItem('layoutMode') || 'box';
+            if (_early === 'fluid') {
+                document.documentElement.classList.add('layout-horizontal');
+            } else {
+                document.documentElement.classList.add('layout-vertical');
+            }
+
+            /* ════════════════════════════════════════════
+               applyLayout
+               mode: 'fluid' = horizontal | 'box' = vertical
+               save: true = write to localStorage
+            ════════════════════════════════════════════ */
+            window.applyLayout = function (mode, save) {
+                save = (save === true);
+                var body = document.body;
+
+                if (mode === 'fluid') {
+                    body.classList.add('layout-horizontal');
+                    body.classList.remove('layout-vertical');
+                    document.documentElement.classList.add('layout-horizontal');
+                    document.documentElement.classList.remove('layout-vertical');
+                    moveLogo('toHeader');
+                    setTimeout(adjustHorizontalLayout, 150);
+                    setTimeout(checkNavOverflow, 300);
+                } else {
+                    body.classList.add('layout-vertical');
+                    body.classList.remove('layout-horizontal');
+                    document.documentElement.classList.add('layout-vertical');
+                    document.documentElement.classList.remove('layout-horizontal');
+                    moveLogo('toSidebar');
+                    var pw = document.querySelector('.page-wrapper');
+                    if (pw) pw.style.paddingTop = '';
+                    var sidebar = document.getElementById('sidebar');
+                    if (sidebar) sidebar.classList.remove('nav-overflow');
+                }
+
+                if (save) localStorage.setItem('layoutMode', mode);
+                syncUI(mode);
+            };
+
+            window.saveLayoutMode = function (mode) {
+                localStorage.setItem('layoutMode', mode);
+            };
+
+            window.loadSavedLayout = function () {
+                var saved = localStorage.getItem('layoutMode') || 'box';
+                applyLayout(saved, false);
+            };
+
+            /* ── syncUI: keeps radio + card selector in sync ── */
+            function syncUI(mode) {
+                document.querySelectorAll('input[name="width"]').forEach(function (r) {
+                    r.checked = (r.value === mode);
+                });
+                var cardH = document.getElementById('card-horizontal');
+                var cardV = document.getElementById('card-vertical');
+                if (cardH && cardV) {
+                    if (mode === 'fluid') {
+                        cardH.classList.add('active');
+                        cardV.classList.remove('active');
+                    } else {
+                        cardV.classList.add('active');
+                        cardH.classList.remove('active');
+                    }
+                }
+            }
+
+            /* ── moveLogo: moves .sidebar-logo between sidebar ↔ header ── */
+            function moveLogo(direction) {
+                var header = document.querySelector('.header');
+                var sidebar = document.getElementById('sidebar');
+                if (!header || !sidebar) return;
+
+                if (direction === 'toHeader') {
+                    var logo = sidebar.querySelector('.sidebar-logo');
+                    if (logo) header.insertBefore(logo, header.firstChild);
+                } else {
+                    var logo = header.querySelector('.sidebar-logo');
+                    if (logo) {
+                        logo.removeAttribute('style');
+                        logo.querySelectorAll('*').forEach(function (el) { el.removeAttribute('style'); });
+                        sidebar.insertBefore(logo, sidebar.firstChild);
+                    }
+                }
+            }
+
+            /* ── adjustHorizontalLayout: recalc page-wrapper padding ── */
+            function adjustHorizontalLayout() {
+                var header = document.querySelector('.header');
+                var sidebar = document.getElementById('sidebar');
+                var pw = document.querySelector('.page-wrapper');
+                //if (header && sidebar && pw) {
+                //    setTimeout(function () {
+                //        pw.style.paddingTop = (header.offsetHeight + sidebar.offsetHeight) + 'px';
+                //    }, 50);
+                //}
+            }
+
+            /* ════════════════════════════════════════════
+               NAV SCROLL (arrow buttons)
+            ════════════════════════════════════════════ */
+            window.navScroll = function (direction) {
+                var ul = document.querySelector('body.layout-horizontal #sidebar-menu > ul');
+                if (!ul) return;
+                ul.scrollLeft += (direction === 'right' ? SCROLL_STEP : -SCROLL_STEP);
+                setTimeout(updateNavArrows, 300);
+            };
+
+            function updateNavArrows() {
+                var sidebar = document.getElementById('sidebar');
+                var ul = document.querySelector('body.layout-horizontal #sidebar-menu > ul');
+                var btnL = document.getElementById('navScrollLeft');
+                var btnR = document.getElementById('navScrollRight');
+                if (!ul) return;
+
+                var isOverflow = ul.scrollWidth > (ul.clientWidth + 2);
+                if (sidebar) {
+                    if (isOverflow) {
+                        sidebar.classList.add('nav-overflow');
+                    } else {
+                        sidebar.classList.remove('nav-overflow');
+                    }
+                }
+
+                if (btnL) btnL.disabled = ul.scrollLeft <= 1;
+                if (btnR) btnR.disabled = (ul.scrollLeft + ul.clientWidth) >= (ul.scrollWidth - 2);
+            }
+
+            function checkNavOverflow() {
+                if (!document.body.classList.contains('layout-horizontal')) return;
+                updateNavArrows();
+
+                /* attach scroll listener once */
+                var ul = document.querySelector('body.layout-horizontal #sidebar-menu > ul');
+                if (ul && !ul._navScrollListening) {
+                    ul._navScrollListening = true;
+                    ul.addEventListener('scroll', updateNavArrows);
+                }
+            }
+
+            /* ── Dropdown position: position fixed panel below its trigger ── */
+            document.addEventListener('mouseover', function (e) {
+                var li = e.target.closest(
+                    'body.layout-horizontal #sidebar-menu > ul > li.submenu-open'
+                );
+                if (li) {
+                    var ul = li.querySelector(':scope > ul');
+                    if (ul) {
+                        var rect = li.getBoundingClientRect();
+                        ul.style.top = rect.bottom + 'px';
+                        ul.style.left = rect.left + 'px';
+                    }
+                }
+            });
+
+            /* ── Resize handler ── */
+            window.addEventListener('resize', function () {
+                if (document.body.classList.contains('layout-horizontal')) {
+                    adjustHorizontalLayout();
+                    checkNavOverflow();
+                }
+            });
+
+            /* ── DOMContentLoaded ── */
+            document.addEventListener('DOMContentLoaded', function () {
+
+                /* radio buttons in theme settings */
+                document.querySelectorAll('input[name="width"]').forEach(function (r) {
+                    r.addEventListener('change', function () {
+                        applyLayout(this.value, false);
+                    });
+                });
+
+                /* initial overflow check after sidebar renders */
+                setTimeout(checkNavOverflow, 500);
+            });
+
+        })();
+    </script>
+
+
+    <script>
+        window.applyThemeFromStorage();
+    </script>
+
+    <!-- Theme Script  End -->
+    <!-- Scroll To Top-->
+
+    <script>
+        window.initScrollTop = function () {
+            const btn = document.getElementById('sttBtn');
+            const container = document.querySelector('.main-wrapper');
+            const ringFill = document.getElementById('sttRingFill');
+            const pctLabel = document.getElementById('sttPct');
+            if (!btn) return;
+
+            const target = container ?? window;
+            const circumference = 163.4;
+
+            function getScrollPercent() {
+                if (container) {
+                    const scrollable = container.scrollHeight - container.clientHeight;
+                    return scrollable > 0 ? container.scrollTop / scrollable : 0;
+                } else {
+                    const scrollable = document.documentElement.scrollHeight - window.innerHeight;
+                    return scrollable > 0 ? window.scrollY / scrollable : 0;
+                }
+            }
+
+            function onScroll() {
+                const scrollValue = container ? container.scrollTop : window.scrollY;
+                if (scrollValue > 200) btn.classList.add('stt-visible');
+                else btn.classList.remove('stt-visible');
+                const pct = getScrollPercent();
+                if (ringFill) {
+                    ringFill.style.strokeDasharray = circumference;
+                    ringFill.style.strokeDashoffset = circumference - pct * circumference;
+                }
+                if (pctLabel) {
+                    pctLabel.textContent = Math.round(pct * 100) + '%';
+                }
+            }
+
+            target.addEventListener('scroll', onScroll, { passive: true });
+            btn.addEventListener('click', function () {
+                if (container) container.scrollTo({ top: 0, behavior: 'smooth' });
+                else window.scrollTo({ top: 0, behavior: 'smooth' });
+            });
+            setTimeout(onScroll, 100);
+        };
+    </script>
+
+
+
+
+</body>
+</html>

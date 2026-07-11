@@ -1,0 +1,423 @@
+@page "/journal-entries/{EntryId:guid}/lines"
+@page "/journal-lines"
+
+@using FinanceConnect.Client.ViewModels
+@inject JournalEntryService EntryService
+@inject JournalLineService LineService
+@inject ToastService ToastService
+@inject NavigationManager Nav
+
+<style>
+
+
+    .form-select option:checked {
+        color: #fff;
+        background: var(--primary);
+    }
+
+    .form-select:focus {
+        border-color: var(--primary);
+        box-shadow: none;
+    }
+
+    .validation-message {
+        color: #dc3545;
+        font-size: 12px;
+    }
+
+    .journal-grid input {
+        border-radius: 0;
+        box-shadow: none;
+    }
+
+        .journal-grid input:focus {
+            border-bottom: 2px solid var(--primary);
+        }
+
+    .journal-grid tr:hover {
+        background: #fffaf3;
+    }
+
+    .journal-grid .text-end {
+        text-align: right;
+    }
+
+    .journal-grid .is-invalid {
+        border: 1px solid #dc3545;
+        background: #fff5f5;
+    }
+
+    /* Mobile Journal Lines Layout */
+    @@media (max-width: 768px) {
+
+        .mobile-only {
+            display: block !important;
+        }
+
+        .desktop-only {
+            display: none !important;
+        }
+
+        .mobile-card {
+            border: 1px solid #e5e7eb;
+            border-radius: 12px;
+            padding: 12px;
+            margin-bottom: 12px;
+            background: #fff;
+        }
+
+        .mobile-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+            gap: 10px;
+        }
+
+        .mobile-label {
+            font-size: 12px;
+            color: #64748b;
+            min-width: 90px;
+        }
+
+        .mobile-value {
+            flex: 1;
+        }
+
+        .mobile-actions {
+            display: flex;
+            justify-content: flex-end;
+            gap: 8px;
+            margin-top: 8px;
+        }
+
+        .totals-bar {
+            flex-direction: column;
+            align-items: flex-start !important;
+            gap: 12px;
+        }
+
+        .totals-left {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            width: 100%;
+        }
+
+        .totals-actions {
+            width: 100%;
+            display: flex;
+            justify-content: stretch;
+        }
+
+            .totals-actions .btn {
+                width: 100%;
+            }
+    }
+
+    /* Desktop only */
+    @@media (min-width: 769px) {
+        .desktop-only {
+            display: block;
+        }
+
+        .mobile-only {
+            display: none;
+        }
+    }
+
+</style>
+
+@if (!isInitialized)
+{
+    <div class="page-loading-overlay">
+        <div class="whirly-loader"></div>
+    </div>
+}
+else
+{
+    <div class="content">
+        <div class="page-header">
+            <div class="page-title">
+                <div style="display: ruby;">
+                    <h4 class="fw-bold">
+                        Journal Entry Line
+                    </h4>
+                    <!-- Status Badge -->
+                    <span class="badge @GetStatusBadge(Entry.Status)">
+                        @Entry.Status
+                    </span>
+                </div>
+
+                <h6>Accounting Voucher</h6>
+
+            </div>
+
+            <div class="page-btn mt-0">
+                <a href="/journal-entries" class="btn btn-secondary">
+                    <i class="ti ti-arrow-left me-1"></i> Back
+                </a>
+            </div>
+        </div>
+        <div class="card">
+            <div class="card-body">
+
+                <div class="row mb-4">
+                    <div class="col-12">
+                        <h6 class="fw-semibold text-primary border-bottom pb-2 mb-3">
+                            <i class="ti ti-file-text me-1"></i> Journal Entry Information
+                        </h6>
+                    </div>
+
+                    <div class="col-md-3 mb-3">
+                        <label class="form-label">Journal Entry</label>
+                        <input class="form-control" value="@Entry.JournalEntryNumber" readonly />
+                    </div>
+
+                    <div class="col-md-3 mb-3">
+                        <label class="form-label">Company</label>
+                        <input class="form-control" value="@CompanyName" readonly />
+                    </div>
+
+                    <div class="col-md-3 mb-3">
+                        <label class="form-label">Branch</label>
+                        <input class="form-control" value="@BranchName" readonly />
+                    </div>
+
+                    <div class="col-md-3 mb-3">
+                        <label class="form-label">Journal</label>
+                        <input class="form-control" value="@JournalName" readonly />
+                    </div>
+
+                    <div class="col-md-3 mb-3">
+                        <label class="form-label">Fiscal Period</label>
+                        <input class="form-control"
+                               value="@($"{Entry.FiscalYearName} - {Entry.AccountingPeriodName}")"
+                               readonly />
+                    </div>
+
+                    <div class="col-md-3 mb-3">
+                        <label class="form-label">Posting Date</label>
+                        <input type="date"
+                               class="form-control"
+                               value="@Entry.PostingDate.ToString("yyyy-MM-dd")"
+                               readonly />
+                    </div>
+
+
+                </div>
+
+            </div>
+        </div>
+
+
+        <div class="card mt-4">
+            <div class="card-body">
+
+                <div class="d-flex justify-content-between align-items-center border-bottom pb-2 mb-3">
+                    <h6 class="fw-semibold text-primary mb-0">
+                        <i class="ti ti-list me-1"></i> Journal Lines
+                    </h6>
+
+                    @if (!IsReadOnly)
+                    {
+                        <button class="btn btn-sm btn-outline-primary" @onclick="AddLine">
+                            <i class="ti ti-plus me-1"></i> Add Line
+                        </button>
+                    }
+                </div><div class="desktop-only table-responsive">
+                    <table class="table table-bordered">
+                        <thead class="table-light">
+                            <tr>
+                                <th width="40">#</th>
+                                <th width="260">Account</th>
+                                <th width="140" class="text-end">Debit</th>
+                                <th width="140" class="text-end">Credit</th>
+                                <th>Narration</th>
+                                <th width="100" class="text-center">Action</th>
+                            </tr>
+                        </thead>
+
+                        <tbody>
+                            @foreach (var line in UiDraftLines)
+                            {
+                                <tr>
+                                    <td class="text-center" style="word-break: normal;">
+                                        @line.LineNumber
+                                    </td>
+
+                                    <td>
+                                        <select class="form-select form-select-sm"
+                                                @bind="line.AccountId"
+                                                disabled="@IsReadOnly">
+                                            <option value="">-- Select Account --</option>
+                                            @foreach (var a in Accounts)
+                                            {
+                                                <option value="@a.Id">@a.AccountCode - @a.AccountName</option>
+                                            }
+                                        </select>
+                                    </td>
+
+                                    <td>
+                                        <input class="form-control form-control-sm text-end"
+                                               value="@line.DebitAmount"
+                                               disabled="@IsReadOnly"
+                                               @oninput="e => OnDebitChanged(line, e)" />
+                                    </td>
+
+                                    <td>
+                                        <input class="form-control form-control-sm text-end"
+                                               value="@line.CreditAmount"
+                                               disabled="@IsReadOnly"
+                                               @oninput="e => OnCreditChanged(line, e)" />
+                                    </td>
+
+                                    <td>
+                                        <input class="form-control form-control-sm"
+                                               @bind="line.LineNarration" placeholder="Enter narration..."
+                                               disabled="@IsReadOnly" />
+                                    </td>
+
+                                    <td class="text-center" style="padding: 5px;">
+                                        @if (!IsReadOnly)
+                                        {
+                                            <button class="btn btn-sm btn-outline-secondary me-1" @onclick="() => Duplicate(line)">
+                                                <i class="ti ti-copy"></i>
+                                            </button>
+
+                                            <button class="btn btn-sm btn-outline-danger" @onclick="() => Delete(line)">
+                                                <i class="ti ti-trash"></i>
+                                            </button>
+                                        }
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+
+                    </table>
+                </div>
+
+
+                <div class="mobile-only">
+                    @foreach (var line in UiDraftLines)
+                    {
+                        <div class="mobile-card">
+
+                            <div class="mobile-row">
+                                <div class="mobile-label">Line</div>
+                                <div class="mobile-value fw-semibold">#@line.LineNumber</div>
+                            </div>
+
+                            <div class="mobile-row">
+                                <div class="mobile-label">Account</div>
+                                <div class="mobile-value">
+                                    <select class="form-select form-select-sm"
+                                            @bind="line.AccountId"
+                                            disabled="@IsReadOnly">
+                                        <option value="">-- Select Account --</option>
+                                        @foreach (var a in Accounts)
+                                        {
+                                            <option value="@a.Id">@a.AccountCode - @a.AccountName</option>
+                                        }
+                                    </select>
+                                </div>
+                            </div>
+
+                            <div class="mobile-row">
+                                <div class="mobile-label">Debit</div>
+                                <div class="mobile-value">
+                                    <input class="form-control form-control-sm text-end"
+                                           value="@line.DebitAmount"
+                                           disabled="@IsReadOnly"
+                                           @oninput="e => OnDebitChanged(line, e)" />
+                                </div>
+                            </div>
+
+                            <div class="mobile-row">
+                                <div class="mobile-label">Credit</div>
+                                <div class="mobile-value">
+                                    <input class="form-control form-control-sm text-end"
+                                           value="@line.CreditAmount"
+                                           disabled="@IsReadOnly"
+                                           @oninput="e => OnCreditChanged(line, e)" />
+                                </div>
+                            </div>
+
+                            <div class="mobile-row">
+                                <div class="mobile-label">Narration</div>
+                                <div class="mobile-value">
+                                    <input class="form-control form-control-sm"
+                                           @bind="line.LineNarration" placeholder="Enter narration..."
+                                           disabled="@IsReadOnly" />
+                                </div>
+                            </div>
+
+                            @if (!IsReadOnly)
+                            {
+                                <div class="mobile-actions">
+                                    <button class="btn btn-sm btn-outline-secondary"
+                                            @onclick="() => Duplicate(line)">
+                                        <i class="ti ti-copy"></i>
+                                    </button>
+
+                                    <button class="btn btn-sm btn-outline-danger"
+                                            @onclick="() => Delete(line)">
+                                        <i class="ti ti-trash"></i>
+                                    </button>
+                                </div>
+                            }
+
+                        </div>
+                    }
+                </div>
+
+
+            </div>
+        </div>
+
+        <div class="card mt-3">
+            <div class="card-body d-flex justify-content-between align-items-center totals-bar">
+
+                <!-- LEFT SIDE -->
+                <div class="totals-left">
+                    <span class="me-4">Debit: <b>@TotalDebit.ToString("N2")</b></span>
+                    <span class="me-4">Credit: <b>@TotalCredit.ToString("N2")</b></span>
+
+                    <span class="me-4">
+                        Base Currency:
+                        <b class="badge bg-success-transparent text-success">@(SelectedCompany?.BaseCurrencyName ?? "-")</b>
+                    </span>
+
+                    @if (Difference == 0)
+                    {
+                        <span class="badge bg-success-transparent text-success">
+                            <i class="ti ti-check me-1"></i>Balanced
+                        </span>
+                    }
+                    else
+                    {
+                        <span class="badge bg-danger-transparent text-danger fs-12 px-3 py-2">
+                            <i class="ti ti-alert-circle me-1"></i>
+                            Difference: @Difference.ToString("N2")
+                        </span>
+                    }
+                </div>
+
+                <!-- RIGHT SIDE -->
+                <div class="totals-actions">
+                    @if (!IsReadOnly)
+                    {
+                        <button class="btn btn-primary" @onclick="SaveLines">
+                            <i class="ti ti-device-floppy"></i> Save
+                        </button>
+                    }
+                </div>
+
+            </div>
+        </div>
+
+
+    </div>
+}
+
+

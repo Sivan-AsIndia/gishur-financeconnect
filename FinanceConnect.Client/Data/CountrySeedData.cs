@@ -1,0 +1,26 @@
+using FinanceConnect.Client.ViewModels;
+
+namespace FinanceConnect.Client.Data
+{
+    public static class CountrySeedData
+    {
+        public static List<CountryModel> GetSeedData()
+        {
+            return new List<CountryModel>
+            {
+                new CountryModel { Id = MasterDataIds.Countries.India, CountryCode = "IN", CountryName = "India", OfficialName = "Republic of India", ISO2 = "IN", ISO3 = "IND", NumericCode = "356", DefaultCurrencyCode = "INR", HasStates = true, PostalCodePattern = @"^\d{6}$", PhoneCountryCode = "+91", IsActive = true, IsDeleted = false, CreatedAt = DateTime.Now.AddDays(-30), CreatedBy = "System" },
+                new CountryModel { Id = MasterDataIds.Countries.UnitedStates, CountryCode = "US", CountryName = "United States", OfficialName = "United States of America", ISO2 = "US", ISO3 = "USA", NumericCode = "840", DefaultCurrencyCode = "USD", HasStates = true, PostalCodePattern = @"^\d{5}(-\d{4})?$", PhoneCountryCode = "+1", IsActive = true, IsDeleted = false, CreatedAt = DateTime.Now.AddDays(-30), CreatedBy = "System" },
+                new CountryModel { Id = MasterDataIds.Countries.UAE, CountryCode = "AE", CountryName = "United Arab Emirates", OfficialName = "United Arab Emirates", ISO2 = "AE", ISO3 = "ARE", NumericCode = "784", DefaultCurrencyCode = "AED", HasStates = true, PostalCodePattern = @"^\d{0,10}$", PhoneCountryCode = "+971", IsActive = true, IsDeleted = false, CreatedAt = DateTime.Now.AddDays(-30), CreatedBy = "System" },
+                new CountryModel { Id = MasterDataIds.Countries.Singapore, CountryCode = "SG", CountryName = "Singapore", OfficialName = "Republic of Singapore", ISO2 = "SG", ISO3 = "SGP", NumericCode = "702", DefaultCurrencyCode = "SGD", HasStates = false, PostalCodePattern = @"^\d{6}$", PhoneCountryCode = "+65", IsActive = true, IsDeleted = false, CreatedAt = DateTime.Now.AddDays(-30), CreatedBy = "System" },
+                new CountryModel { Id = MasterDataIds.Countries.UnitedKingdom, CountryCode = "GB", CountryName = "United Kingdom", OfficialName = "United Kingdom of Great Britain and Northern Ireland", ISO2 = "GB", ISO3 = "GBR", NumericCode = "826", DefaultCurrencyCode = "GBP", HasStates = false, PostalCodePattern = @"^[A-Z]{1,2}\d[A-Z\d]? ?\d[A-Z]{2}$", PhoneCountryCode = "+44", IsActive = true, IsDeleted = false, CreatedAt = DateTime.Now.AddDays(-30), CreatedBy = "System" },
+                new CountryModel { Id = MasterDataIds.Countries.Japan, CountryCode = "JP", CountryName = "Japan", OfficialName = "Japan", ISO2 = "JP", ISO3 = "JPN", NumericCode = "392", DefaultCurrencyCode = "JPY", HasStates = true, PostalCodePattern = @"^\d{3}-\d{4}$", PhoneCountryCode = "+81", IsActive = true, IsDeleted = false, CreatedAt = DateTime.Now.AddDays(-29), CreatedBy = "System" },
+                new CountryModel { Id = MasterDataIds.Countries.Australia, CountryCode = "AU", CountryName = "Australia", OfficialName = "Commonwealth of Australia", ISO2 = "AU", ISO3 = "AUS", NumericCode = "036", DefaultCurrencyCode = "AUD", HasStates = true, PostalCodePattern = @"^\d{4}$", PhoneCountryCode = "+61", IsActive = true, IsDeleted = false, CreatedAt = DateTime.Now.AddDays(-28), CreatedBy = "System" },
+                new CountryModel { Id = MasterDataIds.Countries.Germany, CountryCode = "DE", CountryName = "Germany", OfficialName = "Federal Republic of Germany", ISO2 = "DE", ISO3 = "DEU", NumericCode = "276", DefaultCurrencyCode = "EUR", HasStates = true, PostalCodePattern = @"^\d{5}$", PhoneCountryCode = "+49", IsActive = true, IsDeleted = false, CreatedAt = DateTime.Now.AddDays(-27), CreatedBy = "System" },
+                new CountryModel { Id = MasterDataIds.Countries.Canada, CountryCode = "CA", CountryName = "Canada", OfficialName = "Canada", ISO2 = "CA", ISO3 = "CAN", NumericCode = "124", DefaultCurrencyCode = "CAD", HasStates = true, PostalCodePattern = @"^[A-Z]\d[A-Z] ?\d[A-Z]\d$", PhoneCountryCode = "+1", IsActive = true, IsDeleted = false, CreatedAt = DateTime.Now.AddDays(-26), CreatedBy = "System" },
+                new CountryModel { Id = MasterDataIds.Countries.Malaysia, CountryCode = "MY", CountryName = "Malaysia", OfficialName = "Malaysia", ISO2 = "MY", ISO3 = "MYS", NumericCode = "458", DefaultCurrencyCode = "MYR", HasStates = true, PostalCodePattern = @"^\d{5}$", PhoneCountryCode = "+60", IsActive = true, IsDeleted = false, CreatedAt = DateTime.Now.AddDays(-25), CreatedBy = "System" },
+                new CountryModel { Id = MasterDataIds.Countries.SaudiArabia, CountryCode = "SA", CountryName = "Saudi Arabia", OfficialName = "Kingdom of Saudi Arabia", ISO2 = "SA", ISO3 = "SAU", NumericCode = "682", DefaultCurrencyCode = "SAR", HasStates = true, PostalCodePattern = @"^\d{5}$", PhoneCountryCode = "+966", IsActive = true, IsDeleted = false, CreatedAt = DateTime.Now.AddDays(-24), CreatedBy = "System" },
+                new CountryModel { Id = MasterDataIds.Countries.SouthAfrica, CountryCode = "ZA", CountryName = "South Africa", OfficialName = "Republic of South Africa", ISO2 = "ZA", ISO3 = "ZAF", NumericCode = "710", DefaultCurrencyCode = "ZAR", HasStates = true, PostalCodePattern = @"^\d{4}$", PhoneCountryCode = "+27", IsActive = false, IsDeleted = false, CreatedAt = DateTime.Now.AddDays(-23), CreatedBy = "System" },
+            };
+        }
+    }
+}

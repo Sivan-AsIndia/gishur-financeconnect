@@ -1,0 +1,261 @@
+﻿/*  Vendor Debit Print */
+/* ══════════════════════════════════════════
+               PRINT STYLES — FIXED FOR MULTI-PAGE PRINT
+               ══════════════════════════════════════════ */
+@media print {
+
+    * {
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
+    }
+
+    body {
+        font-size: 11px !important;
+        background: #fff !important;
+        overflow: visible !important;
+        height: auto !important;
+    }
+    /* ── Hide layout chrome (sidebar, header, nav) ── */
+    .sidebar,
+    #sidebar,
+    .header,
+    .main-header,
+    .mobile_btn,
+    .nav.user-menu,
+    .datetime-widget,
+    .header-time-user {
+        display: none !important;
+    }
+    /* ── Reset page-wrapper so content fills full width ── */
+    .main-wrapper {
+        display: block !important;
+        overflow: visible !important;
+        height: auto !important;
+    }
+    .printHideButtons {
+        display: none !important
+    }
+    .toggle-theme {
+        display: none !important
+    }
+
+    .page-wrapper {
+        margin: 0 !important;
+        padding: 0 !important;
+        width: 100% !important;
+        overflow: visible !important;
+        height: auto !important;
+    }
+
+        .page-wrapper .content {
+            padding: 0 !important;
+            margin: 0 !important;
+            min-height: unset !important;
+            height: auto !important;
+            overflow: visible !important;
+        }
+    /* Hide non-printable elements */
+    .dn-hero-actions,
+    .btn-dn-print,
+    .modal,
+    .modal-backdrop,
+    .dn-breadcrumb,
+    .print-hide {
+        display: none !important;
+    }
+    /* In print, action buttons should be visible but non-interactive */
+    .dn-card .btn-dn {
+        pointer-events: none !important;
+        cursor: default !important;
+    }
+    /* Preserve action button styles in print */
+    .btn-dn-success {
+        border: 1px solid green !important;
+        color: #00482cbd !important;
+        background: transparent !important;
+    }
+
+    .btn-dn-primary {
+        border: 1px solid gray !important;
+        color: #4d4d4d !important;
+        background: transparent !important;
+    }
+
+    .btn-dn-gold {
+        border: 1px solid #e07d1a82 !important;
+        color: #ff7d00 !important;
+        background: transparent !important;
+    }
+
+    .btn-dn-warning {
+        border: 1px solid #c97a1a !important;
+        color: #c97a1a !important;
+        background: transparent !important;
+    }
+
+    .btn-dn-danger {
+        border: 1px solid #c94040 !important;
+        color: #c94040 !important;
+        background: transparent !important;
+    }
+    /* Wrapper reset */
+    .dn-wrapper {
+        background: #fff !important;
+        padding: 0 !important;
+    }
+
+    .content {
+        padding: 0 !important;
+        margin: 0 !important;
+    }
+    /* ── Hero ── */
+    .dn-hero {
+        border: 1px solid #ccc !important;
+        box-shadow: none !important;
+        padding: 16px 20px !important;
+        margin-bottom: 14px !important;
+        page-break-inside: avoid;
+        break-inside: avoid;
+    }
+
+        .dn-hero::before {
+            background: #FE9F43 !important;
+        }
+    /* ── Main layout: stack left then right ── */
+    .dn-grid {
+        display: block !important;
+        width: 100% !important;
+    }
+
+    .dn-left,
+    .dn-right {
+        display: block !important;
+        width: 100% !important;
+    }
+    /* ── Right panel renders as 2-column grid ── */
+    .dn-right {
+        display: grid !important;
+        grid-template-columns: repeat(2, 1fr) !important;
+        gap: 10px !important;
+    }
+    /* ── Cards ── */
+    .dn-card {
+        box-shadow: none !important;
+        border: 1px solid #ccc !important;
+        margin-bottom: 12px !important;
+        break-inside: avoid;
+        page-break-inside: avoid;
+        overflow: visible !important;
+    }
+
+    .dn-card-header {
+        background: #f5f5f5 !important;
+        padding: 8px 14px !important;
+    }
+
+    .dn-card-body {
+        padding: 12px 14px !important;
+    }
+    /* ── Line items table: allow multi-page break ── */
+    .dn-card:has(.dn-table) {
+        break-inside: auto !important;
+        page-break-inside: auto !important;
+    }
+
+    .dn-table {
+        font-size: 10px !important;
+        page-break-inside: auto !important;
+        break-inside: auto !important;
+    }
+        /* Repeat table header on every page */
+        .dn-table thead {
+            display: table-header-group !important;
+        }
+        /* Keep each row together */
+        .dn-table tbody tr {
+            break-inside: avoid !important;
+            page-break-inside: avoid !important;
+        }
+    /* ── Field grids ── */
+    .field-grid {
+        grid-template-columns: repeat(4, 1fr) !important;
+    }
+
+    .field-item {
+        padding: 8px 10px !important;
+    }
+    /* ── Typography scale down ── */
+    .dn-number {
+        font-size: 20px !important;
+    }
+
+    .dn-meta-item {
+        font-size: 11px !important;
+    }
+
+    .field-label {
+        font-size: 9px !important;
+    }
+
+    .field-value {
+        font-size: 11px !important;
+    }
+    /* ── Settlement bar: keep colors ── */
+    .settlement-bar-bg {
+        background: #e0e0e0 !important;
+    }
+
+    .settlement-bar-fill {
+        background: #2e7d5e !important;
+    }
+    /* ── Amount grand total ── */
+    .amount-value.grand {
+        color: #e07d1a !important;
+    }
+    /* ── Badge colors ── */
+    .badge-draft {
+        background: #f0f0f5 !important;
+        color: #5c5f7a !important;
+    }
+
+    .badge-posted {
+        background: #eef7f3 !important;
+        color: #2e7d5e !important;
+    }
+
+    .badge-reversed {
+        background: #fdf0f0 !important;
+        color: #c94040 !important;
+    }
+
+    .badge-cancelled {
+        background: #fdf3e3 !important;
+        color: #c97a1a !important;
+    }
+
+    .badge-submitted {
+        background: #edf4fb !important;
+        color: #2c5f8a !important;
+    }
+
+    .badge-goods {
+        background: #fff4e8 !important;
+        color: #e07d1a !important;
+    }
+
+    .badge-service {
+        background: #edf4fb !important;
+        color: #2c5f8a !important;
+    }
+
+    .vb-header-actions{
+        display:none
+    }
+    .toggle-theme{
+        display:none
+    }
+    .fc-page-actions {
+        display: none !important
+    }
+ 
+}

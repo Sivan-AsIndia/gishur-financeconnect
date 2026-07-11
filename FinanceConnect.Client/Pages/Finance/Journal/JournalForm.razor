@@ -1,0 +1,496 @@
+@page "/journals/create"
+@page "/journals/{Id:guid}"
+
+@using FinanceConnect.Client.ViewModels
+@using FinanceConnect.Client.Shared
+@inject JournalService Service
+@inject BranchService BranchService
+@inject NavigationManager Nav
+@inject ToastService ToastService
+@inject IJSRuntime JS
+
+<style>
+    .form-select option:checked {
+        color: white;
+        background-color: var(--primary);
+    }
+
+    .validation-message {
+        color: #dc3545;
+        font-size: 12px;
+    }
+</style>
+
+<div class="content Accordion-form">
+    <div class="page-header">
+        <div class="add-item d-flex">
+            <div class="page-title">
+                <h4 class="fw-bold">@(IsEdit ? "Edit Journal" : "Create Journal")</h4>
+                <h6>Journal configuration and posting controls</h6>
+            </div>
+        </div>
+        <div class="page-btn mt-0">
+            <button type="button" class="btn btn-outline-secondary" @onclick='() => Nav.NavigateTo("/journals")'>
+                <i class="ti ti-arrow-left me-1"></i> Back
+            </button>
+        </div>
+    </div>
+
+    <EditForm EditContext="_editContext" OnSubmit="HandleSubmit">
+        <DataAnnotationsValidator />
+
+        <div class="add-product" style="background:#f4f7fb; padding:24px 14px;">
+            <div class="tl-accordion">
+
+                @* ══════ LEFT PANEL – Fixed sidebar ══════ *@
+                <div class="tl-left-panel">
+
+                    <div class="tl-label @(ShowIdentity ? "active accent-orange" : "")"
+                         @onclick="@(() => ToggleAccordion("journalIdentity"))">
+                        <div class="tl-label-icon ico-orange"><i data-feather="book"></i></div>
+                        <div class="tl-label-text">
+                            <div class="tl-label-title">Journal Identity</div>
+                            <div class="tl-label-sub">Code, name & company</div>
+                        </div>
+                        <span class="tl-label-chevron @(ShowIdentity ? "open" : "")">
+                            <i data-feather="chevron-right"></i>
+                        </span>
+                    </div>
+
+                    <div class="tl-label @(ShowLedger ? "active accent-blue" : "")"
+                         @onclick="@(() => ToggleAccordion("journalLedger"))">
+                        <div class="tl-label-icon ico-blue"><i data-feather="layers"></i></div>
+                        <div class="tl-label-text">
+                            <div class="tl-label-title">Type & Ledger</div>
+                            <div class="tl-label-sub">Posting rules & defaults</div>
+                        </div>
+                        <span class="tl-label-chevron @(ShowLedger ? "open" : "")">
+                            <i data-feather="chevron-right"></i>
+                        </span>
+                    </div>
+
+                    <div class="tl-label @(ShowNumbering ? "active accent-purple" : "")"
+                         @onclick="@(() => ToggleAccordion("journalNumbering"))">
+                        <div class="tl-label-icon ico-purple"><i data-feather="hash"></i></div>
+                        <div class="tl-label-text">
+                            <div class="tl-label-title">Numbering & Controls</div>
+                            <div class="tl-label-sub">Voucher numbering rules</div>
+                        </div>
+                        <span class="tl-label-chevron @(ShowNumbering ? "open" : "")">
+                            <i data-feather="chevron-right"></i>
+                        </span>
+                    </div>
+
+                    <div class="tl-label @(ShowPosting ? "active accent-green" : "")"
+                         @onclick="@(() => ToggleAccordion("journalPosting"))">
+                        <div class="tl-label-icon ico-green"><i data-feather="lock"></i></div>
+                        <div class="tl-label-text">
+                            <div class="tl-label-title">Posting & Approval</div>
+                            <div class="tl-label-sub">Validation & limits</div>
+                        </div>
+                        <span class="tl-label-chevron @(ShowPosting ? "open" : "")">
+                            <i data-feather="chevron-right"></i>
+                        </span>
+                    </div>
+
+                    <div class="tl-label @(ShowNarration ? "active accent-rose" : "")"
+                         @onclick="@(() => ToggleAccordion("journalNarration"))">
+                        <div class="tl-label-icon ico-rose"><i data-feather="paperclip"></i></div>
+                        <div class="tl-label-text">
+                            <div class="tl-label-title">Narration & Attachments</div>
+                            <div class="tl-label-sub">Content & governance</div>
+                        </div>
+                        <span class="tl-label-chevron @(ShowNarration ? "open" : "")">
+                            <i data-feather="chevron-right"></i>
+                        </span>
+                    </div>
+
+                </div>
+
+                @* ══════ RIGHT AREA – Timeline dots + Expanding Cards ══════ *@
+                <div class="tl-right-area">
+
+                    @* ── 1. Journal Identity ── *@
+                    <div class="tl-card-row @(ShowIdentity ? "row-active" : "")">
+                        <div class="tl-dot-col">
+                            <div class="tl-dot" @onclick="@(() => ToggleAccordion("journalIdentity"))"></div>
+                        </div>
+                        <div class="tl-card-col">
+                            <div class="tl-card @(ShowIdentity ? "card-active border-orange" : "")">
+                                <div class="tl-card-header" @onclick="@(() => ToggleAccordion("journalIdentity"))">
+                                    <div class="tl-card-header-title">
+                                        <span class="tl-card-step step-orange">01</span>
+                                        Journal Identity
+                                    </div>
+                                    <span class="tl-card-toggle @(ShowIdentity ? "toggle-open" : "")">
+                                        <i data-feather="chevron-down"></i>
+                                    </span>
+                                </div>
+                                <div class="tl-collapse @(ShowIdentity ? "tl-open" : "")">
+                                    <div class="tl-card-body">
+                                        <div class="tl-card-body-inner @(IdentityTouched ? "touched" : "")">
+                                            <div class="row g-3">
+
+                                                <div class="col-md-4">
+                                                    <label class="form-label">
+                                                        Journal Code <span class="text-danger">*</span>
+                                                    </label>
+                                                    <input class="form-control text-uppercase @GetValidationClass(() => journal.JournalCode)"
+                                                           value="@journal.JournalCode"
+                                                           @onchange="OnJournalCodeChanged"
+                                                           placeholder="e.g., GST" maxlength="15"
+                                                           disabled="@IsEdit" @oninput="TouchIdentity" />
+                                                    <ValidationMessage For="@(() => journal.JournalCode)" />
+                                                </div>
+
+                                                <div class="col-md-4">
+                                                    <label class="form-label">
+                                                        Journal Name <span class="text-danger">*</span>
+                                                    </label>
+                                                    <input class="form-control @GetValidationClass(() => journal.JournalName)" placeholder="e.g., GST Adjustment Journal" maxlength="200"
+                                                           @bind="journal.JournalName" @onblur="OnNameChanged" @oninput="TouchIdentity" />
+                                                    <ValidationMessage For="@(() => journal.JournalName)" />
+                                                </div>
+
+                                                <div class="col-md-4">
+                                                    <label class="form-label">
+                                                        Company <span class="text-danger">*</span>
+                                                    </label>
+                                                    <select class="form-select @GetValidationClass(() => journal.CompanyId)"
+                                                            value="@journal.CompanyId"
+                                                            @onchange="OnCompanyChanged"
+                                                            disabled="@IsEdit" @oninput="TouchIdentity">
+                                                        <option value="">-- Select Company --</option>
+                                                        @foreach (var c in CompanyList)
+                                                        {
+                                                            <option value="@c.Id">@c.LegalName</option>
+                                                        }
+                                                    </select>
+                                                    <ValidationMessage For="@(() => journal.CompanyId)" />
+                                                </div>
+
+                                                <div class="col-md-12">
+                                                    <label class="form-label">Description</label>
+                                                    <RichTextEditor @ref="_descriptionEditor"
+                                                                    Value="@journal.Description"
+                                                                    Placeholder="Enter journal description..."
+                                                                    MinHeight="80"
+                                                                    MaxHeight="200" />
+                                                </div>
+
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    @* ── 2. Type & Ledger ── *@
+                    <div class="tl-card-row @(ShowLedger ? "row-active" : "")">
+                        <div class="tl-dot-col">
+                            <div class="tl-dot" @onclick="@(() => ToggleAccordion("journalLedger"))"></div>
+                        </div>
+                        <div class="tl-card-col">
+                            <div class="tl-card @(ShowLedger ? "card-active border-blue" : "")">
+                                <div class="tl-card-header" @onclick="@(() => ToggleAccordion("journalLedger"))">
+                                    <div class="tl-card-header-title">
+                                        <span class="tl-card-step step-blue">02</span>
+                                        Journal Type & Ledger
+                                    </div>
+                                    <span class="tl-card-toggle @(ShowLedger ? "toggle-open" : "")">
+                                        <i data-feather="chevron-down"></i>
+                                    </span>
+                                </div>
+                                <div class="tl-collapse @(ShowLedger ? "tl-open" : "")">
+                                    <div class="tl-card-body">
+                                        <div class="tl-card-body-inner @(LedgerTouched ? "touched" : "")">
+                                            <div class="row g-3">
+
+                                                <div class="col-md-4">
+                                                    <label class="form-label">Journal Type <span class="text-danger">*</span></label>
+                                                    <select class="form-select @GetValidationClass(() => journal.JournalType)"
+                                                            @bind="journal.JournalType" @oninput="TouchLedger">
+                                                        <option value="">-- Select Type --</option>
+                                                        @foreach (var t in Enum.GetValues<JournalType>())
+                                                        {
+                                                            <option value="@t">@t</option>
+                                                        }
+                                                    </select>
+                                                    <ValidationMessage For="@(() => journal.JournalType)" />
+                                                </div>
+
+                                                <div class="col-md-4">
+                                                    <label class="form-label">
+                                                        Posting Ledger <span class="text-danger">*</span>
+                                                    </label>
+                                                    <select class="form-select @GetValidationClass(() => journal.LedgerId)"
+                                                            @bind="journal.LedgerId"
+                                                            disabled="@IsLedgerLocked" @oninput="TouchLedger">
+                                                        <option value="">-- Select Ledger --</option>
+                                                        @foreach (var l in LedgerList)
+                                                        {
+                                                            <option value="@l.Id">@l.LedgerName - @l.LedgerCode</option>
+                                                        }
+                                                    </select>
+                                                    <ValidationMessage For="@(() => journal.LedgerId)" />
+                                                </div>
+
+                                                <div class="col-md-4">
+                                                    <label class="form-label">Branch Defaulting</label>
+                                                    <select class="form-select"
+                                                            @bind="journal.DefaultBranchMode" @oninput="TouchLedger">
+                                                        @foreach (var m in Enum.GetValues<BranchDefaultMode>())
+                                                        {
+                                                            <option value="@m">@m</option>
+                                                        }
+                                                    </select>
+                                                </div>
+
+                                                @if (journal.DefaultBranchMode == BranchDefaultMode.ForceSpecificBranch)
+                                                {
+                                                    <div class="col-md-4">
+                                                        <label class="form-label">
+                                                            Forced Branch <span class="text-danger">*</span>
+                                                        </label>
+                                                        <select class="form-select"
+                                                                @bind="journal.ForcedBranchId" @oninput="TouchLedger">
+                                                            <option value="">Select Branch</option>
+                                                            @foreach (var b in Branches)
+                                                            {
+                                                                <option value="@b.Id">@b.BranchCode - @b.BranchName</option>
+                                                            }
+                                                        </select>
+                                                    </div>
+                                                }
+
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    @* ── 3. Numbering & Controls ── *@
+                    <div class="tl-card-row @(ShowNumbering ? "row-active" : "")">
+                        <div class="tl-dot-col">
+                            <div class="tl-dot" @onclick="@(() => ToggleAccordion("journalNumbering"))"></div>
+                        </div>
+                        <div class="tl-card-col">
+                            <div class="tl-card @(ShowNumbering ? "card-active border-purple" : "")">
+                                <div class="tl-card-header" @onclick="@(() => ToggleAccordion("journalNumbering"))">
+                                    <div class="tl-card-header-title">
+                                        <span class="tl-card-step step-purple">03</span>
+                                        Numbering & Controls
+                                    </div>
+                                    <span class="tl-card-toggle @(ShowNumbering ? "toggle-open" : "")">
+                                        <i data-feather="chevron-down"></i>
+                                    </span>
+                                </div>
+                                <div class="tl-collapse @(ShowNumbering ? "tl-open" : "")">
+                                    <div class="tl-card-body">
+                                        <div class="tl-card-body-inner @(NumberingTouched ? "touched" : "")">
+                                            <div class="row g-3">
+
+                                                <div class="col-md-4">
+                                                    <label class="form-label">
+                                                        Document Number Series <span class="text-danger">*</span>
+                                                    </label>
+                                                    <select class="form-select @GetValidationClass(() => journal.DocumentNumberSeriesId)"
+                                                            @bind="journal.DocumentNumberSeriesId"
+                                                            disabled="@IsLedgerLocked" @oninput="TouchNumbering">
+                                                        <option value="">-- Select Series --</option>
+                                                        @foreach (var l in DocNumSeriesList)
+                                                        {
+                                                            <option value="@l.DocumentNumberSeriesId">@l.SeriesName</option>
+                                                        }
+                                                    </select>
+                                                    <ValidationMessage For="@(() => journal.DocumentNumberSeriesId)" />
+                                                </div>
+
+                                                <div class="col-md-4">
+                                                    <label class="form-label">Entry Prefix</label>
+                                                    <input class="form-control"
+                                                           maxlength="10" placeholder="e.g., GST"
+                                                           @bind="journal.EntryNumberPrefix" @oninput="TouchNumbering" />
+                                                </div>
+
+                                                <div class="col-md-4">
+                                                    <label class="form-label">Reset Numbering</label>
+                                                    <select class="form-select"
+                                                            @bind="journal.ResetNumbering" @oninput="TouchNumbering">
+                                                        <option value="">--Select Reset Frequency--</option>
+                                                        @foreach (var frequency in NumberResetFrequency.All)
+                                                        {
+                                                            <option value="@frequency">@NumberResetFrequency.GetDisplayName(frequency)</option>
+                                                        }
+                                                    </select>
+                                                </div>
+
+                                                <div class="col-md-4 mt-4">
+                                                    <div class="form-check form-switch">
+                                                        <input class="form-check-input"
+                                                               type="checkbox" id="EntryNumber"
+                                                               @bind="journal.AllowManualEntryNumber" @oninput="TouchNumbering" />
+                                                        <label class="form-check-label" for="EntryNumber">
+                                                            Allow Manual Entry Number
+                                                        </label>
+                                                    </div>
+                                                </div>
+
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    @* ── 4. Posting & Approval ── *@
+                    <div class="tl-card-row @(ShowPosting ? "row-active" : "")">
+                        <div class="tl-dot-col">
+                            <div class="tl-dot" @onclick="@(() => ToggleAccordion("journalPosting"))"></div>
+                        </div>
+                        <div class="tl-card-col">
+                            <div class="tl-card @(ShowPosting ? "card-active border-green" : "")">
+                                <div class="tl-card-header" @onclick="@(() => ToggleAccordion("journalPosting"))">
+                                    <div class="tl-card-header-title">
+                                        <span class="tl-card-step step-green">04</span>
+                                        Posting & Approval
+                                    </div>
+                                    <span class="tl-card-toggle @(ShowPosting ? "toggle-open" : "")">
+                                        <i data-feather="chevron-down"></i>
+                                    </span>
+                                </div>
+                                <div class="tl-collapse @(ShowPosting ? "tl-open" : "")">
+                                    <div class="tl-card-body">
+                                        <div class="tl-card-body-inner @(PostingTouched ? "touched" : "")">
+                                            <div class="row g-3">
+
+                                                <div class="col-md-3 form-check form-switch">
+                                                    <input class="form-check-input"
+                                                           type="checkbox" id="RequireApprove"
+                                                           @bind="journal.RequireApprovalBeforePosting" @oninput="TouchPosting" />
+                                                    <label class="form-check-label" for="RequireApprove">Require Approval</label>
+                                                </div>
+
+                                                <div class="col-md-3 form-check form-switch">
+                                                    <input class="form-check-input"
+                                                           type="checkbox" id="OpenPeriod"
+                                                           @bind="journal.EnforceAccountingPeriodOpen" @oninput="TouchPosting" />
+                                                    <label class="form-check-label" for="OpenPeriod">Enforce Open Period</label>
+                                                </div>
+
+                                                <div class="col-md-3 form-check form-switch">
+                                                    <input class="form-check-input"
+                                                           type="checkbox" id="Backdated"
+                                                           @bind="journal.AllowBackdatedPostingOverride" @oninput="TouchPosting" />
+                                                    <label class="form-check-label" for="Backdated">Backdated Override</label>
+                                                </div>
+
+                                                <div class="col-md-3 form-check form-switch">
+                                                    <input class="form-check-input"
+                                                           type="checkbox" id="FutureOverRide"
+                                                           @bind="journal.AllowFuturePostingOverride" @oninput="TouchPosting" />
+                                                    <label class="form-check-label" for="FutureOverRide">Future Override</label>
+                                                </div>
+
+                                                <div class="col-md-3 form-check form-switch">
+                                                    <input class="form-check-input"
+                                                           type="checkbox" id="AllowReversals"
+                                                           @bind="journal.AllowReversalEntries" @oninput="TouchPosting" />
+                                                    <label class="form-check-label" for="AllowReversals">Allow Reversals</label>
+                                                </div>
+
+                                                <div class="col-md-3">
+                                                    <label class="form-label">Max Lines Per Entry</label>
+                                                    <input type="number"
+                                                           class="form-control"
+                                                           min="1"
+                                                           max="5000"
+                                                           @bind="journal.MaxLinesPerEntry" @oninput="TouchPosting" />
+                                                </div>
+
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    @* ── 5. Narration & Attachments ── *@
+                    <div class="tl-card-row @(ShowNarration ? "row-active" : "")">
+                        <div class="tl-dot-col">
+                            <div class="tl-dot" @onclick="@(() => ToggleAccordion("journalNarration"))"></div>
+                        </div>
+                        <div class="tl-card-col">
+                            <div class="tl-card @(ShowNarration ? "card-active border-rose" : "")">
+                                <div class="tl-card-header" @onclick="@(() => ToggleAccordion("journalNarration"))">
+                                    <div class="tl-card-header-title">
+                                        <span class="tl-card-step step-rose">05</span>
+                                        Narration & Attachments
+                                    </div>
+                                    <span class="tl-card-toggle @(ShowNarration ? "toggle-open" : "")">
+                                        <i data-feather="chevron-down"></i>
+                                    </span>
+                                </div>
+                                <div class="tl-collapse @(ShowNarration ? "tl-open" : "")">
+                                    <div class="tl-card-body">
+                                        <div class="tl-card-body-inner @(NarrationTouched ? "touched" : "")">
+                                            <div class="row g-3">
+
+                                                <div class="col-md-3 form-check form-switch">
+                                                    <input class="form-check-input"
+                                                           type="checkbox" id="NarrationMandatory"
+                                                           @bind="journal.NarrationRequired" @oninput="TouchNarration" />
+                                                    <label class="form-check-label" for="NarrationMandatory">Narration Mandatory</label>
+                                                </div>
+
+                                                <div class="col-md-3 form-check form-switch">
+                                                    <input class="form-check-input"
+                                                           type="checkbox" id="AttachmentMandatory"
+                                                           @bind="journal.AttachmentRequired" @oninput="TouchNarration" />
+                                                    <label class="form-check-label" for="AttachmentMandatory">Attachment Mandatory</label>
+                                                </div>
+
+                                                <div class="col-md-3 form-check form-switch">
+                                                    <input class="form-check-input"
+                                                           type="checkbox" id="LineNarration"
+                                                           @bind="journal.AllowLineLevelNarration" @oninput="TouchNarration" />
+                                                    <label class="form-check-label" for="LineNarration">Line Narration</label>
+                                                </div>
+
+                                                <div class="col-md-12">
+                                                    <label class="form-label">Narration Template</label>
+                                                    <RichTextEditor @ref="_narrationTemplateEditor"
+                                                                    Value="@journal.NarrationTemplate"
+                                                                    Placeholder="Enter narration template..."
+                                                                    MinHeight="80"
+                                                                    MaxHeight="200" />
+                                                </div>
+
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+
+            </div>
+
+            <div class="page-btn d-flex justify-content-end gap-2">
+                <button type="button" class="btn btn-outline-secondary" @onclick='() => Nav.NavigateTo("/journals")'>
+                    <i class="ti ti-x me-1"></i> Cancel
+                </button>
+                <button type="submit" class="btn btn-primary">
+                    <i class="ti ti-device-floppy me-1"></i> @(IsEdit ? "Update" : "Save")
+                </button>
+            </div>
+        </div>
+    </EditForm>
+</div>

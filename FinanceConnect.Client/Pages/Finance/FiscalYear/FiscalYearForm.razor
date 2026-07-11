@@ -1,0 +1,483 @@
+﻿@page "/fiscalyears/create"
+@page "/fiscalyears/{Id:guid}"
+@using FinanceConnect.Client.Services
+@using FinanceConnect.Client.ViewModels
+@inject FiscalYearService Service
+@inject NavigationManager Nav
+@inject ToastService ToastService
+@inject IJSRuntime JS
+
+<style>
+    .form-select option:checked {
+        color: white;
+        background-color: var(--primary);
+    }
+
+    .validation-message {
+        color: #dc3545;
+        font-size: 12px;
+    }
+</style>
+
+<div class="content Accordion-form">
+    <!-- Page Header -->
+    <div class="page-header">
+        <div class="page-title">
+            <h4 class="fw-bold">
+                @(IsEdit ? "Edit Fiscal Year" : "Create Fiscal Year")
+            </h4>
+            <h6>Fiscal year setup and control</h6>
+        </div>
+
+        <div class="page-btn">
+            <a class="btn btn-outline-secondary"
+               @onclick='() => Nav.NavigateTo("/fiscalyears")'>
+                <i class="ti ti-arrow-left"></i> Back
+            </a>
+        </div>
+    </div>
+
+    <!-- Form Card -->
+    <EditForm EditContext="_editContext" OnSubmit="HandleSubmit">
+        <DataAnnotationsValidator />
+
+        <div class="add-product" style="background:#f4f7fb; padding:24px 14px;">
+            <div class="tl-accordion">
+
+               <!--LEFT PANEL – Fixed sidebar ------>
+                <div class="tl-left-panel">
+
+                    <div class="tl-label @(ShowIdentity ? "active accent-orange" : "")"
+                         @onclick="@(() => ToggleAccordion("fyIdentity"))">
+                        <div class="tl-label-icon ico-orange">
+                            <i data-feather="calendar"></i>
+                        </div>
+                        <div class="tl-label-text">
+                            <div class="tl-label-title">Fiscal Year Identity</div>
+                            <div class="tl-label-sub">Code, name & company</div>
+                        </div>
+                        <span class="tl-label-chevron @(ShowIdentity ? "open" : "")">
+                            <i data-feather="chevron-right"></i>
+                        </span>
+                    </div>
+
+                    <div class="tl-label @(ShowDates ? "active accent-blue" : "")"
+                         @onclick="@(() => ToggleAccordion("fyDates"))">
+                        <div class="tl-label-icon ico-blue">
+                            <i data-feather="clock"></i>
+                        </div>
+                        <div class="tl-label-text">
+                            <div class="tl-label-title">Year Date Range</div>
+                            <div class="tl-label-sub">Start, end & books start</div>
+                        </div>
+                        <span class="tl-label-chevron @(ShowDates ? "open" : "")">
+                            <i data-feather="chevron-right"></i>
+                        </span>
+                    </div>
+
+                    <div class="tl-label @(ShowPeriods ? "active accent-purple" : "")"
+                         @onclick="@(() => ToggleAccordion("fyPeriods"))">
+                        <div class="tl-label-icon ico-purple">
+                            <i data-feather="repeat"></i>
+                        </div>
+                        <div class="tl-label-text">
+                            <div class="tl-label-title">Period Generation</div>
+                            <div class="tl-label-sub">Type, count & automation</div>
+                        </div>
+                        <span class="tl-label-chevron @(ShowPeriods ? "open" : "")">
+                            <i data-feather="chevron-right"></i>
+                        </span>
+                    </div>
+
+                    <div class="tl-label @(ShowClosing ? "active accent-green" : "")"
+                         @onclick="@(() => ToggleAccordion("fyClosing"))">
+                        <div class="tl-label-icon ico-green">
+                            <i data-feather="lock"></i>
+                        </div>
+                        <div class="tl-label-text">
+                            <div class="tl-label-title">Closing Controls</div>
+                            <div class="tl-label-sub">Soft close & final close</div>
+                        </div>
+                        <span class="tl-label-chevron @(ShowClosing ? "open" : "")">
+                            <i data-feather="chevron-right"></i>
+                        </span>
+                    </div>
+
+                </div>
+
+
+                <!-- RIGHT AREA – Timeline dots + Expanding Cards --------->
+                <div class="tl-right-area">
+
+                    <!-- Identity ------->
+                    <div class="tl-card-row @(ShowIdentity ? "row-active" : "")">
+                        <div class="tl-dot-col">
+                            <div class="tl-dot" @onclick="@(() => ToggleAccordion("fyIdentity"))"></div>
+                        </div>
+                        <div class="tl-card-col">
+                            <div class="tl-card @(ShowIdentity ? "card-active border-orange" : "")">
+
+                                <div class="tl-card-header"
+                                     @onclick="@(() => ToggleAccordion("fyIdentity"))">
+
+                                    <div class="tl-card-header-title">
+                                        <span class="tl-card-step step-orange">01</span>
+                                        Fiscal Year Identity
+
+                                        @if (IsEdit)
+                                        {
+                                            <span class="badge @GetStatusBadge(fy.Status) ms-3">
+                                                @fy.Status
+                                            </span>
+                                        }
+                                    </div>
+
+                                    <span class="tl-card-toggle @(ShowIdentity ? "toggle-open" : "")">
+                                        <i data-feather="chevron-down"></i>
+                                    </span>
+                                </div>
+
+                                <div class="tl-collapse @(ShowIdentity ? "tl-open" : "")">
+                                    <div class="tl-card-body">
+
+                                        <div class="row g-3">
+
+                                            <div class="col-md-4">
+                                                <label class="form-label">
+                                                    Fiscal Year Code <span class="text-danger">*</span>
+                                                </label>
+                                                <input class="form-control text-uppercase @GetValidationClass(() => fy.FiscalYearCode)"
+                                                       @bind="FiscalYearCodeProxy"
+                                                       placeholder="e.g., FY-001"
+                                                       maxlength="15"
+                                                       disabled="@IsEdit" />
+                                                <ValidationMessage For="@(() => fy.FiscalYearCode)" />
+                                            </div>
+
+                                            <div class="col-md-4">
+                                                <label class="form-label">
+                                                    Fiscal Year Name <span class="text-danger">*</span>
+                                                </label>
+                                                <input class="form-control @GetValidationClass(() => fy.FiscalYearName)"
+                                                       @bind="fy.FiscalYearName"
+                                                       @bind:after="OnFYNameInput"
+                                                       placeholder="e.g., FY2026-2027"
+                                                       maxlength="100"
+                                                       disabled="@IsLocked" />
+                                                <ValidationMessage For="@(() => fy.FiscalYearName)" />
+                                            </div>
+
+                                            <div class="col-md-4">
+                                                <label class="form-label">Company <span class="text-danger ms-1">*</span></label>
+                                                <select class="form-select @GetValidationClass(() => fy.CompanyId)"
+                                                        @bind="fy.CompanyId"
+                                                        @bind:after="OnCompanyChange"
+                                                        disabled="@IsEdit">
+                                                    <option value="">-- Select Company --</option>
+                                                    @foreach (var c in Companies)
+                                                    {
+                                                        <option value="@c.Id">@c.LegalName</option>
+                                                    }
+                                                </select>
+                                                <ValidationMessage For="@(() => fy.CompanyId)" />
+                                            </div>
+
+                                        </div>
+
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+
+                    <!-- Date Range --->
+                    <div class="tl-card-row @(ShowDates ? "row-active" : "")">
+                        <div class="tl-dot-col">
+                            <div class="tl-dot" @onclick="@(() => ToggleAccordion("fyDates"))"></div>
+                        </div>
+                        <div class="tl-card-col">
+                            <div class="tl-card @(ShowDates ? "card-active border-blue" : "")">
+
+                                <div class="tl-card-header"
+                                     @onclick="@(() => ToggleAccordion("fyDates"))">
+                                    <div class="tl-card-header-title">
+                                        <span class="tl-card-step step-blue">02</span>
+                                        Year Date Range
+                                    </div>
+                                    <span class="tl-card-toggle @(ShowDates ? "toggle-open" : "")">
+                                        <i data-feather="chevron-down"></i>
+                                    </span>
+                                </div>
+
+                                <div class="tl-collapse @(ShowDates ? "tl-open" : "")">
+                                    <div class="tl-card-body">
+
+                                        <div class="row g-3">
+
+                                            <div class="col-md-4">
+                                                <label class="form-label">
+                                                    Start Date <span class="text-danger">*</span>
+                                                </label>
+                                                <input type="date"
+                                                       class="form-control @GetValidationClass(() => fy.StartDate)"
+                                                       @bind="fy.StartDate" />
+                                                <ValidationMessage For="@(() => fy.StartDate)" />
+                                            </div>
+
+                                            <div class="col-md-4">
+                                                <label class="form-label">
+                                                    End Date <span class="text-danger">*</span>
+                                                </label>
+                                                <input type="date"
+                                                       class="form-control @GetValidationClass(() => fy.EndDate)"
+                                                       @bind="fy.EndDate"
+                                                       min="@(fy.StartDate?.ToString("yyyy-MM-dd"))" />
+                                                <ValidationMessage For="@(() => fy.EndDate)" />
+                                            </div>
+
+                                            <div class="col-md-4">
+                                                <label class="form-label">Books Start Date</label>
+                                                <input class="form-control"
+                                                       value="@fy.BooksStartDateSnapshot?.ToString("MM/dd/yyyy")"
+                                                       disabled />
+                                            </div>
+
+                                        </div>
+
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+
+                   <!-- Period Generation -------->
+                    <div class="tl-card-row @(ShowPeriods ? "row-active" : "")">
+                        <div class="tl-dot-col">
+                            <div class="tl-dot" @onclick="@(() => ToggleAccordion("fyPeriods"))"></div>
+                        </div>
+                        <div class="tl-card-col">
+                            <div class="tl-card @(ShowPeriods ? "card-active border-purple" : "")">
+
+                                <div class="tl-card-header"
+                                     @onclick="@(() => ToggleAccordion("fyPeriods"))">
+                                    <div class="tl-card-header-title">
+                                        <span class="tl-card-step step-purple">03</span>
+                                        Period Generation
+                                    </div>
+                                    <span class="tl-card-toggle @(ShowPeriods ? "toggle-open" : "")">
+                                        <i data-feather="chevron-down"></i>
+                                    </span>
+                                </div>
+
+                                <div class="tl-collapse @(ShowPeriods ? "tl-open" : "")">
+                                    <div class="tl-card-body">
+
+                                        <div class="row g-3">
+
+                                            <div class="col-md-4">
+                                                <label class="form-label">
+                                                    Period Type <span class="text-danger">*</span>
+                                                </label>
+                                                <select class="form-select"
+                                                        @bind="SelectedPeriodType"
+                                                        disabled="@IsEdit">
+
+                                                    @foreach (FiscalPeriodType type in Enum.GetValues(typeof(FiscalPeriodType)))
+                                                    {
+                                                        <option value="@type">@GetPeriodTypeLabel(type)</option>
+                                                    }
+                                                </select>
+                                            </div>
+
+                                            <div class="col-md-4">
+                                                <label class="form-label">Number of Periods</label>
+                                                <select class="form-select"
+                                                        @bind="fy.NumberOfPeriods"
+                                                        disabled="@IsEdit">
+
+                                                    @foreach (var p in AllowedPeriods)
+                                                    {
+                                                        <option value="@p.Value">@p.Label</option>
+                                                    }
+                                                </select>
+                                            </div>
+
+                                            <div class="col-md-4">
+                                                <label class="form-label">Period Naming</label>
+                                                <select class="form-select"
+                                                        @bind="fy.PeriodNamingConvention"
+                                                        disabled="@IsEdit">
+                                                    <option value="MMM yyyy">Apr 2025</option>
+                                                    <option value="yyyy-MM">2025-04</option>
+                                                </select>
+                                            </div>
+
+                                            <div class="col-md-4 mt-4">
+                                                <div class="form-check form-switch">
+                                                    <input class="form-check-input"
+                                                           type="checkbox"
+                                                           id="AutoGenerate"
+                                                           @bind="fy.AutoGeneratePeriods"
+                                                           disabled="@IsEdit" />
+                                                    <label class="form-check-label" for="AutoGenerate">
+                                                        Auto-generate Periods
+                                                    </label>
+                                                </div>
+                                            </div>
+
+                                            <div class="col-md-4 mt-4">
+                                                <div class="form-check form-switch">
+                                                    <input class="form-check-input"
+                                                           type="checkbox"
+                                                           id="AutoOpenPeriod"
+                                                           @bind="fy.AutoOpenFirstPeriod"
+                                                           disabled="@IsEdit" />
+                                                    <label class="form-check-label" for="AutoOpenPeriod">
+                                                        Auto-open First Period
+                                                    </label>
+                                                </div>
+                                            </div>
+
+                                        </div>
+
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+
+                   <!-- Closing Controls -------->
+                    <div class="tl-card-row @(ShowClosing ? "row-active" : "")">
+                        <div class="tl-dot-col">
+                            <div class="tl-dot" @onclick="@(() => ToggleAccordion("fyClosing"))"></div>
+                        </div>
+                        <div class="tl-card-col">
+                            <div class="tl-card @(ShowClosing ? "card-active border-green" : "")">
+
+                                <div class="tl-card-header"
+                                     @onclick="@(() => ToggleAccordion("fyClosing"))">
+                                    <div class="tl-card-header-title">
+                                        <span class="tl-card-step step-green">04</span>
+                                        Closing Controls
+                                    </div>
+                                    <span class="tl-card-toggle @(ShowClosing ? "toggle-open" : "")">
+                                        <i data-feather="chevron-down"></i>
+                                    </span>
+                                </div>
+
+                                <div class="tl-collapse @(ShowClosing ? "tl-open" : "")">
+                                    <div class="tl-card-body">
+
+                                        <div class="row g-3">
+
+                                            <div class="col-md-4">
+                                                <div class="form-check form-switch">
+                                                    <input class="form-check-input"
+                                                           type="checkbox"
+                                                           id="AdjustmentClose"
+                                                           @bind="fy.AllowAdjustmentPostingAfterSoftClose"
+                                                           disabled="@IsLocked" />
+                                                    <label class="form-check-label" for="AdjustmentClose">
+                                                        Allow Adjustment After Soft Close
+                                                    </label>
+                                                </div>
+                                            </div>
+
+                                            <div class="col-md-4">
+                                                <div class="form-check form-switch">
+                                                    <input class="form-check-input"
+                                                           type="checkbox"
+                                                           id="CheckList"
+                                                           @bind="fy.RequirePeriodCloseChecklist"
+                                                           disabled="@IsLocked" />
+                                                    <label class="form-check-label" for="CheckList">
+                                                        Require Close Checklist
+                                                    </label>
+                                                </div>
+                                            </div>
+
+                                            <div class="col-md-4">
+                                                <label class="form-label">Checklist Template</label>
+                                                <select class="form-select"
+                                                        @bind="fy.CloseChecklistTemplateId"
+                                                        disabled="@IsLocked">
+                                                    <option value="">Select</option>
+                                                    <option value="BANK_RECON">Bank Reconciliation</option>
+                                                    <option value="DEPRECIATION">Depreciation</option>
+                                                    <option value="GST_CLOSE">GST / Tax</option>
+                                                </select>
+                                            </div>
+
+                                            @if (fy.Status == FiscalYearStatus.SoftClosed)
+                                            {
+                                                <div class="col-12">
+                                                    <label class="form-label">
+                                                        Closing Reason <span class="text-danger">*</span>
+                                                    </label>
+                                                    <textarea class="form-control"
+                                                              rows="3"
+                                                              maxlength="500"
+                                                              @bind="fy.CloseReason"></textarea>
+                                                    <ValidationMessage For="@(() => fy.CloseReason)" />
+                                                </div>
+                                            }
+
+                                        </div>
+
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+        </div>
+
+        <!-- ACTIONS-->
+        <div class="d-flex gap-2 mb-4 justify-content-end">
+            <button type="button" class="btn btn-outline-secondary" @onclick='() => Nav.NavigateTo("/fiscalyears")'>
+                <i class="ti ti-x"></i>  Cancel
+            </button>
+            @if (fy.Status == FiscalYearStatus.Draft && IsEdit)
+            {
+                <button type="button"
+                        class="btn btn-success"
+                        @onclick="() => ChangeStatus(FiscalYearStatus.Open)">
+                    <i class="ti ti-player-play"></i> Open Year
+                </button>
+            }
+
+            @if (fy.Status == FiscalYearStatus.Open)
+            {
+                <button type="button"
+                        class="btn btn-warning"
+                        @onclick="() => ChangeStatus(FiscalYearStatus.SoftClosed)">
+                    <i class="ti ti-player-pause"></i> Soft Close
+                </button>
+            }
+
+            @if (fy.Status == FiscalYearStatus.SoftClosed)
+            {
+                <button type="button"
+                        class="btn btn-danger"
+                        @onclick="CloseYear">
+                    <i class="ti ti-lock"></i> Close Year
+                </button>
+            }
+
+            <button class="btn btn-primary" type="submit">
+                <i class="ti ti-device-floppy"></i> 
+                @(IsEdit ? "Update" : "Save")
+            </button>
+
+        </div>
+
+    </EditForm>
+
+
+</div>
+

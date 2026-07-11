@@ -1,0 +1,804 @@
+﻿@page "/400page"
+
+<style>
+    :root {
+        --primary-dark: color-mix(in srgb, var(--primary) 75%, black);
+        --primary-mid: color-mix(in srgb, var(--primary) 85%, white);
+        --primary-lite: color-mix(in srgb, var(--primary) 45%, white);
+        --primary-pale: color-mix(in srgb, var(--primary) 18%, white);
+        --primary-bg: color-mix(in srgb, var(--primary) 6%, white);
+        --pglow: color-mix(in srgb, var(--primary) 22%, transparent);
+        --pglow-strong: color-mix(in srgb, var(--primary) 40%, transparent);
+        --border: color-mix(in srgb, var(--primary) 14%, transparent);
+        --bg2: color-mix(in srgb, var(--primary) 5%, white);
+        --text-h: #1e1628;
+        --text-p: #7a7090;
+        --text-s: #b0a8c4;
+    }
+
+    .page-400 {
+        position: relative;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        padding: 3rem 1.5rem 4rem;
+        overflow: hidden;
+        margin-bottom: 15px;
+        animation: p400In .85s cubic-bezier(.16,1,.3,1) both;
+    }
+
+
+    @@keyframes p400In {
+        from {
+            opacity: 0;
+            transform: translateY(28px);
+        }
+
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    /* watermark */
+    .wm-400 {
+        position: fixed;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        font-family: 'Sora', sans-serif;
+        font-size: 360px;
+        font-weight: 900;
+        color: color-mix(in srgb, var(--primary) 7%, transparent);
+        letter-spacing: -22px;
+        user-select: none;
+        pointer-events: none;
+        white-space: nowrap;
+        line-height: 1;
+    }
+
+    /* illustration wrap */
+    .illus-400 {
+        position: relative;
+        z-index: 1;
+        width: min(580px, 96vw);
+        margin-bottom: clamp(12px, 2.5vw, 28px);
+        animation: float400 5s ease-in-out infinite;
+    }
+
+    @@keyframes float400 {
+        0%, 100% {
+            transform: translateY(0);
+        }
+
+        50% {
+            transform: translateY(-12px);
+        }
+    }
+
+    /* content */
+    .content-400 {
+        position: relative;
+        z-index: 1;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        text-align: center;
+        max-width: 500px;
+        width: 100%;
+    }
+
+    .chip-400 {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        background: var(--bg2);
+        border: 1px solid var(--border);
+        border-radius: 100px;
+        padding: 5px 16px 5px 10px;
+        margin-bottom: 16px;
+        animation: fadeUp400 .5s .15s both;
+    }
+
+    .chip-dot {
+        width: 7px;
+        height: 7px;
+        background: var(--primary);
+        border-radius: 50%;
+        animation: chipPulse400 1.5s ease-in-out infinite;
+        box-shadow: 0 0 0 0 var(--pglow-strong);
+    }
+
+    @@keyframes chipPulse400 {
+        0% {
+            box-shadow: 0 0 0 0 var(--pglow-strong);
+        }
+
+        70% {
+            box-shadow: 0 0 0 6px color-mix(in srgb, var(--primary) 0%, transparent);
+        }
+
+        100% {
+            box-shadow: 0 0 0 0 color-mix(in srgb, var(--primary) 0%, transparent);
+        }
+    }
+
+    .chip-400 span {
+        font-family: 'Sora', sans-serif;
+        font-size: 11px;
+        font-weight: 700;
+        color: var(--primary-dark);
+        letter-spacing: 1.2px;
+        text-transform: uppercase;
+    }
+
+    .heading-400 {
+        font-family: 'Sora', sans-serif;
+        font-size: clamp(1.7rem, 4vw, 2.4rem);
+        font-weight: 900;
+        color: var(--text-h);
+        letter-spacing: -.03em;
+        line-height: 1.15;
+        margin-bottom: .7rem;
+        animation: fadeUp400 .5s .22s both;
+    }
+
+        .heading-400 .accent {
+            color: var(--primary);
+        }
+
+    .desc-400 {
+        font-size: clamp(.88rem, 1.7vw, .98rem);
+        color: var(--text-p);
+        font-weight: 500;
+        line-height: 1.75;
+        margin-bottom: 1.8rem;
+        animation: fadeUp400 .5s .30s both;
+    }
+
+    .info-row-400 {
+        display: inline-flex;
+        align-items: center;
+        gap: .7rem;
+        background: var(--bg2);
+        border: 1px solid var(--border);
+        border-radius: 50px;
+        padding: .5rem 1.2rem .5rem .5rem;
+        margin-bottom: 2rem;
+        animation: fadeUp400 .5s .38s both;
+    }
+
+    .info-icon-400 {
+        width: 32px;
+        height: 32px;
+        border-radius: 50%;
+        background: linear-gradient(135deg, var(--primary-lite), var(--primary));
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+        box-shadow: 0 3px 10px var(--pglow);
+    }
+
+        .info-icon-400 svg {
+            width: 15px;
+            height: 15px;
+            stroke: #fff;
+            fill: none;
+            stroke-width: 2.2;
+            stroke-linecap: round;
+            stroke-linejoin: round;
+        }
+
+    .info-row-400 span {
+        font-size: .8rem;
+        font-weight: 700;
+        color: var(--text-h);
+    }
+
+    .actions-400 {
+        display: flex;
+        gap: .9rem;
+        justify-content: center;
+        flex-wrap: wrap;
+        animation: fadeUp400 .5s .46s both;
+    }
+
+    @@keyframes fadeUp400 {
+        from {
+            opacity: 0;
+            transform: translateY(14px);
+        }
+
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    /* ══ SVG ANIMATIONS ══ */
+
+    /* document shake (bad request) */
+    .doc-shake {
+        animation: docShake 3s ease-in-out infinite;
+        transform-origin: 290px 160px;
+    }
+
+    @@keyframes docShake {
+        0%, 100% {
+            transform: rotate(0deg);
+        }
+
+        10% {
+            transform: rotate(-4deg);
+        }
+
+        20% {
+            transform: rotate(3deg);
+        }
+
+        30% {
+            transform: rotate(-2deg);
+        }
+
+        40% {
+            transform: rotate(1deg);
+        }
+
+        50% {
+            transform: rotate(0deg);
+        }
+    }
+
+    /* red X pulse */
+    .x-pulse {
+        animation: xPulse 2s ease-in-out infinite;
+        transform-origin: 290px 145px;
+    }
+
+    @@keyframes xPulse {
+        0%, 100% {
+            opacity: 1;
+            transform: scale(1);
+        }
+
+        50% {
+            opacity: .7;
+            transform: scale(1.12);
+        }
+    }
+
+    /* warning badge pop + pulse */
+    .warn-badge-400 {
+        animation: warnPop400 .6s .8s cubic-bezier(.22,1,.36,1) both;
+        transform-origin: 408px 76px;
+    }
+
+    @@keyframes warnPop400 {
+        from {
+            opacity: 0;
+            transform: scale(.2) rotate(-15deg);
+        }
+
+        to {
+            opacity: 1;
+            transform: scale(1) rotate(0deg);
+        }
+    }
+
+    .warn-ring-400 {
+        animation: warnRing400 2s ease-out infinite 1.4s;
+        transform-origin: 408px 76px;
+    }
+
+    @@keyframes warnRing400 {
+        0% {
+            opacity: .45;
+            transform: scale(1);
+        }
+
+        100% {
+            opacity: 0;
+            transform: scale(1.65);
+        }
+    }
+
+    /* flying papers */
+    .paper1 {
+        animation: paper1Fly 4s ease-in-out infinite;
+        transform-origin: 460px 100px;
+    }
+
+    .paper2 {
+        animation: paper2Fly 5s ease-in-out infinite .6s;
+        transform-origin: 140px 130px;
+    }
+
+    .paper3 {
+        animation: paper3Fly 4.5s ease-in-out infinite 1.2s;
+        transform-origin: 470px 195px;
+    }
+
+    @@keyframes paper1Fly {
+        0%, 100% {
+            transform: translate(0,0) rotate(0deg);
+            opacity: .7;
+        }
+
+        50% {
+            transform: translate(8px,-14px) rotate(8deg);
+            opacity: 1;
+        }
+    }
+
+    @@keyframes paper2Fly {
+        0%, 100% {
+            transform: translate(0,0) rotate(0deg);
+            opacity: .65;
+        }
+
+        50% {
+            transform: translate(-10px,-12px) rotate(-7deg);
+            opacity: 1;
+        }
+    }
+
+    @@keyframes paper3Fly {
+        0%, 100% {
+            transform: translate(0,0) rotate(0deg);
+            opacity: .6;
+        }
+
+        50% {
+            transform: translate(6px,-10px) rotate(5deg);
+            opacity: .9;
+        }
+    }
+
+    /* speech bubble pop */
+    .bubble-400 {
+        animation: bub400 .5s 1s cubic-bezier(.22,1,.36,1) both;
+        transform-origin: 150px 140px;
+    }
+
+    @@keyframes bub400 {
+        from {
+            opacity: 0;
+            transform: scale(.3);
+        }
+
+        to {
+            opacity: 1;
+            transform: scale(1);
+        }
+    }
+
+    /* person head tilt */
+    .head-400 {
+        animation: headTilt400 4s ease-in-out infinite;
+        transform-origin: 150px 210px;
+    }
+
+    @@keyframes headTilt400 {
+        0%, 100% {
+            transform: rotate(0deg);
+        }
+
+        30% {
+            transform: rotate(-5deg);
+        }
+
+        70% {
+            transform: rotate(4deg);
+        }
+    }
+
+    /* floating dots */
+    .fd1 {
+        animation: fd400 3.2s ease-in-out infinite 0s;
+    }
+
+    .fd2 {
+        animation: fd400 3.8s ease-in-out infinite .7s;
+    }
+
+    .fd3 {
+        animation: fd400 2.9s ease-in-out infinite 1.4s;
+    }
+
+    .fd4 {
+        animation: fd400 4.1s ease-in-out infinite .3s;
+    }
+
+    @@keyframes fd400 {
+        0%, 100% {
+            transform: translateY(0);
+            opacity: .3;
+        }
+
+        50% {
+            transform: translateY(-11px);
+            opacity: .6;
+        }
+    }
+
+    /* arc crawl */
+    .arc-400 {
+        stroke-dasharray: 6 8;
+        animation: arcCrawl400 4s linear infinite;
+    }
+
+    @@keyframes arcCrawl400 {
+        from {
+            stroke-dashoffset: 0;
+        }
+
+        to {
+            stroke-dashoffset: -56;
+        }
+    }
+
+    /* exclaim blink on badge */
+    .ex-blink {
+        animation: exBlink400 1.8s ease-in-out infinite;
+    }
+
+    @@keyframes exBlink400 {
+        0%, 100% {
+            opacity: 1;
+        }
+
+        50% {
+            opacity: .35;
+        }
+    }
+
+    /* gloss shimmer on doc */
+    .gloss-400 {
+        animation: gloss400 3.5s ease-in-out infinite;
+    }
+
+    @@keyframes gloss400 {
+        0%, 100% {
+            opacity: .22;
+        }
+
+        50% {
+            opacity: .42;
+        }
+    }
+
+    /* error lines blink on doc */
+    .err-line {
+        animation: errLine 2.4s ease-in-out infinite;
+    }
+
+    @@keyframes errLine {
+        0%, 100% {
+            opacity: 1;
+        }
+
+        50% {
+            opacity: .25;
+        }
+    }
+
+    /* pulse ring around doc */
+    .doc-ring {
+        animation: docRing 3s ease-out infinite;
+        transform-origin: 290px 160px;
+    }
+
+    @@keyframes docRing {
+        0% {
+            opacity: .3;
+            transform: scale(1);
+        }
+
+        100% {
+            opacity: 0;
+            transform: scale(1.15);
+        }
+    }
+</style>
+
+<div class="content page-400">
+
+    <!-- ══ ILLUSTRATION ══ -->
+    <svg class="illus-400" viewBox="0 0 580 310" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+            <!-- faded 400 watermark gradient -->
+            <linearGradient id="numG400" x1="0" y1="0" x2="0" y2="310" gradientUnits="userSpaceOnUse">
+                <stop offset="0%" stop-color="var(--primary-lite)" stop-opacity=".16" />
+                <stop offset="100%" stop-color="var(--primary-pale)" stop-opacity=".07" />
+            </linearGradient>
+            <!-- doc body gradient -->
+            <linearGradient id="docG" x1="220" y1="40" x2="360" y2="280" gradientUnits="userSpaceOnUse">
+                <stop offset="0%" stop-color="#ffffff" />
+                <stop offset="100%" stop-color="#f8f6ff" />
+            </linearGradient>
+            <!-- doc header band -->
+            <linearGradient id="docHdrG" x1="220" y1="40" x2="360" y2="80" gradientUnits="userSpaceOnUse">
+                <stop offset="0%" stop-color="var(--primary-mid)" />
+                <stop offset="100%" stop-color="var(--primary)" />
+            </linearGradient>
+            <!-- warning badge gradient -->
+            <linearGradient id="warnG400" x1="0" y1="0" x2="1" y2="1" gradientUnits="objectBoundingBox">
+                <stop offset="0%" stop-color="var(--primary-mid)" />
+                <stop offset="100%" stop-color="var(--primary)" />
+            </linearGradient>
+            <!-- flying paper gradient -->
+            <linearGradient id="paperG" x1="0" y1="0" x2="1" y2="1" gradientUnits="objectBoundingBox">
+                <stop offset="0%" stop-color="#ffffff" />
+                <stop offset="100%" stop-color="#f0eeff" />
+            </linearGradient>
+            <!-- gloss sheen -->
+            <linearGradient id="glossG400" x1="0" y1="0" x2="0" y2="1" gradientUnits="objectBoundingBox">
+                <stop offset="0%" stop-color="rgba(255,255,255,0.55)" />
+                <stop offset="100%" stop-color="rgba(255,255,255,0)" />
+            </linearGradient>
+            <!-- filters -->
+            <filter id="docShadow" x="-15%" y="-10%" width="135%" height="135%">
+                <feDropShadow dx="0" dy="12" stdDeviation="18" flood-color="var(--pglow-strong)" />
+            </filter>
+            <filter id="warnShadow400" x="-35%" y="-35%" width="175%" height="175%">
+                <feDropShadow dx="0" dy="5" stdDeviation="9" flood-color="var(--pglow-strong)" />
+            </filter>
+            <filter id="paperShadow" x="-20%" y="-20%" width="150%" height="150%">
+                <feDropShadow dx="0" dy="3" stdDeviation="5" flood-color="rgba(0,0,0,0.10)" />
+            </filter>
+            <filter id="personShadow400" x="-20%" y="-10%" width="145%" height="140%">
+                <feDropShadow dx="0" dy="6" stdDeviation="8" flood-color="rgba(0,0,0,0.13)" />
+            </filter>
+            <filter id="bubShadow400" x="-12%" y="-12%" width="130%" height="130%">
+                <feDropShadow dx="0" dy="3" stdDeviation="5" flood-color="rgba(0,0,0,0.09)" />
+            </filter>
+        </defs>
+
+        <!-- faded 400 background text -->
+        <text font-family="'Sora',sans-serif" font-weight="900" font-size="230"
+              fill="url(#numG400)" x="20" y="238" letter-spacing="-4">400</text>
+
+        <!-- ground shadows -->
+        <ellipse cx="290" cy="294" rx="205" ry="11" fill="var(--pglow)" opacity=".32" />
+        <ellipse cx="150" cy="291" rx="58" ry="7" fill="rgba(0,0,0,0.07)" />
+
+        <!-- ══ DOCUMENT (center) ══ -->
+        <g class="doc-shake">
+            <!-- pulse ring -->
+            <rect class="doc-ring" x="210" y="32" width="160" height="210" rx="22"
+                  fill="none" stroke="var(--primary)" stroke-width="2" />
+
+            <!-- doc body -->
+            <rect x="214" y="36" width="152" height="202" rx="18"
+                  fill="url(#docG)" filter="url(#docShadow)" />
+
+            <!-- doc header band -->
+            <rect x="214" y="36" width="152" height="52" rx="18" fill="url(#docHdrG)" />
+            <rect x="214" y="62" width="152" height="26" fill="url(#docHdrG)" />
+
+            <!-- header gloss -->
+            <rect class="gloss-400" x="216" y="38" width="148" height="24" rx="16"
+                  fill="url(#glossG400)" />
+
+            <!-- header label -->
+            <text x="290" y="67"
+                  font-family="Sora, sans-serif" font-size="11" font-weight="800"
+                  fill="rgba(255,255,255,0.95)" text-anchor="middle" letter-spacing="2">REQUEST</text>
+
+            <!-- dog-ear fold top right -->
+            <polygon points="342,36 366,36 366,60" fill="rgba(0,0,0,0.08)" />
+            <polygon points="342,36 366,60 342,60" fill="rgba(255,255,255,0.18)" />
+
+            <!-- doc body lines - simulating form fields -->
+            <!-- field 1 — crossed out -->
+            <rect x="228" y="100" width="124" height="10" rx="5"
+                  fill="var(--primary-pale)" />
+            <line class="err-line" x1="226" y1="105" x2="354" y2="105"
+                  stroke="var(--primary)" stroke-width="2.5" stroke-linecap="round" />
+
+            <!-- field 2 — crossed out -->
+            <rect x="228" y="120" width="96" height="10" rx="5"
+                  fill="var(--primary-pale)" />
+            <line class="err-line" x1="226" y1="125" x2="326" y2="125"
+                  stroke="var(--primary)" stroke-width="2.5" stroke-linecap="round" />
+
+            <!-- field 3 — crossed out -->
+            <rect x="228" y="140" width="110" height="10" rx="5"
+                  fill="var(--primary-pale)" />
+            <line class="err-line" x1="226" y1="145" x2="340" y2="145"
+                  stroke="var(--primary)" stroke-width="2.5" stroke-linecap="round" />
+
+            <!-- divider -->
+            <rect x="228" y="162" width="124" height="1.5" rx="1"
+                  fill="var(--border)" opacity=".6" />
+
+            <!-- BIG red X stamp -->
+            <g class="x-pulse">
+                <circle cx="290" cy="195" r="28"
+                        fill="color-mix(in srgb, var(--primary) 12%, white)"
+                        stroke="var(--primary)" stroke-width="2.5" />
+                <!-- X lines -->
+                <line x1="274" y1="179" x2="306" y2="211"
+                      stroke="var(--primary)" stroke-width="5" stroke-linecap="round" />
+                <line x1="306" y1="179" x2="274" y2="211"
+                      stroke="var(--primary)" stroke-width="5" stroke-linecap="round" />
+            </g>
+
+            <!-- doc bottom fold shadow -->
+            <rect x="214" y="220" width="152" height="18" rx="0"
+                  fill="rgba(0,0,0,0.04)" />
+            <rect x="214" y="230" width="152" height="8" rx="0 0 18 18"
+                  fill="rgba(0,0,0,0.04)" />
+        </g>
+
+        <!-- ══ WARNING BADGE (top right) ══ -->
+        <circle class="warn-ring-400" cx="408" cy="76" r="22"
+                fill="none" stroke="var(--primary)" stroke-width="1.5" />
+        <circle class="warn-badge-400" cx="408" cy="76" r="24"
+                fill="url(#warnG400)" filter="url(#warnShadow400)" />
+        <circle cx="408" cy="76" r="24" fill="rgba(255,255,255,0.14)" />
+        <!-- gloss on badge -->
+        <ellipse cx="403" cy="65" rx="10" ry="6" fill="rgba(255,255,255,0.28)" />
+        <!-- ! mark -->
+        <rect class="ex-blink" x="406" y="60" width="4" height="14" rx="2" fill="white" />
+        <circle class="ex-blink" cx="408" cy="80" r="2.5" fill="white" />
+
+        <!-- ══ FLYING PAPERS ══ -->
+        <!-- paper 1 (right top) -->
+        <g class="paper1" filter="url(#paperShadow)">
+            <rect x="440" y="78" width="48" height="60" rx="6" fill="url(#paperG)"
+                  stroke="var(--border)" stroke-width="1" />
+            <rect x="448" y="89" width="32" height="4" rx="2" fill="var(--primary-pale)" />
+            <rect x="448" y="98" width="24" height="4" rx="2" fill="var(--primary-pale)" />
+            <rect x="448" y="107" width="28" height="4" rx="2" fill="var(--primary-pale)" />
+            <!-- small X on paper -->
+            <line x1="452" y1="118" x2="460" y2="126" stroke="var(--primary)" stroke-width="1.8" stroke-linecap="round" />
+            <line x1="460" y1="118" x2="452" y2="126" stroke="var(--primary)" stroke-width="1.8" stroke-linecap="round" />
+        </g>
+
+        <!-- paper 2 (left) -->
+        <g class="paper2" filter="url(#paperShadow)">
+            <rect x="108" y="108" width="42" height="52" rx="5" fill="url(#paperG)"
+                  stroke="var(--border)" stroke-width="1" />
+            <rect x="115" y="118" width="28" height="3.5" rx="2" fill="var(--primary-pale)" />
+            <rect x="115" y="126" width="20" height="3.5" rx="2" fill="var(--primary-pale)" />
+            <rect x="115" y="134" width="24" height="3.5" rx="2" fill="var(--primary-pale)" />
+            <!-- small X -->
+            <line x1="118" y1="143" x2="125" y2="150" stroke="var(--primary)" stroke-width="1.8" stroke-linecap="round" />
+            <line x1="125" y1="143" x2="118" y2="150" stroke="var(--primary)" stroke-width="1.8" stroke-linecap="round" />
+        </g>
+
+        <!-- paper 3 (right bottom) -->
+        <g class="paper3" filter="url(#paperShadow)">
+            <rect x="448" y="180" width="38" height="48" rx="5" fill="url(#paperG)"
+                  stroke="var(--border)" stroke-width="1" />
+            <rect x="454" y="190" width="24" height="3" rx="2" fill="var(--primary-pale)" />
+            <rect x="454" y="198" width="18" height="3" rx="2" fill="var(--primary-pale)" />
+            <rect x="454" y="206" width="20" height="3" rx="2" fill="var(--primary-pale)" />
+        </g>
+
+        <!-- ══ DASHED ARCS ══ -->
+        <path class="arc-400" stroke="var(--pglow)" stroke-width="1.5" stroke-linecap="round" fill="none"
+              d="M148 170 Q168 120 204 90" />
+        <path class="arc-400" stroke="var(--pglow)" stroke-width="1.5" stroke-linecap="round" fill="none"
+              d="M432 170 Q412 120 376 90"
+              style="animation-direction: reverse;" />
+
+        <!-- ══ FLOATING DOTS ══ -->
+        <circle class="fd1" cx="172" cy="84" r="6" fill="var(--primary-lite)" opacity=".4" />
+        <circle cx="172" cy="84" r="10" fill="none"
+                stroke="var(--primary-lite)" stroke-width="1.5" opacity=".18"
+                style="animation: fd400 3.2s ease-in-out infinite;" />
+        <circle class="fd2" cx="182" cy="198" r="5" fill="var(--primary)" opacity=".28" />
+        <circle class="fd3" cx="418" cy="172" r="5" fill="var(--primary)" opacity=".28" />
+        <circle class="fd4" cx="430" cy="126" r="4" fill="var(--primary-lite)" opacity=".22" />
+        <circle cx="344" cy="36" r="3" fill="var(--primary-lite)" opacity=".28"
+                style="animation: fd400 3.6s ease-in-out infinite .9s;" />
+
+        <!-- ══ PERSON (left side) ══ -->
+        <g filter="url(#personShadow400)">
+            <!-- person ground shadow -->
+            <ellipse cx="150" cy="290" rx="46" ry="7" fill="rgba(0,0,0,0.09)" />
+
+            <!-- legs -->
+            <rect x="136" y="258" width="12" height="34" rx="6" fill="var(--primary-dark)" />
+            <rect x="152" y="258" width="12" height="34" rx="6" fill="var(--primary-dark)" />
+            <!-- shoes -->
+            <ellipse cx="142" cy="294" rx="11" ry="5.5"
+                     fill="color-mix(in srgb, var(--primary) 20%, #1a1a2e)" />
+            <ellipse cx="158" cy="294" rx="11" ry="5.5"
+                     fill="color-mix(in srgb, var(--primary) 20%, #1a1a2e)" />
+
+            <!-- body shirt -->
+            <rect x="128" y="214" width="44" height="48" rx="12" fill="var(--primary)" />
+            <!-- belt -->
+            <rect x="128" y="256" width="44" height="7" rx="3"
+                  fill="var(--primary-dark)" />
+
+            <!-- left arm raised (confused gesture) -->
+            <path d="M128 228 Q100 210 88 195"
+                  stroke="#f5c4a0" stroke-width="12" stroke-linecap="round" fill="none" />
+            <!-- right arm pointing at doc -->
+            <path d="M172 232 Q200 218 210 205"
+                  stroke="#f5c4a0" stroke-width="12" stroke-linecap="round" fill="none" />
+
+            <!-- neck -->
+            <rect x="142" y="204" width="16" height="14" rx="7" fill="#f5c4a0" />
+
+            <!-- HEAD group -->
+            <g class="head-400">
+                <circle cx="150" cy="190" r="26" fill="#f5c4a0" />
+                <!-- hair -->
+                <path d="M126 182 Q128 158 150 156 Q172 158 174 182
+                         Q165 170 150 172 Q135 170 126 182Z" fill="#2c2011" />
+                <!-- ear -->
+                <ellipse cx="124" cy="191" rx="5" ry="7" fill="#eaad88" />
+                <!-- eyes — wide/confused -->
+                <ellipse cx="141" cy="189" rx="3.5" ry="4" fill="#2c2011" />
+                <ellipse cx="159" cy="189" rx="3.5" ry="4" fill="#2c2011" />
+                <!-- eye whites -->
+                <ellipse cx="142" cy="188" rx="1.2" ry="1.5" fill="rgba(255,255,255,0.5)" />
+                <ellipse cx="160" cy="188" rx="1.2" ry="1.5" fill="rgba(255,255,255,0.5)" />
+                <!-- eyebrows — furrowed -->
+                <path stroke="#2c2011" stroke-width="2.2" stroke-linecap="round" fill="none"
+                      d="M136 180 Q141 176 146 179" />
+                <path stroke="#2c2011" stroke-width="2.2" stroke-linecap="round" fill="none"
+                      d="M154 179 Q159 176 164 180" />
+                <!-- mouth — confused wavy -->
+                <path stroke="#c07050" stroke-width="2" stroke-linecap="round" fill="none"
+                      d="M142 202 Q146 198 150 202 Q154 206 158 202" />
+                <!-- sweat drop -->
+                <path d="M168 176 Q172 170 174 178 Q174 183 168 183 Z"
+                      fill="color-mix(in srgb, var(--primary) 60%, #88ccff)" />
+            </g>
+        </g>
+
+        <!-- ══ SPEECH BUBBLE ══ -->
+        <g class="bubble-400" filter="url(#bubShadow400)">
+            <rect x="22" y="122" width="108" height="52" rx="14"
+                  fill="rgba(0,0,0,0.07)" transform="translate(2,3)" />
+            <rect x="20" y="120" width="108" height="52" rx="14"
+                  fill="white" stroke="var(--border)" stroke-width="1.5" />
+            <!-- tail -->
+            <polygon points="48,172 38,190 62,172"
+                     fill="white" stroke="var(--border)" stroke-width="1.5" stroke-linejoin="round" />
+            <rect x="40" y="171" width="24" height="5" fill="white" />
+            <!-- text -->
+            <text x="74" y="141"
+                  font-family="Nunito, sans-serif" font-size="13" font-weight="800"
+                  fill="var(--primary)" text-anchor="middle">Bad Request!</text>
+            <text x="74" y="159"
+                  font-family="DM Sans, sans-serif" font-size="10.5" font-weight="600"
+                  fill="#9d8e82" text-anchor="middle">Invalid data 📋</text>
+        </g>
+
+    </svg>
+
+    <!-- ══ TEXT CONTENT ══ -->
+    <div class="content-400">
+        <h1 class="heading-400">
+            Oops — <span class="accent">Invalid Request</span>
+        </h1>
+
+        <p class="desc-400">
+            The server couldn't understand your request due to invalid syntax.<br />
+            Please check your input and try again.
+        </p>
+        <div class="actions-400">
+          
+            <a href="/Dashboard" class="btn btn-primary">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none"
+                     stroke="currentColor" stroke-width="2.5"
+                     stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
+                    <polyline points="9 22 9 12 15 12 15 22" />
+                </svg>
+                Back to Dashboard
+            </a>
+        </div>
+
+    </div>
+
+</div>

@@ -1,0 +1,253 @@
+﻿@page "/assets-category/{Id:guid}/view"
+@using FinanceConnect.Client.ViewModels
+@inject AssetCategoryService Service
+@inject NavigationManager Nav
+
+@if (!isInitialized)
+{
+    <div class="page-loading-overlay">
+        <div class="whirly-loader"></div>
+    </div>
+}
+else if (Category == null)
+{
+    <div class="vb-root">
+        <div class="content">
+            <div class="alert alert-danger">
+                <i class="ti ti-alert-circle me-2"></i>
+                Asset Category not found.
+                <a href="/assets-category" class="alert-link ms-2">Return to list</a>
+            </div>
+        </div>
+    </div>
+}
+else
+{
+    <div class="vb-root">
+        <div class="content">
+
+            <!-- ═══ HEADER ═══ -->
+            <div class="vb-header-card">
+                <div class="vb-cover">
+                    <div class="vb-cover-orb vb-orb-1"></div>
+                    <div class="vb-cover-orb vb-orb-2"></div>
+                    <div class="vb-cover-orb vb-orb-3"></div>
+                </div>
+                <div class="vb-header-body">
+                    <div class="vb-avatar">
+                        @Category.CategoryCode?.Substring(0, Math.Min(2, Category.CategoryCode?.Length ?? 0)).ToUpper()
+                    </div>
+                    <div class="vb-header-meta">
+                        <div>
+                            <p class="vb-bill-number">@Category.CategoryCode – @Category.CategoryName</p>
+                            <p class="vb-bill-sub">
+                                @Category.AssetType &nbsp;·&nbsp;
+                                @(Category.IsDepreciable ? "Depreciable" : "Non-Depreciable") &nbsp;·&nbsp;
+                                @(Category.IsCapitalizable ? "Capitalizable" : "Expense-Only")
+                            </p>
+                            <div class="vb-badges">
+                                <span class="badge @GetStatusBadgeClass(Category.CategoryStatus)">@Category.CategoryStatus</span>
+                                @if (Category.IsLockedForChanges)
+                                {
+                                    <span class="badge badge-red">🔒 Locked</span>
+                                }
+                                @if (Category.AllowSplitIntoComponents)
+                                {
+                                    <span class="badge badge-purple">⚙ Component Split</span>
+                                }
+                            </div>
+                        </div>
+                        <div class="vb-header-actions">
+                         
+                            @if (!Category.IsLockedForChanges)
+                            {
+                                <a href="/assets-category/edit/@Category.AssetCategoryId" class="btn btn-primary">
+                                    <i class="ti ti-pencil me-1"></i> Edit
+                                </a>
+                            }
+                            <a href="/assets-category" class="btn btn-outline-secondary">
+                                <i class="ti ti-arrow-left me-1"></i> Back
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ═══ SUMMARY TILES ═══ -->
+            <div class="vb-summary-grid mb-4 mt-2" style="background:transparent;border:none;box-shadow:none;">
+                <div class="vb-tile">
+                    <div class="vb-tile-label">Asset Type</div>
+                    <div class="vb-tile-value">@Category.AssetType</div>
+                </div>
+                <div class="vb-tile">
+                    <div class="vb-tile-label">Useful Life</div>
+                    <div class="vb-tile-value">@(Category.UsefulLifeMonths.HasValue ? $"{Category.UsefulLifeMonths} Months" : "–")</div>
+                </div>
+                <div class="vb-tile">
+                    <div class="vb-tile-label">Residual Value</div>
+                    <div class="vb-tile-value">@(Category.ResidualValuePercent.HasValue ? $"{Category.ResidualValuePercent:N1}%" : "–")</div>
+                </div>
+                <div class="vb-tile">
+                    <div class="vb-tile-label">Cap. Threshold</div>
+                    <div class="vb-tile-value primary">@Category.CapitalizationThresholdAmount.ToString("N2")</div>
+                </div>
+                <div class="vb-tile">
+                    <div class="vb-tile-label">Default Status</div>
+                    <div class="vb-tile-value">@Category.DefaultAssetStatusOnCreation</div>
+                </div>
+                <div class="vb-tile">
+                    <div class="vb-tile-label">Rounding Rule</div>
+                    <div class="vb-tile-value">@Category.DepreciationRoundingRule</div>
+                </div>
+            </div>
+
+            <!-- ═══ TWO-COLUMN BODY ═══ -->
+            <div class="ac-layout mb-5">
+
+                <!-- ══ LEFT SIDEBAR ══ -->
+                <div class="ac-left">
+
+                    <!-- Basic Information -->
+                    <div class="vb-card">
+                        <div class="vb-card-header">
+                            <h6><i class="ti ti-id me-1"></i> Basic Information</h6>
+                        </div>
+                        <div class="vb-card-body">
+                            <div class="vb-row"><span class="vb-label">Category Code</span><span class="vb-val">@Category.CategoryCode</span></div>
+                            <div class="vb-row"><span class="vb-label">Category Name</span><span class="vb-val">@Category.CategoryName</span></div>
+                            <div class="vb-row"><span class="vb-label">Asset Type</span><span class="vb-val">@Category.AssetType</span></div>
+                            <div class="vb-row"><span class="vb-label">Parent Category</span><span class="vb-val">@ParentCategoryName(Category.ParentAssetCategoryId)</span></div>
+                            <div class="vb-row"><span class="vb-label">Default Status on Creation</span><span class="vb-val">@Category.DefaultAssetStatusOnCreation</span></div>
+                            @if (!string.IsNullOrWhiteSpace(Category.Description))
+                            {
+                                <div class="vb-row" style="flex-direction:column;gap:4px;">
+                                    <span class="vb-label">Description</span>
+                                    <span class="vb-val" style="font-style:italic;color:var(--gray-600);">@Category.Description</span>
+                                </div>
+                            }
+                        </div>
+                    </div>
+
+                    <!-- Capitalization Policy -->
+                    <div class="vb-card">
+                        <div class="vb-card-header">
+                            <h6><i class="ti ti-coin me-1"></i> Capitalization Policy</h6>
+                        </div>
+                        <div class="vb-card-body">
+                            <div class="vb-row"><span class="vb-label">Capitalizable?</span><span class="vb-val">@BoolBadge(Category.IsCapitalizable, "Yes", "No (Expense Only)")</span></div>
+                            <div class="vb-row"><span class="vb-label">Threshold Amount</span><span class="vb-val">@Category.CapitalizationThresholdAmount.ToString("N2")</span></div>
+                            <div class="vb-row"><span class="vb-label">Allow Threshold Override</span><span class="vb-val">@BoolBadge(Category.AllowManualOverrideThreshold, "Allowed", "No")</span></div>
+                            <div class="vb-row"><span class="vb-label">Acquisition Approval</span><span class="vb-val">@BoolBadge(Category.RequireAcquisitionApproval, "Yes", "No")</span></div>
+                        </div>
+                    </div>
+                    <!-- Status & Lifecycle -->
+                    <div class="vb-card">
+                        <div class="vb-card-header">
+                            <h6><i class="ti ti-toggle-right me-1"></i> Status &amp; Lifecycle</h6>
+                        </div>
+                        <div class="vb-card-body">
+                            <div class="vb-row">
+                                <span class="vb-label">Category Status</span>
+                                <span class="vb-val"><span class="badge @GetStatusBadgeClass(Category.CategoryStatus)">@Category.CategoryStatus</span></span>
+                            </div>
+                            <div class="vb-row">
+                                <span class="vb-label">Locked for Changes</span>
+                                <span class="vb-val">@BoolBadge(Category.IsLockedForChanges, "🔒 Locked", "Unlocked")</span>
+                            </div>
+                            @if (Category.IsLockedForChanges && !string.IsNullOrWhiteSpace(Category.LockReason))
+                            {
+                                <div class="vb-row" style="flex-direction:column;gap:4px;">
+                                    <span class="vb-label">Lock Reason</span>
+                                    <span class="vb-val" style="font-style:italic;color:#dc2626;">@Category.LockReason</span>
+                                </div>
+                            }
+                        </div>
+                    </div>
+
+                </div>
+                <!-- ══ END LEFT SIDEBAR ══ -->
+                <!-- ══ RIGHT MAIN ══ -->
+                <div class="ac-right">
+
+                    <!-- Depreciation Defaults -->
+                    <div class="vb-card">
+                        <div class="vb-card-header">
+                            <h6><i class="ti ti-chart-bar me-1"></i> Depreciation Defaults</h6>
+                        </div>
+                        <div class="vb-card-body">
+                            <div class="ac-2col">
+                                <div class="vb-row"><span class="vb-label">Depreciable?</span><span class="vb-val">@BoolBadge(Category.IsDepreciable, "Yes", "No")</span></div>
+                                <div class="vb-row"><span class="vb-label">Start Convention</span><span class="vb-val">@(Category.DepreciationStartConvention.HasValue? Category.DepreciationStartConvention.Value.ToString() : "–")</span></div>
+                                <div class="vb-row"><span class="vb-label">Depreciation Method</span><span class="vb-val">@DepreciationMethodName(Category.DefaultDepreciationMethodId)</span></div>
+                                <div class="vb-row"><span class="vb-label">Rounding Rule</span><span class="vb-val">@Category.DepreciationRoundingRule</span></div>
+                                <div class="vb-row"><span class="vb-label">Useful Life</span><span class="vb-val">@(Category.UsefulLifeMonths.HasValue ? $"{Category.UsefulLifeMonths} Months" : "–")</span></div>
+                                <div class="vb-row"><span class="vb-label">Allow on Non-Working Days</span><span class="vb-val">@BoolBadge(Category.AllowDepreciationOnNonWorkingDays, "Yes", "No")</span></div>
+                                <div class="vb-row"><span class="vb-label">Residual Value %</span><span class="vb-val">@(Category.ResidualValuePercent.HasValue ? $"{Category.ResidualValuePercent:N2}%" : "–")</span></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Accounting Mapping (GL Defaults) -->
+                    <div class="vb-card">
+                        <div class="vb-card-header">
+                            <h6><i class="ti ti-building-bank me-1"></i> Accounting Mapping (GL Defaults)</h6>
+                        </div>
+                        <div class="vb-card-body">
+                            <div class="ac-2col">
+                                <div class="vb-row"><span class="vb-label">Asset Cost Account</span><span class="vb-val">@GLAccountName(Category.AssetCostGLAccountId)</span></div>
+                                <div class="vb-row"><span class="vb-label">Accumulated Depreciation</span><span class="vb-val">@GLAccountName(Category.AccumulatedDepreciationGLAccountId)</span></div>
+                                <div class="vb-row"><span class="vb-label">Depreciation Expense</span><span class="vb-val">@GLAccountName(Category.DepreciationExpenseGLAccountId)</span></div>
+                                <div class="vb-row"><span class="vb-label">Gain on Disposal</span><span class="vb-val">@GLAccountName(Category.DisposalGainGLAccountId)</span></div>
+                                <div class="vb-row"><span class="vb-label">Loss on Disposal</span><span class="vb-val">@GLAccountName(Category.DisposalLossGLAccountId)</span></div>
+                                <div class="vb-row"><span class="vb-label">Cap. Clearing / GRIR</span><span class="vb-val">@GLAccountName(Category.CapitalizationClearingGLAccountId)</span></div>
+                                <div class="vb-row"><span class="vb-label">CWIP Account</span><span class="vb-val">@GLAccountName(Category.CWIPGLAccountId)</span></div>
+                                <div class="vb-row"><span class="vb-label">Impairment Loss</span><span class="vb-val">@GLAccountName(Category.ImpairmentLossGLAccountId)</span></div>
+                                <div class="vb-row"><span class="vb-label">Revaluation Reserve</span><span class="vb-val">@GLAccountName(Category.RevaluationReserveGLAccountId)</span></div>
+                                <div class="vb-row"><span class="vb-label">Expense (Below Threshold)</span><span class="vb-val">@GLAccountName(Category.ExpenseAccountIdForBelowThreshold)</span></div>
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+                <!-- ══ END RIGHT MAIN ══ -->
+
+            </div>
+
+        </div>
+    </div>
+}
+
+<style>
+    /* ─── Two-column layout: narrow sidebar + wide main ─── */
+    .ac-layout {
+        display: grid;
+        grid-template-columns: 300px 1fr;
+        gap: 16px;
+        align-items: start;
+    }
+
+    /* Stack cards vertically inside each column */
+    .ac-left,
+    .ac-right {
+        display: flex;
+        flex-direction: column;
+        gap: 16px;
+    }
+
+    /* 2-col grid inside wide cards (GL + Depreciation) */
+    .ac-2col {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(302px, 1fr));
+        gap: 0 32px;
+    }
+
+    @@media (max-width: 900px) {
+        .ac-layout {
+            grid-template-columns: 1fr;
+        }
+
+        .ac-2col {
+            grid-template-columns: 1fr;
+        }
+    }
+</style>

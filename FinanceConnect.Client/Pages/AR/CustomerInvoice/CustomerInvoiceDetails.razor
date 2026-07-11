@@ -1,0 +1,336 @@
+@page "/customer-invoices/{Id:guid}/view"
+@using FinanceConnect.Client.ViewModels
+@using FinanceConnect.Client.Services
+
+<PageTitle>Invoice Details - FinanceConnect</PageTitle>
+
+@if (!isInitialized)
+{
+    <div class="page-loading-overlay">
+        <div class="whirly-loader"></div>
+    </div>
+}
+else if (Invoice == null)
+{
+    <div class="vb-root">
+        <div class="content">
+            <div class="alert alert-danger">
+                <i class="ti ti-alert-circle me-2"></i>
+                Invoice not found.
+                <a href="/customer-invoices" class="alert-link ms-2">Return to list</a>
+            </div>
+        </div>
+    </div>
+}
+else
+{
+    <div class="vb-root">
+        <div class="content">
+            <div>
+            <!-- PROFILE HEADER CARD -->
+            <div class="vb-header-card">
+                <div class="vb-cover">
+                    <div class="vb-cover-orb vb-orb-1"></div>
+                    <div class="vb-cover-orb vb-orb-2"></div>
+                    <div class="vb-cover-orb vb-orb-3"></div>
+                </div>
+                <div class="vb-header-body">
+                    <div class="vb-avatar">
+                        @Invoice.InvoiceNumber?.Substring(0, Math.Min(2, Invoice.InvoiceNumber?.Length ?? 0)).ToUpper()
+                    </div>
+                    <div class="vb-header-meta">
+                        <div>
+                            <p class="vb-bill-number">@Invoice.InvoiceNumber</p>
+                            <p class="vb-bill-sub">@Invoice.CustomerName &nbsp;·&nbsp; @Invoice.CompanyName &nbsp;·&nbsp; @Invoice.BranchName</p>
+                            <div class="vb-badges">
+                                <span class="badge @GetStatusBadgeClass(Invoice.InvoiceStatus)">@InvoiceStatuses.GetDisplayName(Invoice.InvoiceStatus)</span>
+                                <span class="badge @GetSettlementBadgeClass()">@GetSettlementStatusText()</span>
+                                @if (IsOverdue)
+                                {
+                                    <span class="badge badge-red">⚠ Overdue</span>
+                                }
+
+                            </div>
+                        </div>
+                        <div class="vb-header-actions">
+                            <a href="/customer-invoices" class="btn btn-outline-secondary">
+                                <i class="ti ti-arrow-left me-1"></i> Back
+                            </a>
+                            <a @onclick="PrintPage" class="btn btn-primary">
+                                <i class="bi bi-printer me-1"></i> Print
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Invoice Summary -->
+            <div class="vb-card" style="background: transparent;border: none;box-shadow: none;">
+                <div class="vb-summary-grid mb-4 mt-2">
+                    <div class="vb-tile">
+                        <div class="vb-tile-label">Subtotal</div>
+                        <div class="vb-tile-value">@Invoice.SubTotalAmount.ToString("N2")</div>
+                    </div>
+                    <div class="vb-tile">
+                        <div class="vb-tile-label">Discount</div>
+                        <div class="vb-tile-value danger">-@Invoice.DiscountTotalAmount.ToString("N2")</div>
+                    </div>
+                    <div class="vb-tile">
+                        <div class="vb-tile-label">Tax</div>
+                        <div class="vb-tile-value">@Invoice.TaxTotalAmount.ToString("N2")</div>
+                    </div>
+                    <div class="vb-tile-wide">
+                        <div class="vb-tile-label">Outstanding Balance</div>
+                        <div class="vb-tile-value @(Invoice.AmountOutstanding > 0 ? "danger" : "success")" style="font-size:26px;">
+                            @Invoice.AmountOutstanding.ToString("N2")
+                        </div>
+                    </div>
+                    <div class="vb-tile">
+                        <div class="vb-tile-label">Round Off</div>
+                        <div class="vb-tile-value">@Invoice.RoundOffAmount.ToString("N2")</div>
+                    </div>
+                    <div class="vb-tile">
+                        <div class="vb-tile-label">Grand Total</div>
+                        <div class="vb-tile-value primary">@Invoice.CurrencyCode @Invoice.GrandTotalAmount.ToString("N2")</div>
+                    </div>
+                    <div class="vb-tile">
+                        <div class="vb-tile-label">Paid</div>
+                        <div class="vb-tile-value success">@Invoice.AmountPaidToDate.ToString("N2")</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="vb-two-col mb-4">
+                <!-- SIDEBAR -->
+                <aside class="vb-sidebar">
+                    <div class="vb-card">
+                        <div class="vb-card-header"><h6><i class="ti ti-file-invoice"></i> Invoice Identity</h6></div>
+                        <div class="vb-card-body">
+                            <div class="vb-row"><span class="vb-label">Invoice Number</span><span class="vb-val">@Invoice.InvoiceNumber</span></div>
+                            <div class="vb-row"><span class="vb-label">Invoice Type</span><span class="vb-val">@InvoiceTypes.GetDisplayName(Invoice.InvoiceType)</span></div>
+                            <div class="vb-row"><span class="vb-label">Invoice Date</span><span class="vb-val">@Invoice.InvoiceDate.ToString("dd MMM yyyy")</span></div>
+                            <div class="vb-row"><span class="vb-label">Due Date</span><span class="vb-val @(IsOverdue ? "text-danger" : "")">@Invoice.DueDate.ToString("dd MMM yyyy")</span></div>
+                            <div class="vb-row"><span class="vb-label">Payment Terms</span><span class="vb-val">@(Invoice.PaymentTermName ?? "N/A")</span></div>
+                            @if (Invoice.PostingDate.HasValue)
+                            {
+                                <div class="vb-row"><span class="vb-label">Posting Date</span><span class="vb-val">@Invoice.PostingDate.Value.ToString("dd MMM yyyy")</span></div>
+                            }
+                        </div>
+                    </div>
+
+                    <div class="vb-card">
+                        <div class="vb-card-header"><h6><i class="ti ti-user"></i> Customer</h6></div>
+                        <div class="vb-card-body">
+                            <div class="vb-row"><span class="vb-label">Customer Code</span><span class="vb-val">@Invoice.CustomerCode</span></div>
+                            <div class="vb-row"><span class="vb-label">Customer Name</span><span class="vb-val">@Invoice.CustomerName</span></div>
+                        </div>
+                    </div>
+
+                    <div class="vb-card">
+                        <div class="vb-card-header"><h6><i class="ti ti-receipt-tax"></i> Tax &amp; Compliance</h6></div>
+                        <div class="vb-card-body">
+                            <div class="vb-row"><span class="vb-label">E-Invoice</span><span class="vb-val">@if (Invoice.EInvoiceStatus != EInvoiceStatuses.NotApplicable){<span class="badge badge-blue">@Invoice.EInvoiceStatus</span>}else{<span class="badge badge-gray">N/A</span>}</span></div>
+                            <div class="vb-row"><span class="vb-label">Supply Type</span><span class="vb-val">@SupplyTypes.GetDisplayName(Invoice.SupplyType)</span></div>
+                            @if (!string.IsNullOrWhiteSpace(Invoice.PlaceOfSupplyStateName))
+                            {
+                                <div class="vb-row"><span class="vb-label">Place of Supply</span><span class="vb-val">@Invoice.PlaceOfSupplyStateCode – @Invoice.PlaceOfSupplyStateName</span></div>
+                            }
+                            @if (!string.IsNullOrEmpty(Invoice.EInvoiceIRN))
+                            {
+                                <div class="vb-row"><span class="vb-label">IRN</span><span class="vb-val" style="font-size:11px;word-break:break-all;">@Invoice.EInvoiceIRN</span></div>
+                            }
+                        </div>
+                    </div>
+
+                    <div class="vb-card">
+                        <div class="vb-card-header"><h6><i class="ti ti-history"></i> Audit Information</h6></div>
+                        <div class="vb-card-body">
+                            <div class="vb-row"><span class="vb-label">Created</span><span class="vb-val">@Invoice.CreatedAt.ToString("dd MMM yyyy")</span></div>
+                            @if (!string.IsNullOrWhiteSpace(Invoice.CreatedBy)){<div class="vb-row"><span class="vb-label">Created By</span><span class="vb-val">@Invoice.CreatedBy</span></div>}
+                            @if (Invoice.UpdatedAt.HasValue){<div class="vb-row"><span class="vb-label">Updated</span><span class="vb-val">@Invoice.UpdatedAt.Value.ToString("dd MMM yyyy")</span></div>}
+                            @if (!string.IsNullOrWhiteSpace(Invoice.UpdatedBy)){<div class="vb-row"><span class="vb-label">Updated By</span><span class="vb-val">@Invoice.UpdatedBy</span></div>}
+                        </div>
+                    </div>
+                </aside>
+
+                <!-- MAIN CONTENT -->
+                <div class="vb-main">
+                    <div class="vb-card">
+                        <div class="vb-card-header"><h6><i class="ti ti-building"></i> Company &amp; Customer Details</h6></div>
+                        <div class="vb-card-body">
+                            <div style="display:grid; grid-template-columns:1fr 1fr; gap:0 32px;">
+                                <div class="vb-row"><span class="vb-label">Company</span><span class="vb-val">@Invoice.CompanyName</span></div>
+                                <div class="vb-row"><span class="vb-label">Currency</span><span class="vb-val">@Invoice.CurrencyCode – @Invoice.CurrencyName</span></div>
+                                <div class="vb-row"><span class="vb-label">Branch</span><span class="vb-val">@Invoice.BranchCode – @Invoice.BranchName</span></div>
+                                @if (Invoice.ExchangeRate != 1){<div class="vb-row"><span class="vb-label">Exchange Rate</span><span class="vb-val">@Invoice.ExchangeRate.ToString("N4")</span></div>}
+                                <div class="vb-row"><span class="vb-label">Customer</span><span class="vb-val">@Invoice.CustomerCode – @Invoice.CustomerName</span></div>
+                                <div class="vb-row"><span class="vb-label">Approval</span><span class="vb-val"><span class="badge @GetApprovalBadgeClass(Invoice.ApprovalStatus)">@GetApprovalStatusDisplayName(Invoice.ApprovalStatus)</span></span></div>
+                                @if (!string.IsNullOrEmpty(Invoice.ReferenceText)){<div class="vb-row"><span class="vb-label">Reference (PO)</span><span class="vb-val">@Invoice.ReferenceText</span></div>}
+                                @if (Invoice.IsSystemGenerated){<div class="vb-row"><span class="vb-label">System Generated</span><span class="vb-val"><span class="badge badge-blue"><i class="ti ti-robot me-1"></i>Yes</span></span></div>}
+                            </div>
+                        </div>
+                    </div>
+
+                    @if (!string.IsNullOrWhiteSpace(Invoice.InvoiceNarration))
+                    {
+                        <div class="vb-card">
+                            <div class="vb-card-header"><h6><i class="ti ti-notes"></i> Notes</h6></div>
+                            <div class="vb-card-body">
+                                <p style="margin:0; font-size:13.5px; color:var(--gray-600); line-height:1.7; font-style:italic; border-left: 3px solid color-mix(in srgb, var(--primary) 70%, white); padding-left:14px;">
+                                    @((MarkupString)Invoice.InvoiceNarration)
+                                </p>
+                            </div>
+                        </div>
+                    }
+
+                    <div class="vb-card">
+                        <div class="vb-card-header"><h6><i class="ti ti-list-details"></i> Invoice Lines &nbsp;<span class="badge badge-blue">@Invoice.Lines.Count(l => !l.IsDeleted) items</span></h6></div>
+                        <div style="overflow-x:auto;">
+                            <table class="vb-table">
+                                <thead class="bg-light">
+                                    <tr>
+                                        <th style="width:40px;">#</th>
+                                        <th style="width:80px;">Type</th>
+                                        <th>Description</th>
+                                        <th>Revenue Acct</th>
+                                        <th class="text-end">Qty</th>
+                                        <th class="text-end">Rate</th>
+                                        <th class="text-end">Disc.</th>
+                                        <th class="text-end">Tax %</th>
+                                        <th class="text-end">Tax</th>
+                                        <th class="text-end">Total</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach (var line in Invoice.Lines.Where(l => !l.IsDeleted).OrderBy(l => l.LineNumber))
+                                    {
+                                        <tr>
+                                            <td>@line.LineNumber</td>
+                                            <td><span class="badge @GetLineTypeBadgeClass(line.LineType)">@line.LineType</span></td>
+                                            <td>
+                                                <div>@((MarkupString)(line.Description ?? ""))</div>
+                                                @if (!string.IsNullOrEmpty(line.ItemCode)){<small class="text-muted">@line.ItemCode</small>}
+                                            </td>
+                                            <td>
+                                                @if (!string.IsNullOrEmpty(line.RevenueAccountCode)){<span class="small text-muted">@line.RevenueAccountCode</span><br /><span style="font-size:12.5px;">@line.RevenueAccountName</span>}
+                                                else{<span class="text-muted">–</span>}
+                                            </td>
+                                            <td class="text-end">@line.Quantity.ToString("N2")</td>
+                                            <td class="text-end">@line.UnitPrice.ToString("N2")</td>
+                                            <td class="text-end text-danger">@(line.DiscountAmount > 0 ? $"-{line.DiscountAmount:N2}" : "–")</td>
+                                            <td class="text-end">@(line.TaxRatePercent > 0 ? $"{line.TaxRatePercent:N1}%" : "–")</td>
+                                            <td class="text-end">@(line.TaxAmount > 0 ? line.TaxAmount.ToString("N2") : "–")</td>
+                                            <td class="text-end fw-bold text-orange">@line.LineTotalAmount.ToString("N2")</td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    @if (Invoice.CanEdit || Invoice.CanPost || Invoice.CanCancel)
+                    {
+                        <div class="vb-card">
+                            <div class="vb-card-header"><h6><i class="ti ti-settings"></i> Actions</h6></div>
+                            <div class="vb-card-body">
+                                <div class="d-flex flex-wrap gap-2">
+                                    @if (Invoice.CanEdit){<a href="/customer-invoices/@Invoice.Id" class="btn btn-primary btn-sm"><i class="ti ti-edit me-1"></i> Edit Invoice</a>}
+                                    @if (Invoice.CanPost){<button type="button" class="btn btn-success btn-sm" data-bs-toggle="modal" data-bs-target="#postModal"><i class="ti ti-send me-1"></i> Post Invoice</button>}
+                                    @if (Invoice.CanCancel){<button type="button" class="btn btn-outline-warning btn-sm" data-bs-toggle="modal" data-bs-target="#cancelModal"><i class="ti ti-ban me-1"></i> Cancel Invoice</button>}
+                                </div>
+                            </div>
+                        </div>
+                    }
+
+                    <!-- Workflow History -->
+                    @if (Invoice.InvoiceStatus != InvoiceStatuses.Draft)
+                    {
+                        <div class="vb-card">
+                            <div class="vb-card-header"><h6><i class="ti ti-git-branch"></i> Workflow History</h6></div>
+                            <div class="vb-card-body">
+                                <div class="vb-timeline">
+                                    @if (Invoice.InvoiceStatus == InvoiceStatuses.Submitted || Invoice.InvoiceStatus == InvoiceStatuses.Approved || Invoice.InvoiceStatus == InvoiceStatuses.Posted || Invoice.InvoiceStatus == InvoiceStatuses.PartiallyPaid || Invoice.InvoiceStatus == InvoiceStatuses.Paid)
+                                    {
+                                        <div class="vb-tl-item">
+                                            <div class="vb-tl-dot"><i class="ti ti-send"></i></div>
+                                            <div class="vb-tl-content"><div class="vb-tl-title">Submitted</div><div class="vb-tl-meta">Status indicates submission completed</div></div>
+                                        </div>
+                                    }
+                                    @if (Invoice.InvoiceStatus == InvoiceStatuses.Approved || Invoice.InvoiceStatus == InvoiceStatuses.Posted || Invoice.InvoiceStatus == InvoiceStatuses.PartiallyPaid || Invoice.InvoiceStatus == InvoiceStatuses.Paid)
+                                    {
+                                        <div class="vb-tl-item">
+                                            <div class="vb-tl-dot" style="background: color-mix(in srgb, var(--primary) 12%, white);border-color:#16a34a;color:#16a34a;"><i class="ti ti-check"></i></div>
+                                            <div class="vb-tl-content"><div class="vb-tl-title">Approved</div><div class="vb-tl-meta">Approval completed</div></div>
+                                        </div>
+                                    }
+                                    @if (Invoice.PostedOn.HasValue)
+                                    {
+                                        <div class="vb-tl-item">
+                                            <div class="vb-tl-dot" style="background: color-mix(in srgb, var(--primary) 12%, white);border-color:var(--orange);color:var(--orange-d);"><i class="ti ti-book"></i></div>
+                                            <div class="vb-tl-content"><div class="vb-tl-title">Posted</div><div class="vb-tl-meta">@Invoice.PostedOn.Value.ToString("dd MMM yyyy HH:mm") @(!string.IsNullOrWhiteSpace(Invoice.PostedByUserName) ? $"by {Invoice.PostedByUserName}" : "")</div></div>
+                                        </div>
+                                    }
+                                    @if (Invoice.CancelledOn.HasValue)
+                                    {
+                                        <div class="vb-tl-item">
+                                            <div class="vb-tl-dot" style="background: color-mix(in srgb, var(--primary) 12%, white);border-color:#dc2626;color:#dc2626;"><i class="ti ti-x"></i></div>
+                                            <div class="vb-tl-content">
+                                                <div class="vb-tl-title">Cancelled</div>
+                                                <div class="vb-tl-meta">@Invoice.CancelledOn.Value.ToString("dd MMM yyyy HH:mm") @(!string.IsNullOrWhiteSpace(Invoice.CancelledByUserName) ? $"by {Invoice.CancelledByUserName}" : "")</div>
+                                                @if (!string.IsNullOrWhiteSpace(Invoice.CancellationReason)){<div class="text-danger" style="font-size:12px;margin-top:2px;">@Invoice.CancellationReason</div>}
+                                            </div>
+                                        </div>
+                                    }
+                                </div>
+                            </div>
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+        </div>
+    </div>
+
+    <!-- Post Invoice Modal -->
+    <div class="modal fade" id="postModal" data-bs-backdrop="static" data-bs-keyboard="false">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="page-wrapper-new p-0">
+                    <div class="p-5 px-3 text-center">
+                        <span class="rounded-circle d-inline-flex p-2 bg-success-transparent mb-2"><i class="ti ti-send fs-24 text-success"></i></span>
+                        <h4 class="fs-20 text-gray-9 fw-bold mb-2 mt-1">Post Invoice</h4>
+                        <p class="text-gray-6 mb-0 fs-16">Do you want to post <strong>@Invoice.InvoiceNumber</strong>?</p>
+                        <div class="alert alert-warning mt-3 text-start small"><i class="ti ti-alert-triangle me-2"></i>Once posted, the invoice cannot be edited. Any corrections must be made via Credit Note or Debit Note.</div>
+                        <div class="modal-footer-btn mt-4 d-flex justify-content-center gap-3">
+                            <button type="button" class="btn btn-secondary fs-13 fw-medium p-2 px-4" data-bs-dismiss="modal"><i class="ti ti-x me-1"></i>Cancel</button>
+                            <button type="button" class="btn btn-success fs-13 fw-medium p-2 px-4" @onclick="PostInvoice" data-bs-dismiss="modal"><i class="ti ti-send me-1"></i>Yes, Post</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Cancel Invoice Modal -->
+    <div class="modal fade" id="cancelModal" data-bs-backdrop="static" data-bs-keyboard="false">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="page-wrapper-new p-0">
+                    <div class="p-5 px-3 text-center">
+                        <span class="rounded-circle d-inline-flex p-2 bg-warning-transparent mb-2"><i class="ti ti-ban fs-24 text-warning"></i></span>
+                        <h4 class="fs-20 text-gray-9 fw-bold mb-2 mt-1">Cancel Invoice</h4>
+                        <p class="text-gray-6 mb-0 fs-16">Do you want to cancel invoice <strong>@Invoice.InvoiceNumber</strong>?</p>
+                        <div class="mt-3 text-start">
+                            <label class="form-label">Cancellation Reason <span class="text-danger">*</span></label>
+                            <textarea class="form-control" rows="3" @bind="cancelReasonInput" placeholder="Enter reason for cancellation..."></textarea>
+                        </div>
+                        <div class="modal-footer-btn mt-4 d-flex justify-content-center gap-3">
+                            <button type="button" class="btn btn-secondary fs-13 fw-medium p-2 px-4" data-bs-dismiss="modal"><i class="ti ti-x me-1"></i>Close</button>
+                            <button type="button" class="btn btn-warning fs-13 fw-medium p-2 px-4" @onclick="CancelInvoice" data-bs-dismiss="modal"><i class="ti ti-ban me-1"></i>Yes, Cancel</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+}

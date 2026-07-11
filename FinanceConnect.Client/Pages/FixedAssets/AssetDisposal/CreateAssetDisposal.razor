@@ -1,0 +1,518 @@
+﻿@page "/asset-disposals/create"
+@page "/asset-disposals/edit/{Id:guid}"
+
+@using FinanceConnect.Client.ViewModels
+@using FinanceConnect.Client.Services
+
+<style>
+    .validation-message {
+        color: #dc3545;
+        font-size: 12px;
+    }
+
+    .form-check-label {
+        font-size: 13px;
+    }
+
+    .calc-box {
+        background: #f8f9fa;
+        border-radius: 6px;
+        padding: 12px;
+        border: 1px solid #eee;
+    }
+
+    .calc-value {
+        font-weight: 600;
+        font-size: 14px;
+    }
+</style>
+
+<div class="content flat-form">
+
+    <div class="page-header">
+        <div class="page-title">
+            <h4 class="fw-bold mb-0">
+                @(IsEdit ? "Edit Asset Disposal" : "Create Asset Disposal")
+
+                <span class="badge badge-lg-tranparent text-lg @GetStatusBadge(Model.DisposalStatus.ToString()) me-2">
+                    @Model.DisposalStatus
+                </span>
+
+                @if (!string.IsNullOrEmpty(Model.DisposalNumber))
+                {
+                    <span class="badge bg-secondary-transparent text-dark">@Model.DisposalNumber</span>
+                }
+
+            </h4>
+            <h6>Dispose a Fixed Asset from books</h6>
+        </div>
+
+        <div class="page-btn">
+            <a href="/asset-disposals" class="btn btn-outline-secondary">
+                <i class="ti ti-arrow-left"></i> Back
+            </a>
+        </div>
+    </div>
+
+    <EditForm EditContext="_editContext" OnSubmit="Save">
+        <DataAnnotationsValidator />
+        @* <ValidationSummary /> *@
+
+        <!-- BASIC INFO -->
+        <div class="card mt-4">
+            <div class="card-body">
+
+                <h5 class="text-primary mb-4 d-flex align-items-center">
+                    <i class="ti ti-id me-2" style="margin-bottom: 1px;    font-size: 22px;
+
+"></i> Disposal Information
+                </h5>
+
+                <div class="row g-3">
+
+
+                                <div class="col-md-3">
+                                        <label class="form-label">Company <span class="text-danger">*</span></label>
+
+                                    <select class="@($"form-select {GetValidationClass(() => Model.CompanyId)}")"
+                                            @bind="Model.CompanyId"
+                                            @bind:after="OnCompanyChanged">
+
+                                        <option value="">-- Select Company --</option>
+
+                                        @foreach (var c in Companies)
+                                        {
+                                            <option value="@c.Id">@c.LegalName</option>
+                                        }
+
+                                    </select>
+                                    <ValidationMessage For="@(() => Model.CompanyId)" />
+                                </div>
+
+
+
+                                <div class="col-md-3">
+                                    <label class="form-label">Branch</label>
+
+                        <select class="@($"form-select {GetValidationClass(() => Model.BranchId)}")"
+                                            @bind="Model.BranchId">
+
+                                        <option value="">-- Select Branch --</option>
+
+                                        @foreach (var b in Branches)
+                                        {
+                                            <option value="@b.Id">@b.BranchName</option>
+                                        }
+
+                                    </select>
+                                    <ValidationMessage For="@(() => Model.BranchId)" />
+                                </div>
+
+                    <div class="col-md-3">
+                        <label class="form-label">
+                            Disposal Type <span class="text-danger">*</span>
+                        </label>
+
+                        <InputSelect class="@($"form-select {GetValidationClass(() => Model.DisposalType)}")"
+                                     @bind-Value="Model.DisposalType">
+
+                            <option value="">-- Select Type --</option>
+                             @foreach (var t in Enum.GetValues<AssetDisposalType>())
+                                {
+                                    <option value="@t">@t</option>
+                                }
+
+                        </InputSelect>
+                         <ValidationMessage For="@(() => Model.DisposalType)" />
+                    </div>
+
+                    <div class="col-md-3">
+                        <label class="form-label">
+                            Disposal Date <span class="text-danger">*</span>
+                        </label>
+
+                        <InputDate class="@($"form-control {GetValidationClass(() => Model.DisposalDate)}")"
+                                   @bind-Value="Model.DisposalDate" />
+                        <ValidationMessage For="@(() => Model.DisposalDate)" />
+                    </div>
+
+
+                </div>
+
+            </div>
+        </div>
+
+
+
+        <!-- ASSET SELECTION & SNAPSHOT -->
+        <div class="card mt-4">
+
+            <div class="card-body">
+
+                <h5 class="text-primary mb-4 d-flex align-items-center">
+                    <i class="ti ti-camera me-2" style="    margin-bottom: 3px;    font-size: 22px;
+"></i> Asset Selection & Snapshot
+                </h5>
+
+                <div class="row g-3">
+
+                    <!-- Asset Selection -->
+                    <div class="col-md-4">
+
+                        <label class="form-label">
+                            Asset <span class="text-danger">*</span>
+                        </label>
+
+                        <InputSelect class="@($"form-select {GetValidationClass(() => Model.FixedAssetId)}")"
+                                     @bind-Value="Model.FixedAssetId"
+                                     @bind-Value:after="LoadAssetSnapshot">
+
+                            <option value="">-- Select Asset --</option>
+
+                            @foreach (var asset in Assets)
+                            {
+                                <option value="@asset.FixedAssetId">
+                                    @asset.AssetCode - @asset.AssetName
+                                </option>
+                            }
+
+                        </InputSelect>
+
+                        <ValidationMessage For="@(() => Model.FixedAssetId)" />
+
+                    </div>
+
+
+                    @if (Model.FixedAssetId != null)
+                    {
+                        <div class="asset-snapshot mt-4">
+
+                            <h6 class="snapshot-title">
+                                <i class="ti ti-camera"></i> Asset Snapshot
+                            </h6>
+
+                            <div class="snapshot-grid">
+
+                                <div class="snapshot-item">
+                                    <span class="label">Asset Number</span>
+                                    <span class="value">@Model.AssetNumberSnapshot</span>
+                                </div>
+
+                                <div class="snapshot-item">
+                                    <span class="label">Asset Name</span>
+                                    <span class="value">@Model.AssetNameSnapshot</span>
+                                </div>
+
+                                <div class="snapshot-item">
+                                    <span class="label">Category</span>
+                                    <span class="value">@Model.AssetCategoryNameSnapshot</span>
+                                </div>
+
+                                <div class="snapshot-item">
+                                    <span class="label">Status</span>
+                                    <span class="value">@Model.AssetStatusSnapshot</span>
+                                </div>
+
+                                <div class="snapshot-item">
+                                    <span class="label">In Service Date</span>
+                                    <span class="value">
+                                        @Model.InServiceDateSnapshot?.ToString("dd MMM yyyy")
+                                    </span>
+                                </div>
+
+                                <div class="snapshot-item">
+                                    <span class="label">Cost</span>
+                                    <span class="value">₹@Model.TotalCapitalizedCostSnapshot</span>
+                                </div>
+
+                                <div class="snapshot-item">
+                                    <span class="label">Accum Dep</span>
+                                    <span class="value">₹@Model.AccumulatedDepreciationAsOfDisposalSnapshot</span>
+                                </div>
+                                <div class="snapshot-item nbv-card">
+                                    <div class="nbv-label">
+                                        <i class="ti ti-coin"></i> NBV
+                                    </div>
+
+                                    <div class="nbv-value">
+                                        ₹@Model.NetBookValueAsOfDisposalSnapshot.ToString("N2")
+                                    </div>
+                                </div>
+
+                            </div>
+                        </div>
+                    }
+
+                </div>
+
+            </div>
+
+        </div>
+
+        <!-- PROCEEDS -->
+        <div class="card mt-4">
+            <div class="card-body">
+
+                <h5 class="text-primary mb-4 d-flex align-items-center">
+                    <i class="ti ti-cash me-2" style="    margin-bottom: 3px;    font-size: 22px;
+"></i> Proceeds & Expenses
+                </h5>
+
+                <div class="row g-3">
+
+                    <div class="col-md-3">
+
+                        <label class="form-label">Sale Proceeds</label>
+
+                        <InputNumber class="form-control" min="0"
+                                     @bind-Value="Model.ProceedsAmount"
+                                     @bind-Value:after="RecalculateGainLoss" />
+
+                    </div>
+
+                    <div class="col-md-3">
+
+                        <label class="form-label">Disposal Expense</label>
+
+                        <InputNumber class="form-control" min="0"
+                                     @bind-Value="Model.DisposalExpenseAmount"
+                                     @bind-Value:after="RecalculateGainLoss" />
+
+                    </div>
+
+                    <div class="col-md-3">
+
+                        <label class="form-label">Net Proceeds</label>
+
+                        <div class="calc-field">
+                            <i class="ti ti-calculator"></i>
+                            <span>₹@Model.NetProceedsAmount.ToString("N2")</span>
+                        </div>
+
+                    </div>
+
+                    @if(Model.ProceedsAmount>0){
+
+                     <div class="col-md-3">
+                        <label class="form-label">
+                            Proceeds Mode <span class="text-danger">*</span>
+                        </label>
+
+                        <InputSelect class="form-select"
+                                     @bind-Value="Model.ProceedsMode">
+
+                            <option value="">-- Select Type --</option>
+                             @foreach (var pm in Enum.GetValues<ProceedsMode>())
+                                {
+                                    <option value="@pm">@pm</option>
+                                }
+
+                        </InputSelect>
+                    </div>
+                    }
+
+                    @if(Model.ProceedsMode == ProceedsMode.Cash){
+                                            <div class="col-md-3">
+
+                        <label class="form-label">
+                            Cash Account <span class="text-danger">*</span>
+                        </label>
+
+                        <InputSelect class="form-select"
+                                     @bind-Value="Model.FixedAssetId"
+                                     @onchange="LoadAssetSnapshot">
+
+                            <option value="">-- Select Asset --</option>
+
+                            @foreach (var asset in Assets)
+                            {
+                                <option value="@asset.FixedAssetId">
+                                    @asset.SerialNumber - @asset.AssetName
+                                </option>
+                            }
+
+                        </InputSelect>
+
+                    </div>
+
+                                        <div class="col-md-3">
+
+                        <label class="form-label">
+                            Bank Account  <span class="text-danger">*</span>
+                        </label>
+
+                        <InputSelect class="form-select"
+                                     @bind-Value="Model.FixedAssetId"
+                                     @onchange="LoadAssetSnapshot">
+
+                            <option value="">-- Select Asset --</option>
+
+                            @foreach (var asset in Assets)
+                            {
+                                <option value="@asset.FixedAssetId">
+                                    @asset.SerialNumber - @asset.AssetName
+                                </option>
+                            }
+
+                        </InputSelect>
+
+                    </div>
+                    }
+
+
+                    <div class="col-md-3">
+
+                        <label class="form-label">Buyer Name</label>
+
+                        <InputText class="form-control" placeholder="eg., Rajesh Kumar"
+                                   @bind-Value="Model.BuyerName" />
+
+                    </div>
+
+                    <div class="col-md-3">
+
+                        <label class="form-label">Buyer Contact</label>
+
+                        <InputText class="form-control" placeholder="eg., buyer@Company.com"
+                                   @bind-Value="Model.BuyerContact" />
+
+                    </div>
+
+                    <div class="col-md-3">
+
+                        <label class="form-label">Sale Invoice Number</label>
+
+                        <InputText class="form-control" placeholder="eg., INV-2026-0001"
+                                   @bind-Value="Model.SaleInvoiceNumber" />
+
+                    </div>
+
+                    <div class="col-md-3">
+
+                        <label class="form-label">Sale Invoice Date</label>
+
+                        <InputDate class="form-control"
+                                   @bind-Value="Model.SaleInvoiceDate" />
+
+                    </div>
+
+                    <div class="col-md-3">
+
+                        <label class="form-label">Reference</label>
+
+                        <InputText class="form-control" placeholder="eg., REF-20260001"
+                                   @bind-Value="Model.ReferenceNumber" />
+
+                    </div>
+
+                </div>
+
+            </div>
+        </div>
+
+
+        <!-- GAIN LOSS -->
+        <div class="card mt-4">
+            <div class="card-body">
+
+                <h5 class="text-primary mb-4 d-flex align-items-center">
+                    <i class="ti ti-calculator me-2" style="    margin-bottom: 3px;    font-size: 22px;
+"></i> Gain / Loss Calculation
+                </h5>
+
+                <div class="row g-3 gain-loss-summary">
+
+                    <div class="col-md-4">
+                        <div class="metric-card">
+                            <div class="metric-label">Net Book Value</div>
+                            <div class="metric-value">
+                                ₹@Model.NetBookValueAsOfDisposalSnapshot.ToString("N2")
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="col-md-4">
+                        <div class="metric-card">
+                            <div class="metric-label">Gain / Loss</div>
+                            <div class="metric-value @(Model.GainLossAmount >= 0 ? "text-success" : "text-danger")">
+                                ₹@Model.GainLossAmount.ToString("N2")
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="col-md-4">
+                        <div class="metric-card status-card">
+
+                            <div class="metric-label">Result</div>
+
+                            <div class="metric-status">
+
+                                @if (Model.GainLossType == GainLossType.Gain)
+                                {
+                                    <span class="status gain">
+                                        <i class="ti ti-trending-up"></i> Gain
+                                    </span>
+                                }
+                                else if (Model.GainLossType == GainLossType.Loss)
+                                {
+                                    <span class="status loss">
+                                        <i class="ti ti-trending-down"></i> Loss
+                                    </span>
+                                }
+                                else
+                                {
+                                    <span class="status neutral">
+                                        <i class="ti ti-minus"></i> Neutral
+                                    </span>
+                                }
+
+                            </div>
+
+                        </div>
+                    </div>
+
+                </div>
+
+            </div>
+        </div>
+
+
+        <!-- NARRATION -->
+        <div class="card mt-4">
+            <div class="card-body">
+
+                <h5 class="text-primary mb-4 d-flex align-items-center">
+                    <i class="ti ti-notes me-2" style="    margin-bottom: 3px;    font-size: 22px;
+"></i> Notes
+                </h5>
+                    <RichTextEditor @ref="_narrationEditor"
+                                Value="@Model.Narration"
+                    MaxHeight="200" MinHeight="80"
+                placeholder="Add Narration..." />
+
+            </div>
+        </div>
+
+
+        <!-- BUTTONS -->
+        <div class="d-flex justify-content-end mt-4 mb-5 gap-2">
+
+            <button type="button"
+                    class="btn btn-outline-secondary"
+                    @onclick='() => Nav.NavigateTo("/asset-disposals")'>
+                <i class="ti ti-x"></i>
+                Cancel
+            </button>
+
+            <button type="submit"
+                    class="btn btn-primary">
+                <i class="ti ti-device-floppy"></i>
+                @(IsEdit ? "Update" : "Create")
+
+            </button>
+
+        </div>
+
+    </EditForm>
+
+</div>

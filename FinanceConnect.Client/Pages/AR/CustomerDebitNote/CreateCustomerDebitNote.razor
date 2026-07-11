@@ -1,0 +1,789 @@
+@page "/customer-debit-notes/create"
+@page "/customer-debit-notes/{Id:guid}"
+
+@using FinanceConnect.Client.ViewModels
+
+<style>
+    .form-select option:checked {
+        color: #fff;
+        background: var(--primary);
+    }
+
+    .form-select:focus {
+        border-color: var(--primary);
+        box-shadow: none;
+    }
+
+    .validation-message {
+        color: #dc3545;
+        font-size: 11px;
+        margin-top: 2px;
+    }
+
+    /* ===== RESPONSIVE DEBIT NOTE LINES GRID ===== */
+    .debit-note-line-item {
+        background: #fff;
+        border: 1px solid #e9ecef;
+        border-radius: 10px;
+        margin-bottom: 12px;
+        padding: 16px;
+        transition: all 0.2s ease;
+    }
+
+    .debit-note-line-item:hover {
+            border-color: var(--primary);
+        box-shadow: 0 4px 12px rgba(254, 159, 67, 0.1);
+    }
+
+    /* Line Header with number and total */
+    .line-item-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 16px;
+        padding-bottom: 12px;
+        border-bottom: 1px solid #e9ecef;
+    }
+
+    .line-item-number {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+    }
+
+    .line-number-badge {
+        background: linear-gradient(135deg, var(--primary) 0%, var(--primary) 100%);
+        color: #fff;
+        font-weight: 700;
+        font-size: 12px;
+        padding: 4px 10px;
+        border-radius: 20px;
+        min-width: 36px;
+        text-align: center;
+    }
+
+    .line-item-total {
+        text-align: right;
+    }
+
+    .line-item-total-label {
+        font-size: 10px;
+        text-transform: uppercase;
+        color: #6c757d;
+        font-weight: 600;
+        letter-spacing: 0.5px;
+    }
+
+    .line-item-total-value {
+        font-size: 18px;
+        font-weight: 700;
+        color: #212529;
+    }
+
+    /* Responsive Grid for line fields */
+    .line-fields-grid {
+        display: grid;
+        grid-template-columns: repeat(6, 1fr);
+        gap: 12px;
+        align-items: start;
+    }
+
+    .line-field {
+        display: flex;
+        flex-direction: column;
+    }
+
+    .line-field-label {
+        font-size: 11px;
+        text-transform: uppercase;
+        color: #6c757d;
+        font-weight: 600;
+        margin-bottom: 4px;
+        letter-spacing: 0.3px;
+    }
+
+    .line-field input,
+    .line-field select {
+        width: 100%;
+        padding: 8px 10px;
+        font-size: 13px;
+        border-radius: 6px;
+        border: 1px solid #ced4da;
+        background-color: #fff;
+        transition: all 0.2s ease;
+    }
+
+    .line-field input:focus,
+    .line-field select:focus {
+            border-color: var(--primary);
+        outline: none;
+        box-shadow: 0 0 0 2px rgba(254, 159, 67, 0.15);
+    }
+
+    .line-field select {
+        appearance: none;
+        background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3e%3cpath fill='none' stroke='%23343a40' stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M2 5l6 6 6-6'/%3e%3c/svg%3e");
+        background-repeat: no-repeat;
+        background-position: right 8px center;
+        background-size: 12px;
+        padding-right: 30px;
+    }
+
+    .line-field input.text-end {
+        text-align: right;
+    }
+
+    /* Grid column spans for different screen sizes */
+    .col-type { grid-column: span 2; }
+    .col-desc { grid-column: span 4; }
+    .col-qty { grid-column: span 1; }
+    .col-price { grid-column: span 1; }
+    .col-disc { grid-column: span 1; }
+    .col-tax { grid-column: span 1; }
+    .col-account { grid-column: span 2; }
+
+    /* Line Actions */
+    .line-item-actions {
+        display: flex;
+        justify-content: flex-end;
+        gap: 8px;
+        margin-top: 12px;
+        padding-top: 12px;
+        border-top: 1px dashed #e9ecef;
+    }
+
+    .line-action-btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        padding: 6px 12px;
+        font-size: 12px;
+        font-weight: 500;
+        border-radius: 6px;
+        border: 1px solid;
+        transition: all 0.15s ease;
+        cursor: pointer;
+        background: transparent;
+    }
+
+    .btn-duplicate {
+        color: #0d6efd;
+        border-color: #0d6efd;
+    }
+
+    .btn-duplicate:hover {
+        background: #0d6efd;
+        color: #fff;
+    }
+
+    .btn-delete-line {
+        color: #dc3545;
+        border-color: #dc3545;
+    }
+
+    .btn-delete-line:hover {
+        background: #dc3545;
+        color: #fff;
+    }
+
+    /* Totals section */
+    .totals-card {
+        background: linear-gradient(135deg, #f8f9fa 0%, #ffffff 100%);
+        border: 1px solid #e9ecef;
+        border-radius: 10px;
+        padding: 12px 16px;
+        text-align: center;
+    }
+
+    .totals-card-label {
+        font-size: 11px;
+        text-transform: uppercase;
+        color: #6c757d;
+        font-weight: 600;
+        letter-spacing: 0.5px;
+        margin-bottom: 4px;
+    }
+
+    .totals-card-value {
+        font-size: 18px;
+        font-weight: 700;
+        color: #212529;
+    }
+
+    .totals-card-value.grand-total {
+            color: var(--primary);
+        font-size: 22px;
+    }
+
+    /* Mobile responsive adjustments */
+    @@media (max-width: 992px) {
+        .line-fields-grid {
+            grid-template-columns: repeat(6, 1fr);
+        }
+
+        .col-type { grid-column: span 3; }
+        .col-desc { grid-column: span 3; }
+        .col-qty { grid-column: span 2; }
+        .col-price { grid-column: span 2; }
+        .col-disc { grid-column: span 2; }
+        .col-tax { grid-column: span 2; }
+        .col-account { grid-column: span 4; }
+    }
+
+    @@media (max-width: 576px) {
+        .line-fields-grid {
+            grid-template-columns: 1fr;
+        }
+
+        .col-type,
+        .col-desc,
+        .col-qty,
+        .col-price,
+        .col-disc,
+        .col-tax,
+        .col-account {
+            grid-column: span 1;
+        }
+    }
+
+    /* Empty state */
+    .empty-lines-state {
+        background: #f8f9fa;
+        border: 2px dashed #dee2e6;
+        border-radius: 10px;
+        padding: 40px 20px;
+        text-align: center;
+        color: #6c757d;
+    }
+
+    .empty-lines-state i {
+        font-size: 48px;
+        margin-bottom: 12px;
+        opacity: 0.5;
+    }
+
+    /* Reason badge in header */
+    .reason-badge-lg {
+        display: inline-block;
+        padding: 6px 14px;
+        font-size: 13px;
+        font-weight: 600;
+        border-radius: 20px;
+    }
+</style>
+
+@if (!isInitialized)
+{
+    <div class="page-loading-overlay">
+        <div class="whirly-loader"></div>
+    </div>
+}
+else
+{
+    <div class="content">
+        <!-- Page Header -->
+        <div class="page-header">
+            <div class="add-item d-flex">
+                <div class="page-title">
+                    <h4 class="fw-bold">@(IsEdit ? "Edit" : "Create") Customer Debit Note</h4>
+                    <h6>@(IsEdit ? $"Editing {DebitNote.DebitNoteNumber}" : "Create a new AR debit note")</h6>
+                </div>
+            </div>
+            <div class="page-btn d-flex gap-2">
+                @if (!IsReadOnly && DebitNote.DebitNoteStatus == DebitNoteStatuses.Draft)
+                {
+                    <button type="button" class="btn btn-outline-info" @onclick="SubmitDebitNote" title="Submit for Approval">
+                        <i class="ti ti-send me-1"></i>Submit
+                    </button>
+                }
+                @if (DebitNote.CanPost)
+                {
+                    <button type="button" class="btn btn-success" @onclick="PostDebitNote" title="Post Debit Note">
+                        <i class="ti ti-check me-1"></i>Post
+                    </button>
+                }
+            </div>
+        </div>
+
+        <EditForm Model="@DebitNote" OnSubmit="HandleValidSubmit">
+            <DataAnnotationsValidator />
+
+            <!-- Section 1: Header Information -->
+            <div class="card mb-4">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="card-title mb-0">
+                        <i class="ti ti-file-plus me-2 text-primary"></i>Debit Note Header
+                    </h5>
+                    <span class="badge @GetStatusBadgeClass(DebitNote.DebitNoteStatus)">
+                        @DebitNoteStatuses.GetDisplayName(DebitNote.DebitNoteStatus)
+                    </span>
+                </div>
+                <div class="card-body">
+                    <div class="row g-3">
+                        <!-- Branch -->
+                        <div class="col-md-4">
+                            <label class="form-label">Branch <span class="text-danger">*</span></label>
+                            <select class="form-select @(HasHeaderError("BranchId") ? "is-invalid" : "")"
+                                    @bind="DebitNote.BranchId" disabled="@IsReadOnly">
+                                <option value="@Guid.Empty">-- Select Branch --</option>
+                                @foreach (var branch in Branches)
+                                {
+                                    <option value="@branch.Id">@branch.BranchCode - @branch.BranchName</option>
+                                }
+                            </select>
+                            @if (HasHeaderError("BranchId"))
+                            {
+                                <div class="validation-message">@GetHeaderError("BranchId")</div>
+                            }
+                        </div>
+
+                        <!-- Customer -->
+                        <div class="col-md-4">
+                            <label class="form-label">Customer <span class="text-danger">*</span></label>
+                                   <SearchDropdown TItem="CustomerViewModel"
+                                        Items="Customers"
+                                        TextSelector="@(c => c.CustomerCode + " - " + c.CustomerName)"
+                                        ValueSelector="@(c => c.Id)"
+                                        @bind-Value="DebitNote.CustomerId"
+                                        @bind-Value:after="OnCustomerChanged"
+                                        Class="@(HasHeaderError("CustomerId")? "is-invalid" : "")"
+                                        Placeholder="-- Select Customer --"
+                                        Disabled="@IsReadOnly" />
+                            @if (HasHeaderError("CustomerId"))
+                            {
+                                <div class="validation-message">@GetHeaderError("CustomerId")</div>
+                            }
+                        </div>
+
+                        <!-- Debit Note Number -->
+                        <div class="col-md-4">
+                            <label class="form-label">Debit Note No. <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" @bind="DebitNote.DebitNoteNumber" readonly />
+                        </div>
+
+                        <!-- Debit Note Date -->
+                        <div class="col-md-4">
+                            <label class="form-label">Debit Note Date <span class="text-danger">*</span></label>
+                            <input type="date" class="form-control @(HasHeaderError("DebitNoteDate") ? "is-invalid" : "")"
+                                   @bind="DebitNote.DebitNoteDate" @bind:after="OnDebitNoteDateChange" disabled="@IsReadOnly" />
+                            @if (HasHeaderError("DebitNoteDate"))
+                            {
+                                <div class="validation-message">@GetHeaderError("DebitNoteDate")</div>
+                            }
+                        </div>
+
+                        <!-- Posting Date -->
+                        <div class="col-md-4">
+                            <label class="form-label">Posting Date</label>
+                            <input type="date" class="form-control @(HasHeaderError("PostingDate") ? "is-invalid" : "")"
+                                   @bind="DebitNote.PostingDate" min="@(DebitNote.DebitNoteDate.ToString("yyyy-MM-dd"))" disabled="@IsReadOnly"
+                                   title="Posting date (required at posting time)" />
+                            @if (HasHeaderError("PostingDate"))
+                            {
+                                <div class="validation-message">@GetHeaderError("PostingDate")</div>
+                            }
+                            else
+                            {
+                                <small class="text-muted">Required at posting</small>
+                            }
+                        </div>
+
+                        <!-- Currency -->
+                        <div class="col-md-4">
+                            <label class="form-label">Currency <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" value="@DebitNote.CurrencyCode" readonly />
+                        </div>
+
+                        <!-- Exchange Rate -->
+                        <div class="col-md-4">
+                            <label class="form-label">Exchange Rate</label>
+                            <input type="number" step="0.000001" class="form-control text-end"
+                                   @bind="DebitNote.ExchangeRate" disabled="@(IsReadOnly || DebitNote.CurrencyCode == "INR")" />
+                        </div>
+
+                        <!-- Reference -->
+                        <div class="col-md-4">
+                            <label class="form-label">Reference</label>
+                            <input type="text" class="form-control" placeholder="PO number, contract ref, etc."
+                                   @bind="DebitNote.ReferenceText" disabled="@IsReadOnly" maxlength="100" />
+                        </div>
+
+                        <!-- Narration -->
+                        <div class="col-md-6">
+                            <label class="form-label">Narration / Notes</label>
+                            @if (IsReadOnly)
+                            {
+                                <div class="form-control bg-light" style="min-height:60px;">@((MarkupString)(DebitNote.DebitNoteNarration ?? ""))</div>
+                            }
+                            else
+                            {
+                                <RichTextEditor @ref="narrationEditor"
+                                                Value="@DebitNote.DebitNoteNarration"
+                                                Placeholder="Enter notes or description for this debit note"
+                                                MinHeight="60"
+                                                MaxHeight="150" />
+                            }
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Section 2: Invoice Reference -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">
+                        <i class="ti ti-link me-2 text-primary"></i>Invoice Reference
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="row g-3 align-items-center">
+                        <!-- Against Invoice Toggle -->
+                        <div class="col-md-3">
+                            <div class="form-check form-switch">
+                                <input class="form-check-input" type="checkbox" id="isAgainstInvoice"
+                                       @bind="DebitNote.IsAgainstInvoice" @bind:after="OnAgainstInvoiceChanged" disabled="@IsReadOnly" />
+                                <label class="form-check-label fw-medium" for="isAgainstInvoice">
+                                    Against Invoice?
+                                </label>
+                            </div>
+                            <small class="text-muted">Link this debit note to a posted invoice</small>
+                        </div>
+
+                        @if (DebitNote.IsAgainstInvoice)
+                        {
+                            <!-- Invoice Selection -->
+                            <div class="col-md-4">
+                                <label class="form-label">Select Invoice <span class="text-danger">*</span></label>
+                                <select class="form-select @(HasHeaderError("CustomerInvoiceId") ? "is-invalid" : "")"
+                                        @bind="DebitNote.CustomerInvoiceId" @bind:after="OnInvoiceSelected" disabled="@IsReadOnly">
+                                    <option value="">-- Select Invoice --</option>
+                                    @foreach (var inv in PostedInvoices)
+                                    {
+                                        <option value="@inv.Id">@inv.InvoiceNumber - @inv.InvoiceDate.ToString("dd-MMM-yy") (@inv.CurrencyCode @inv.GrandTotalAmount.ToString("N2"))</option>
+                                    }
+                                </select>
+                                @if (HasHeaderError("CustomerInvoiceId"))
+                                {
+                                    <div class="validation-message">@GetHeaderError("CustomerInvoiceId")</div>
+                                }
+                            </div>
+
+                            <!-- Invoice Snapshots -->
+                            @if (!string.IsNullOrEmpty(DebitNote.InvoiceNumberSnapshot))
+                            {
+                                <div class="col-md-2">
+                                    <label class="form-label">Invoice No.</label>
+                                    <input type="text" class="form-control" value="@DebitNote.InvoiceNumberSnapshot" readonly />
+                                </div>
+                                <div class="col-md-2">
+                                    <label class="form-label">Invoice Date</label>
+                                    <input type="text" class="form-control" value="@DebitNote.InvoiceDateSnapshot?.ToString("dd-MMM-yyyy")" readonly />
+                                </div>
+                            }
+                        }
+                        else
+                        {
+                            <div class="col-md-9">
+                                <div class="alert alert-info mb-0 small">
+                                    <i class="ti ti-info-circle me-2"></i>
+                                    This debit note is standalone and not linked to any specific invoice. Use for general additional charges or late fees.
+                                </div>
+                            </div>
+                        }
+                    </div>
+                </div>
+            </div>
+
+            <!-- Section 3: Reason & Classification -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">
+                        <i class="ti ti-category me-2 text-warning"></i>Reason & Classification
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="row g-3">
+                        <!-- Reason Code -->
+                        <div class="col-md-3">
+                            <label class="form-label">Reason Code <span class="text-danger">*</span></label>
+                            <select class="form-select @(HasHeaderError("DebitReasonCode") ? "is-invalid" : "")"
+                                    @bind="DebitNote.DebitReasonCode" @bind:after="OnReasonCodeChanged" disabled="@IsReadOnly">
+                                <option value="">-- Select Reason Code --</option>
+                                @foreach (var reason in DebitReasonCodes.All)
+                                {
+                                    <option value="@reason">@DebitReasonCodes.GetDisplayName(reason)</option>
+                                }
+                            </select>
+                            @if (HasHeaderError("DebitReasonCode"))
+                            {
+                                <div class="validation-message">@GetHeaderError("DebitReasonCode")</div>
+                            }
+                        </div>
+
+                        <!-- Reason Description -->
+                        <div class="col-md-5">
+                            <label class="form-label">Reason Description</label>
+                            <input type="text" class="form-control" @bind="DebitNote.DebitReasonDescription"
+                                   placeholder="Additional description..." disabled="@IsReadOnly" maxlength="250" />
+                            <small class="text-muted">@DebitReasonCodes.GetDescription(DebitNote.DebitReasonCode)</small>
+                        </div>
+
+                        <!-- Tax Impacting -->
+                        <div class="col-md-2">
+                            <label class="form-label d-block">Tax Impacting?</label>
+                            <div class="form-check form-switch mt-2">
+                                <input class="form-check-input" type="checkbox" id="isTaxImpacting"
+                                       @bind="DebitNote.IsTaxImpacting" disabled="@IsReadOnly" />
+                                <label class="form-check-label" for="isTaxImpacting">
+                                    @(DebitNote.IsTaxImpacting ? "Yes" : "No")
+                                </label>
+                            </div>
+                        </div>
+
+                        <!-- Revenue Recognized -->
+                        <div class="col-md-2">
+                            <label class="form-label d-block">Revenue Recognized?</label>
+                            <div class="form-check form-switch mt-2">
+                                <input class="form-check-input" type="checkbox" id="isRevenueRecognized"
+                                       @bind="DebitNote.IsRevenueRecognized" disabled="@IsReadOnly" />
+                                <label class="form-check-label" for="isRevenueRecognized">
+                                    @(DebitNote.IsRevenueRecognized ? "Yes" : "No")
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Section 4: Debit Note Lines -->
+            <div class="card mb-4">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="card-title mb-0">
+                        <i class="ti ti-list-details me-2 text-primary"></i>Debit Note Lines
+                    </h5>
+                    @if (!IsReadOnly)
+                    {
+                        <button type="button" class="btn btn-primary btn-sm" @onclick="AddLine">
+                            <i class="ti ti-plus me-1"></i>Add Line
+                        </button>
+                    }
+                </div>
+                <div class="card-body">
+                    @if (HasHeaderError("Lines"))
+                    {
+                        <div class="text-danger mb-2">@GetHeaderError("Lines")</div>
+                    }
+                    @if (DebitNote.Lines.Any())
+                    {
+                        @foreach (var line in DebitNote.Lines)
+                        {
+                            var lineIndex = DebitNote.Lines.IndexOf(line);
+                            <div class="debit-note-line-item">
+                                <!-- Line Header -->
+                                <div class="line-item-header">
+                                    <div class="line-item-number">
+                                        <span class="line-number-badge">@line.LineNumber</span>
+                                        <span class="badge @GetLineTypeBadgeClass(line.LineType)">@line.LineType</span>
+                                    </div>
+                                    <div class="line-item-total">
+                                        <div class="line-item-total-label">Line Total</div>
+                                        <div class="line-item-total-value">@DebitNote.CurrencyCode @line.LineTotalAmount.ToString("N2")</div>
+                                    </div>
+                                </div>
+
+                                <!-- Line Fields Grid -->
+                                <div class="line-fields-grid">
+                                    <!-- Line Type -->
+                                    <div class="line-field col-type">
+                                        <span class="line-field-label">Type <span class="text-danger">*</span></span>
+                                        <select @bind="line.LineType" disabled="@IsReadOnly"
+                                                class="@GetValidationClass(lineIndex, "LineType")">
+                                            <option value="">-- Select Line Type --</option>
+                                            <option value="Item">Item</option>
+                                            <option value="Service">Service</option>
+                                            <option value="Charge">Charge</option>
+                                            <option value="Fee">Fee</option>
+                                        </select>
+                                        @if (HasValidationError(lineIndex, "LineType"))
+                                        {
+                                            <span class="validation-message">@GetValidationError(lineIndex, "LineType")</span>
+                                        }
+                                    </div>
+
+                                    <!-- Description -->
+                                    <div class="line-field col-desc">
+                                        <span class="line-field-label">Description <span class="text-danger">*</span></span>
+                                        <input type="text" @bind="line.Description" @bind:after="() => ValidateLine(line)"
+                                               placeholder="Enter description" disabled="@IsReadOnly"
+                                               class="@GetValidationClass(lineIndex, "Description")" />
+                                        @if (HasValidationError(lineIndex, "Description"))
+                                        {
+                                            <span class="validation-message">@GetValidationError(lineIndex, "Description")</span>
+                                        }
+                                    </div>
+
+                                    <!-- Quantity -->
+                                    <div class="line-field col-qty">
+                                        <span class="line-field-label">Qty <span class="text-danger">*</span></span>
+                                        <input type="number" step="0.01" min="0" class="text-end @GetValidationClass(lineIndex, "Quantity")"
+                                               @bind="line.Quantity" @bind:after="() => RecalculateLine(line)"
+                                               disabled="@IsReadOnly" />
+                                        @if (HasValidationError(lineIndex, "Quantity"))
+                                        {
+                                            <span class="validation-message">@GetValidationError(lineIndex, "Quantity")</span>
+                                        }
+                                    </div>
+
+                                    <!-- Unit Price -->
+                                    <div class="line-field col-price">
+                                        <span class="line-field-label">Price</span>
+                                        <input type="number" step="0.01" min="0" class="text-end @GetValidationClass(lineIndex, "UnitPrice")"
+                                               @bind="line.UnitPrice" @bind:after="() => RecalculateLine(line)"
+                                               disabled="@IsReadOnly" />
+                                        @if (HasValidationError(lineIndex, "UnitPrice"))
+                                        {
+                                            <span class="validation-message">@GetValidationError(lineIndex, "UnitPrice")</span>
+                                        }
+                                    </div>
+
+                                    <!-- Discount % -->
+                                    <div class="line-field col-disc">
+                                        <span class="line-field-label">Disc %</span>
+                                        <input type="number" step="0.01" class="text-end @GetValidationClass(lineIndex, "DiscountPercent")"
+                                               @bind="line.DiscountPercent" @bind:after="() => RecalculateLine(line)"
+                                               disabled="@IsReadOnly" max="100" min="0" />
+                                        @if (HasValidationError(lineIndex, "DiscountPercent"))
+                                        {
+                                            <span class="validation-message">@GetValidationError(lineIndex, "DiscountPercent")</span>
+                                        }
+                                    </div>
+
+                                    <!-- Tax % -->
+                                    <div class="line-field col-tax">
+                                        <span class="line-field-label">Tax %</span>
+                                        <input type="number" step="0.01" class="text-end @GetValidationClass(lineIndex, "TaxRatePercent")"
+                                               @bind="line.TaxRatePercent" @bind:after="() => RecalculateLine(line)"
+                                               disabled="@IsReadOnly" max="100" min="0" />
+                                        @if (HasValidationError(lineIndex, "TaxRatePercent"))
+                                        {
+                                            <span class="validation-message">@GetValidationError(lineIndex, "TaxRatePercent")</span>
+                                        }
+                                    </div>
+
+                                    <!-- Revenue Account -->
+                                    <div class="line-field col-account">
+                                        <span class="line-field-label">Revenue Account <span class="text-danger">*</span></span>
+                                        <select @bind="line.RevenueAccountId" disabled="@IsReadOnly"
+                                                class="@GetValidationClass(lineIndex, "RevenueAccountId")">
+                                            <option value="">-- Select Revenue Account --</option>
+                                            @foreach (var acc in RevenueAccounts)
+                                            {
+                                                <option value="@acc.Id">@acc.Code - @acc.Name</option>
+                                            }
+                                        </select>
+                                        @if (HasValidationError(lineIndex, "RevenueAccountId"))
+                                        {
+                                            <span class="validation-message">@GetValidationError(lineIndex, "RevenueAccountId")</span>
+                                        }
+                                    </div>
+                                </div>
+
+                                <!-- Line Actions -->
+                                @if (!IsReadOnly)
+                                {
+                                    <div class="line-item-actions">
+                                        <button type="button" class="line-action-btn btn-duplicate" @onclick="() => DuplicateLine(line)">
+                                            <i class="ti ti-copy"></i>Duplicate
+                                        </button>
+                                        @if (DebitNote.Lines.Count > 1)
+                                        {
+                                            <button type="button" class="line-action-btn btn-delete-line" @onclick="() => RemoveLine(line)">
+                                                <i class="ti ti-trash"></i>Delete
+                                            </button>
+                                        }
+                                    </div>
+                                }
+                            </div>
+                        }
+                    }
+                    else
+                    {
+                        <div class="empty-lines-state">
+                            <i class="ti ti-file-plus d-block"></i>
+                            <h6>No lines added yet</h6>
+                            <p class="mb-3">Click "Add Line" to add debit note items</p>
+                            @if (!IsReadOnly)
+                            {
+                                <button type="button" class="btn btn-primary" @onclick="AddLine">
+                                    <i class="ti ti-plus me-1"></i>Add First Line
+                                </button>
+                            }
+                        </div>
+                    }
+                </div>
+            </div>
+
+            <!-- Section 5: Totals Summary -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">
+                        <i class="ti ti-calculator me-2 text-primary"></i>Summary
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="row g-3">
+                        <div class="col-md-2">
+                            <div class="totals-card">
+                                <div class="totals-card-label">Subtotal</div>
+                                <div class="totals-card-value">@DebitNote.SubTotalAmount.ToString("N2")</div>
+                            </div>
+                        </div>
+                        <div class="col-md-2">
+                            <div class="totals-card">
+                                <div class="totals-card-label">Discount</div>
+                                <div class="totals-card-value text-danger">-@DebitNote.DiscountTotalAmount.ToString("N2")</div>
+                            </div>
+                        </div>
+                        <div class="col-md-2">
+                            <div class="totals-card">
+                                <div class="totals-card-label">Tax</div>
+                                <div class="totals-card-value text-info">+@DebitNote.TaxTotalAmount.ToString("N2")</div>
+                            </div>
+                        </div>
+                        <div class="col-md-2">
+                            <div class="totals-card">
+                                <div class="totals-card-label">Round Off</div>
+                                <div class="totals-card-value">@DebitNote.RoundOffAmount.ToString("N2")</div>
+                            </div>
+                        </div>
+                        <div class="col-md-2">
+                            <div class="totals-card" style="background: linear-gradient(135deg, #FE9F43 0%, #f08a2c 100%);">
+                                <div class="totals-card-label text-white">Grand Total</div>
+                                <div class="totals-card-value grand-total text-white">@DebitNote.GrandTotalAmount.ToString("N2")</div>
+                            </div>
+                        </div>
+                        <div class="col-md-2">
+                            <div class="totals-card">
+                                <div class="totals-card-label">Currency</div>
+                                <div class="totals-card-value">@(DebitNote.CurrencyCode ?? "INR")</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Action Buttons -->
+            <div class="d-flex justify-content-end gap-3 mb-4">
+                <a href="/customer-debit-notes" class="btn btn-secondary">
+                    <i class="ti ti-x me-1"></i>Cancel
+                </a>
+                @if (!IsReadOnly)
+                {
+                    <button type="submit" class="btn btn-primary">
+                        <i class="ti ti-device-floppy me-1"></i>@(IsEdit ? "Update" : "Save")
+                    </button>
+                }
+            </div>
+        </EditForm>
+    </div>
+}

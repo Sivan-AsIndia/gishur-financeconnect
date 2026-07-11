@@ -1,0 +1,1270 @@
+﻿@page "/Dashboard";
+@inject IJSRuntime JS
+
+<!-- Charts -->
+<!-- ApexChart JS -->
+<script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
+<script src="assets/js/chart-data.js"></script>
+
+<!-- Chart JS -->
+<script src="assets/js/chart.min.js"></script>
+<script src="assets/js/chart-data_1.js"></script>
+
+
+<div class="content">
+
+	<div class="d-flex align-items-center justify-content-between flex-wrap gap-3 mb-2">
+		<div class="mb-3">
+			<h1 class="mb-1">Welcome, Admin</h1>
+			@* <p class="fw-medium">You have <span class="text-primary fw-bold">200+</span> Orders, Today</p> *@
+		</div>
+	</div>
+	<div class="row kpi-row g-3">
+
+		<!-- Company -->
+		<div class="col-12 col-md-4 col-lg-3 col-xxl-2 d-block">
+			<div class="kpi-mini" style="background: var(--grad-indigo);">
+				<span>Company</span>
+				<strong>@Summary.CompanyCount Active</strong>
+				<p>Registered Companies</p>
+				<i class="fas fa-city icon-bg"></i>
+			</div>
+		</div>
+
+		<!-- Branch -->
+		<div class="col-12 col-md-4 col-lg-3 col-xxl-2 d-block">
+			<div class="kpi-mini kpi-branches">
+				<span>Branches</span>
+				<strong>@Summary.BranchCount</strong>
+				<p>Operational Units</p>
+				<i class="fas fa-store icon-bg"></i>
+			</div>
+		</div>
+
+		<!-- Period Status -->
+		<div class="col-12 col-md-4 col-lg-3 col-xxl-2 d-none d-md-block d-lg-block d-xl-block">
+			<div class="kpi-mini" style="background: var(--grad-slate);">
+				<span>Period Status</span>
+				<strong>@CurrentPeriod</strong>
+				<div class="kpi-title">
+					<p>Fiscal Period</p>
+					@if (PeriodStatus ==true)
+					{
+						<span class="status-badge open">OPEN</span>
+					}
+					else
+					{
+						<span class="status-badge open">CLOSED</span>
+					}
+				</div>
+				<i class="fas fa-calendar-check icon-bg"></i>
+			</div>
+		</div>
+
+		<!-- Ledgers -->
+		<div class="col-12 col-md-4 col-lg-3 col-xxl-2 d-none d-md-block d-lg-block d-xl-block">
+			<div class="kpi-mini" style="background: var(--grad-emerald);">
+				<span>Ledgers</span>
+				<strong>@Summary.LedgerCount</strong>
+				<p>Active Ledgers</p>
+				<i class="fas fa-book icon-bg"></i>
+			</div>
+		</div>
+
+		<!-- Journals -->
+		<div class="col-12 col-md-4 col-lg-3 col-xxl-2 d-none d-md-block d-xl-block d-lg-none d-xl-block d-xxl-block">
+			<div class="kpi-mini" style="background: var(--grad-indigo);">
+				<span>Journals</span>
+				<strong>@Summary.JournalCount</strong>
+				<p>Posted Entries</p>
+				<i class="fas fa-file-invoice icon-bg"></i>
+			</div>
+		</div>
+
+		<!-- Opening Balance -->
+		<!-- ❌ Hidden on Laptop (lg), ✅ Visible on XL & MD -->
+		<div class="col-12 col-md-4 col-lg-3 col-xxl-2 d-none d-md-block d-xl-block d-lg-none d-xl-none d-xxl-block lap">
+			<div class="kpi-mini" style="background: var(--grad-rose);">
+				<span>Opening Balance</span>
+				<strong>Pending</strong>
+				<p>2 Branches Unbalanced</p>
+				<i class="fas fa-scale-unbalanced icon-bg"></i>
+			</div>
+		</div>
+
+	</div>
+
+
+
+
+	<div class="row">
+		<div class="col-xxl-4 col-xl-5">
+			<div class="card flex-fill" style="padding:0px">
+
+				<!-- HEADER -->
+				<div class="card-header">
+					<div class="d-inline-flex align-items-center">
+						<span class="title-icon bg-soft-info fs-16 me-2">
+							<i class="ti ti-settings"></i>
+						</span>
+						<h5 class="card-title mb-0">Finance Setup Overview</h5>
+					</div>
+				</div>
+
+				<!-- BODY : TOP INFO -->
+				<div class="card-body">
+					<div class="row g-3">
+
+						<!-- Companies -->
+						<div class="col-md-4">
+							<div class="info-item border bg-light p-3 text-center">
+								<div class="mb-2 text-info fs-24">
+									<i class="ti ti-building"></i>
+								</div>
+								<p class="mb-1">Companies</p>
+								<h5>@Summary.CompanyCount</h5>
+							</div>
+						</div>
+
+						<!-- Branches -->
+						<div class="col-md-4">
+							<div class="info-item border bg-light p-3 text-center">
+								<div class="mb-2 text-orange fs-24">
+									<i class="ti ti-git-branch"></i>
+								</div>
+								<p class="mb-1">Branches</p>
+								<h5>@Summary.BranchCount</h5>
+							</div>
+						</div>
+
+						<!-- Ledgers -->
+						<div class="col-md-4">
+							<div class="info-item border bg-light p-3 text-center">
+								<div class="mb-2 text-teal fs-24">
+									<i class="ti ti-book"></i>
+								</div>
+								<p class="mb-1">Ledgers</p>
+								<h5>@Summary.LedgerCount</h5>
+							</div>
+						</div>
+
+					</div>
+				</div>
+
+				<!-- FOOTER : CHART -->
+				<div class="card-footer pb-sm-0">
+
+					<div class="d-flex align-items-center justify-content-between flex-wrap gap-3" style="padding-top: 10px;">
+						<h5>Configuration Status</h5>
+						<div class="dropdown dropdown-wraper">
+							<a href="javascript:void(0);" class="dropdown-toggle btn btn-sm btn-white" data-bs-toggle="dropdown">
+								<i class="ti ti-calendar me-1"></i>Current
+							</a>
+							<ul class="dropdown-menu p-3">
+								<li><a class="dropdown-item" href="#">Current</a></li>
+								<li><a class="dropdown-item" href="#">This Month</a></li>
+								<li><a class="dropdown-item" href="#">Fiscal Year</a></li>
+							</ul>
+						</div>
+					</div>
+
+					<div class="row align-items-center">
+
+						<!-- DONUT CHART -->
+						<div class="col-sm-5">
+							<!-- SAME chart container -->
+							<div id="customer-chart"></div>
+						</div>
+
+						<!-- STATS -->
+						<div class="col-sm-7">
+							<div class="row gx-0">
+
+								<!-- Completed -->
+								<div class="col-sm-6">
+									<div class="text-center border-end">
+										<h2 class="mb-1">100%</h2>
+										<p class="text-teal mb-2">Completed</p>
+										<span class="badge badge-success badge-xs d-inline-flex align-items-center">
+											<i class="ti ti-arrow-up-left me-1"></i>Stable
+										</span>
+									</div>
+								</div>
+
+								<!-- Pending -->
+								<div class="col-sm-6">
+									<div class="text-center">
+										<h2 class="mb-1">0%</h2>
+										<p class="text-orange mb-2">Pending</p>
+										<span class="badge badge-warning badge-xs d-inline-flex align-items-center">
+											<i class="ti ti-alert-triangle me-1"></i>Action
+										</span>
+									</div>
+								</div>
+
+							</div>
+						</div>
+
+					</div>
+				</div>
+
+			</div>
+		</div>
+		<div class="col-xxl-8 col-xl-7 d-flex">
+			<div class="card flex-fill" style="padding:0px">
+
+				<!-- HEADER -->
+				<div class="card-header d-flex align-items-center justify-content-between flex-wrap gap-3">
+					<div class="d-inline-flex align-items-center">
+						<span class="title-icon bg-soft-orange fs-16 me-2">
+							<i class="ti ti-database"></i>
+						</span>
+						<h5 class="card-title mb-0">Master Data Readiness</h5>
+					</div>
+					@* <a class="fs-13 fw-medium text-decoration-underline">View All</a> *@
+				</div>
+
+				<!-- BODY -->
+				<div class="card-body">
+					<div class="table-responsive">
+						<table class="table table-borderless custom-table">
+							<thead class="thead-light">
+								<tr>
+									<th>Module</th>
+									<th>Active</th>
+									<th>Inactive</th>
+									<th>Draft</th>
+									<th>Status</th>
+									<th>Action</th>
+								</tr>
+							</thead>
+							<tbody>
+								@foreach (var row in ModuleSummaries)
+								{
+									<tr>
+										<td>
+											<h6 class="fw-bold mb-0">@row.Module</h6>
+										</td>
+
+										<td>@row.Active</td>
+										<td>@row.Inactive</td>
+										<td>@row.Draft</td>
+
+										<td>
+											<div class="d-flex align-items-center gap-2">
+												<div class="mini-stack">
+
+													@if (row.Active > 0)
+													{
+														<span class="stack active" style="width:@row.ActivePercent%"></span>
+													}
+
+													@if (row.Draft > 0)
+													{
+														<span class="stack draft" style="width:@row.DraftPercent%"></span>
+													}
+
+													@if (row.Inactive > 0)
+													{
+														<span class="stack inactive" style="width:@row.InactivePercent%"></span>
+													}
+
+												</div>
+
+												<span class="fw-semibold text-muted">@row.Total</span>
+											</div>
+										</td>
+
+										<td class="action-table-data">
+											<div class="edit-delete-action" style="display:inline-flex;">
+												<a class="me-2 p-1 action-icon Issue"
+												   @onclick="() => Nav.NavigateTo(row.Route)">
+													<i class="ti ti-external-link"></i>
+												</a>
+											</div>
+										</td>
+									</tr>
+								}
+							</tbody>
+
+						</table>
+					</div>
+				</div>
+
+
+			</div>
+		</div>
+
+	</div>
+
+	<div class="row">
+		<!-- LEFT CARD : Finance Setup Activity -->
+		<div class="col-xl-4">
+			<div class="card flex-fill" style="padding:0px">
+				<!-- HEADER -->
+				<div class="card-header d-flex align-items-center justify-content-between flex-wrap gap-3">
+					<div class="d-inline-flex align-items-center">
+						<span class="title-icon bg-soft-orange fs-16 me-2">
+							<i class="ti ti-dots-vertical"></i>
+						</span>
+						<h5 class="card-title mb-0">Activity Timeline</h5>
+					</div>
+				</div>
+
+				<!-- BODY -->
+				<div class="card-body finance-timeline">
+
+					<!-- Exchange Rate Updated -->
+					<div class="timeline-item">
+						<span class="timeline-dot dot-warning"></span>
+
+						<div class="timeline-content">
+							<div class="timeline-header">
+								<h6>Exchange Rates Updated</h6>
+								<span class="time">12 min ago</span>
+							</div>
+
+							<p class="desc">USD → INR exchange rate configured</p>
+
+							<div class="file-pill">
+								<i class="ti ti-file-text"></i>
+								<span>exchange-rate-log.pdf</span>
+							</div>
+						</div>
+					</div>
+
+					<!-- Fiscal Period Opened -->
+					<div class="timeline-item">
+						<span class="timeline-dot dot-success"></span>
+
+						<div class="timeline-content">
+							<div class="timeline-header">
+								<h6>Fiscal Period Opened</h6>
+								<span class="time">45 min ago</span>
+							</div>
+
+							<p class="desc">
+								Fiscal Period <strong>@CurrentPeriod</strong> is now active
+							</p>
+							<div class="file-pill">
+								<div class="avatar-initial bg-primary">JD</div>
+								<div>
+									<strong>John Doe</strong><br>
+									<small>Finance Admin</small>
+								</div>
+							</div>
+						</div>
+					</div>
+
+					<!-- Opening Balance Saved -->
+					<div class="timeline-item">
+						<span class="timeline-dot dot-info"></span>
+
+						<div class="timeline-content">
+							<div class="timeline-header">
+								<h6>Opening Balance Saved</h6>
+								<span class="time">2 days ago</span>
+							</div>
+
+							<p class="desc">
+								Opening balances saved for <strong>3 branches</strong>
+							</p>
+
+							<div class="avatar-group">
+								<div class="avatar-initial bg-info">B1</div>
+								<div class="avatar-initial bg-success">B2</div>
+								<div class="avatar-initial bg-warning">B3</div>
+								<span class="more">+2</span>
+							</div>
+						</div>
+					</div>
+
+				</div>
+			</div>
+
+
+		</div>
+
+		<!-- MIDDLE CARD : Finance Setup Distribution -->
+		<div class="col-xxl-4 col-xl-4 col-md-6 d-none d-md-none d-xl-block d-lg-none d-xl-none d-xxl-block">
+			<div class="card flex-fill" style="padding:0px">
+				<div class="card-header d-flex justify-content-between align-items-center flex-wrap gap-3">
+					<div class="d-inline-flex align-items-center">
+						<span class="title-icon bg-soft-orange fs-16 me-2">
+							<i class="ti ti-settings"></i>
+						</span>
+						<h5 class="card-title mb-0">Top Expenses</h5>
+					</div>
+					<div class="dropdown">
+						@* <a href="javascript:void(0);" class="dropdown-toggle btn btn-sm btn-white d-flex align-items-center" data-bs-toggle="dropdown">
+							<i class="ti ti-calendar me-1"></i>Current
+						</a>
+						<ul class="dropdown-menu p-3">
+							<li><a href="javascript:void(0);" class="dropdown-item">Current</a></li>
+							<li><a href="javascript:void(0);" class="dropdown-item">This Month</a></li>
+							<li><a href="javascript:void(0);" class="dropdown-item">Fiscal Year</a></li>
+						</ul> *@
+					</div>
+				</div>
+
+				<div class="card-body">
+
+					<div class="d-flex align-items-start justify-content-between flex-wrap gap-4">
+
+						<!-- CHART -->
+						<div>
+							<canvas id="top-category" height="220" width="200"></canvas>
+						</div>
+
+						<!-- TOP 3 EXPENSE TYPES -->
+						<div class="flex-grow-1">
+
+							@if (ChartExpenseTypes.Any())
+							{
+								@foreach (var item in ChartExpenseTypes.Select((value, index) => new { value, index }))
+								{
+									var css = item.index switch
+									{
+										0 => "category-primary",
+										1 => "category-orange",
+										2 => "category-secondary",
+										_ => "category-primary"
+									};
+
+									<div class="category-item @css mb-3">
+										<p class="fs-13 mb-1 text-muted">
+											@item.value.Type
+										</p>
+
+										<h5 class="fw-semibold mb-0">
+											@CurrencySymbol @FormatAmountInternational(item.value.Amount)
+										</h5>
+									</div>
+								}
+							}
+							else
+							{
+								<p class="text-muted mb-0">No expenses found</p>
+							}
+
+						</div>
+
+					</div>
+
+					<!-- REMAINING 2 EXPENSE TYPES -->
+					@if (AdditionalExpenseTypes.Any())
+					{
+						<h6 class="mb-2 mt-3 fw-semibold">Other Expense Types</h6>
+
+						<div class="border rounded-3">
+
+							@foreach (var item in AdditionalExpenseTypes.Select((value, index) => new { value, index }))
+							{
+								var iconColor = item.index switch
+								{
+									0 => "text-indigo",
+									1 => "text-orange",
+									_ => "text-primary"
+								};
+
+								<div class="d-flex align-items-center justify-content-between px-3 py-2 border-bottom">
+
+									<div class="d-flex align-items-center">
+										<i class="ti ti-square-rounded-filled @iconColor fs-8 me-2"></i>
+										<span class="fs-13">@item.value.Type</span>
+									</div>
+
+									<span class="fw-semibold">
+										@CurrencySymbol @FormatAmountInternational(item.value.Amount)
+									</span>
+
+								</div>
+							}
+
+						</div>
+					}
+
+				</div>
+
+			</div>
+		</div>
+
+		<!-- RIGHT CARD : Quick Actions -->
+		<div class="col-xl-4 d-none d-md-none d-xl-block d-lg-none d-xl-none d-xxl-block">
+			<div class="card quick-actions" style="padding:0px">
+				<div class="card-header d-flex align-items-center justify-content-between flex-wrap gap-3">
+					<div class="d-inline-flex align-items-center">
+						<span class="title-icon bg-soft-orange fs-16 me-2">
+							<i class="ti ti-bolt"></i>
+						</span>
+						<h5 class="card-title mb-0">Quick Actions</h5>
+					</div>
+				</div>
+
+				<div class="action-grid">
+
+					<div class="action-card">
+						<div class="icon-wrap orange">
+							<i class="fas fa-building"></i>
+						</div>
+						<div class="action-text">
+							<strong>Company</strong>
+						</div>
+					</div>
+
+					<div class="action-card">
+						<div class="icon-wrap blue">
+							<i class="fas fa-code-branch"></i>
+						</div>
+						<div class="action-text">
+							<strong>Branch</strong>
+						</div>
+					</div>
+
+					<div class="action-card">
+						<div class="icon-wrap green">
+							<i class="fas fa-sitemap"></i>
+						</div>
+						<div class="action-text">
+							<strong>COA</strong>
+						</div>
+					</div>
+
+					<div class="action-card">
+						<div class="icon-wrap purple">
+							<i class="fas fa-list"></i>
+						</div>
+						<div class="action-text">
+							<strong>Account List</strong>
+						</div>
+					</div>
+
+				</div>
+			</div>
+
+			<div class="card flex-fill" style="padding:0px">
+				<div class="card-header d-flex align-items-center justify-content-between">
+					<div class="d-inline-flex align-items-center">
+						<span class="title-icon bg-soft-warning fs-16 me-2">
+							<i class="ti ti-alert-circle"></i>
+						</span>
+						<h5 class="card-title mb-0">Setup Alerts</h5>
+					</div>
+				</div>
+
+				<div style="font-size:13px; padding:20px;">
+
+					<!-- Companies without Active Branch -->
+					<div style="display:flex; justify-content:space-between; margin-bottom:8px;">
+						<span>Companies Without Active Branch</span>
+						<strong style="color:@(CompaniesWithoutActiveBranch > 0 ? "var(--danger)" : "var(--success)")">
+							@CompaniesWithoutActiveBranch
+						</strong>
+					</div>
+
+					<!-- Companies without Open FY -->
+					<div style="display:flex; justify-content:space-between;">
+						<span>Companies Without Open FY</span>
+						<strong style="color:@(CompaniesWithoutOpenFY > 0 ? "var(--danger)" : "var(--success)")">
+							@CompaniesWithoutOpenFY
+						</strong>
+					</div>
+
+				</div>
+			</div>
+
+
+
+		</div>
+
+	</div>
+
+
+</div>
+
+
+
+<style>
+	:root {
+		--bg: #f8fafc;
+		--card: #ffffff;
+		--border: #e2e8f0;
+		--text-main: #1e293b;
+		--text-muted: #64748b;
+		--accent: #3b82f6;
+		--danger: #ef4444;
+		--success: #10b981;
+		--warning: #f59e0b;
+		/* POS Theme Gradients */
+		--grad-indigo: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+		--grad-cyan: linear-gradient(135deg, #2af598 0%, #009efd 100%);
+		--grad-rose: linear-gradient(135deg, #f43f5e 0%, #fb7185 100%);
+		--grad-amber: linear-gradient(135deg, #f59e0b 0%, #fbbf24 100%);
+		--grad-emerald: linear-gradient(135deg, #10b981 0%, #34d399 100%);
+		--grad-slate: linear-gradient(135deg, #334155 0%, #475569 100%);
+	}
+
+	body {
+		margin: 0;
+		background: var(--bg);
+		color: var(--text-main);
+	font-family: var(--font-family);
+	}
+
+	.table td {
+		padding: 0px;
+	}
+
+	.container {
+		max-width: 1400px;
+		margin: 0 auto;
+		padding: 32px;
+	}
+
+
+	.header h1 {
+		font-size: 24px;
+		margin: 0;
+		font-weight: 700;
+	}
+
+	.last-sync {
+		font-size: 13px;
+		color: var(--text-muted);
+	}
+
+	/* KPI ROW - Updated to 6 Widgets */
+	.kpi-row {
+		/* display: grid; */
+		grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+		/* gap: 16px; */
+		margin-bottom: 32px;
+	}
+
+	.kpi-mini {
+		padding: 20px;
+		border-radius: 12px;
+		color: white;
+		position: relative;
+		overflow: hidden;
+		box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+		transition: transform 0.2s;
+	}
+
+		.kpi-mini:hover {
+			transform: translateY(-3px);
+		}
+
+		.kpi-mini span {
+			display: block;
+			font-size: 11px;
+			opacity: 0.9;
+			text-transform: uppercase;
+			font-weight: 600;
+			letter-spacing: 0.5px;
+		}
+
+		.kpi-mini strong {
+			display: block;
+			font-size: 22px;
+			margin-top: 5px;
+		}
+
+		.kpi-mini p {
+			margin: 5px 0 0 0;
+			font-size: 11px;
+			opacity: 0.8;
+		}
+
+		.kpi-mini i.icon-bg {
+			position: absolute;
+			right: -10px;
+			bottom: -10px;
+			font-size: 60px;
+			opacity: 0.2;
+		}
+
+	.kpi-branches {
+		background: linear-gradient(135deg, #0f766e, #14b8a6);
+		color: #ffffff;
+	}
+
+	.kpi-title {
+		display: flex;
+		align-items: center;
+		gap: 10px;
+	}
+
+	.status-badge {
+		font-size: 11px;
+		font-weight: 600;
+		padding: 4px 8px;
+		border-radius: 6px;
+		letter-spacing: 0.5px;
+	}
+
+		/* Status Variants */
+		.status-badge.open {
+			background: rgba(34, 197, 94, 0.2);
+			color: #16a34a;
+		}
+
+		.status-badge.closed {
+			background: rgba(239, 68, 68, 0.2);
+			color: #dc2626;
+		}
+
+		.status-badge.soft-closed {
+			background: rgba(245, 158, 11, 0.2);
+			color: #b45309;
+		}
+
+
+	/* GRID LAYOUT */
+	.dashboard-grid {
+		display: grid;
+		grid-template-columns: 2fr 1fr;
+		gap: 24px;
+	}
+
+	/* CARDS */
+	.card {
+		background: var(--card);
+		border: 1px solid var(--border);
+		border-radius: 12px;
+		padding: 16px;
+		box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+		margin-bottom: 24px;
+	}
+
+	.card-title {
+		font-size: 15px;
+		font-weight: 600;
+		margin-bottom: 16px;
+		display: flex;
+		align-items: center;
+		gap: 8px;
+		color: #334155;
+	}
+
+	/* DATA TABLE */
+	table {
+		width: 100%;
+		border-collapse: collapse;
+		margin-top: 8px;
+	}
+
+	th {
+		text-align: left;
+		font-size: 12px;
+		color: var(--text-muted);
+		padding: 12px;
+		border-bottom: 2px solid var(--bg);
+	}
+
+	td {
+		padding: 12px;
+		font-size: 14px;
+		border-bottom: 1px solid var(--bg);
+	}
+
+	/* BADGES */
+	.badge {
+		padding: 4px 8px;
+		border-radius: 6px;
+		font-size: 11px;
+		font-weight: 600;
+		text-transform: uppercase;
+	}
+
+	.badge-success {
+		background: #dcfce7;
+		color: var(--success);
+	}
+
+	.badge-warning {
+		background: #fef3c7;
+		color: var(--warning);
+	}
+
+	.badge-danger {
+		background: #fee2e2;
+		color: var(--danger);
+	}
+
+	/* ACTION BUTTONS */
+	.btn-grid {
+		display: grid;
+		grid-template-columns: 1fr 1fr;
+		gap: 10px;
+	}
+
+	.btn {
+		background: #f1f5f9;
+		border: none;
+		padding: 12px;
+		border-radius: 8px;
+		cursor: pointer;
+		font-size: 13px;
+		font-weight: 500;
+		text-align: left;
+		transition: all 0.2s;
+	}
+
+		.btn:hover {
+			background: #e2e8f0;
+		}
+
+		.btn i {
+			/* color: var(--accent); */
+			margin-right: 8px;
+		}
+
+	/* PROGRESS BAR */
+	.progress-bar {
+		height: 8px;
+		background: #e5e7eb;
+		border-radius: 6px;
+		overflow: hidden;
+	}
+
+	.progress-active {
+		height: 100%;
+		background: #16a34a; /* green */
+		border-radius: 6px;
+	}
+
+		.progress-active.warning {
+			background: #f59e0b; /* amber */
+		}
+
+
+	/*---------------*/
+	/* Card */
+	.card {
+		background: #ffffff;
+		border-radius: 16px;
+		padding: 16px;
+		box-shadow: 0 8px 24px rgba(0,0,0,0.05);
+	}
+
+	.card-title {
+		display: flex;
+		align-items: center;
+		gap: 10px;
+		font-size: 16px;
+		font-weight: 600;
+		margin-bottom: 18px;
+		color: #111827;
+	}
+
+	/* Grid */
+	.action-grid {
+		display: grid;
+		grid-template-columns: repeat(2, 1fr);
+		gap: 16px;
+		padding: 7px;
+	}
+
+	/* Action Card */
+	.action-card {
+		display: flex;
+		align-items: center;
+		gap: 14px;
+		padding: 14px;
+		border-radius: 14px;
+		background: #f9fafb;
+		cursor: pointer;
+		transition: all 0.25s ease;
+	}
+
+		.action-card:hover {
+			background: #ffffff;
+			transform: translateY(-2px);
+			box-shadow: 0 10px 28px rgba(0,0,0,0.08);
+		}
+
+	/* Icon */
+	.icon-wrap {
+		width: 44px;
+		height: 44px;
+		border-radius: 12px;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		font-size: 18px;
+		color: #ffffff;
+	}
+
+		.icon-wrap.orange {
+			background: #ff9f43;
+		}
+
+		.icon-wrap.blue {
+			background: #1e90ff;
+		}
+
+		.icon-wrap.green {
+			background: #10ac84;
+		}
+
+		.icon-wrap.purple {
+			background: #6c5ce7;
+		}
+
+	/* Text */
+	.action-text strong {
+		display: block;
+		font-size: 15px;
+		font-weight: 600;
+	}
+
+	.action-text span {
+		font-size: 13px;
+		color: #6b7280;
+	}
+
+
+
+
+
+	.third-row {
+		display: grid;
+		grid-template-columns: repeat(3, 1fr);
+		gap: 20px;
+	}
+
+	.card {
+		background: #fff;
+		border-radius: 16px;
+		padding: 16px;
+		box-shadow: 0 10px 30px rgba(0,0,0,0.05);
+	}
+
+	.card-title {
+		font-size: 16px;
+		font-weight: 600;
+		margin-bottom: 16px;
+	}
+
+	/* LEFT CARD */
+	.center-icon {
+		width: 60px;
+		height: 60px;
+		margin: 0 auto 12px;
+		border-radius: 50%;
+		background: #eef2ff;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		font-size: 22px;
+		color: #4f46e5;
+	}
+
+	.center-title {
+		text-align: center;
+		font-size: 18px;
+		font-weight: 600;
+	}
+
+	.card-desc {
+		text-align: center;
+		font-size: 13px;
+		color: #6b7280;
+		margin: 10px 0;
+	}
+
+	.link {
+		display: block;
+		text-align: center;
+		color: #4f46e5;
+		font-size: 13px;
+		margin-bottom: 20px;
+	}
+
+	.icon-stats {
+		display: flex;
+		justify-content: space-between;
+		text-align: center;
+	}
+
+		.icon-stats div {
+			font-size: 13px;
+		}
+
+		.icon-stats i {
+			font-size: 18px;
+			color: #4f46e5;
+			margin-bottom: 6px;
+		}
+
+	/* MIDDLE CARD */
+	.activity-item {
+		display: flex;
+		gap: 12px;
+		margin-bottom: 14px;
+		font-size: 14px;
+	}
+
+		.activity-item .date {
+			font-weight: 600;
+			color: #4f46e5;
+			min-width: 60px;
+		}
+
+	.center-btn {
+		text-align: center;
+		margin-top: 20px;
+	}
+
+	.btn-primary {
+		background: #4f46e5;
+		color: #fff;
+		border: none;
+		padding: 8px 16px;
+		border-radius: 8px;
+		cursor: pointer;
+	}
+
+	/* RIGHT CARD */
+	.map-icon {
+		text-align: center;
+		font-size: 30px;
+		color: #4f46e5;
+		margin-bottom: 10px;
+	}
+
+	.big-number {
+		text-align: center;
+		font-size: 32px;
+		font-weight: 700;
+	}
+
+	.sub-text {
+		text-align: center;
+		font-size: 13px;
+		color: #6b7280;
+		margin-bottom: 20px;
+	}
+
+	.risk-item {
+		margin-bottom: 14px;
+		font-size: 14px;
+	}
+
+		.risk-item span {
+			display: inline-block;
+			width: 60%;
+		}
+
+	.bar {
+		height: 4px;
+		border-radius: 4px;
+		margin-top: 6px;
+	}
+
+		.bar.red {
+			background: #ef4444;
+			width: 70%;
+		}
+
+		.bar.amber {
+			background: #f59e0b;
+			width: 50%;
+		}
+
+		.bar.green {
+			background: #22c55e;
+			width: 30%;
+		}
+
+
+
+	.mini-stack {
+		display: flex;
+		height: 8px;
+		width: 120px;
+		background: #e5e7eb;
+		border-radius: 10px;
+		overflow: hidden;
+	}
+
+	.stack {
+		height: 100%;
+	}
+
+		.stack.active {
+			background: #10ac84;
+		}
+
+		.stack.draft {
+			background: #FE9F43;
+		}
+
+		.stack.inactive {
+			background: #ea5455;
+		}
+
+
+
+	/* Timeline Wrapper */
+	.finance-timeline {
+		position: relative;
+		padding-left: 28px;
+	}
+
+		/* Vertical Line */
+		.finance-timeline::before {
+			content: '';
+			position: absolute;
+			left: 32px;
+			top: 8px;
+			bottom: 40px;
+			width: 2px;
+			background: #e5e7eb;
+		}
+
+	/* Timeline Item */
+	.timeline-item {
+		position: relative;
+		margin-bottom: 23px;
+	}
+
+	/* Timeline Dot */
+	.timeline-dot {
+		position: absolute;
+		left: 6px;
+		top: 6px;
+		width: 14px;
+		height: 14px;
+		border-radius: 50%;
+	}
+
+	/* Dot Colors – Dreams POS aligned */
+	.dot-warning {
+		background: #ff9f43;
+	}
+	/* orange */
+	.dot-success {
+		background: #22c55e;
+	}
+	/* green */
+	.dot-info {
+		background: #22c1c3;
+	}
+	/* teal */
+
+	/* Content */
+	.timeline-content {
+		padding-left: 30px;
+	}
+
+	/* Header Row */
+	.timeline-header {
+		display: flex;
+		justify-content: space-between;
+		align-items: center;
+	}
+
+		.timeline-header h6 {
+			font-size: 14px;
+			font-weight: 600;
+			margin: 0;
+		}
+
+	.time {
+		font-size: 12px;
+		color: #9ca3af;
+	}
+
+	/* Description */
+	.desc {
+		font-size: 13px;
+		color: #6b7280;
+		margin: 6px 0;
+	}
+
+	/* File Chip */
+	.file-pill {
+		display: inline-flex;
+		align-items: center;
+		gap: 6px;
+		background: #f3f4f6;
+		padding: 6px 10px;
+		border-radius: 10px;
+		font-size: 12px;
+		margin-top: 4px;
+	}
+
+	/* User Chip */
+	.user-chip {
+		display: flex;
+		align-items: center;
+		gap: 10px;
+		background: #f9fafb;
+		border-radius: 12px;
+		padding: 8px 12px;
+		margin-top: 6px;
+	}
+
+		.user-chip small {
+			color: #6b7280;
+		}
+
+	/* Initial Avatar */
+	.avatar-initial {
+		width: 32px;
+		height: 32px;
+		border-radius: 50%;
+		color: #fff;
+		font-size: 12px;
+		font-weight: 600;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+	}
+
+	/* Avatar Colors */
+	.bg-primary {
+		background: #22c1c3;
+	}
+	/* teal */
+	.bg-success {
+		background: #22c55e;
+	}
+	/* green */
+	.bg-warning {
+		background: #ff9f43;
+	}
+	/* orange */
+	.bg-info {
+		background: #6366f1;
+	}
+	/* indigo */
+
+	/* Avatar Group */
+	.avatar-group {
+		display: flex;
+		align-items: center;
+		margin-top: 6px;
+	}
+
+		.avatar-group .avatar-initial {
+			margin-right: -8px;
+			border: 2px solid #fff;
+		}
+
+		/* +More Badge */
+		.avatar-group .more {
+			width: 28px;
+			height: 28px;
+			border-radius: 50%;
+			background: #e5e7eb;
+			display: flex;
+			align-items: center;
+			justify-content: center;
+			font-size: 12px;
+			margin-left: 8px;
+		}
+
+</style>

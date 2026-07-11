@@ -1,0 +1,474 @@
+@page "/bank-reconciliations/{ReconId:guid}/view"
+
+@using FinanceConnect.Client.ViewModels
+@using FinanceConnect.Client.Services
+@inject BankReconciliationService ReconService
+@inject BankStatementService StatementService
+@inject BankTransactionService TransactionService
+@inject ToastService ToastService
+@inject NavigationManager Nav
+
+<PageTitle>Bank Reconciliation Details - FinanceConnect</PageTitle>
+
+@if (!IsLoaded)
+{
+    <div class="content">
+        <div class="dn-loading">
+            <div class="dn-spinner"></div>
+            <span>Loading reconciliation…</span>
+        </div>
+    </div>
+}
+else if (HasError)
+{
+    <div class="content">
+        <div class="page-header">
+            <div class="add-item d-flex">
+                <div class="page-title">
+                    <h4>Bank Reconciliation</h4>
+                    <h6>Unable to load reconciliation details</h6>
+                </div>
+            </div>
+        </div>
+        <div class="card">
+            <div class="card-body text-center py-5">
+                <i class="ti ti-alert-triangle fs-48 text-warning d-block mb-3"></i>
+                <h5 class="mb-2">Reconciliation Not Found</h5>
+                <p class="text-muted mb-4">The reconciliation record could not be loaded. This may happen when the page is refreshed directly.</p>
+                <a href="/bank-reconciliations" class="btn btn-primary">
+                    <i class="ti ti-arrow-left me-1"></i> Back to Reconciliation List
+                </a>
+            </div>
+        </div>
+    </div>
+}
+else
+{
+    <div class="dn-wrapper">
+        <div class="content">
+
+            <!-- PAGE HEADER -->
+            <div class="pageHeader" style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 19px;">
+                <div>
+                    <h3>Bank Reconciliation Details</h3>
+                    <p style="color: gray;">Reconciliation overview, matching workbench & audit summary.</p>
+                </div>
+                <div class="dn-hero-actions dn-animate-up dn-delay-1">
+                    <a href="/bank-reconciliations" class="btn btn-outline-secondary">
+                        <i class="ti ti-arrow-left"></i> Back
+                    </a>
+
+                    @if (Recon.ReconciliationStatus == ReconciliationStatus.Completed)
+                    {
+                        <button class="btn btn-success" @onclick="FinalizeRun">
+                            <i class="ti ti-check me-1"></i> Finalize
+                        </button>
+                    }
+                    @if (Recon.ReconciliationStatus == ReconciliationStatus.InProgress
+                                && UnmatchedTransactions.Count == 0)
+                    {
+                        <button class="btn btn-warning" @onclick="MarkReviewCompleted">
+                            <i class="ti ti-clipboard-check me-1"></i> Review Completed
+                        </button>
+                    }
+                    @if (Recon.ReconciliationStatus == ReconciliationStatus.Finalized)
+                    {
+                        <button class="btn btn-warning" @onclick="ReopenRun">
+                            <i class="ti ti-refresh me-1"></i> Reopen
+                        </button>
+                    }
+                </div>
+            </div>
+
+            <!-- HERO HEADER -->
+            <div class="dn-hero">
+                <div class="dn-hero-inner">
+                    <div class="dn-icon-wrap">
+                        <i class="ti ti-report-money"></i>
+                    </div>
+                    <div class="dn-hero-content">
+                        <h1 class="dn-number">@Recon.ReconciliationNumber</h1>
+                        <div class="dn-meta-row">
+                            <span class="dn-meta-item">
+                                <i class="ti ti-building-bank"></i>
+                                @Recon.BankAccountId
+                            </span>
+                            <span class="dn-meta-item">
+                                <i class="ti ti-calendar"></i>
+                                @(Recon.ScopeType == ScopeType.PeriodRange
+                                    ? $"{Recon.FromDate?.ToString("dd MMM yyyy")} – {Recon.ToDate?.ToString("dd MMM yyyy")}"
+                                    : $"As of {Recon.AsOfDate?.ToString("dd MMM yyyy")}")
+                            </span>
+                            <span class="dn-meta-item">
+                                <i class="ti ti-user"></i>
+                                @Recon.PreparedBy
+                            </span>
+                        </div>
+                        <div class="dn-badges">
+                            <span class="badge-dn @GetStatusBadgeClass(Recon.ReconciliationStatus)">
+                                @Recon.ReconciliationStatus
+                            </span>
+                            <span class="badge-dn bg-info-transparent">
+                                @Recon.ScopeType
+                            </span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- MAIN GRID -->
+            <div class="dn-grid">
+
+                <!-- LEFT PANEL -->
+                <div class="dn-left">
+
+                    <!-- BALANCE SUMMARY -->
+                    <div class="dn-card">
+                        <div class="dn-card-header">
+                            <span class="dn-card-title">
+                                <i class="ti ti-receipt-2"></i> Balance Summary
+                            </span>
+                        </div>
+                        <div class="dn-card-body">
+                            <div class="amount-row">
+                                <span class="amount-label">Opening Statement</span>
+                                <span class="amount-value">@Recon.OpeningBalance_Statement.ToString("N2")</span>
+                            </div>
+                            <div class="amount-row">
+                                <span class="amount-label">Closing Statement</span>
+                                <span class="amount-value">@Recon.ClosingBalance_Statement.ToString("N2")</span>
+                            </div>
+                            <div class="amount-row">
+                                <span class="amount-label">Opening Book</span>
+                                <span class="amount-value">@Recon.OpeningBalance_Book.ToString("N2")</span>
+                            </div>
+                            <div class="amount-row">
+                                <span class="amount-label">Closing Book</span>
+                                <span class="amount-value">@Recon.ClosingBalance_Book.ToString("N2")</span>
+                            </div>
+                            <div class="amount-row total">
+                                <span class="amount-label grand">Difference</span>
+                                <span class="amount-value grand @(Recon.DifferenceAmount == 0 ? "text-success" : "text-danger")">
+                                    @Recon.DifferenceAmount.ToString("N2")
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- AUTO MATCH SETTINGS -->
+                    <div class="dn-card">
+                        <div class="dn-card-header">
+                            <span class="dn-card-title">
+                                <i class="ti ti-bolt"></i> Smart Auto-Match
+                            </span>
+                            @if (!IsFinalized)
+                            {
+                                <button class="btn btn-primary btn-sm ms-auto" @onclick="RunAutoMatch">
+                                    <i class="ti ti-rocket me-1"></i> Run Smart Match
+                                </button>
+                            }
+                        </div>
+                        <div class="card-body p-4">
+                            <small class="text-muted d-block mb-3">Fine-tune how the system pairs statement lines with transactions</small>
+                            <div class="row g-3 align-items-end">
+                                <div class="col-lg-3 col-md-6">
+                                    <label class="form-label fw-medium mb-2"><i class="ti ti-calendar me-1"></i> Date Window (± days)</label>
+                                    <input class="form-control" type="number" min="0"
+                                           @bind="Recon.DateWindowDays" disabled="@IsFinalized" />
+                                </div>
+                                <div class="col-lg-3 col-md-6">
+                                    <label class="form-label fw-medium mb-2"><i class="ti ti-currency-rupee me-1"></i> Amount Tolerance</label>
+                                    <input class="form-control" type="number" step="0.01" min="0"
+                                           @bind="Recon.AmountTolerance" disabled="@IsFinalized" />
+                                </div>
+                                <div class="col-lg-6 col-md-12">
+                                    <label class="form-label fw-medium mb-2"><i class="ti ti-fingerprint me-1"></i> Reference Signals</label>
+                                    <div class="d-flex flex-wrap gap-3 align-items-center" style="min-height:38px;">
+                                        <label class="form-check form-check-inline mb-0" style="cursor:pointer;">
+                                            <input type="checkbox" class="form-check-input" disabled="@IsFinalized" />
+                                            <span class="form-check-label">UTR</span>
+                                        </label>
+                                        <label class="form-check form-check-inline mb-0" style="cursor:pointer;">
+                                            <input type="checkbox" class="form-check-input" disabled="@IsFinalized" />
+                                            <span class="form-check-label">Cheque</span>
+                                        </label>
+                                        <label class="form-check form-check-inline mb-0" style="cursor:pointer;">
+                                            <input type="checkbox" class="form-check-input" disabled="@IsFinalized" />
+                                            <span class="form-check-label">Narration</span>
+                                        </label>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- UNMATCHED STATEMENT LINES -->
+                    <div class="dn-card">
+                        <div class="dn-card-header">
+                            <span class="dn-card-title">
+                                <i class="ti ti-list-details"></i> Unmatched Statement Lines
+                            </span>
+                            <span class="count-pill">@UnmatchedStatementLines.Count lines</span>
+                        </div>
+                        <div style="overflow-x: auto;">
+                            <table class="dn-table">
+                                <thead>
+                                    <tr>
+                                        <th style="width:60px; text-align:center;">#</th>
+                                        <th>Date</th>
+                                        <th class="d-none d-md-table-cell">Narration</th>
+                                        <th style="text-align:right;">Amount</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @if (PagedLines.Any())
+                                    {
+                                        @foreach (var line in PagedLines)
+                                        {
+                                            <tr @key="line.BankStatementLineId"
+                                                class="@(SelectedStatementLineId == line.BankStatementLineId ? "table-primary" : "")"
+                                                style="cursor:pointer;"
+                                                @onclick="() => SelectStatementLine(line)">
+                                                <td style="text-align:center;">@line.LineNumber</td>
+                                                <td>@line.TransactionDate.ToString("dd MMM")</td>
+                                                <td class="d-none d-md-table-cell">@line.NarrationRaw</td>
+                                                <td style="text-align:right;">
+                                                    @(line.Direction == StatementLineDirectionType.Debit
+                                                        ? $"-{line.Amount:N2}"
+                                                        : line.Amount.ToString("N2"))
+                                                </td>
+                                            </tr>
+                                        }
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                        @if (PagedLines.Any())
+                        {
+                            <div class="d-flex justify-content-between align-items-center p-3">
+                                <div class="d-flex align-items-center">
+                                    <span class="me-2">Rows per page</span>
+                                    <select class="form-select form-select-sm w-auto" @onchange="OnPageSizeChange">
+                                        <option value="5">5</option>
+                                        <option value="10" selected>10</option>
+                                        <option value="25">25</option>
+                                    </select>
+                                    <span class="ms-2">Entries</span>
+                                </div>
+                                <nav>
+                                    <ul class="pagination pagination-sm mb-0">
+                                        <li class="page-item @(CurrentPage == 1 ? "disabled" : "")">
+                                            <a class="page-link" href="#" @onclick="PreviousPage" @onclick:preventDefault>
+                                                <i class="ti ti-chevron-left"></i>
+                                            </a>
+                                        </li>
+                                        @foreach (var p in VisiblePages)
+                                        {
+                                            <li class="page-item @(p == CurrentPage ? "active" : "")">
+                                                <button class="page-link" @onclick="() => GoToPage(p)">@p</button>
+                                            </li>
+                                        }
+                                        <li class="page-item @(CurrentPage == TotalPages ? "disabled" : "")">
+                                            <a class="page-link" href="#" @onclick="NextPage" @onclick:preventDefault>
+                                                <i class="ti ti-chevron-right"></i>
+                                            </a>
+                                        </li>
+                                    </ul>
+                                </nav>
+                            </div>
+                        }
+                    </div>
+
+                    <!-- UNMATCHED BANK TRANSACTIONS -->
+                    <div class="dn-card">
+                        <div class="dn-card-header">
+                            <span class="dn-card-title">
+                                <i class="ti ti-arrows-exchange"></i> Unmatched Bank Transactions
+                            </span>
+                            <span class="count-pill">@UnmatchedTransactions.Count txns</span>
+                        </div>
+                        <div style="overflow-x: auto;">
+                            <table class="dn-table">
+                                <thead>
+                                    <tr>
+                                        <th style="width:180px; text-align:center;">#</th>
+                                        <th>Date</th>
+                                        <th class="d-none d-md-table-cell">Description</th>
+                                        <th style="text-align:right;">Amount</th>
+                                        <th style="width:90px;">Action</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach (var txn in UnmatchedTransactions)
+                                    {
+                                        <tr>
+                                            <td style="text-align:center;">@txn.TransactionNumber</td>
+                                            <td>@txn.TransactionDate.ToString("dd MMM")</td>
+                                            <td class="d-none d-md-table-cell">@txn.Narration</td>
+                                            <td style="text-align:right;">@txn.Amount.ToString("N2")</td>
+                                            <td class="text-center">
+                                                <button class="btn btn-sm btn-outline-success"
+                                                        disabled="@(!CanMatch)"
+                                                        @onclick="() => Match(txn)">
+                                                    <i class="ti ti-link me-1"></i> Match
+                                                </button>
+                                            </td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                </div>
+
+                <!-- RIGHT PANEL -->
+                <div class="dn-right">
+
+                    <!-- RECONCILIATION INFO -->
+                    <div class="dn-card" style="margin-bottom: 16px;">
+                        <div class="dn-card-header">
+                            <span class="dn-card-title"><i class="ti ti-id"></i> Reconciliation Info</span>
+                        </div>
+                        <div class="dn-card-body">
+                            <div class="info-row">
+                                <span class="info-key">Recon No.</span>
+                                <span class="info-val mono">@Recon.ReconciliationNumber</span>
+                            </div>
+                            <div class="info-row">
+                                <span class="info-key">Bank Account</span>
+                                <span class="info-val">@Recon.BankAccountId</span>
+                            </div>
+                            <div class="info-row">
+                                <span class="info-key">Scope</span>
+                                <span class="info-val">
+                                    <span class="badge-dn bg-info-transparent">@Recon.ScopeType</span>
+                                </span>
+                            </div>
+                            <div class="info-row">
+                                <span class="info-key">Period</span>
+                                <span class="info-val">
+                                    @if (Recon.ScopeType == ScopeType.PeriodRange)
+                                    {
+                                        <span>@Recon.FromDate?.ToString("dd MMM yyyy") – @Recon.ToDate?.ToString("dd MMM yyyy")</span>
+                                    }
+                                    else
+                                    {
+                                        <span>As of @Recon.AsOfDate?.ToString("dd MMM yyyy")</span>
+                                    }
+                                </span>
+                            </div>
+                            <div class="info-row">
+                                <span class="info-key">Status</span>
+                                <span class="info-val">
+                                    <span class="badge-dn @GetStatusBadgeClass(Recon.ReconciliationStatus)">
+                                        @Recon.ReconciliationStatus
+                                    </span>
+                                </span>
+                            </div>
+                            <div class="info-row">
+                                <span class="info-key">Date Window</span>
+                                <span class="info-val">± @Recon.DateWindowDays days</span>
+                            </div>
+                            <div class="info-row">
+                                <span class="info-key">Tolerance</span>
+                                <span class="info-val">@Recon.AmountTolerance.ToString("N2")</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- HISTORY -->
+                    <div class="dn-card" style="margin-bottom: 16px;">
+                        <div class="dn-card-header">
+                            <span class="dn-card-title"><i class="ti ti-history"></i> History</span>
+                        </div>
+                        <div class="dn-card-body">
+                            <div class="history-item">
+                                <div class="history-label">Prepared By</div>
+                                <div class="history-date">@Recon.PreparedBy</div>
+                            </div>
+                            <div class="history-item">
+                                <div class="history-label">Prepared On</div>
+                                <div class="history-date">@Recon.PreparedOn.ToString("dd MMM yyyy · HH:mm")</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- MATCH STATS -->
+                    <div class="dn-card" style="margin-bottom: 16px;">
+                        <div class="dn-card-header">
+                            <span class="dn-card-title"><i class="ti ti-chart-bar"></i> Match Stats</span>
+                        </div>
+                        <div class="dn-card-body">
+                            <div class="info-row">
+                                <span class="info-key">Matched Pairs</span>
+                                <span class="info-val mono">@Matches.Count</span>
+                            </div>
+                            <div class="info-row">
+                                <span class="info-key">Unmatched Statements</span>
+                                <span class="info-val mono">@UnmatchedStatementLines.Count</span>
+                            </div>
+                            <div class="info-row">
+                                <span class="info-key">Unmatched Transactions</span>
+                                <span class="info-val mono">@UnmatchedTransactions.Count</span>
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+
+            </div>
+        </div>
+    </div>
+
+    <!-- MATCH SUGGESTION DRAWER -->
+    <div class="smart-drawer @(DrawerOpen ? "open" : "")">
+        <div class="drawer-header">
+            <div class="d-flex align-items-center gap-2">
+                <div class="ai-badge">
+                    <i class="ti ti-brain"></i>
+                </div>
+                <div>
+                    <div class="fw-bold">Smart Match Suggestions</div>
+                    <small class="text-muted">Ranked by confidence score</small>
+                </div>
+            </div>
+            <button class="btn btn-sm btn-light" @onclick="CloseDrawer">
+                <i class="ti ti-x"></i>
+            </button>
+        </div>
+        <div class="drawer-body">
+            @if (!Suggestions.Any())
+            {
+                <div class="empty-state">
+                    <i class="ti ti-search-off"></i>
+                    <div>No suggestions found</div>
+                    <small>Try adjusting tolerance or reference signals</small>
+                </div>
+            }
+            else
+            {
+                @foreach (var s in Suggestions.OrderByDescending(x => x.ConfidenceScore))
+                {
+                    <div class="suggestion-card">
+                        <div class="suggestion-header">
+                            <div class="txn-ref">
+                                <i class="ti ti-receipt me-1"></i>
+                                @s.TransactionRef
+                            </div>
+                            <span class="rank-badge">@s.ConfidenceScore%</span>
+                        </div>
+                        <div class="confidence-track">
+                            <div class="confidence-fill" style="width:@s.ConfidenceScore%"></div>
+                        </div>
+                        <div class="accept-row">
+                            <button class="btn btn-accept" @onclick="() => AcceptSuggestion(s)">
+                                <i class="ti ti-check me-1"></i> Accept
+                            </button>
+                        </div>
+                    </div>
+                }
+            }
+        </div>
+    </div>
+}

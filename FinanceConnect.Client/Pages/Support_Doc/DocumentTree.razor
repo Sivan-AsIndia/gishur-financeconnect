@@ -1,0 +1,2358 @@
+﻿@page "/document-viewer"
+@using Microsoft.AspNetCore.Components
+@using Microsoft.JSInterop
+@inject IJSRuntime JS
+
+<PageTitle>DocVault — Support Docs</PageTitle>
+
+<style>
+    :root {
+        --prgb: 74,108,247;
+        --pg: rgba(74,108,247,0.18);
+        --bg: #f0f2f8;
+        --bg2: #ffffff;
+        --bg3: #f5f6fb;
+        --bg4: #eaecf5;
+        --border: #e2e5f0;
+        --border2: #cdd1e8;
+        --ink: #0f1225;
+        --ink2: #2d3260;
+        --ink3: #6b72a0;
+        --ink4: #a8adc8;
+        --green: #059669;
+        --gbg: #ecfdf5;
+        --amber: #b45309;
+        --abg: #fffbeb;
+        --red: #dc2626;
+        --rbg: #fef2f2;
+        --purple: #6d28d9;
+        --pbg: #f5f3ff;
+        --fav: #f59e0b;
+        --font: 'Plus Jakarta Sans', sans-serif;
+        --serif: 'Instrument Serif', serif;
+        --mono: 'JetBrains Mono', monospace;
+        --r: 12px;
+        --rs: 8px;
+        --sh0: 0 1px 3px rgba(0,0,0,0.06),0 2px 8px rgba(0,0,0,0.04);
+        --sh1: 0 2px 8px rgba(0,0,0,0.07),0 6px 24px rgba(0,0,0,0.05);
+        --sh2: 0 8px 24px rgba(0,0,0,0.10),0 20px 48px rgba(0,0,0,0.07);
+        --shp: 0 4px 20px rgba(74,108,247,0.28);
+    }
+
+    *, *::before, *::after {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+    }
+
+    button {
+        cursor: pointer;
+        font-family: var(--font);
+    }
+
+    .dv-root {
+        display: flex;
+        height: 100vh;
+        font-family: var(--font);
+        background: var(--bg);
+        color: var(--ink);
+        overflow: hidden;
+        font-size: 13.5px;
+    }
+
+    /* ── SIDEBAR ── */
+    .dv-sb {
+        /* width: 268px; */
+        flex-shrink: 0;
+        background: var(--bg2);
+        border-right: 1px solid var(--border);
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+        z-index: 20;
+    }
+
+    .sb-brand {
+        padding: 18px 18px 14px;
+        border-bottom: 1px solid #80808038;
+        flex-shrink: 0;
+        background: color-mix(in srgb, var(--primary) 5%, white);
+    }
+
+    .sb-brand-row {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        margin-bottom: 14px;
+    }
+
+    .editBtn {
+        padding: 2px 7px;
+        border: 1px solid var(--primary);
+        border-radius: 4px;
+        background: color-mix(in srgb, var(--primary) 5%, white);
+        color: var(--primary);
+    }
+
+    .sb-logo {
+        width: 36px;
+        height: 36px;
+        border-radius: 10px;
+        background: var(--primary);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+    }
+
+        .sb-logo i {
+            font-size: 16px;
+            color: #fff;
+        }
+
+    .sb-brand-name {
+        font-size: 15px;
+        font-weight: 800;
+        color: var(--ink);
+        letter-spacing: -0.03em;
+        line-height: 1.1;
+    }
+
+    .sb-brand-sub {
+        font-size: 10px;
+        color: var(--ink4);
+        font-weight: 500;
+        margin-top: 1px;
+    }
+
+    /* Search below brand */
+    .sb-search {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        background: white;
+        border: 1.5px solid #00000014;
+        border-radius: 7px;
+        padding: 7px 11px;
+        transition: all .2s;
+    }
+
+        .sb-search:focus-within {
+            border-color: var(--primary);
+            background: var(--bg2);
+            box-shadow: 0 0 0 3px rgba(var(--prgb),.10);
+        }
+
+        .sb-search i {
+            font-size: 12px;
+            color: var(--ink4);
+            flex-shrink: 0;
+        }
+
+        .sb-search input {
+            flex: 1;
+            border: none;
+            outline: none;
+            background: none;
+            font-family: var(--font);
+            font-size: 12px;
+            color: var(--ink);
+        }
+
+            .sb-search input::placeholder {
+                color: var(--ink4);
+            }
+
+    .sb-clr {
+        font-size: 12px;
+        color: var(--ink4);
+        background: none;
+        border: none;
+        line-height: 1;
+        padding: 0;
+        transition: color .15s;
+    }
+
+        .sb-clr:hover {
+            color: var(--ink2);
+        }
+
+    .sb-chips {
+        display: flex;
+        gap: 4px;
+        flex-wrap: wrap;
+        padding: 8px 18px 10px;
+        border-bottom: 1px solid var(--border);
+        flex-shrink: 0;
+    }
+
+    .chip {
+        font-size: 10px;
+        font-weight: 700;
+        padding: 3px 9px;
+        border-radius: 20px;
+        border: 1.5px solid var(--border2);
+        color: var(--ink3);
+        background: var(--bg3);
+        transition: all .14s;
+        letter-spacing: .02em;
+    }
+
+        .chip:hover {
+            border-color: var(--primary);
+            color: var(--primary);
+            background: rgba(var(--prgb),.06);
+        }
+
+        .chip.on {
+            background: rgba(var(--prgb),.10);
+            border-color: var(--primary);
+            color: var(--primary);
+        }
+
+    .sb-scroll {
+        flex: 1;
+        overflow-y: auto;
+        padding: 6px 0 10px;
+    }
+
+        .sb-scroll::-webkit-scrollbar {
+            width: 3px;
+        }
+
+        .sb-scroll::-webkit-scrollbar-thumb {
+            background: var(--border2);
+            border-radius: 4px;
+        }
+
+    .sb-fhd {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 9px 18px 5px;
+        font-size: 9px;
+        font-weight: 800;
+        letter-spacing: .12em;
+        text-transform: uppercase;
+        color: var(--ink4);
+        cursor: pointer;
+        user-select: none;
+        transition: color .14s;
+    }
+
+        .sb-fhd:hover {
+            color: var(--ink3);
+        }
+
+    .sb-fhd-ic {
+        font-size: 11px;
+        color: var(--primary);
+        opacity: .7;
+    }
+
+    .sb-fhd-arr {
+        margin-left: auto;
+        font-size: 8px;
+        transition: transform .2s;
+    }
+
+        .sb-fhd-arr.open {
+            transform: rotate(90deg);
+        }
+
+    .sb-col {
+        overflow: hidden;
+        max-height: 0;
+        transition: max-height .28s cubic-bezier(.4,0,.2,1);
+    }
+
+        .sb-col.open {
+            max-height: 1200px;
+        }
+
+    .sb-item {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 6px 18px 6px 24px;
+        font-size: 12.5px;
+        font-weight: 500;
+        color: var(--ink3);
+        cursor: pointer;
+        border-left: 2px solid transparent;
+        transition: all .13s;
+        position: relative;
+    }
+
+        .sb-item:hover {
+            background: var(--bg3);
+            color: var(--ink2);
+        }
+
+        .sb-item.active {
+            background: color-mix(in srgb, var(--primary) 5%, white);
+            color: var(--primary);
+            border-left-color: var(--primary);
+            font-weight: 600;
+        }
+
+    .sb-ic {
+        font-size: 12px;
+        flex-shrink: 0;
+        width: 15px;
+        text-align: center;
+    }
+
+    .sb-lbl {
+        flex: 1;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    .pip {
+        font-size: 8.5px;
+        font-weight: 800;
+        padding: 1px 5px;
+        border-radius: 4px;
+        flex-shrink: 0;
+    }
+
+    .pip-n {
+        background: var(--gbg);
+        color: var(--green);
+    }
+
+    .pip-u {
+        background: var(--abg);
+        color: var(--amber);
+    }
+
+    .pip-d {
+        background: rgba(var(--prgb),.10);
+        color: var(--primary);
+    }
+
+    .sb-sub {
+        padding-left: 38px;
+        font-size: 11.5px;
+    }
+
+        .sb-sub::before {
+            content: '';
+            position: absolute;
+            left: 30px;
+            top: 50%;
+            width: 6px;
+            height: 1px;
+            background: var(--border2);
+        }
+
+    .sb-foot {
+        border-top: 1px solid var(--border);
+        padding: 8px 10px;
+        flex-shrink: 0;
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+    }
+
+    .sb-nav {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 7px 10px;
+        border-radius: var(--rs);
+        font-size: 12.5px;
+        font-weight: 600;
+        color: var(--ink3);
+        transition: all .13s;
+        cursor: pointer;
+    }
+
+        .sb-nav:hover {
+            background: var(--bg3);
+            color: var(--ink2);
+        }
+
+        .sb-nav.active {
+            background: rgba(var(--prgb),.08);
+            color: var(--primary);
+        }
+
+        .sb-nav i {
+            font-size: 14px;
+            width: 17px;
+            text-align: center;
+        }
+
+    .nav-cnt {
+        margin-left: auto;
+        font-size: 9.5px;
+        font-weight: 800;
+        background: var(--bg4);
+        color: var(--ink3);
+        padding: 1px 6px;
+        border-radius: 10px;
+    }
+
+    .sb-nav.active .nav-cnt {
+        background: rgba(var(--prgb),.14);
+        color: var(--primary);
+    }
+
+    /* ── MAIN ── */
+    .dv-main {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+        min-width: 0;
+    }
+
+    .dv-top {
+        background: var(--bg2);
+        border-bottom: 1px solid var(--border);
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding: 0 24px;
+        height: 52px;
+        flex-shrink: 0;
+    }
+
+    .dv-bc {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        font-size: 11.5px;
+        color: var(--ink4);
+        flex: 1;
+        min-width: 0;
+    }
+
+    .bc-crumb {
+        color: var(--ink3);
+        font-weight: 500;
+    }
+
+    .bc-active {
+        color: var(--ink);
+        font-weight: 700;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    .bc-sep {
+        color: var(--border2);
+        font-size: 13px;
+    }
+
+    .top-acts {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        flex-shrink: 0;
+    }
+
+    .tbtn {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        padding: 6px 14px;
+        border-radius: var(--rs);
+        font-size: 12px;
+        font-weight: 700;
+        border: 1.5px solid var(--border2);
+        background: var(--bg2);
+        color: var(--ink2);
+        transition: all .14s;
+        white-space: nowrap;
+    }
+
+        .tbtn:hover {
+            border-color: var(--primary);
+            color: var(--primary);
+            background: rgba(var(--prgb),.05);
+        }
+
+        .tbtn.prim {
+            background: var(--primary);
+            border-color: var(--primary);
+            color: #fff;
+            box-shadow: var(--shp);
+        }
+
+            .tbtn.prim:hover {
+                background: var(--primary2);
+                border-color: var(--primary2);
+                transform: translateY(-1px);
+                box-shadow: 0 6px 24px rgba(var(--prgb),.36);
+            }
+
+        .tbtn.fav-on {
+            color: var(--fav);
+            border-color: rgba(245,158,11,.4);
+            background: rgba(245,158,11,.07);
+        }
+
+    .dv-tabs {
+        background: var(--bg2);
+        border-bottom: 1px solid var(--border);
+        display: flex;
+        align-items: center;
+        /* padding: 0 24px; */
+        flex-shrink: 0;
+    }
+
+    .dv-tab {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        padding: 7px 8px 7px;
+        font-size: 12.5px;
+        font-weight: 600;
+        color: var(--ink4);
+        cursor: pointer;
+        border-bottom: 2.5px solid transparent;
+        margin-bottom: -1px;
+        transition: all .14s;
+        white-space: nowrap;
+    }
+
+        .dv-tab:hover {
+            color: var(--ink2);
+        }
+
+        .dv-tab.active {
+            color: var(--primary);
+            border-bottom-color: var(--primary);
+        }
+
+    .tab-b {
+        font-size: 9px;
+        font-weight: 800;
+        padding: 1px 6px;
+        border-radius: 10px;
+        background: var(--bg4);
+        color: var(--ink4);
+    }
+
+    .dv-tab.active .tab-b {
+        background: color-mix(in srgb, var(--primary) 9%, white);
+        color: var(--primary);
+    }
+
+    .tab-sp {
+        flex: 1;
+    }
+
+    .dv-content {
+        flex: 1;
+        overflow-y: auto;
+        overflow-x: hidden;
+        background: var(--bg);
+    }
+
+        .dv-content::-webkit-scrollbar {
+            width: 5px;
+        }
+
+        .dv-content::-webkit-scrollbar-thumb {
+            background: var(--border2);
+            border-radius: 4px;
+        }
+
+    /* ── BROWSE ── */
+    .browse-wrap {
+        display: flex;
+        height: 100%;
+        overflow: hidden;
+    }
+
+    .doc-pane {
+        flex: 1;
+        overflow-y: auto;
+        padding: 28px 40px 100px;
+        min-width: 0;
+        background: white;
+    }
+
+        .doc-pane::-webkit-scrollbar {
+            width: 5px;
+        }
+
+        .doc-pane::-webkit-scrollbar-thumb {
+            background: var(--border2);
+            border-radius: 4px;
+        }
+
+    .doc-fbar {
+        display: flex;
+        align-items: center;
+        gap: 14px;
+        background: white;
+        border: 1px solid #00000017;
+        border-radius: 9px;
+        padding: 14px 18px;
+        margin-bottom: 24px;
+    }
+
+    .doc-ficon {
+        width: 44px;
+        height: 44px;
+        border-radius: 8px;
+        background: color-mix(in srgb, var(--primary) 15%, white);
+        border: 1px solid var(--primary);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 19px !important;
+        color: var(--primary);
+        flex-shrink: 0;
+    }
+
+    .doc-fmeta {
+        flex: 1;
+        min-width: 0;
+    }
+
+    .doc-fname {
+        font-size: 13px;
+        font-weight: 700;
+        color: #000000;
+        margin-bottom: 2px;
+    }
+
+    .doc-fpath {
+        font-size: 10px;
+        color: #00000080;
+    }
+
+    .doc-fbtns {
+        display: flex;
+        gap: 6px;
+    }
+
+    .dbtn {
+        display: flex;
+        align-items: center;
+        gap: 5px;
+        padding: 5px 12px;
+        border-radius: var(--rs);
+        font-size: 11.5px;
+        font-weight: 700;
+        border: 1.5px solid var(--border2);
+        background: var(--bg3);
+        color: var(--ink3);
+        transition: all .13s;
+    }
+
+        .dbtn:hover {
+            border-color: var(--primary);
+            color: var(--primary);
+            background: rgba(var(--prgb),.06);
+        }
+
+        .dbtn.fav-on {
+            color: var(--fav);
+            border-color: rgba(245,158,11,.35);
+            background: rgba(245,158,11,.07);
+        }
+
+        .dbtn.acc {
+            background: var(--primary);
+            color: #fff;
+            border-color: var(--primary);
+        }
+
+            .dbtn.acc:hover {
+                background: var(--primary2);
+            }
+
+    .sbar {
+        display: flex;
+        gap: 7px;
+        flex-wrap: wrap;
+        margin-bottom: 20px;
+    }
+
+    .stab {
+        display: flex;
+        align-items: center;
+        gap: 5px;
+        padding: 5px 13px;
+        border-radius: 6px;
+        border: 1.5px solid var(--border2);
+        background: var(--bg2);
+        color: var(--ink3);
+        font-size: 11.5px;
+        font-weight: 700;
+        cursor: pointer;
+        transition: all .13s;
+        box-shadow: var(--sh0);
+    }
+
+        .stab:hover {
+            border-color: var(--primary);
+            color: var(--primary);
+        }
+
+        .stab.active {
+            border-color: var(--primary);
+            background: rgba(var(--prgb),.08);
+            color: var(--primary);
+        }
+
+    .sadd {
+        display: flex;
+        align-items: center;
+        gap: 4px;
+        padding: 5px 10px;
+        border-radius: 6px;
+        border: 1.5px dashed var(--border2);
+        background: transparent;
+        color: var(--ink4);
+        font-size: 11.5px;
+        font-weight: 700;
+        transition: all .13s;
+    }
+
+        .sadd:hover {
+            border-color: var(--primary);
+            color: var(--primary);
+        }
+
+    .doc-eyebrow {
+        font-size: 10px;
+        font-weight: 800;
+        letter-spacing: .14em;
+        text-transform: uppercase;
+        color: var(--primary);
+        margin-bottom: 8px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+
+        .doc-eyebrow::after {
+            content: '';
+            flex: 1;
+            height: 1px;
+            background: rgba(var(--prgb),.15);
+            max-width: 40px;
+        }
+
+    .doc-h1 {
+        font-family: var(--serif);
+        font-size: 32px;
+        font-weight: 400;
+        color: var(--ink);
+        letter-spacing: -.01em;
+        line-height: 1.2;
+        margin-bottom: 14px;
+    }
+
+    .doc-meta {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        flex-wrap: wrap;
+        margin-bottom: 20px;
+    }
+
+    .badge {
+        font-size: 9px;
+        font-weight: 800;
+        padding: 3px 8px;
+        border-radius: 5px;
+        letter-spacing: .06em;
+        text-transform: uppercase;
+    }
+
+    .badge-stable {
+        background: var(--gbg);
+        color: var(--green);
+        border: 1px solid rgba(5,150,105,.18);
+    }
+
+    .badge-draft {
+        background: var(--abg);
+        color: var(--amber);
+        border: 1px solid rgba(180,83,9,.18);
+    }
+
+    .badge-review {
+        background: rgba(var(--prgb),.09);
+        color: var(--primary);
+        border: 1px solid rgba(var(--prgb),.18);
+    }
+
+    .badge-ver {
+        background: var(--bg4);
+        color: var(--ink3);
+        border: 1px solid var(--border);
+    }
+
+    .badge-new {
+        background: var(--gbg);
+        color: var(--green);
+        border: 1px solid rgba(5,150,105,.18);
+    }
+
+    .badge-upd {
+        background: var(--abg);
+        color: var(--amber);
+        border: 1px solid rgba(180,83,9,.18);
+    }
+
+    .mdiv {
+        width: 1px;
+        height: 12px;
+        background: var(--border2);
+    }
+
+    .minfo {
+        font-size: 11px;
+        color: var(--ink4);
+        display: flex;
+        align-items: center;
+        gap: 4px;
+        font-weight: 500;
+    }
+
+    .doc-hr {
+        border: none;
+        border-top: 1px solid var(--border);
+        margin: 18px 0 22px;
+    }
+
+    .doc-lead {
+        font-size: 14.5px;
+        line-height: 1.85;
+        color: var(--ink3);
+        margin-bottom: 28px;
+        padding: 16px 20px;
+        background: linear-gradient(135deg,rgba(var(--prgb),.04),rgba(var(--prgb),.02));
+        border: 1px solid rgba(var(--prgb),.12);
+        border-left: 3px solid var(--primary);
+        border-radius: 0 var(--rs) var(--rs) 0;
+        font-style: italic;
+    }
+
+    .doc-body {
+        color: var(--ink2);
+    }
+
+        .doc-body h2 {
+            font-family: var(--serif);
+            font-size: 22px;
+            font-weight: 400;
+            color: var(--ink);
+            margin: 36px 0 12px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid var(--border);
+            scroll-margin-top: 20px;
+        }
+
+        .doc-body h3 {
+            font-size: 14px;
+            font-weight: 800;
+            color: var(--ink);
+            margin: 20px 0 8px;
+            scroll-margin-top: 20px;
+        }
+
+        .doc-body p {
+            font-size: 14px;
+            line-height: 1.9;
+            color: var(--ink2);
+            margin-bottom: 14px;
+        }
+
+        .doc-body code {
+            font-size: 11.5px;
+            background: var(--bg4);
+            color: var(--primary3);
+            padding: 2px 7px;
+            border-radius: 5px;
+            border: 1px solid var(--border);
+        }
+
+        .doc-body ul, .doc-body ol {
+            padding-left: 20px;
+            margin-bottom: 14px;
+        }
+
+        .doc-body li {
+            font-size: 13.5px;
+            line-height: 1.85;
+            color: var(--ink2);
+            margin-bottom: 4px;
+        }
+
+            .doc-body li::marker {
+                color: var(--primary);
+            }
+
+        .doc-body strong {
+            font-weight: 700;
+            color: var(--ink);
+        }
+
+    .callout {
+        border: 1.5px solid;
+        border-radius: var(--rs);
+        padding: 13px 16px;
+        margin: 16px 0;
+        font-size: 13px;
+        line-height: 1.7;
+        display: flex;
+        gap: 11px;
+        align-items: flex-start;
+    }
+
+        .callout.info {
+            background: rgba(var(--prgb),.05);
+            border-color: rgba(var(--prgb),.2);
+            color: var(--primary3);
+        }
+
+        .callout.warn {
+            background: var(--abg);
+            border-color: rgba(180,83,9,.2);
+            color: var(--amber);
+        }
+
+        .callout.tip {
+            background: var(--gbg);
+            border-color: rgba(5,150,105,.2);
+            color: var(--green);
+        }
+
+        .callout.danger {
+            background: var(--rbg);
+            border-color: rgba(220,38,38,.2);
+            color: var(--red);
+        }
+
+        .callout.purple {
+            background: var(--pbg);
+            border-color: rgba(109,40,217,.2);
+            color: var(--purple);
+        }
+
+    .callout-icon {
+        font-size: 14px;
+        flex-shrink: 0;
+        margin-top: 1px;
+    }
+
+    .callout-title {
+        font-weight: 800;
+        font-size: 9px;
+        letter-spacing: .1em;
+        text-transform: uppercase;
+        margin-bottom: 3px;
+    }
+
+    .code-wrap {
+        background: #13151f;
+        border-radius: var(--r);
+        overflow: hidden;
+        margin: 16px 0;
+        box-shadow: var(--sh2);
+    }
+
+    .code-bar {
+        display: flex;
+        align-items: center;
+        background: rgba(255,255,255,.04);
+        padding: 9px 14px;
+        border-bottom: 1px solid rgba(255,255,255,.06);
+        gap: 8px;
+    }
+
+    .dots {
+        display: flex;
+        gap: 5px;
+    }
+
+    .d {
+        width: 9px;
+        height: 9px;
+        border-radius: 50%;
+    }
+
+    .d1 {
+        background: #ff5f57
+    }
+
+    .d2 {
+        background: #febc2e
+    }
+
+    .d3 {
+        background: #28c840
+    }
+
+    .code-fname {
+        font-size: 10px;
+        color: rgba(255,255,255,.25);
+        margin-left: 4px;
+    }
+
+    .code-lang {
+        margin-left: auto;
+        font-size: 8.5px;
+        color: rgba(255,255,255,.18);
+        letter-spacing: .1em;
+        text-transform: uppercase;
+    }
+
+    pre {
+        padding: 18px 20px;
+        font-size: 12px;
+        line-height: 1.85;
+        color: #c9d3f0;
+        overflow-x: auto;
+    }
+
+    .doc-table-wrap {
+        overflow-x: auto;
+        margin: 16px 0;
+        border-radius: var(--rs);
+        border: 1px solid var(--border);
+        box-shadow: var(--sh0);
+    }
+
+    .doc-table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 12.5px;
+    }
+
+        .doc-table th {
+            font-size: 9px;
+            font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: .09em;
+            color: var(--ink4);
+            background: var(--bg3);
+            padding: 10px 14px;
+            text-align: left;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .doc-table td {
+            padding: 10px 14px;
+            border-bottom: 1px solid var(--border);
+            color: var(--ink2);
+            vertical-align: top;
+            line-height: 1.55;
+        }
+
+        .doc-table tr:last-child td {
+            border-bottom: none;
+        }
+
+        .doc-table tr:hover td {
+            background: var(--bg3);
+        }
+
+        .doc-table td:first-child {
+            font-size: 11px;
+            color: var(--primary);
+            font-weight: 600;
+        }
+
+    /* TOC */
+    .doc-toc {
+        width: 192px;
+        flex-shrink: 0;
+        background: var(--bg2);
+        border-left: 1px solid var(--border);
+        padding: 22px 14px;
+        overflow-y: auto;
+    }
+
+    .toc-hd {
+        font-size: 8.5px;
+        font-weight: 800;
+        letter-spacing: .14em;
+        text-transform: uppercase;
+        color: var(--ink4);
+        margin-bottom: 12px;
+    }
+
+    .toc-lnk {
+        display: block;
+        padding: 4px 0 4px 12px;
+        font-size: 11.5px;
+        font-weight: 500;
+        color: var(--ink4);
+        cursor: pointer;
+        border-left: 2px solid transparent;
+        transition: all .13s;
+        text-decoration: none;
+        line-height: 1.4;
+        margin-bottom: 3px;
+    }
+
+        .toc-lnk:hover {
+            color: var(--ink2);
+            border-left-color: var(--border2);
+        }
+
+        .toc-lnk.active {
+            color: var(--primary);
+            border-left-color: var(--primary);
+            font-weight: 700;
+        }
+
+    /* Empty */
+    .dv-empty {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        height: 100%;
+        gap: 16px;
+        animation: fadeUp .4s ease;
+    }
+
+    .eg {
+        width: 80px;
+        height: 80px;
+        border-radius: 20px;
+        background: linear-gradient(135deg,var(--bg2),var(--bg3));
+        border: 1.5px solid var(--border);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 32px;
+        box-shadow: var(--sh1);
+        position: relative;
+    }
+
+        .eg::after {
+            content: '';
+            position: absolute;
+            inset: -6px;
+            border-radius: 26px;
+            border: 1px solid rgba(var(--prgb),.12);
+        }
+
+    .et {
+        font-family: var(--serif);
+        font-size: 20px;
+        color: var(--ink2);
+    }
+
+    .es {
+        font-size: 13px;
+        color: var(--ink4);
+        text-align: center;
+        max-width: 280px;
+        line-height: 1.7;
+        font-weight: 500;
+    }
+
+    /* Index */
+    .idx-wrap {
+        padding: 28px 32px;
+        animation: fadeUp .3s ease;
+        background: white;
+        height: 100%;
+    }
+
+    .idx-hd {
+        font-family: var(--serif);
+        font-size: 26px;
+        color: var(--ink);
+    }
+
+    .idx-sub {
+        font-size: 13px;
+        color: var(--ink4);
+        margin-top: 4px;
+        margin-bottom: 22px;
+        font-weight: 500;
+    }
+
+    .idx-filters {
+        display: flex;
+        gap: 6px;
+        flex-wrap: wrap;
+        margin-bottom: 24px;
+        padding-bottom: 20px;
+        border-bottom: 1px solid var(--border);
+    }
+
+    .idx-chip {
+        font-size: 11px;
+        font-weight: 700;
+        padding: 6px 14px;
+        border-radius: 7px;
+        border: 1.5px solid var(--border2);
+        color: var(--ink4);
+        background: var(--bg2);
+        transition: all .13s;
+        box-shadow: var(--sh0);
+    }
+
+        .idx-chip:hover {
+            border-color: var(--primary);
+            color: var(--primary);
+        }
+
+        .idx-chip.on {
+            background: color-mix(in srgb, var(--primary) 6%, white);
+            border-color: var(--primary);
+            color: var(--primary);
+        }
+
+    .idx-sl {
+        font-size: 9px;
+        font-weight: 800;
+        letter-spacing: .13em;
+        text-transform: uppercase;
+        color: var(--ink4);
+        margin: 24px 0 12px;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+
+        .idx-sl i {
+            font-size: 11px;
+            color: var(--primary);
+            opacity: .7;
+        }
+
+        .idx-sl::after {
+            content: '';
+            flex: 1;
+            height: 1px;
+            background: var(--border);
+        }
+
+    .idx-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill,minmax(230px,1fr));
+        gap: 14px;
+    }
+
+    .idx-card {
+        background: white;
+        border: 1.5px solid var(--border);
+        border-radius: 8px;
+        padding: 18px;
+        cursor: pointer;
+        transition: all .2s;
+        position: relative;
+        overflow: hidden;
+    }
+
+        .idx-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background: linear-gradient( 90deg, var(--primary), color-mix(in srgb, var(--primary) 30%, white), transparent );
+            opacity: 0;
+            transition: opacity .2s;
+        }
+
+        .idx-card:hover {
+            border-color: rgb(0 0 0 / 20%);
+            box-shadow: var(--sh1);
+            transform: translateY(-2px);
+            border-top: none;
+        }
+
+            .idx-card:hover::before {
+                opacity: 1;
+            }
+
+    .ic-icon {
+        font-size: 22px;
+        color: var(--primary);
+        margin-bottom: 12px;
+        display: block;
+        opacity: .85;
+    }
+
+    .ic-name {
+        font-size: 13px;
+        font-weight: 800;
+        margin-bottom: 3px;
+    }
+
+    .ic-path {
+        color: #00000061;
+        margin-bottom: 10px;
+    }
+
+    .ic-badges {
+        display: flex;
+        gap: 4px;
+        flex-wrap: wrap;
+    }
+
+    .ic-fav {
+        position: absolute;
+        top: 14px;
+        right: 14px;
+        color: var(--fav);
+        font-size: 12px;
+    }
+
+    /* Favorites */
+    .fav-empty {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        padding: 64px 20px;
+        gap: 12px;
+    }
+
+        .fav-empty i {
+            font-size: 44px;
+            color: var(--border2);
+        }
+
+    .fav-empty-t {
+        font-family: var(--serif);
+        font-size: 18px;
+        color: var(--ink2);
+    }
+
+    .fav-empty-s {
+        font-size: 12.5px;
+        color: var(--ink4);
+        text-align: center;
+        max-width: 260px;
+        line-height: 1.7;
+        font-weight: 500;
+    }
+
+    /* Editor */
+    .ed-root {
+        display: flex;
+        flex-direction: column;
+        height: 100%;
+    }
+
+    .ed-head {
+        background: var(--bg2);
+        border-bottom: 1px solid var(--border);
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 10px 20px;
+        flex-shrink: 0;
+        flex-wrap: wrap;
+    }
+
+    .ed-title {
+        flex: 1;
+        min-width: 200px;
+        background: var(--bg3);
+        border: 1.5px solid var(--border);
+        border-radius: var(--rs);
+        padding: 7px 13px;
+        font-family: var(--serif);
+        font-size: 17px;
+        color: var(--ink);
+        outline: none;
+        transition: border-color .15s,box-shadow .15s;
+    }
+
+        .ed-title:focus {
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(var(--prgb),.10);
+        }
+
+        .ed-title::placeholder {
+            color: var(--ink4);
+            font-style: italic;
+        }
+
+    .ed-sel {
+        font-family: var(--font);
+        font-size: 11.5px;
+        font-weight: 700;
+        background: var(--bg3);
+        border: 1.5px solid var(--border);
+        border-radius: var(--rs);
+        color: var(--ink2);
+        padding: 7px 10px;
+        outline: none;
+        cursor: pointer;
+        transition: border-color .13s;
+    }
+
+        .ed-sel:focus {
+            border-color: var(--primary);
+        }
+
+    .ed-tb {
+        background: var(--bg2);
+        border-bottom: 1px solid var(--border);
+        display: flex;
+        align-items: center;
+        gap: 2px;
+        padding: 6px 18px;
+        flex-shrink: 0;
+        flex-wrap: wrap;
+    }
+
+    .tsep {
+        width: 1px;
+        height: 18px;
+        background: var(--border2);
+        margin: 0 5px;
+    }
+
+    .tb {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 30px;
+        height: 28px;
+        border-radius: 6px;
+        border: none;
+        background: transparent;
+        color: var(--ink3);
+        font-size: 13px;
+        cursor: pointer;
+        transition: all .12s;
+    }
+
+        .tb:hover {
+            background: var(--bg3);
+            color: var(--ink);
+        }
+
+    .tb-w {
+        width: auto;
+        padding: 0 9px;
+        font-size: 11px;
+        font-weight: 800;
+    }
+
+    .ed-body {
+        flex: 1;
+        display: flex;
+        overflow: hidden;
+    }
+
+    .ed-canvas {
+        flex: 1;
+        background: var(--bg2);
+        padding: 32px 48px;
+        overflow-y: auto;
+        display: flex;
+        flex-direction: column;
+    }
+
+        .ed-canvas::-webkit-scrollbar {
+            width: 4px;
+        }
+
+        .ed-canvas::-webkit-scrollbar-thumb {
+            background: var(--border2);
+            border-radius: 4px;
+        }
+
+    .rich-ed {
+        flex: 1;
+        min-height: 500px;
+        outline: none;
+        font-family: var(--font);
+        font-size: 14.5px;
+        line-height: 1.9;
+        color: var(--ink2);
+        word-break: break-word;
+    }
+
+        .rich-ed:empty::before {
+            content: attr(data-placeholder);
+            color: var(--ink4);
+            pointer-events: none;
+            font-style: italic;
+        }
+
+        .rich-ed h2 {
+            font-family: var(--serif);
+            font-size: 22px;
+            font-weight: 400;
+            margin: 22px 0 9px;
+            color: var(--ink);
+        }
+
+        .rich-ed h3 {
+            font-size: 15px;
+            font-weight: 800;
+            margin: 16px 0 7px;
+            color: var(--ink);
+        }
+
+        .rich-ed p {
+            margin-bottom: 10px;
+        }
+
+        .rich-ed ul, .rich-ed ol {
+            padding-left: 22px;
+            margin-bottom: 10px;
+        }
+
+        .rich-ed code {
+            font-size: 12px;
+            background: var(--bg4);
+            color: var(--primary3);
+            padding: 2px 7px;
+            border-radius: 5px;
+        }
+
+        .rich-ed blockquote {
+            border-left: 3px solid var(--primary);
+            padding-left: 15px;
+            color: var(--ink3);
+            margin: 10px 0;
+            font-style: italic;
+        }
+
+        .rich-ed hr {
+            border: none;
+            border-top: 1px solid var(--border);
+            margin: 18px 0;
+        }
+
+        .rich-ed a {
+            color: var(--primary);
+            text-decoration: underline;
+        }
+
+    .ed-panel {
+        width: 210px;
+        flex-shrink: 0;
+        background: var(--bg2);
+        border-left: 1px solid var(--border);
+        padding: 18px 16px;
+        overflow-y: auto;
+    }
+
+    .ep-lbl {
+        font-size: 8.5px;
+        font-weight: 800;
+        letter-spacing: .13em;
+        text-transform: uppercase;
+        color: var(--ink4);
+        margin-bottom: 6px;
+        margin-top: 16px;
+    }
+
+        .ep-lbl:first-child {
+            margin-top: 0;
+        }
+
+    .ep-in {
+        width: 100%;
+        font-family: var(--font);
+        font-size: 12.5px;
+        background: var(--bg3);
+        border: 1.5px solid var(--border);
+        border-radius: var(--rs);
+        color: var(--ink);
+        padding: 7px 10px;
+        outline: none;
+        margin-bottom: 5px;
+        transition: border-color .13s;
+    }
+
+        .ep-in:focus {
+            border-color: var(--primary);
+            box-shadow: 0 0 0 2px rgba(var(--prgb),.10);
+        }
+
+    .sub-it {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        padding: 5px 8px;
+        border-radius: 6px;
+        font-size: 11.5px;
+        color: var(--ink4);
+        cursor: pointer;
+        transition: all .12s;
+        margin-bottom: 2px;
+    }
+
+        .sub-it:hover {
+            background: var(--bg3);
+            color: var(--ink2);
+        }
+
+        .sub-it.active {
+            background: rgba(var(--prgb),.08);
+            color: var(--primary);
+        }
+
+    .add-sub {
+        display: flex;
+        align-items: center;
+        gap: 5px;
+        width: 100%;
+        padding: 5px 8px;
+        border-radius: 6px;
+        border: 1.5px dashed var(--border2);
+        background: transparent;
+        color: var(--ink4);
+        font-size: 11px;
+        font-weight: 700;
+        transition: all .13s;
+        margin-bottom: 2px;
+    }
+
+        .add-sub:hover {
+            border-color: var(--primary);
+            color: var(--primary);
+        }
+
+    .save-btn {
+        width: 100%;
+        padding: 9px;
+        border-radius: var(--rs);
+        border: none;
+        background: linear-gradient(135deg,var(--primary),var(--primary3));
+        color: #fff;
+        font-family: var(--font);
+        font-size: 12.5px;
+        font-weight: 800;
+        cursor: pointer;
+        transition: all .14s;
+        margin-top: 18px;
+        box-shadow: var(--shp);
+    }
+
+        .save-btn:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 6px 24px rgba(var(--prgb),.38);
+        }
+
+    .disc-btn {
+        width: 100%;
+        padding: 7px;
+        border-radius: var(--rs);
+        border: 1.5px solid var(--border2);
+        background: transparent;
+        color: var(--ink4);
+        font-family: var(--font);
+        font-size: 12px;
+        font-weight: 700;
+        cursor: pointer;
+        transition: all .13s;
+        margin-top: 6px;
+    }
+
+        .disc-btn:hover {
+            color: var(--red);
+            border-color: rgba(220,38,38,.3);
+        }
+
+    .ed-status {
+        background: var(--bg2);
+        border-top: 1px solid var(--border);
+        padding: 5px 48px;
+        font-size: 10.5px;
+        color: var(--ink4);
+        display: flex;
+        gap: 16px;
+        align-items: center;
+        flex-shrink: 0;
+    }
+
+    /* Toast */
+    .toast {
+        position: fixed;
+        bottom: 22px;
+        right: 22px;
+        background: var(--ink);
+        color: #fff;
+        font-size: 12.5px;
+        font-weight: 600;
+        font-family: var(--font);
+        padding: 11px 20px;
+        border-radius: var(--rs);
+        box-shadow: var(--sh2);
+        z-index: 9999;
+        transform: translateY(64px);
+        opacity: 0;
+        transition: all .28s cubic-bezier(.34,1.56,.64,1);
+        pointer-events: none;
+    }
+
+        .toast.show {
+            transform: translateY(0);
+            opacity: 1;
+        }
+
+    @@keyframes fadeUp {
+        from {
+            opacity: 0;
+            transform: translateY(14px);
+        }
+
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    /* Print */
+    @@media print {
+        .dv-sb, .dv-top, .dv-tabs, .doc-toc, .doc-fbar, .sbar, .doc-file-btns, .top-acts, .toast {
+            display: none !important;
+        }
+
+        .dv-root {
+            height: auto !important;
+            overflow: visible !important;
+        }
+
+        .dv-main {
+            overflow: visible !important;
+        }
+
+        .dv-content {
+            overflow: visible !important;
+            height: auto !important;
+        }
+
+        .browse-wrap {
+            height: auto !important;
+            overflow: visible !important;
+        }
+
+        .doc-pane {
+            overflow: visible !important;
+            padding: 20px !important;
+        }
+
+        .doc-h1 {
+            font-size: 26px !important;
+        }
+
+        .code-wrap {
+            box-shadow: none !important;
+            border: 1px solid #e0e0e0 !important;
+        }
+
+        .callout, .doc-table-wrap {
+            break-inside: avoid;
+        }
+
+        body {
+            background: #fff !important;
+        }
+
+        @@page {
+            margin: 2cm;
+        }
+    }
+</style>
+
+<div class="dv-root">
+    <!-- SIDEBAR -->
+    <div class="dv-sb">
+        <div class="sb-brand">
+            <div class="sb-brand-row">
+                <div class="sb-logo"><i class="bi bi-folder2-open"></i></div>
+                <div>
+                    <div class="sb-brand-name">DocVault</div>
+                    <div class="sb-brand-sub">Support Documentation</div>
+                </div>
+            </div>
+            <div class="sb-search">
+                <i class="bi bi-search"></i>
+                <input @bind="sbSearch" @bind:event="oninput" placeholder="Search documents…" />
+                @if (!string.IsNullOrEmpty(sbSearch))
+                {
+                    <button class="sb-clr" @onclick="() => sbSearch = string.Empty"><i class="bi bi-x"></i></button>
+                }
+            </div>
+        </div>
+
+        <!-- Tabs -->
+        <div class="dv-tabs">
+            <div class="dv-tab @(tab == "browse" && !edMode ? "active" : "")" @onclick='() => { edMode = false; GoTab("browse"); }'>
+                <i class="bi bi-folder2-open"></i> Browse <span class="tab-b">@AllFiles.Count()</span>
+            </div>
+            <div class="dv-tab @(tab == "index" ? "active" : "")" @onclick='() => { edMode = false; GoTab("index"); }'>
+                <i class="bi bi-grid-3x3-gap"></i> Index <span class="tab-b">@AllFiles.Count()</span>
+            </div>
+            <div class="dv-tab @(tab == "favorites" ? "active" : "")" @onclick='() => { edMode = false; GoTab("favorites"); }'>
+                <i class="bi bi-star"></i> Favorites <span class="tab-b">@favs.Count</span>
+            </div>
+
+            <div class="tab-sp"></div>
+        </div>
+
+        <div class="sb-scroll">
+            @foreach (var folder in GetFolders())
+            {
+                <div class="sb-fhd" @onclick="() => folder.IsOpen = !folder.IsOpen">
+                    <i class="bi bi-folder2 sb-fhd-ic"></i>
+                    <span>@folder.Name</span>
+                    <span class="sb-fhd-arr @(folder.IsOpen ? "open" : "")">▶</span>
+                </div>
+                <div class="sb-col @(folder.IsOpen ? "open" : "")">
+                    @foreach (var file in GetSbFiles(folder))
+                    {
+                        <div class="sb-item @(selDoc?.Id == file.Id && !edMode && tab == "browse" ? "active" : "")" @onclick="() => SelDoc(file)">
+                            <span class="sb-ic"><i class="bi @Icon(file.Type)"></i></span>
+                            <span class="sb-lbl">@file.Name</span>
+                            @if (favs.Contains(file.Id))
+                            {
+                                <span style="color:var(--fav);font-size:10px">★</span>
+                            }
+
+                        </div>
+                        @foreach (var sub in file.SubDocs)
+                        {
+                            <div class="sb-item sb-sub @(selDoc?.Id == file.Id && selSub?.Id == sub.Id && tab == "browse" ? "active" : "")" @onclick="() => SelSub(file, sub)">
+                                <span class="sb-ic"><i class="bi bi-file-earmark-text"></i></span>
+                                <span class="sb-lbl">@sub.Title</span>
+                            </div>
+                        }
+                    }
+                </div>
+            }
+        </div>
+
+
+    </div>
+
+    <!-- MAIN -->
+    <div class="dv-main">
+        <!-- Topbar -->
+        <div class="dv-top">
+            <div class="dv-bc">
+                <i class="bi bi-house" style="color:var(--ink4);font-size:12px"></i>
+                <span class="bc-sep">/</span><span class="bc-crumb">DocVault</span>
+                @if (edMode)
+                {
+                    <span class="bc-sep">/</span>
+
+                    <span class="bc-active">@(newDoc ? "New Document" : "Edit Document")</span>
+                }
+                else if (selDoc != null && tab == "browse")
+                {
+                    <span class="bc-sep">/</span>
+
+                    <span class="bc-crumb">@selDoc.Folder</span>
+                    <span class="bc-sep">/</span>
+
+                    <span class="bc-active">@(selSub != null ? selSub.Title : selDoc.Title)</span>
+                }
+                else
+                {
+                    <span class="bc-sep">/</span>
+
+                    <span class="bc-active">@TabLabel(tab)</span>
+                }
+            </div>
+            <div class="top-acts">
+                @if (!edMode && selDoc != null && tab == "browse")
+                {
+                    <button class="btn btn-outline-secondary @(favs.Contains(selDoc.Id) ? "fav-on" : "")" @onclick="() => TogFav(selDoc.Id)">
+                        <i class="bi @(favs.Contains(selDoc.Id) ? "bi-star-fill me-2" : "bi-star me-2")"></i>@(favs.Contains(selDoc.Id) ? "Saved" : "Favorite")
+                    </button>
+                    <button class="btn btn-outline-secondary" @onclick="DoPrint"><i class="bi bi-printer me-2"></i> Print</button>
+                    <button class="btn btn-outline-secondary" @onclick="DoExport"><i class="bi bi-download me-2"></i> Export</button>
+                }
+                @if (!edMode)
+                {
+                    <button class="btn btn-primary" @onclick="OpenNew"><i class="bi bi-plus-lg me-2"></i> New Document</button>
+                }
+            </div>
+        </div>
+
+
+
+        <!-- Content -->
+        <div class="dv-content">
+            @if (edMode)
+            {
+                <div class="ed-root">
+                    <div class="ed-head">
+                        <input class="form-control" style="width: 291px;" value="@edTitle" @oninput="e => edTitle = e.Value?.ToString() ?? string.Empty" placeholder="Document title…" />
+                        <select class="form-select" style="width: 291px;" @bind="edFolder">
+                            @foreach (var f in folders)
+                            {
+                                <option value="@f.Name">@f.Name</option>
+                            }
+                        </select>
+
+                    </div>
+                    <div class="ed-tb">
+                        <button class="tb" @onclick='() => Cmd("bold")'><i class="bi bi-type-bold"></i></button>
+                        <button class="tb" @onclick='() => Cmd("italic")'><i class="bi bi-type-italic"></i></button>
+                        <button class="tb" @onclick='() => Cmd("underline")'><i class="bi bi-type-underline"></i></button>
+                        <button class="tb" @onclick='() => Cmd("strikeThrough")'><i class="bi bi-type-strikethrough"></i></button>
+                        <div class="tsep"></div>
+                        <button class="tb tb-w" @onclick='() => Cmd("formatBlock", "h2")'>H2</button>
+                        <button class="tb tb-w" @onclick='() => Cmd("formatBlock", "h3")'>H3</button>
+                        <button class="tb tb-w" @onclick='() => Cmd("formatBlock", "p")'>P</button>
+                        <div class="tsep"></div>
+                        <button class="tb" @onclick='() => Cmd("insertUnorderedList")'><i class="bi bi-list-ul"></i></button>
+                        <button class="tb" @onclick='() => Cmd("insertOrderedList")'><i class="bi bi-list-ol"></i></button>
+                        <button class="tb" @onclick='() => Cmd("formatBlock", "blockquote")'><i class="bi bi-blockquote-left"></i></button>
+                        <div class="tsep"></div>
+                        <button class="tb" @onclick="WrapCode"><i class="bi bi-code"></i></button>
+                        <button class="tb" @onclick="DoLink"><i class="bi bi-link-45deg"></i></button>
+                        <button class="tb" @onclick='() => Cmd("insertHorizontalRule")'><i class="bi bi-dash-lg"></i></button>
+                        <div class="tsep"></div>
+                        <button class="tb" @onclick='() => Cmd("justifyLeft")'><i class="bi bi-text-left"></i></button>
+                        <button class="tb" @onclick='() => Cmd("justifyCenter")'><i class="bi bi-text-center"></i></button>
+                        <button class="tb" @onclick='() => Cmd("justifyRight")'><i class="bi bi-text-right"></i></button>
+                        <div class="tsep"></div>
+                        <button class="tb" @onclick="ClearEd" style="color:var(--red)"><i class="bi bi-trash"></i></button>
+                    </div>
+                    <div class="ed-body">
+                        <div class="ed-canvas">
+                            @if (!string.IsNullOrWhiteSpace(edTitle))
+                            {
+                                <div style="font-family:var(--serif);font-size:26px;color:var(--ink);margin-bottom:20px;opacity:.15;pointer-events:none;user-select:none;">@edTitle</div>
+                            }
+                            <div id="rich-ed" class="rich-ed" contenteditable="true" data-placeholder="Start writing your document…" @oninput="OnEdInput" @onkeydown="OnEdKey"></div>
+                        </div>
+                        <div class="ed-panel">
+                            <div class="ep-lbl">Author</div>
+                            <input class="form-control" @bind="edAuthor" placeholder="Author name…" />
+                            <div class="ep-lbl">Version</div>
+                            <input class="form-control" @bind="edVersion" placeholder="1.0" />
+                            <div class="ep-lbl">Summary</div>
+                            <textarea class="ep-in" @bind="edLead" placeholder="Brief description…" style="min-height:60px;resize:vertical"></textarea>
+                            <div class="Doc-btn d-flex flex-column gap-2">
+                                <button class="btn btn-primary w-100" @onclick="SaveDoc"><i class="bi bi-check-lg"></i> Save Document</button>
+                                <button class="btn btn-outline-secondary w-100" @onclick="Discard">Discard</button>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="ed-status">
+                        <span><i class="bi bi-type"></i> @wc words</span>
+                        <span><i class="bi bi-file-text"></i> @cc chars</span>
+                        <span style="margin-left:auto;color:var(--border2)">Rich Text</span>
+                    </div>
+                </div>
+            }
+            else if (tab == "browse")
+            {
+                @if (!string.IsNullOrWhiteSpace(gSearch))
+                {
+                    <div class="idx-wrap">
+                        <div class="idx-hd">Search Results</div>
+                        <div class="idx-sub">Results for "<strong>@gSearch</strong>"</div>
+                        @{
+                            var res = AllFiles.Where(f => f.Name.Contains(gSearch, StringComparison.OrdinalIgnoreCase) || f.Title.Contains(gSearch, StringComparison.OrdinalIgnoreCase) || f.Lead.Contains(gSearch, StringComparison.OrdinalIgnoreCase)).ToList();
+                        }
+                        @if (!res.Any())
+                        {
+                            <div class="fav-empty"><i class="bi bi-search"></i><div class="fav-empty-t">No results found</div><div class="fav-empty-s">Try a different keyword.</div></div>
+                        }
+                        else
+                        {
+                            <div class="idx-grid">
+                                @foreach (var f in res)
+                                {
+                                    <div class="idx-card" @onclick="() => FromIdx(f)">
+                                        @if (favs.Contains(f.Id))
+                                        {
+                                            <span class="ic-fav">★</span>
+                                        }
+                                        <div class="ic-name">@f.Name</div><div class="ic-path">@f.Folder / @f.FileName</div>
+                                        <div class="ic-badges"><span class="badge @Bdg(f.Status)">@f.Status</span><span class="badge badge-ver">@f.Version</span></div>
+                                    </div>
+                                }
+                            </div>
+                        }
+                    </div>
+                }
+                else if (selDoc == null)
+                {
+                    <div class="dv-empty">
+                        <div class="eg"><i class="bi bi-file-earmark-text" style="font-size:30px;color:var(--ink4)"></i></div>
+                        <div class="et">No document selected</div>
+                        <div class="es">Choose a file from the sidebar, or create a new document to get started.</div>
+                        <button class="btn btn-primary" style="margin-top:8px" @onclick="OpenNew"><i class="bi bi-plus-lg"></i> New Document</button>
+                    </div>
+                }
+                else
+                {
+                    <div class="browse-wrap">
+                        <div class="doc-pane" id="doc-pane">
+                            <div class="doc-fbar">
+                                <div class="doc-ficon"><i class="bi @Icon(selDoc.Type)"></i></div>
+                                <div class="doc-fmeta">
+                                    <div class="doc-fname">@selDoc.FileName</div>
+                                    <div class="doc-fpath">DocVault / @selDoc.Folder / @selDoc.FileName</div>
+                                </div>
+                                <div class="doc-fbtns">
+
+                                    <button class="editBtn" @onclick="() => EditDoc(selDoc)"><i class="bi bi-pencil"></i></button>
+
+                                </div>
+                            </div>
+
+                            @if (selDoc.SubDocs.Any())
+                            {
+                                <div class="sbar">
+                                    <div class="stab @(selSub == null ? "active" : "")" @onclick="() => selSub = null"><i class="bi bi-file-earmark-text"></i> @selDoc.Name</div>
+                                    @foreach (var sub in selDoc.SubDocs)
+                                    {
+                                        <div class="stab @(selSub?.Id == sub.Id ? "active" : "")" @onclick="() => selSub = sub"><i class="bi bi-file-earmark-text"></i> @sub.Title</div>
+                                    }
+                                    <button class="sadd" @onclick="() => OpenSub(selDoc)"><i class="bi bi-plus"></i> Add</button>
+                                </div>
+                            }
+
+                            @if (selSub != null)
+                            {
+                                <div class="doc-eyebrow"><i class="bi bi-file-earmark-text"></i> Sub-document</div>
+                                <div class="doc-h1">@selSub.Title</div>
+                                <hr class="doc-hr" />
+                                @if (!string.IsNullOrWhiteSpace(selSub.Content))
+                                {
+                                    <div class="doc-body">@((MarkupString)selSub.Content)</div>
+                                }
+                                else
+                                {
+                                    <div class="dv-empty" style="height:240px">
+                                        <div class="eg" style="width:60px;height:60px;font-size:22px"><i class="bi bi-pencil" style="color:var(--ink4)"></i></div>
+                                        <div class="es">Sub-document is empty. Click Edit to add content.</div>
+                                    </div>
+                                }
+                            }
+                            else
+                            {
+                                <div class="doc-eyebrow"><i class="bi @Icon(selDoc.Type)"></i> @selDoc.Folder</div>
+                                <div class="doc-h1">@selDoc.Title</div>
+                                <div class="doc-meta">
+                                    <span class="badge @Bdg(selDoc.Status)">@selDoc.Status</span>
+                                    <span class="badge badge-ver">@selDoc.Version</span>
+                                    @if (selDoc.IsNew)
+                                    {
+                                        <span class="badge badge-new">New</span>
+                                    }
+                                    @if (selDoc.IsUpdated && !selDoc.IsNew)
+                                    {
+                                        <span class="badge badge-upd">Updated</span>
+                                    }
+                                    <span class="mdiv"></span>
+                                    <span class="minfo"><i class="bi bi-calendar3"></i> @selDoc.LastUpdated</span>
+                                    <span class="mdiv"></span>
+                                    <span class="minfo"><i class="bi bi-person"></i> @selDoc.Author</span>
+                                </div>
+                                <hr class="doc-hr" />
+                                @if (!string.IsNullOrWhiteSpace(selDoc.Lead))
+                                {
+                                    <div class="doc-lead">@selDoc.Lead</div>
+                                }
+                                <div class="doc-body" id="doc-body">@((MarkupString)selDoc.Content)</div>
+                            }
+                        </div>
+                        <div class="doc-toc">
+                            <div class="toc-hd">On This Page</div>
+                            @if (selSub == null)
+                            {
+                                @foreach (var sec in selDoc.Sections)
+                                {
+                                    <a class="toc-lnk @(tocAct == sec.Id ? "active" : "")" @onclick="() => ScrollTo(sec.Id)">@sec.Title</a>
+                                }
+                            }
+                            @if (selDoc.SubDocs.Any())
+                            {
+                                <div class="toc-hd" style="margin-top:18px">Sub-Documents</div>
+                                <a class="toc-lnk @(selSub == null ? "active" : "")" @onclick="() => selSub = null">@selDoc.Name</a>
+                                @foreach (var sub in selDoc.SubDocs)
+                                {
+                                    <a class="toc-lnk @(selSub?.Id == sub.Id ? "active" : "")" @onclick="() => selSub = sub">@sub.Title</a>
+                                }
+                            }
+                        </div>
+                    </div>
+                }
+            }
+            else if (tab == "index")
+            {
+                <div class="idx-wrap">
+                    <div class="idx-hd">Document Index</div>
+                    <div class="idx-sub">@AllFiles.Count() documents across @folders.Count folders</div>
+                    <div class="idx-filters">
+                        <button class="idx-chip @(idxF == "" ? "on" : "")" @onclick='() => idxF = ""'>All</button>
+                        <button class="idx-chip @(idxF == "Stable" ? "on" : "")" @onclick='() => idxF = "Stable"'>✅ Stable</button>
+                        <button class="idx-chip @(idxF == "Draft" ? "on" : "")" @onclick='() => idxF = "Draft"'>📝 Draft</button>
+                        <button class="idx-chip @(idxF == "In Review" ? "on" : "")" @onclick='() => idxF = "In Review"'>🔄 In Review</button>
+                        <button class="idx-chip @(idxF == "New" ? "on" : "")" @onclick='() => idxF = "New"'>🆕 New</button>
+                        <button class="idx-chip @(idxF == "Fav" ? "on" : "")" @onclick='() => idxF = "Fav"'>⭐ Favorites</button>
+                    </div>
+                    @foreach (var folder in folders)
+                    {
+                        var files = IdxFiles(folder); if (!files.Any()) continue;
+                        <div class="idx-sl"><i class="bi bi-folder2-open"></i>@folder.Name</div>
+                        <div class="idx-grid">
+                            @foreach (var file in files)
+                            {
+                                <div class="idx-card" @onclick="() => FromIdx(file)">
+                                    @if (favs.Contains(file.Id))
+                                    {
+                                        <span class="ic-fav">★</span>
+                                    }
+                                    <div class="ic-name">@file.Name</div><div class="ic-path">@folder.Name / @file.FileName</div>
+                                    <div class="ic-badges">
+                                        <span class="badge @Bdg(file.Status)">@file.Status</span>
+                                        <span class="badge badge-ver">@file.Version</span>
+                                        @if (file.IsNew)
+                                        {
+                                            <span class="badge badge-new">New</span>
+                                        }
+                                        @if (file.SubDocs.Any())
+                                        {
+                                            <span class="badge badge-review">@file.SubDocs.Count sub</span>
+                                        }
+                                    </div>
+                                </div>
+                            }
+                        </div>
+                    }
+                </div>
+            }
+            else if (tab == "favorites")
+            {
+                <div class="idx-wrap">
+                    <div class="idx-hd">⭐ Favorites</div>
+                    <div class="idx-sub">@favs.Count saved document@(favs.Count != 1 ? "s" : "")</div>
+                    @{
+                        var ff = AllFiles.Where(f => favs.Contains(f.Id)).ToList();
+                    }
+                    @if (!ff.Any())
+                    {
+                        <div class="fav-empty"><i class="bi bi-star"></i><div class="fav-empty-t">No favorites yet</div><div class="fav-empty-s">Click ★ Save on any document to pin it here.</div></div>
+                    }
+                    else
+                    {
+                        <div class="idx-grid">
+                            @foreach (var file in ff)
+                            {
+                                <div class="idx-card" @onclick="() => FromIdx(file)">
+                                    <span class="ic-fav">★</span>
+                                    <span class="ic-icon"><i class="bi @Icon(file.Type)"></i></span>
+                                    <div class="ic-name">@file.Name</div><div class="ic-path">@file.Folder / @file.FileName</div>
+                                    <div class="ic-badges"><span class="badge @Bdg(file.Status)">@file.Status</span><span class="badge badge-ver">@file.Version</span></div>
+                                </div>
+                            }
+                        </div>
+                    }
+                </div>
+            }
+        </div>
+    </div>
+</div>
+
+<div class="toast @(toastOn ? "show" : "")">@toastMsg</div>
+
+<script>
+    window.richCmd=(c,v)=>{const e=document.getElementById('rich-ed');if(!e)return;e.focus();document.execCommand(c,false,v||null);};
+    window.wrapCode=()=>{const e=document.getElementById('rich-ed');if(!e)return;e.focus();const s=window.getSelection();if(s&&s.rangeCount>0&&!s.isCollapsed){const r=s.getRangeAt(0);const c=document.createElement('code');r.surroundContents(c);}};
+    window.doLink=()=>{const u=prompt('URL:','https://');if(u){const e=document.getElementById('rich-ed');if(e){e.focus();document.execCommand('createLink',false,u);}}};
+    window.getHtml=()=>{const e=document.getElementById('rich-ed');return e?e.innerHTML:'';};
+    window.setHtml=(h)=>{const e=document.getElementById('rich-ed');if(e)e.innerHTML=h||'';};
+    window.scrollToId=(id)=>{const p=document.getElementById('doc-pane');if(!p)return;const el=p.querySelector('[id="'+id+'"]');if(el)el.scrollIntoView({behavior:'smooth',block:'start'});};
+    window.getActiveSec=(ids)=>{const p=document.getElementById('doc-pane');if(!p)return'';for(let i=ids.length-1;i>=0;i--){const el=p.querySelector('[id="'+ids[i]+'"]');if(el&&el.getBoundingClientRect().top<=130)return ids[i];}return ids[0]||'';};
+    window.doExport=(title,lead,content)=>{const t=document.createElement('div');t.innerHTML=(lead?lead+'\n\n':'')+content;const text='# '+title+'\n\n'+(t.innerText||t.textContent||'');const b=new Blob([text],{type:'text/plain;charset=utf-8'});const a=document.createElement('a');a.href=URL.createObjectURL(b);a.download=title.replace(/[^a-z0-9]/gi,'_')+'.txt';document.body.appendChild(a);a.click();document.body.removeChild(a);URL.revokeObjectURL(a.href);};
+    window.doPrint=()=>window.print();
+</script>
+
+@code {
+    string tab = "browse", sbSearch = "", gSearch = "", fStatus = "", idxF = "";
+    HashSet<string> favs = new();
+    DocFile? selDoc; SubDoc? selSub; string tocAct = "";
+    bool edMode = false, newDoc = true;
+    DocFile? edDoc; DocFile? subPar;
+    string edTitle = "", edFolder = "", edStatus = "Draft", edAuthor = "", edVersion = "1.0", edLead = "";
+    List<SubDoc> edSubs = new(); SubDoc? edSubAct;
+    string richHtml = ""; int wc = 0, cc = 0;
+    string toastMsg = ""; bool toastOn = false;
+    System.Timers.Timer? toastTimer;
+
+    IEnumerable<DocFile> AllFiles => folders.SelectMany(f => f.Files);
+    IEnumerable<DocFolder> GetFolders() => folders.Where(f => GetSbFiles(f).Any());
+    IEnumerable<DocFile> GetSbFiles(DocFolder folder) => folder.Files.Where(f =>
+    {
+        bool ms = string.IsNullOrEmpty(sbSearch) || f.Name.Contains(sbSearch, StringComparison.OrdinalIgnoreCase) || f.Title.Contains(sbSearch, StringComparison.OrdinalIgnoreCase);
+        bool mf = fStatus switch { "★" => favs.Contains(f.Id), "" => true, _ => f.Status == fStatus };
+        return ms && mf;
+    });
+    IEnumerable<DocFile> IdxFiles(DocFolder folder) => folder.Files.Where(f => idxF switch
+    {
+        "Stable" => f.Status == "Stable",
+        "Draft" => f.Status == "Draft",
+        "In Review" => f.Status == "In Review",
+        "New" => f.IsNew,
+        "Fav" => favs.Contains(f.Id),
+        _ => true
+    });
+
+    string TabLabel(string t) => t switch { "browse" => "Browse", "index" => "Index", "favorites" => "Favorites", _ => "" };
+    string Icon(string t) => t switch { "razor" => "bi-lightning-charge-fill", "md" => "bi-markdown", "pdf" => "bi-file-earmark-pdf", "api" => "bi-plug", "config" => "bi-gear", "guide" => "bi-book", _ => "bi-file-earmark-text" };
+    string Bdg(string s) => s switch { "Stable" => "badge-stable", "Draft" => "badge-draft", "In Review" => "badge-review", _ => "badge-stable" };
+
+    void GoTab(string t) { tab = t; if (t != "browse") { selDoc = null; selSub = null; } }
+    void SelDoc(DocFile f) { selDoc = f; selSub = null; tocAct = f.Sections.FirstOrDefault()?.Id ?? ""; tab = "browse"; edMode = false; }
+    void SelSub(DocFile f, SubDoc s) { selDoc = f; selSub = s; tab = "browse"; edMode = false; }
+    void FromIdx(DocFile f) { selDoc = f; selSub = null; tocAct = f.Sections.FirstOrDefault()?.Id ?? ""; tab = "browse"; edMode = false; gSearch = ""; }
+    void TogFav(string id) { if (!favs.Remove(id)) favs.Add(id); Toast(favs.Contains(id) ? "★ Added to favorites" : "Removed from favorites"); }
+
+    async Task OpenNew()
+    {
+        newDoc = true; edDoc = null; subPar = null;
+        edTitle = ""; edAuthor = ""; edVersion = "1.0"; edLead = "";
+        edFolder = folders.FirstOrDefault()?.Name ?? ""; edStatus = "Draft";
+        edSubs = new(); edSubAct = null; richHtml = ""; wc = 0; cc = 0;
+        edMode = true; await Task.Delay(60); await JS.InvokeVoidAsync("setHtml", "");
+    }
+    async Task EditDoc(DocFile f)
+    {
+        newDoc = false; edDoc = f; subPar = null;
+        edTitle = f.Title; edAuthor = f.Author; edVersion = f.Version;
+        edLead = f.Lead; edFolder = f.Folder; edStatus = f.Status;
+        edSubs = f.SubDocs.ToList(); edSubAct = null; richHtml = f.Content;
+        edMode = true; await Task.Delay(60); await JS.InvokeVoidAsync("setHtml", f.Content);
+    }
+    async Task OpenSub(DocFile par)
+    {
+        newDoc = true; edDoc = null; subPar = par;
+        edTitle = ""; edAuthor = par.Author; edVersion = "1.0"; edLead = "";
+        edFolder = par.Folder; edStatus = "Draft";
+        edSubs = new(); edSubAct = null; richHtml = ""; wc = 0; cc = 0;
+        edMode = true; await Task.Delay(60); await JS.InvokeVoidAsync("setHtml", "");
+    }
+    async Task SaveDoc()
+    {
+        if (string.IsNullOrWhiteSpace(edTitle)) { Toast("⚠️ Please enter a title"); return; }
+        richHtml = await JS.InvokeAsync<string>("getHtml");
+        if (subPar != null)
+        {
+            subPar.SubDocs.Add(new SubDoc { Id = Guid.NewGuid().ToString("N")[..6], Title = edTitle, Content = richHtml });
+            selDoc = subPar; selSub = subPar.SubDocs.Last();
+            tab = "browse"; subPar = null; edMode = false; Toast($"✅ '{edTitle}' saved"); return;
+        }
+        if (!newDoc && edDoc != null)
+        {
+            edDoc.Title = edTitle; edDoc.Content = richHtml; edDoc.RawContent = richHtml;
+            edDoc.Author = edAuthor; edDoc.Version = edVersion; edDoc.Lead = edLead;
+            edDoc.Status = edStatus; edDoc.SubDocs = edSubs.ToList();
+            selDoc = edDoc; selSub = null; tab = "browse"; edMode = false; Toast($"✅ '{edTitle}' updated"); return;
+        }
+        var tgt = folders.FirstOrDefault(f => f.Name == edFolder);
+        if (tgt == null) { tgt = new DocFolder { Name = edFolder, IsOpen = true }; folders.Add(tgt); }
+        var doc = new DocFile { Id = Guid.NewGuid().ToString("N")[..8], Name = edTitle, FileName = edTitle.Replace(" ", "") + ".md", Folder = edFolder, Title = edTitle, Type = "md", Status = edStatus, Version = edVersion, LastUpdated = DateTime.Now.ToString("MMMM yyyy"), Author = edAuthor, Lead = edLead, RawContent = richHtml, Content = richHtml, IsNew = true, SubDocs = edSubs.ToList() };
+        tgt.Files.Insert(0, doc); selDoc = doc; selSub = null; tab = "browse"; edMode = false; Toast($"✅ '{edTitle}' created");
+    }
+    void Discard() { edMode = false; subPar = null; Toast("Draft discarded"); }
+    void AddSub() { var s = new SubDoc { Id = Guid.NewGuid().ToString("N")[..6], Title = $"Sub-document {edSubs.Count + 1}" }; edSubs.Add(s); edSubAct = s; }
+
+    async Task Cmd(string c, string? v = null) => await JS.InvokeVoidAsync("richCmd", c, v);
+    async Task WrapCode() => await JS.InvokeVoidAsync("wrapCode");
+    async Task DoLink() => await JS.InvokeVoidAsync("doLink");
+    async Task ClearEd() { richHtml = ""; wc = 0; cc = 0; await JS.InvokeVoidAsync("setHtml", ""); }
+
+    void OnEdInput(ChangeEventArgs e) { richHtml = e.Value?.ToString() ?? ""; }
+    async Task OnEdKey(KeyboardEventArgs e)
+    {
+        richHtml = await JS.InvokeAsync<string>("getHtml");
+        var s = System.Text.RegularExpressions.Regex.Replace(richHtml, "<[^>]+>", " ");
+        wc = string.IsNullOrWhiteSpace(s) ? 0 : s.Split(new[] { ' ', '\n', '\r', '\t' }, StringSplitOptions.RemoveEmptyEntries).Length;
+        cc = s.Length; StateHasChanged();
+    }
+
+    async Task ScrollTo(string id) { tocAct = id; await JS.InvokeVoidAsync("scrollToId", id); StateHasChanged(); }
+
+    async Task DoExport()
+    {
+        if (selDoc == null) { Toast("⚠️ No document selected"); return; }
+        var title = selSub != null ? selSub.Title : selDoc.Title;
+        var lead = selSub != null ? "" : selDoc.Lead;
+        var content = selSub != null ? selSub.Content : selDoc.Content;
+        await JS.InvokeVoidAsync("doExport", title, lead, content); Toast("⬇️ Exported as .txt");
+    }
+    async Task DoPrint()
+    {
+        if (selDoc == null) { Toast("⚠️ No document selected"); return; }
+        await JS.InvokeVoidAsync("doPrint");
+    }
+
+    void Toast(string msg)
+    {
+        toastMsg = msg; toastOn = true; StateHasChanged();
+        toastTimer?.Dispose();
+        toastTimer = new System.Timers.Timer(2600);
+        toastTimer.Elapsed += (_, _) => { toastOn = false; InvokeAsync(StateHasChanged); toastTimer?.Dispose(); };
+        toastTimer.AutoReset = false; toastTimer.Start();
+    }
+
+    public class DocFolder { public string Name { get; set; } = ""; public bool IsOpen { get; set; } = true; public List<DocFile> Files { get; set; } = new(); }
+    public class SubDoc { public string Id { get; set; } = ""; public string Title { get; set; } = ""; public string Content { get; set; } = ""; }
+    public class TocSection { public string Id { get; set; } = ""; public string Title { get; set; } = ""; }
+    public class DocFile
+    {
+        public string Id { get; set; } = ""; public string Name { get; set; } = ""; public string FileName { get; set; } = "";
+        public string Folder { get; set; } = ""; public string Title { get; set; } = ""; public string Type { get; set; } = "md";
+        public string Status { get; set; } = "Stable"; public string Version { get; set; } = "1.0";
+        public string LastUpdated { get; set; } = ""; public string Author { get; set; } = "";
+        public string Lead { get; set; } = ""; public string Content { get; set; } = ""; public string RawContent { get; set; } = "";
+        public bool IsNew { get; set; }
+        public bool IsUpdated { get; set; }
+        public List<TocSection> Sections { get; set; } = new(); public List<SubDoc> SubDocs { get; set; } = new();
+    }
+
+    List<DocFolder> folders = new(){
+        new DocFolder{Name="Organization Setup",IsOpen=true,Files=new(){
+            new DocFile{Id="intro",Name="Company Overview",FileName="Introduction.md",Folder="Organization Setup",Title="Introduction to Support Docs",Type="md",Status="Stable",Version="2.1",LastUpdated="March 2026",Author="Dev Team",
+                Lead="This documentation covers the Support_Doc module — a document tree viewer built with Blazor. Navigate folders, preview files, and manage support content all in one place.",
+                Sections=new(){new(){Id="overview",Title="Overview"},new(){Id="structure",Title="Folder Structure"},new(){Id="usage",Title="Usage"}},
+                Content="<h2 id='overview'>Overview</h2><p>The <code>Support_Doc</code> folder is the root of all support documentation. Files are organized by category and rendered dynamically using Blazor.</p><div class='callout tip'><div class='callout-icon'><i class='bi bi-lightbulb-fill'></i></div><div><div class='callout-title'>Quick Tip</div>Use the search bar to find documents instantly.</div></div><h2 id='structure'>Folder Structure</h2><p>Each subfolder maps to a documentation category.</p><div class='code-wrap'><div class='code-bar'><div class='dots'><div class='d d1'></div><div class='d d2'></div><div class='d d3'></div></div><span class='code-fname'>Directory</span><span class='code-lang'>tree</span></div><pre>Support_Doc/\n├── Organization Setup/\n├── Components/\n└── API Reference/</pre></div><h2 id='usage'>Usage</h2><p>Navigate to <code>/document-viewer</code> in your Blazor app.</p><div class='doc-table-wrap'><table class='doc-table'><thead><tr><th>Parameter</th><th>Type</th><th>Description</th></tr></thead><tbody><tr><td>RootPath</td><td>string</td><td>Base path of the document folder</td></tr><tr><td>ShowSearch</td><td>bool</td><td>Toggle search visibility</td></tr><tr><td>DefaultDoc</td><td>string?</td><td>Document to open on load</td></tr></tbody></table></div>"
+            },
+            new DocFile{Id="quickstart",Name="Quick Start",FileName="QuickStart.md",Folder="Organization Setup",Title="Quick Start Guide",Type="guide",Status="Stable",Version="1.3",LastUpdated="Feb 2026",Author="Dev Team",IsNew=true,
+                Lead="Get the DocumentTree component running in under 5 minutes.",
+                Sections=new(){new(){Id="install",Title="Installation"},new(){Id="register",Title="Register Route"},new(){Id="firstdoc",Title="Your First Doc"}},
+                Content="<h2 id='install'>Installation</h2><p>Add the <code>Support_Doc</code> folder to your Blazor project under <code>Pages/</code>. No NuGet package required.</p><div class='callout info'><div class='callout-icon'><i class='bi bi-info-circle-fill'></i></div><div><div class='callout-title'>Prerequisites</div>Requires .NET 8+ and Blazor Server or WebAssembly.</div></div><h2 id='register'>Register Route</h2><p>The page directive registers at <code>/document-viewer</code>.</p><h2 id='firstdoc'>Your First Doc</h2><p>Create a <code>.md</code> file inside any subfolder and it will appear in the sidebar automatically.</p>"
+            }
+        }},
+        new DocFolder{Name="Components",IsOpen=true,Files=new(){
+            new DocFile{Id="doctree",Name="DocumentTree",FileName="DocumentTree.razor",Folder="Components",Title="DocumentTree Component",Type="razor",Status="Stable",Version="3.0",LastUpdated="March 2026",Author="Dev Team",IsUpdated=true,
+                Lead="The core component rendering the sidebar tree, file selection, tabs, and favorites.",
+                Sections=new(){new(){Id="props",Title="Parameters"},new(){Id="events",Title="EventCallbacks"},new(){Id="lifecycle",Title="Lifecycle"}},
+                Content="<h2 id='props'>Parameters</h2><div class='doc-table-wrap'><table class='doc-table'><thead><tr><th>Parameter</th><th>Type</th><th>Default</th><th>Description</th></tr></thead><tbody><tr><td>RootPath</td><td>string</td><td>\"Support_Doc\"</td><td>Root directory to scan</td></tr><tr><td>ShowToc</td><td>bool</td><td>true</td><td>Show/hide TOC panel</td></tr><tr><td>DefaultDocId</td><td>string?</td><td>null</td><td>Pre-select a document on load</td></tr></tbody></table></div><h2 id='events'>EventCallbacks</h2><p>Bind <code>OnDocSelected</code> to react when the user clicks a document.</p><h2 id='lifecycle'>Lifecycle</h2><p>Initializes in <code>OnInitializedAsync</code>.</p><div class='callout warn'><div class='callout-icon'><i class='bi bi-exclamation-triangle-fill'></i></div><div><div class='callout-title'>SSR Note</div>Add rendermode InteractiveServer for full interactivity.</div></div>"
+            },
+            new DocFile{Id="filepreview",Name="FilePreview",FileName="FilePreview.razor",Folder="Components",Title="FilePreview Component",Type="razor",Status="In Review",Version="1.0",LastUpdated="March 2026",Author="Dev Team",IsNew=true,
+                Lead="Renders document content with syntax highlighting.",
+                Sections=new(){new(){Id="supported",Title="Supported Formats"},new(){Id="highlight",Title="Syntax Highlighting"}},
+                Content="<h2 id='supported'>Supported Formats</h2><div class='doc-table-wrap'><table class='doc-table'><thead><tr><th>Format</th><th>Renderer</th><th>Status</th></tr></thead><tbody><tr><td>.md</td><td>Markdown parser</td><td>✅ Stable</td></tr><tr><td>.razor</td><td>Syntax highlighter</td><td>✅ Stable</td></tr><tr><td>.pdf</td><td>iframe embed</td><td>🔄 In Review</td></tr></tbody></table></div><h2 id='highlight'>Syntax Highlighting</h2><p>Code blocks are highlighted using a built-in token colorizer.</p><div class='callout purple'><div class='callout-icon'><i class='bi bi-palette-fill'></i></div><div><div class='callout-title'>Custom Themes</div>Override highlight colors via CSS variables prefixed with <code>--hl-</code>.</div></div>"
+            }
+        }},
+        new DocFolder{Name="API Reference",IsOpen=false,Files=new(){
+            new DocFile{Id="supportapi",Name="Support API",FileName="SupportApi.md",Folder="API Reference",Title="Support API Reference",Type="api",Status="Draft",Version="0.9",LastUpdated="Jan 2026",Author="Backend Team",IsUpdated=true,
+                Lead="REST API endpoints for syncing, uploading, and managing support documents programmatically.",
+                Sections=new(){new(){Id="endpoints",Title="Endpoints"},new(){Id="auth",Title="Authentication"}},
+                Content="<h2 id='endpoints'>Endpoints</h2><div class='doc-table-wrap'><table class='doc-table'><thead><tr><th>Method</th><th>Endpoint</th><th>Description</th></tr></thead><tbody><tr><td>GET</td><td>/api/docs</td><td>List all documents</td></tr><tr><td>POST</td><td>/api/docs</td><td>Upload new document</td></tr><tr><td>DELETE</td><td>/api/docs/{id}</td><td>Remove a document</td></tr></tbody></table></div><h2 id='auth'>Authentication</h2><p>All endpoints require a Bearer token in the <code>Authorization</code> header.</p><div class='callout danger'><div class='callout-icon'><i class='bi bi-exclamation-octagon-fill'></i></div><div><div class='callout-title'>Draft API</div>Breaking changes may occur before v1.0 release.</div></div>"
+            }
+        }}
+    };
+}

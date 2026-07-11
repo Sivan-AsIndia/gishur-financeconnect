@@ -1,0 +1,103 @@
+@page "/deferred-revenues/create"
+@page "/deferred-revenues/edit/{Id:guid}"
+@using FinanceConnect.Client.ViewModels
+@using FinanceConnect.Client.Services
+@using static FinanceConnect.Client.ViewModels.DeferredRevenueViewModel
+
+<style>.validation-message{color:#dc3545;font-size:12px;}.form-check-label{font-size:13px;}</style>
+
+<div class="content flat-form">
+    <div class="page-header"><div class="page-title"><h4 class="fw-bold">@(IsEdit ? "Edit Deferred Revenue" : "Create Deferred Revenue")</h4><h6>Advance-billed revenue liability and release schedule</h6></div>
+        <div class="page-btn"><a href="/deferred-revenues" class="btn btn-outline-secondary"><i class="ti ti-arrow-left"></i> Back</a></div></div>
+    <EditForm EditContext="_editContext" OnSubmit="Save"><DataAnnotationsValidator />
+
+        <div class="card mt-4"><div class="card-body"><h6 class="text-primary mb-3 d-flex align-items-center"><i class="ti ti-id me-2" style="font-size:22px;"></i> Core Identity</h6>
+            <div class="row g-3">
+                <div class="col-md-3"><label class="form-label">Deferred Revenue Code <span class="text-danger">*</span></label>@if(IsEdit){<div class="fw-semibold fs-14 mt-1">@(Model.DeferredRevenueCode ?? "–")</div>}else{<InputText class="form-control text-uppercase" @bind-Value="Model.DeferredRevenueCode" placeholder="e.g. DEFREV-2026-0001" />}<ValidationMessage For="@(()=>Model.DeferredRevenueCode)" /></div>
+                <div class="col-md-5"><label class="form-label">Deferred Revenue Title <span class="text-danger">*</span></label><InputText class="form-control" @bind-Value="Model.DeferredRevenueTitle" placeholder="e.g. Annual Subscription Deferred Revenue" /><ValidationMessage For="@(()=>Model.DeferredRevenueTitle)" /></div>
+                <div class="col-md-2"><label class="form-label">Status <span class="text-danger">*</span></label><InputSelect class="form-select" @bind-Value="Model.DeferredRevenueStatus">@foreach(var v in Enum.GetValues<DeferredRevenueStatusEnum>()){<option value="@v">@v</option>}</InputSelect></div>
+                <div class="col-md-2"><label class="form-label">Source Type <span class="text-danger">*</span></label><InputSelect class="form-select" @bind-Value="Model.SourceType">@foreach(var v in Enum.GetValues<SourceTypeEnum>()){<option value="@v">@v</option>}</InputSelect><ValidationMessage For="@(()=>Model.SourceType)" /></div>
+                <div class="col-md-12"><label class="form-label">Description</label><InputTextArea class="form-control" rows="2" @bind-Value="Model.Description" placeholder="Optional..." /></div>
+            </div></div></div>
+
+        <div class="card mt-4"><div class="card-body"><h6 class="text-primary mb-3 d-flex align-items-center"><i class="ti ti-user me-2" style="font-size:22px;"></i> Source & Customer</h6>
+            <div class="row g-3">
+                <div class="col-md-4"><label class="form-label">Customer Name <span class="text-danger">*</span></label><InputText class="form-control" @bind-Value="Model.CustomerName" placeholder="e.g. Luxury Interiors Pvt Ltd" title="Customer for this deferral" /><ValidationMessage For="@(()=>Model.CustomerId)" /></div>
+                <div class="col-md-4"><label class="form-label">Source Document Number</label><InputText class="form-control" @bind-Value="Model.SourceDocumentNumber" placeholder="e.g. INV-SUB-2026-001" /></div>
+                <div class="col-md-4"><label class="form-label">Revenue Category Code</label><InputText class="form-control" @bind-Value="Model.RevenueCategoryCode" placeholder="e.g. SUBSCRIPTION" /></div>
+                <div class="col-md-4"><label class="form-label">Contract</label><InputText class="form-control" @bind-Value="Model.ContractName" placeholder="e.g. AMC-2026-001" title="Associated contract/agreement" /></div>
+                <div class="col-md-4"><label class="form-label">Subscription</label><InputText class="form-control" @bind-Value="Model.SubscriptionName" placeholder="e.g. SUB-ANNUAL-001" title="Associated subscription" /></div>
+                <div class="col-md-12"><label class="form-label">Basis Reference <span class="text-danger">*</span></label><InputText class="form-control" @bind-Value="Model.BasisReferenceText" placeholder="e.g. annual support invoice billed in advance" /><ValidationMessage For="@(()=>Model.BasisReferenceText)" /></div>
+            </div></div></div>
+
+        <div class="card mt-4"><div class="card-body"><h6 class="text-primary mb-3 d-flex align-items-center"><i class="ti ti-calendar me-2" style="font-size:22px;"></i> Coverage & Release</h6>
+            <div class="row g-3">
+                <div class="col-md-3"><label class="form-label">Coverage Start <span class="text-danger">*</span></label><InputDate class="form-control" @bind-Value="Model.DeferredStartDate" /><ValidationMessage For="@(()=>Model.DeferredStartDate)" /></div>
+                <div class="col-md-3"><label class="form-label">Coverage End <span class="text-danger">*</span></label><InputDate class="form-control" @bind-Value="Model.DeferredEndDate" /><ValidationMessage For="@(()=>Model.DeferredEndDate)" /></div>
+                @if(IsEdit){<div class="col-md-2"><label class="form-label">Coverage Days</label><div class="form-control bg-light">@Model.CoverageDays</div></div>}
+                <div class="col-md-2"><label class="form-label">Release Method <span class="text-danger">*</span></label><InputSelect class="form-select" @bind-Value="Model.ReleaseMethod">@foreach(var v in Enum.GetValues<ReleaseMethodEnum>()){<option value="@v">@v</option>}</InputSelect><ValidationMessage For="@(()=>Model.ReleaseMethod)" /></div>
+                <div class="col-md-2"><label class="form-label">Frequency</label><InputSelect class="form-select" @bind-Value="Model.ReleaseFrequency"><option value="">-- Select --</option>@foreach(var v in Enum.GetValues<ReleaseFrequencyEnum>()){<option value="@v">@v</option>}</InputSelect></div>
+                <div class="col-md-3"><label class="form-label">Release Start <span class="text-danger">*</span></label><InputDate class="form-control" @bind-Value="Model.ReleaseStartDate" /><ValidationMessage For="@(()=>Model.ReleaseStartDate)" /></div>
+                <div class="col-md-3"><label class="form-label">Release End</label><InputDate class="form-control" @bind-Value="Model.ReleaseEndDate" /></div>
+                <div class="col-md-3 d-flex align-items-center gap-2 mt-3"><InputCheckbox class="form-check-input" @bind-Value="Model.IsScheduleGenerated" /><label class="form-check-label">Schedule Generated</label></div>
+                <div class="col-md-3 d-flex align-items-center gap-2 mt-3"><InputCheckbox class="form-check-input" @bind-Value="Model.ServiceProofRequiredFlag" /><label class="form-check-label">Service Proof Required</label></div>
+                @if(IsEdit)
+                {
+                    <div class="col-md-3"><label class="form-label">Next Release Due</label><div class="form-control bg-light">@(Model.NextReleaseDueDate?.ToString("dd MMM yyyy") ?? "–")</div></div>
+                    <div class="col-md-3"><label class="form-label">Last Release Date</label><div class="form-control bg-light">@(Model.LastReleaseDate?.ToString("dd MMM yyyy") ?? "–")</div></div>
+                }
+            </div></div></div>
+
+        <div class="card mt-4"><div class="card-body"><h6 class="text-primary mb-3 d-flex align-items-center"><i class="ti ti-currency-dollar me-2" style="font-size:22px;"></i> Amounts</h6>
+            <div class="row g-3">
+                <div class="col-md-3"><label class="form-label">Currency <span class="text-danger">*</span></label><InputSelect class="form-select" @bind-Value="Model.CurrencyId"><option value="">-- Select --</option>@foreach(var c in CurrencyList){<option value="@c.Key">@c.Value</option>}</InputSelect><ValidationMessage For="@(()=>Model.CurrencyId)" /></div>
+                <div class="col-md-3"><label class="form-label">Original Deferred Amount <span class="text-danger">*</span></label><InputNumber class="form-control" @bind-Value="Model.OriginalDeferredAmount" placeholder="0.00" /><ValidationMessage For="@(()=>Model.OriginalDeferredAmount)" /></div>
+                @if(IsEdit){
+                    <div class="col-md-2"><label class="form-label">Released</label><div class="form-control bg-light">@Model.ReleasedToRevenueAmount.ToString("N2")</div></div>
+                    <div class="col-md-2"><label class="form-label">Remaining</label><div class="form-control bg-light @(Model.RemainingDeferredBalance>0?"text-danger fw-bold":"")">@Model.RemainingDeferredBalance.ToString("N2")</div></div>
+                    <div class="col-md-2"><label class="form-label">Current Period Release</label><div class="form-control bg-light">@Model.CurrentPeriodReleaseAmount.ToString("N2")</div></div>
+                }
+                <div class="col-md-2"><label class="form-label">Materiality</label><InputSelect class="form-select" @bind-Value="Model.MaterialityLevel"><option value="">-- Select --</option>@foreach(var v in Enum.GetValues<MaterialityLevelEnum>()){<option value="@v">@v</option>}</InputSelect></div>
+                <div class="col-md-2"><label class="form-label">Adjustment Amount</label><InputNumber class="form-control" @bind-Value="Model.AdjustmentAmount" placeholder="0.00" title="Controlled finance adjustment" /></div>
+                <div class="col-md-2"><label class="form-label">Rounding Diff</label><InputNumber class="form-control" @bind-Value="Model.RoundingDifferenceAmount" placeholder="0.00" title="For schedule balancing" /></div>
+            </div></div></div>
+
+        <div class="card mt-4"><div class="card-body"><h6 class="text-primary mb-3 d-flex align-items-center"><i class="ti ti-building-bank me-2" style="font-size:22px;"></i> Accounting</h6>
+            <div class="row g-3">
+                <div class="col-md-3"><label class="form-label">Fiscal Year <span class="text-danger">*</span></label><InputSelect class="form-select" @bind-Value="Model.FiscalYearId"><option value="">-- Select --</option>@foreach(var f in FiscalYears){<option value="@f.Key">@f.Value</option>}</InputSelect><ValidationMessage For="@(()=>Model.FiscalYearId)" /></div>
+                <div class="col-md-3"><label class="form-label">Accounting Period</label><InputSelect class="form-select" @bind-Value="Model.CurrentAccountingPeriodId"><option value="">-- Select --</option>@foreach(var p in AccountingPeriods){<option value="@p.Key">@p.Value</option>}</InputSelect></div>
+                <div class="col-md-3"><label class="form-label">Revenue GL <span class="text-danger">*</span></label><InputSelect class="form-select" @bind-Value="Model.RevenueGLAccountId"><option value="">-- Select --</option>@foreach(var g in GLAccounts){<option value="@g.Key">@g.Value</option>}</InputSelect><ValidationMessage For="@(()=>Model.RevenueGLAccountId)" /></div>
+                <div class="col-md-3"><label class="form-label">Liability GL <span class="text-danger">*</span></label><InputSelect class="form-select" @bind-Value="Model.DeferredRevenueLiabilityGLId"><option value="">-- Select --</option>@foreach(var g in GLAccounts){<option value="@g.Key">@g.Value</option>}</InputSelect><ValidationMessage For="@(()=>Model.DeferredRevenueLiabilityGLId)" /></div>
+                <div class="col-md-3"><label class="form-label">Branch</label><InputSelect class="form-select" @bind-Value="Model.BranchId"><option value="">-- Select --</option>@foreach(var b in Branches){<option value="@b.Key">@b.Value</option>}</InputSelect></div>
+                <div class="col-md-3"><label class="form-label">Posting Status <span class="text-danger">*</span></label><InputSelect class="form-select" @bind-Value="Model.PostingStatus">@foreach(var v in Enum.GetValues<PostingStatusEnum>()){<option value="@v">@v</option>}</InputSelect></div>
+                <div class="col-md-3"><label class="form-label">Release Status <span class="text-danger">*</span></label><InputSelect class="form-select" @bind-Value="Model.ReleaseStatus">@foreach(var v in Enum.GetValues<ReleaseStatusEnum>()){<option value="@v">@v</option>}</InputSelect></div>
+            </div></div></div>
+
+        <div class="card mt-4"><div class="card-body"><h6 class="text-primary mb-3 d-flex align-items-center"><i class="ti ti-sitemap me-2" style="font-size:22px;"></i> Dimensions & Ownership</h6>
+            <div class="row g-3">
+                <div class="col-md-3"><label class="form-label">Cost Center</label><InputText class="form-control" @bind-Value="Model.CostCenterName" placeholder="e.g. CC-SALES" title="Cost center" /></div>
+                <div class="col-md-3"><label class="form-label">Department</label><InputText class="form-control" @bind-Value="Model.DepartmentName" placeholder="e.g. Sales" title="Department" /></div>
+                <div class="col-md-3"><label class="form-label">Project</label><InputText class="form-control" @bind-Value="Model.ProjectName" placeholder="e.g. AMC Rollout" title="Project" /></div>
+                <div class="col-md-3"><label class="form-label">Revenue Owner</label><InputText class="form-control" @bind-Value="Model.RevenueOwnerName" placeholder="e.g. Priya S" title="Revenue owner user" /></div>
+            </div></div></div>
+
+        <div class="card mt-4"><div class="card-body"><h6 class="text-primary mb-3 d-flex align-items-center"><i class="ti ti-user me-2" style="font-size:22px;"></i> Workflow</h6>
+            <div class="row g-3">
+                <div class="col-md-3"><label class="form-label">Prepared By <span class="text-danger">*</span></label><InputText class="form-control" @bind-Value="Model.PreparedByUserId" placeholder="e.g. finance.admin" /><ValidationMessage For="@(()=>Model.PreparedByUserId)" /></div>
+                <div class="col-md-3"><label class="form-label">Reviewed By</label><InputText class="form-control" @bind-Value="Model.ReviewedByUserId" placeholder="e.g. controller" /></div>
+                <div class="col-md-3"><label class="form-label">Approved By</label><InputText class="form-control" @bind-Value="Model.ApprovedByUserId" placeholder="e.g. cfo" /></div>
+                @if(IsEdit){<div class="col-md-3 d-flex align-items-center gap-2 mt-3"><InputCheckbox class="form-check-input" @bind-Value="Model.IsLocked" /><label class="form-check-label">Locked</label></div>}
+            </div></div></div>
+
+        <div class="card mt-4"><div class="card-body"><h6 class="text-primary mb-3 d-flex align-items-center"><i class="ti ti-notes me-2" style="font-size:22px;"></i> Notes</h6>
+            <div class="row g-3">
+                <div class="col-md-6"><label class="form-label">Assumption Text</label><InputTextArea class="form-control" rows="2" @bind-Value="Model.AssumptionText" placeholder="Release logic explanation..." /></div>
+                <div class="col-md-6"><label class="form-label">Finance Notes</label><InputTextArea class="form-control" rows="2" @bind-Value="Model.FinanceNotes" placeholder="Additional notes..." /></div>
+                <div class="col-md-3 d-flex align-items-center gap-2 mt-3"><InputCheckbox class="form-check-input" @bind-Value="Model.PolicyExceptionFlag" /><label class="form-check-label">Policy Exception</label></div>
+                @if(Model.PolicyExceptionFlag){<div class="col-md-9"><label class="form-label">Policy Exception Reason</label><InputText class="form-control" @bind-Value="Model.PolicyExceptionReason" placeholder="Required when exception is flagged" /></div>}
+                @if(Model.DeferredRevenueStatus==DeferredRevenueStatusEnum.Cancelled){<div class="col-md-12"><label class="form-label">Cancellation Reason <span class="text-danger">*</span></label><InputTextArea class="form-control" rows="2" @bind-Value="Model.CancellationReason" placeholder="Required for cancelled records" /></div>}
+            </div></div></div>
+
+        <div class="text-end mt-4 mb-5"><a href="/deferred-revenues" class="btn btn-outline-secondary me-2"><i class="ti ti-x me-1"></i> Cancel</a><button type="submit" class="btn btn-primary"><i class="ti ti-device-floppy me-1"></i> @(IsEdit ? "Update" : "Create")</button></div>
+    </EditForm>
+</div>

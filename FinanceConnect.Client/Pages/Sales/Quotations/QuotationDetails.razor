@@ -1,0 +1,336 @@
+﻿@page "/quotations/{Id:guid}/view"
+
+@using FinanceConnect.Client.ViewModels
+@using FinanceConnect.Client.Services
+
+<PageTitle>Quotation Details - FinanceConnect</PageTitle>
+
+@if (!isInitialized)
+{
+    <div class="content">
+        <div class="text-center p-5">
+            <div class="spinner-border"></div>
+            <div class="mt-2">Loading quotation...</div>
+        </div>
+    </div>
+}
+else if (Quotation == null)
+{
+    <div class="content">
+        <div class="alert alert-warning">
+            Quotation not found
+        </div>
+
+        <a href="/quotations" class="btn btn-secondary">
+            <i class="ti ti-arrow-left"></i> Back
+        </a>
+    </div>
+}
+else
+{
+    <div class="dn-wrapper">
+
+        <div class="content">
+
+            <!-- PAGE HEADER -->
+            <div class="pageHeader"
+                 style="display:flex; align-items:center; justify-content:space-between; margin-bottom:19px;">
+
+                <div>
+                    <h3>Quotation Details</h3>
+                    <p style="color: gray;">Quotation overview and pricing summary.</p>
+                </div>
+
+                <div class="dn-hero-actions">
+
+
+
+                    <button class="btn btn-primary"
+                            onclick="window.print()"
+                            style="color:var(--primary);border:1px solid var(--primary);">
+                        <i class="ti ti-printer"></i> Print
+                    </button>
+                    <a href="/quotations" class="btn btn-outline-secondary">
+                        <i class="ti ti-arrow-left"></i> Back
+                    </a>
+                </div>
+
+            </div>
+
+
+            <!-- HERO HEADER -->
+
+            <div class="dn-hero">
+
+                <div class="dn-hero-inner">
+
+                    <div class="dn-icon-wrap">
+                        <i class="ti ti-file-invoice"></i>
+                    </div>
+
+                    <div class="dn-hero-content">
+
+                        <h1 class="dn-number">
+                            @Quotation.QuotationNumber
+                        </h1>
+
+                        <div class="dn-meta-row">
+
+                            <span class="dn-meta-item">
+                                <i class="ti ti-user"></i>
+                                @CustomerName
+                            </span>
+
+                            <span class="dn-meta-item">
+                                <i class="ti ti-calendar"></i>
+                                @Quotation.QuotationDate?.ToString("dd MMM yyyy")
+                            </span>
+
+                            <span class="dn-meta-item">
+                                <i class="ti ti-clock"></i>
+                                Expiry : @Quotation.ExpiryDate?.ToString("dd MMM yyyy")
+                            </span>
+
+                        </div>
+
+                        <div class="dn-badges">
+
+                            <span class="badge-dn @GetStatusBadge(Quotation.Status)">
+                                @Quotation.Status.GetDisplayName()
+                            </span>
+
+                        </div>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+
+            <!-- MAIN GRID -->
+
+            <div class="dn-grid">
+
+                <!-- LEFT PANEL -->
+
+                <div class="dn-left">
+
+
+                    <!-- CORE INFORMATION -->
+
+                    <div class="dn-card">
+
+                        <div class="dn-card-header">
+                            <span class="dn-card-title">
+                                <i class="ti ti-id"></i> Core Information
+                            </span>
+                        </div>
+
+                        <div class="card-body">
+
+                            <div class="row g-0">
+
+                                <div class="col-md-4 field-item">
+                                    <div class="field-label">Quotation No</div>
+                                    <div class="field-value mono">@Quotation.QuotationNumber</div>
+                                </div>
+
+                                <div class="col-md-4 field-item">
+                                    <div class="field-label">Quotation Date</div>
+                                    <div class="field-value">
+                                        @Quotation.QuotationDate?.ToString("dd MMM yyyy")
+                                    </div>
+                                </div>
+
+                                <div class="col-md-4 field-item">
+                                    <div class="field-label">Expiry Date</div>
+                                    <div class="field-value">
+                                        @Quotation.ExpiryDate?.ToString("dd MMM yyyy")
+                                    </div>
+                                </div>
+
+                                <div class="col-md-6 field-item">
+                                    <div class="field-label">Customer</div>
+                                    <div class="field-value">@CustomerName</div>
+                                </div>
+
+                                <div class="col-md-6 field-item">
+                                    <div class="field-label">Owner</div>
+                                    <div class="field-value">@Quotation.OwnerName</div>
+                                </div>
+
+                                <div class="col-md-12 field-item">
+                                    <div class="field-label">Subject</div>
+                                    <div class="field-value">@Quotation.Subject</div>
+                                </div>
+
+                            </div>
+
+                        </div>
+
+                    </div>
+
+
+                    <!-- LINE ITEMS -->
+
+                    <div class="dn-card">
+
+                        <div class="dn-card-header">
+
+                            <span class="dn-card-title">
+                                <i class="ti ti-list-details"></i> Line Items
+                            </span>
+
+                            <span class="count-pill">
+                                @Quotation.Items.Count items
+                            </span>
+
+                        </div>
+
+                        <div style="overflow-x:auto;">
+
+                            <table class="dn-table">
+
+                                <thead>
+
+                                    <tr>
+                                        <th style="width:40px;text-align:center;">#</th>
+                                        <th>Item</th>
+                                        <th style="width:120px;">Unit</th>
+                                        <th style="text-align:right;width:120px;">Rate</th>
+                                        <th style="text-align:right;width:120px;">Qty</th>
+                                        <th style="text-align:right;width:140px;">Amount</th>
+                                    </tr>
+
+                                </thead>
+
+                                <tbody>
+
+                                    @foreach (var line in Quotation.Items)
+                                    {
+                                        <tr>
+
+                                            <td style="text-align:center;">
+                                                @(Quotation.Items.IndexOf(line) + 1)
+                                            </td>
+
+                                            <td>@getItemName(line.ItemId)</td>
+
+                                            <td>@getUnitName(line.UnitId)</td>
+
+                                            <td style="text-align:right;">
+                                                @line.Rate.ToString("N2")
+                                            </td>
+
+                                            <td style="text-align:right;">
+                                                @line.Quantity.ToString("N2")
+                                            </td>
+
+                                            <td style="text-align:right;font-weight:600;">
+                                                @line.Amount.ToString("N2")
+                                            </td>
+
+                                        </tr>
+                                    }
+
+                                </tbody>
+
+                            </table>
+
+                        </div>
+
+                    </div>
+
+                </div>
+
+
+                <!-- RIGHT PANEL -->
+
+                <div class="dn-right">
+
+
+                    <!-- AMOUNT SUMMARY -->
+
+                    <div class="dn-card">
+
+                        <div class="dn-card-header">
+                            <span class="dn-card-title">
+                                <i class="ti ti-receipt-2"></i> Amount Summary
+                            </span>
+                        </div>
+
+                        <div class="dn-card-body">
+
+                            <div class="amount-row">
+                                <span class="amount-label">Subtotal</span>
+                                <span class="amount-value">
+                                    @Quotation.SubTotal.ToString("N2")
+                                </span>
+                            </div>
+
+                            <div class="amount-row">
+                                <span class="amount-label">
+                                    Tax (@Quotation.TaxPercentage%)
+                                </span>
+
+                                <span class="amount-value tax">
+                                    + @Quotation.TaxAmount.ToString("N2")
+                                </span>
+                            </div>
+
+                            <div class="amount-row">
+                                <span class="amount-label">
+                                    Discount (@Quotation.Discount%)
+                                </span>
+
+                                <span class="amount-value">
+                                    - @Quotation.DiscountAmount.ToString("N2")
+                                </span>
+                            </div>
+
+                            <div class="amount-row total">
+
+                                <span class="amount-label grand">
+                                    Grand Total
+                                </span>
+
+                                <span class="amount-value grand">
+                                    @Quotation.GrandTotal.ToString("N2")
+                                </span>
+
+                            </div>
+
+                        </div>
+
+                    </div>
+
+
+                    <!-- DESCRIPTION -->
+                    @if (!string.IsNullOrWhiteSpace(Quotation.Description))
+                    {
+                        <div class="dn-card">
+
+                            <div class="dn-card-header">
+                                <span class="dn-card-title">
+                                    <i class="ti ti-note"></i> Description
+                                </span>
+                            </div>
+
+                            <div class="dn-card-body">
+
+                                @Quotation.Description
+
+                            </div>
+
+                        </div>
+                    }
+
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>
+}

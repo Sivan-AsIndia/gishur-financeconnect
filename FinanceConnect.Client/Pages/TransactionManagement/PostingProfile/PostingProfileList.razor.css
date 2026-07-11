@@ -1,0 +1,15 @@
+﻿.td-width {
+    width: 180px;
+}
+.action-width {
+    width: 120px;
+}
+
+@media (min-width: 426px) {
+    .td-width {
+        width: 275px;
+    }
+    .action-width {
+        width: 180px;
+    }
+}

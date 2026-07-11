@@ -1,0 +1,279 @@
+@page "/asset-transfers/{Id:guid}/view"
+@using static FinanceConnect.Client.ViewModels.AssetTransformViewModel
+@inject FinanceConnect.Client.Services.AssetTransferService transferService
+@inject NavigationManager navigation
+
+@if (!isInitialized)
+{
+    <div class="page-loading-overlay"><div class="whirly-loader"></div></div>
+}
+else if (Transfer == null)
+{
+    <div class="content py-4">
+        <div class="alert alert-danger">
+            <i class="ti ti-alert-circle me-2"></i> Transfer not found.
+            <a href="/asset-transfers" class="alert-link ms-2">Return to list</a>
+        </div>
+    </div>
+}
+else
+{
+    <div class="content py-4 view-screen">
+
+        <!-- PAGE TITLE ROW -->
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <div>
+                <h4 class="fw-bold mb-1">Asset Transfer Details</h4>
+                <p class="text-muted mb-0 small">Transfer record and movement history</p>
+            </div>
+            <div class="d-flex gap-2 page-btn">
+                @if (Transfer.TransferStatus == TransferStatus.Draft)
+                {
+                    <a href="/asset-transfers/edit/@Transfer.AssetTransferId" class="btn btn-primary">
+                        <i class="ti ti-edit me-1"></i> Edit
+                    </a>
+                }
+                <a class="btn btn-outline-secondary" href="/asset-transfers">
+                    <i class="ti ti-arrow-left me-1"></i> Back
+                </a>
+            </div>
+        </div>
+
+        <div class="row g-4">
+
+            <!-- ═══ HEADER PANEL ═══ -->
+            <div class="col-lg-12">
+                <div class="profile-list-card">
+
+                    <!-- LEFT: Avatar -->
+                    <div class="profile-left">
+                        <div class="avatar letter-avatar">
+                            @Transfer.TransferNumber?.Substring(0, Math.Min(4, Transfer.TransferNumber?.Length ?? 0)).ToUpper()
+                        </div>
+                    </div>
+
+                    <!-- CENTER: Meta -->
+                    <div class="profile-center">
+                        <div class="top-row">
+                            <h5>@Transfer.TransferNumber</h5>
+                            @if (Transfer.AppliedToAssetFlag)
+                            {
+                                <span class="bg-success rounded-circle"
+                                      data-bs-toggle="tooltip"
+                                      title="Applied to Asset"
+                                      style="font-size:10px;color:white;width:16px;height:16px;
+                                                     display:flex;align-items:center;justify-content:center;">
+                                    <i class="ti ti-checks"></i>
+                                </span>
+                            }
+                        </div>
+                        <div class="sub-text">
+                            <span class="d-flex gap-1 mt-1">
+                                <i class="ti ti-box"></i>
+                                @Transfer.AssetNameSnapshot &nbsp;·&nbsp; @Transfer.AssetNumberSnapshot
+                            </span>
+                            <span class="d-flex gap-1 mt-1">
+                                <i class="ti ti-calendar"></i>
+                                Effective: @Transfer.EffectiveTransferDate.ToString("dd MMM yyyy")
+                                &nbsp;·&nbsp;
+                                @GetTypeLabel(Transfer.TransferType)
+                            </span>
+                        </div>
+                        <div class="mt-2">
+                            <span class="badge @GetStatusBadgeClass(Transfer.TransferStatus)">
+                                @GetStatusLabel(Transfer.TransferStatus)
+                            </span>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+
+            <!-- ═══ LEFT PANEL (col-8) ═══ -->
+            <div class="col-lg-8">
+                <div class="profile-card">
+
+                    <!-- Transfer Identity -->
+                    <div class="card mb-0">
+                        <div class="card-header py-2">
+                            <i class="ti ti-file-description me-2"></i> Transfer Header
+                        </div>
+                        <div class="card-body py-2">
+                            <div class="row">
+                                <div class="col-md-4 mb-2">
+                                    <small class="text-muted">Transfer No</small>
+                                    <div class="fw-medium">@Transfer.TransferNumber</div>
+                                </div>
+                                <div class="col-md-4 mb-2">
+                                    <small class="text-muted">Transfer Type</small>
+                                    <div>@GetTypeLabel(Transfer.TransferType)</div>
+                                </div>
+                                <div class="col-md-4 mb-2">
+                                    <small class="text-muted">Effective Date</small>
+                                    <div>@Transfer.EffectiveTransferDate.ToString("dd MMM yyyy")</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Asset Details -->
+                    <div class="card mt-3 mb-0">
+                        <div class="card-header py-2">
+                            <i class="ti ti-id me-2"></i> Asset Details
+                        </div>
+                        <div class="card-body py-2">
+                            <div class="row">
+                                <div class="col-md-4 mb-2">
+                                    <small class="text-muted">Asset No</small>
+                                    <div class="fw-medium">@Transfer.AssetNumberSnapshot</div>
+                                </div>
+                                <div class="col-md-8 mb-2">
+                                    <small class="text-muted">Asset Name</small>
+                                    <div>@Transfer.AssetNameSnapshot</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- From vs To -->
+                    <div class="card mt-3 mb-0">
+                        <div class="card-header py-2">
+                            <i class="ti ti-arrows-exchange me-2"></i> From → To (Movement)
+                        </div>
+                        <div class="card-body py-2">
+                            <div class="row">
+
+                                <!-- FROM column -->
+                                <div class="col-md-6">
+                                    <p class="text-muted fw-semibold mb-2" style="font-size:12px;">
+                                        FROM (Before)
+                                    </p>
+                                    <div class="col-md-12 mb-2">
+                                        <small class="text-muted">Branch</small>
+                                        <div>@(Transfer.FromBranchName ?? "—")</div>
+                                    </div>
+                                    <div class="col-md-12 mb-2">
+                                        <small class="text-muted">Location</small>
+                                        <div>@(Transfer.FromLocationName ?? "—")</div>
+                                    </div>
+                                    <div class="col-md-12 mb-2">
+                                        <small class="text-muted">Custodian</small>
+                                        <div>@(Transfer.FromCustodianName ?? "—")</div>
+                                    </div>
+                                </div>
+
+                                <!-- TO column -->
+                                <div class="col-md-6" style="border-left:2px solid var(--bs-success-border-subtle);">
+                                    <p class="text-success fw-semibold mb-2" style="font-size:12px;">
+                                        TO (After)
+                                    </p>
+                                    <div class="col-md-12 mb-2">
+                                        <small class="text-muted">Branch</small>
+                                        <div class="@(Transfer.ToBranchName != Transfer.FromBranchName ? "fw-bold text-success" : "")">
+                                            @(Transfer.ToBranchName ?? "—")
+                                        </div>
+                                    </div>
+                                    <div class="col-md-12 mb-2">
+                                        <small class="text-muted">Location</small>
+                                        <div class="@(Transfer.ToLocationName != Transfer.FromLocationName ? "fw-bold text-success" : "")">
+                                            @(Transfer.ToLocationName ?? "—")
+                                        </div>
+                                    </div>
+                                    <div class="col-md-12 mb-2">
+                                        <small class="text-muted">Custodian</small>
+                                        <div class="@(Transfer.ToCustodianName != Transfer.FromCustodianName ? "fw-bold text-success" : "")">
+                                            @(Transfer.ToCustodianName ?? "—")
+                                        </div>
+                                    </div>
+                                </div>
+
+                            </div>
+                        </div>
+                    </div>
+
+                    @if (!string.IsNullOrWhiteSpace(Transfer.TransferReason))
+                    {
+                        <!-- Reason -->
+                        <div class="card mt-3 mb-0">
+                            <div class="card-header py-2">
+                                <i class="ti ti-notes me-2"></i> Transfer Reason
+                            </div>
+                            <div class="card-body py-2">
+                                <div class="ql-editor" style="font-style:italic;color:var(--bs-secondary-color);">
+                                    @Transfer.TransferReason
+                                </div>
+                            </div>
+                        </div>
+                    }
+
+                </div>
+            </div>
+
+            <!-- ═══ RIGHT PANEL (col-4) ═══ -->
+            <div class="col-lg-4">
+                <div class="profile-card">
+
+                    <!-- Status & Workflow -->
+                    <div class="card mb-0">
+                        <div class="card-header py-2">
+                            <i class="ti ti-circle-check me-2"></i> Status &amp; Workflow
+                        </div>
+                        <div class="card-body py-2">
+
+                            <div class="mb-2">
+                                <small class="text-muted">Transfer Status</small>
+                                <div>
+                                    <span class="badge @GetStatusBadgeClass(Transfer.TransferStatus)">
+                                        @GetStatusLabel(Transfer.TransferStatus)
+                                    </span>
+                                </div>
+                            </div>
+
+                            <div class="mb-2">
+                                <small class="text-muted">Applied to Asset</small>
+                                <div>
+                                    @if (Transfer.AppliedToAssetFlag)
+                                    {
+                                        <span class="badge bg-success-transparent">Yes</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="badge bg-secondary-transparent text-secondary">No</span>
+                                    }
+                                </div>
+                            </div>
+
+                            <div class="mb-2">
+                                <small class="text-muted">Transfer Type</small>
+                                <div>@GetTypeLabel(Transfer.TransferType)</div>
+                            </div>
+
+                        </div>
+                    </div>
+
+                    <!-- Audit -->
+                    <div class="card mt-3 mb-0">
+                        <div class="card-header py-2">
+                            <i class="ti ti-clock me-2"></i> Audit
+                        </div>
+                        <div class="card-body py-2">
+
+                            <div class="mb-2">
+                                <small class="text-muted">Created At</small>
+                                <div>@Transfer.CreatedAt.ToString("dd MMM yyyy")</div>
+                            </div>
+
+                            <div class="mb-2">
+                                <small class="text-muted">Updated At</small>
+                                <div>@(Transfer.UpdatedAt.HasValue? Transfer.UpdatedAt.Value.ToString("dd MMM yyyy") : "—")</div>
+                            </div>
+
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+
+        </div>
+    </div>
+}

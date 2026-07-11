@@ -1,0 +1,447 @@
+﻿
+.List-view .TablePlus {
+    background: #fe9f43;
+    color: white !important;
+    border-radius: 10px;
+    border: 2px solid white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 20px;
+    height: 20px;
+    box-shadow: rgb(254 159 67) 0px 3px 8px;
+}
+.List-view .link-View{
+/*    text-decoration: underline !important;*/
+}
+.PopupIcon {
+    color: var(--primary) !important;
+}
+.List-view table tbody tr {
+    transition: background-color 0.3s ease, box-shadow 0.3s ease, transform 0.3s ease;
+    height:50px;
+}
+
+    .List-view table tbody tr:hover {
+        background-color: #fff;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
+        transform: translateY(-2px);
+    }
+.tooltip-inner {
+    font-weight: 600;
+    font-size: 12px;
+    padding: 6px 12px;
+    border-radius: 6px;
+}
+.tooltip {
+    z-index: 99999 !important;
+}
+
+/* Default tooltip (primary) */
+.custom-tooltip .tooltip-inner {
+    background-color: var(--primary) !important;
+    color: #fff !important;
+}
+.custom-tooltip .tooltip-arrow::before {
+    border-top-color: var(--primary) !important;
+}
+
+/* Badge tooltip — dynamically colored via JS */
+.badge-tooltip {
+    --bs-tooltip-opacity: 1 !important;
+    opacity: 1 !important;
+}
+.badge-tooltip .tooltip-arrow {
+    display: none !important;
+}
+.link-View {
+    color: #0909d7 !important;
+}
+    .link-View :hover {
+        color: gray !important
+    }
+    .List-view .form-select option:checked {
+        color: #fff;
+        background: var(--primary);
+    }
+
+.List-view .form-select:focus {
+    border-color: var(--primary);
+    box-shadow: none;
+}
+.List-view .modal-footer .btn {
+    min-width: 100px;
+}
+
+.List-view .modal-footer-btn .btn {
+    min-width: 100px;
+}
+.List-view table .edit-delete-action {
+    -webkit-justify-content: flex-start;
+}
+.table-fixed {
+    table-layout: fixed;
+    width: 100%;
+}
+
+
+@keyframes softShadowPulse {
+    0% {
+        box-shadow: 0 0 0 var(--primary-rgb);
+    }
+
+    50% {
+        box-shadow: 0 10px 22px var(--primary-rgb);
+    }
+
+    100% {
+        box-shadow: 0 0 0 var(--primary-rgb);
+    }
+}
+
+.List-view .page-btn {
+    background: white;
+    border-radius: 8px;
+    transition: background-color 0.3s ease;
+}
+    .List-view .page-btn:hover {
+        animation: softShadowPulse 1.6s ease-in-out infinite;
+    }
+
+
+/*    .table-fixed th, .table-fixed td {
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }*/
+.table tbody tr td {
+    white-space: normal;
+    word-break: break-word;
+}
+
+@media (max-width: 574.98px) {
+    .List-view .page-header {
+        margin-bottom: 20px;
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: space-between;
+        flex-direction: row;
+    }
+
+        .List-view .page-header .page-btn {
+            /*            flex: 0 0 100%;*/
+            display: flex;
+            justify-content: flex-end;
+            margin-top: 0px;
+        }
+}
+.ActiveDot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+}
+/* Badges */
+.badge.bg-active {
+    background-color: #28a745 !important;
+    color: #fff !important;
+}
+
+.badge.bg-inactive {
+    background-color: #dc3545 !important;
+    color: #fff !important;
+}
+
+.badge.bg-deleted {
+    background-color: #6c757d !important;
+    color: #fff !important;
+}
+
+/* Transparent Badge Styles */
+/*.bg-primary-transparent {
+    background-color: rgba(13, 110, 253, 0.15) !important;
+}*/
+
+.bg-secondary-transparent {
+    background-color: rgba(108, 117, 125, 0.15) !important;
+}
+
+.bg-success-transparent {
+    background-color: rgb(25 135 84 / 5%) !important;
+}
+
+.bg-danger-transparent {
+    background-color: rgb(220 53 69 / 5%) !important;
+}
+
+.bg-warning-transparent {
+    background-color: rgb(255 193 7 / 8%) !important;
+}
+.badge {
+    font-size: 13px;
+    font-weight: 400;
+    padding: 5px 9px 5px 9px;
+}
+.bg-info-transparent {
+    background-color: rgb(13 202 240 / 6%) !important;
+}
+
+.bg-dark-transparent {
+    background-color: rgba(33, 37, 41, 0.15) !important;
+}
+
+.bg-light-transparent {
+    background-color: rgba(248, 249, 250, 0.5) !important;
+}
+
+.bg-purple-transparent {
+    background-color: rgb(111 66 193 / 5%) !important;
+}
+
+.text-purple {
+    color: #6f42c1 !important;
+}
+/* Action Button */
+.List-view .action-table-data {
+    text-overflow: clip;
+}
+.List-view .action-icon {
+    cursor: pointer;
+    padding: 5px;
+    border-radius: 4px;
+    transition: all 0.2s ease;
+}
+
+.List-view .action-icon:hover {
+    background: rgba(0, 0, 0, 0.05);
+}
+    .List-view .action-icon.activate-icon:hover {
+    
+        background: rgba(220, 53, 69, 0.1);
+        color: #dc3545;
+        border: 1px solid #dc3545;
+    }
+
+    .List-view .action-icon.deactivate-icon:hover {
+        background: rgba(40, 167, 69, 0.1);
+        color: #28a745;
+        border: 1px solid #28a745;
+    }
+    .List-view .action-icon.deactivate-icon {
+        color: green;
+    }
+.List-view .edit-delete-action .view-icon:hover {
+    background: #c0e4ff61 !important;
+    border: 1px solid #0984e3 !important;
+    color: #0984e3 !important;
+}
+
+.List-view .edit-delete-action .edit-icon:hover {
+    border: 1px solid var(--primary);
+    color: var(--primary) !important;
+    background-color: rgba(var(--primary), 0.12) !important;
+}
+
+.List-view .edit-delete-action .Layer-icon:hover {
+    background: #ffcdff78 !important;
+    border: 1px solid #e309e2 !important;
+    color: #e309e2 !important;
+}
+.List-view .delete-icon:hover {
+    background: #ffa8a854 !important;
+    border: 1px solid #ff0202 !important;
+    color: #ff0202 !important;
+}
+
+.List-view .edit-delete-action .lock:hover {
+    background: #c0e4ff61 !important;
+    border: 1px solid #3EB780 !important;
+    color: #3EB780 !important;
+}
+.List-view .edit-delete-action .unLock:hover {
+    background: #f59e0b1a !important;
+    border: 1px solid #f59e0b !important;
+    color: #f59e0b !important;
+}
+.List-view .edit-delete-action .archive:hover {
+    background: #6366f11c !important;
+    border: 1px solid #6366f1 !important;
+    color: #6366f1 !important;
+}
+.List-view .edit-delete-action .Supersede:hover {
+    background: #c4ffc061 !important;
+    border: 1px solid #57b73e !important;
+    color: #18d02f !important;
+}
+
+.List-view .edit-delete-action .play-icon:hover {
+    background: #c0e4ff61 !important;
+    border: 1px solid #3EB780 !important;
+    color: #3EB780 !important;
+}
+
+.List-view .edit-delete-action .pause:hover {
+    background: #fff0bd !important;
+    border: 1px solid #FFCA18 !important;
+    color: #FFCA18 !important;
+}
+
+/* Hold/Release Hold Icons */
+.List-view .action-icon.hold-icon:hover {
+    background: rgba(255, 193, 7, 0.15) !important;
+    border: 1px solid #ffc107 !important;
+    color: #ffc107 !important;
+}
+
+.List-view .action-icon.release-hold-icon:hover {
+    background: rgba(40, 167, 69, 0.15) !important;
+    border: 1px solid #28a745 !important;
+    color: #28a745 !important;
+}
+
+/* Freeze/Unfreeze Icons */
+.List-view .action-icon.freeze-icon:hover {
+    background: rgba(255, 193, 7, 0.15) !important;
+    border: 1px solid #ffc107 !important;
+    color: #ffc107 !important;
+}
+
+.List-view .action-icon.unfreeze-icon:hover {
+    background: rgba(40, 167, 69, 0.15) !important;
+    border: 1px solid #28a745 !important;
+    color: #28a745 !important;
+}
+
+/* Submit */
+.List-view .icon-submit:hover {
+    background: rgba(13,110,253,0.12);
+    border: 1px solid #0d6efd;
+    color: #0d6efd;
+}
+
+/* Approve */
+.List-view .icon-approve:hover {
+    background: rgba(25,135,84,0.15);
+    border: 1px solid #198754;
+    color: #198754;
+}
+
+/* Reject */
+.List-view .icon-reject:hover {
+    background: rgba(220,53,69,0.15);
+    border: 1px solid #dc3545;
+    color: #dc3545;
+}
+
+/* Cancel */
+.List-view .icon-cancel:hover {
+    background: rgba(108,117,125,0.15);
+    border: 1px solid #6c757d;
+    color: #6c757d;
+}
+
+/* Receive */
+.List-view .icon-receive:hover {
+    background: rgba(13,202,240,0.15);
+    border: 1px solid #0dcaf0;
+    color: #0dcaf0;
+}
+
+/* Post */
+.List-view .icon-post:hover {
+    background: rgba(32,201,151,0.15);
+    border: 1px solid #20c997;
+    color: #20c997;
+}
+
+/* Reverse */
+.List-view .icon-reverse:hover {
+    background: rgba(111,66,193,0.15);
+    border: 1px solid #6f42c1;
+    color: #6f42c1;
+}
+.List-view .action-icon.transit:hover {
+    background: rgb(255 249 147 / 15%) !important;
+    border: 1px solid #fffa00 !important;
+    color: #FFCA18 !important;
+}
+
+.List-view .edit-delete-action .Printer:hover {
+    background: #ff53733d;
+    border: 1px solid #ff5373 !important;
+    color: #ff5373 !important;
+}
+
+.List-view .edit-delete-action .Issue:hover {
+   
+    background: #666aff1f;
+    border: 1px solid #8373e7 !important;
+    color: #0005f3 !important;
+}
+.List-view .edit-delete-action .Deposit:hover {
+    background: #ffa3e054;
+    border: 1px solid #ff00b1 !important;
+    color: #f300a8 !important;
+}
+.List-view .edit-delete-action .Clear:hover {
+    background: #0080001a;
+    border: 1px solid green !important;
+    color: #0a7f0a !important;
+}
+.List-view .edit-delete-action .Bounce:hover {
+    background: #fff89026;
+    border: 1px solid #b6a300 !important;
+    color: #bac400 !important;
+}
+.List-view .edit-delete-action .Reissue:hover {
+    background: #28f6f01a;
+    border: 1px solid #3abeb7 !important;
+    color: #00958d !important;
+}
+
+.List-view .edit-delete-action .refresh:hover {
+    background: #d4d8002e;
+    color: #a3a600;
+    border: 1px solid #a3a600;
+}
+.List-view .edit-delete-action .chartLine:hover {
+    background: #00ffd22e;
+    color: #009a79;
+    border: 1px solid #00a69b;
+}
+.List-view .edit-delete-action .post:hover {
+    background: #fbff002e;
+    color: #98be00;
+    border: 1px solid #c1dc01;
+}
+
+
+html, body {
+    height: 100%;
+    margin: 0;
+    overflow: hidden;
+}
+
+.main-wrapper {
+    height: 100vh;
+/*    display: flex;*/
+    align-items: baseline;
+    overflow-y: scroll;
+    justify-content: space-between
+}
+.page-wrapper {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+/*    overflow: hidden;
+    min-height: 100vh;*/
+    /*    height: 100vh;*/
+}
+    .page-wrapper .content {
+        flex: 1;
+/*        overflow-y: auto;
+        min-height: 100%;*/
+        
+    }
+body {
+    height: 100%;
+}

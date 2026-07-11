@@ -1,0 +1,592 @@
+@page "/vendor-credit-notes/{Id:guid}/view"
+@using FinanceConnect.Client.ViewModels
+<link rel="stylesheet" href="css/VendorCreditView.css" />
+
+<PageTitle>Credit Note Details - FinanceConnect</PageTitle>
+
+<style>
+    .dn-table thead tr {
+    background: #dddddd7d;
+    }
+</style>
+
+@if (!isInitialized)
+{
+    <div class="dn-loader">
+        <div class="dn-loader-ring"></div>
+        <span>Loading...</span>
+    </div>
+}
+else
+{
+    <div class="dn-shell content">
+     
+        <div class="pageHeader" style="    display: flex;
+        align-items: center;
+        justify-content: space-between;
+            margin-bottom: 19px;">
+     <div>
+                <h3 style="color: var(--heading-color);">Vendor Credit Notes Details</h3>
+                <p style="    color: #808080ed;
+    font-size: 13px;
+    margin-top: 7px;">Detailed summary of vendor credit adjustments and financial impact.</p>
+     </div>
+            <div class="dn-hero-actions dn-animate-up dn-delay-1">
+                @if (CreditNote.CanEdit)
+                {
+                    <a href="/create-vendor-credit-note/@CreditNote.Id" class="btn btn-primary">
+                        <i class="ti ti-edit me-1"></i>  Edit
+                    </a>
+                }
+                <a href="/vendor-credit-notes" class="btn btn-outline-secondary">
+                    <i class="ti ti-arrow-left me-1"></i> Back
+                </a>
+            </div> 
+        </div>
+        <!-- IDENTITY CARD -->
+        <div class="dn-identity dn-animate-rise">
+            <div class="dn-identity-logo">
+                <i class="ti ti-file-minus"></i>
+            </div>
+            <div class="dn-identity-info">
+                <div class="dn-identity-name">
+                    @CreditNote.CreditNoteNumber
+                    <span class="dn-verified"><i class="ti ti-circle-check-filled"></i></span>
+                </div>
+                <div class="dn-identity-sub">@CreditNote.VendorName</div>
+                <div class="dn-identity-meta">
+                    <span class="dn-meta-chip"><i class="ti ti-tag"></i> @VendorCreditNoteTypes.GetDisplayName(CreditNote.CreditNoteType)</span>
+                    <span class="dn-meta-chip"><i class="ti ti-map-pin"></i> @CreditNote.BranchCode</span>
+                    <span class="dn-meta-chip"><i class="ti ti-currency-rupee"></i> @CreditNote.CurrencyCode</span>
+                    <span class="dn-meta-chip"><i class="ti ti-users"></i> @CreditNote.VendorCode</span>
+                </div>
+            </div>
+                <div class="dn-identity-badges">
+                    <span class="dn-status-badge @GetStatusBadgeClass(CreditNote.CreditNoteStatus)">
+                        <span class="dn-badge-dot"></span>
+                        @VendorCreditNoteStatuses.GetDisplayName(CreditNote.CreditNoteStatus)
+                    </span>
+                    <span class="dn-settle-badge @GetSettlementBadgeClass(CreditNote.CreditSettlementStatus)">
+                        @CreditSettlementStatuses.GetDisplayName(CreditNote.CreditSettlementStatus)
+                    </span>
+                </div>
+        </div>
+
+        <!-- TAB BAR -->
+        <div class="dn-tabs-wrap">
+            <div class="dn-tabs">
+                <button class="dn-tab dn-tab--active" onclick="switchTab('overview', this)">Overview</button>
+                <button class="dn-tab" onclick="switchTab('lines', this)">Credit Lines <span class="dn-tab-count">@CreditNote.Lines.Count</span></button>
+                <button class="dn-tab" onclick="switchTab('compliance', this)">Tax &amp; Compliance</button>
+                <button class="dn-tab" onclick="switchTab('audit', this)">Audit Trail</button>
+            </div>
+        </div>
+
+        <!-- WORKFLOW ACTION BAR -->
+        @if (CreditNote.CreditNoteStatus == VendorCreditNoteStatuses.Submitted ||
+            CreditNote.CreditNoteStatus == VendorCreditNoteStatuses.Approved ||
+            CreditNote.CanCancel)
+        {
+            <div class="dn-workflow-bar dn-animate-up dn-delay-2">
+                <div class="dn-workflow-label">
+                    <div class="dn-wf-pulse"></div>
+                    Pending Action Required
+                </div>
+                <div class="dn-workflow-btns">
+                    @if (CreditNote.CreditNoteStatus == VendorCreditNoteStatuses.Submitted)
+                    {
+                        <button class="dn-wf-btn dn-wf-btn--approve" data-bs-toggle="modal" data-bs-target="#approveModal">
+                            <i class="ti ti-check"></i> Approve
+                        </button>
+                        <button class="dn-wf-btn dn-wf-btn--reject" data-bs-toggle="modal" data-bs-target="#rejectModal">
+                            <i class="ti ti-x"></i> Reject
+                        </button>
+                    }
+                    @if (CreditNote.CreditNoteStatus == VendorCreditNoteStatuses.Approved)
+                    {
+                        <button class="dn-wf-btn dn-wf-btn--post" data-bs-toggle="modal" data-bs-target="#postModal">
+                            <i class="ti ti-send"></i> Post to Ledger
+                        </button>
+                    }
+                    @if (CreditNote.CanCancel)
+                    {
+                        <button class="dn-wf-btn dn-wf-btn--cancel" data-bs-toggle="modal" data-bs-target="#cancelModal">
+                            <i class="ti ti-ban"></i> Cancel
+                        </button>
+                    }
+                </div>
+            </div>
+        }
+
+        <!-- MAIN CONTENT -->
+        <div class="dn-content">
+
+            <!-- TAB: OVERVIEW -->
+            <div id="tab-overview" class="dn-tab-panel dn-tab-panel--active">
+
+                <div class="dn-section-label">Credit Summary</div>
+                <div class="dn-benefits-grid">
+                    <div class="dn-benefit-card dn-animate-card" style="--d:0ms">
+                        <div class="dn-benefit-icon dn-bi--subtotal"><i class="ti ti-math-symbols"></i></div>
+                        <div class="dn-benefit-name">Subtotal</div>
+                        <div class="dn-benefit-val">@CreditNote.SubTotalCreditAmount.ToString("N2")</div>
+                    </div>
+                    <div class="dn-benefit-card dn-animate-card" style="--d:60ms">
+                        <div class="dn-benefit-icon dn-bi--tax"><i class="ti ti-receipt-tax"></i></div>
+                        <div class="dn-benefit-name">Tax Amount</div>
+                        <div class="dn-benefit-val dn-val--violet">@CreditNote.TaxCreditAmount.ToString("N2")</div>
+                    </div>
+                    <div class="dn-benefit-card dn-animate-card" style="--d:120ms">
+                        <div class="dn-benefit-icon dn-bi--round"><i class="ti ti-adjustments"></i></div>
+                        <div class="dn-benefit-name">Round Off</div>
+                        <div class="dn-benefit-val dn-val--muted">@CreditNote.RoundOffAmount.ToString("N2")</div>
+                    </div>
+                    <div class="dn-benefit-card dn-benefit-card--total dn-animate-card" style="--d:180ms">
+                        <div class="dn-benefit-icon dn-bi--total"><i class="ti ti-calculator"></i></div>
+                        <div class="dn-benefit-name">Total Credit</div>
+                        <div class="dn-benefit-val dn-val--total">@CreditNote.CurrencyCode @CreditNote.TotalCreditAmount.ToString("N2")</div>
+                    </div>
+                    <div class="dn-benefit-card dn-animate-card" style="--d:240ms">
+                        <div class="dn-benefit-icon dn-bi--applied"><i class="ti ti-circle-check"></i></div>
+                        <div class="dn-benefit-name">Applied</div>
+                        <div class="dn-benefit-val dn-val--green">@CreditNote.AppliedAmount.ToString("N2")</div>
+                    </div>
+                    <div class="dn-benefit-card dn-benefit-card--open dn-animate-card" style="--d:300ms">
+                        <div class="dn-benefit-icon dn-bi--open"><i class="ti ti-circle-dot"></i></div>
+                        <div class="dn-benefit-name">Open Credit</div>
+                        <div class="dn-benefit-val dn-val--blue">@CreditNote.RemainingOpenCreditAmount.ToString("N2")</div>
+                    </div>
+                </div>
+
+                <div class="dn-section-label">Credit Note Details</div>
+                <div class="dn-two-col">
+                    <!-- Credit Note Info -->
+                    <div class="dn-info-card dn-animate-card" style="--d:100ms">
+                        <div class="dn-info-card-header">
+                            <div class="dn-info-card-icon"><i class="ti ti-file-minus"></i></div>
+                            <div>
+                                <div class="dn-info-card-title">Credit Note Info</div>
+                                <div class="dn-info-card-sub">Document details</div>
+                            </div>
+                        </div>
+                        <div class="dn-info-rows">
+                            <div class="dn-info-row">
+                                <span class="dn-info-key">Credit Note No</span>
+                                <span class="dn-info-val dn-info-mono">@CreditNote.CreditNoteNumber</span>
+                            </div>
+                            <div class="dn-info-row">
+                                <span class="dn-info-key">Vendor CN Date</span>
+                                <span class="dn-info-val">@CreditNote.VendorCreditNoteDate.ToString("dd MMM yyyy")</span>
+                            </div>
+                            <div class="dn-info-row">
+                                <span class="dn-info-key">Entry Date</span>
+                                <span class="dn-info-val">@CreditNote.CreditEntryDate.ToString("dd MMM yyyy")</span>
+                            </div>
+                            <div class="dn-info-row">
+                                <span class="dn-info-key">Credit Type</span>
+                                <span class="dn-info-val">
+                                    <span class="dn-mini-chip">@VendorCreditNoteTypes.GetDisplayName(CreditNote.CreditNoteType)</span>
+                                </span>
+                            </div>
+                            @if (!string.IsNullOrEmpty(CreditNote.VendorCreditNoteReferenceNumber))
+                            {
+                                <div class="dn-info-row">
+                                    <span class="dn-info-key">Vendor Ref</span>
+                                    <span class="dn-info-val dn-info-blue">@CreditNote.VendorCreditNoteReferenceNumber</span>
+                                </div>
+                            }
+                            <div class="dn-info-row">
+                                <span class="dn-info-key">Against Bill</span>
+                                <span class="dn-info-val">
+                                    @if (CreditNote.IsAgainstBill)
+                                    {
+                                        <span class="dn-yn dn-yn--yes">Yes</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="dn-yn dn-yn--no">No</span>
+                                    }
+                                </span>
+                            </div>
+                            @if (CreditNote.IsAgainstBill && !string.IsNullOrEmpty(CreditNote.PrimaryVendorBillNumber))
+                            {
+                                <div class="dn-info-row">
+                                    <span class="dn-info-key">Ref Bill</span>
+                                    <span class="dn-info-val dn-info-link">@CreditNote.PrimaryVendorBillNumber</span>
+                                </div>
+                            }
+                            @if (CreditNote.PostingDate.HasValue)
+                            {
+                                <div class="dn-info-row">
+                                    <span class="dn-info-key">Posting Date</span>
+                                    <span class="dn-info-val">@CreditNote.PostingDate.Value.ToString("dd MMM yyyy")</span>
+                                </div>
+                            }
+                        </div>
+                    </div>
+
+                    <!-- Vendor Info -->
+                    <div class="dn-info-card dn-animate-card" style="--d:200ms">
+                        <div class="dn-info-card-header">
+                            <div class="dn-info-card-icon dn-info-card-icon--blue"><i class="ti ti-building-store"></i></div>
+                            <div>
+                                <div class="dn-info-card-title">@CreditNote.VendorName</div>
+                                <div class="dn-info-card-sub">@CreditNote.VendorCode</div>
+                            </div>
+                        </div>
+                        <div class="dn-info-rows">
+                            <div class="dn-info-row">
+                                <span class="dn-info-key">Vendor Code</span>
+                                <span class="dn-info-val dn-info-mono">@CreditNote.VendorCode</span>
+                            </div>
+                            <div class="dn-info-row">
+                                <span class="dn-info-key">Vendor Name</span>
+                                <span class="dn-info-val">@CreditNote.VendorName</span>
+                            </div>
+                            @if (!string.IsNullOrEmpty(CreditNote.VendorGSTINSnapshot))
+                            {
+                                <div class="dn-info-row">
+                                    <span class="dn-info-key">GSTIN</span>
+                                    <span class="dn-info-val dn-info-mono">@CreditNote.VendorGSTINSnapshot</span>
+                                </div>
+                            }
+                            <div class="dn-info-row">
+                                <span class="dn-info-key">Branch</span>
+                                <span class="dn-info-val">@CreditNote.BranchCode &mdash; @CreditNote.BranchName</span>
+                            </div>
+                            @if (CreditNote.PlaceOfSupplyStateId.HasValue && CreditNote.PlaceOfSupplyStateId != Guid.Empty)
+                            {
+                                <div class="dn-info-row">
+                                    <span class="dn-info-key">Place of Supply</span>
+                                    <span class="dn-info-val">@CreditNote.PlaceOfSupplyStateCode &mdash; @CreditNote.PlaceOfSupplyStateName</span>
+                                </div>
+                            }
+                            @if (!string.IsNullOrEmpty(CreditNote.ReasonCodeName))
+                            {
+                                <div class="dn-info-row">
+                                    <span class="dn-info-key">Reason Code</span>
+                                    <span class="dn-info-val">@CreditNote.ReasonCodeName</span>
+                                </div>
+                            }
+                            @if (!string.IsNullOrEmpty(CreditNote.CancellationReason))
+                            {
+                                <div class="dn-info-row">
+                                    <span class="dn-info-key">Cancellation</span>
+                                    <span class="dn-info-val dn-info-warn">@CreditNote.CancellationReason</span>
+                                </div>
+                            }
+                        </div>
+                    </div>
+                </div>
+
+                @if (!string.IsNullOrWhiteSpace(CreditNote.CreditNoteNarration))
+                {
+                    <div class="dn-section-label">Narration</div>
+                    <div class="dn-narration-card dn-animate-card" style="--d:100ms">
+                        <div class="dn-narration-mark">&ldquo;</div>
+                        <p class="dn-narration-text ql-rendered">@((MarkupString)(CreditNote.CreditNoteNarration ?? string.Empty))</p>
+                    </div>
+                }
+            </div>
+
+            <!-- TAB: LINES -->
+            <div id="tab-lines" class="dn-tab-panel">
+                <div class="dn-lines-header-row">
+                    <div class="dn-section-label" style="margin:0">Credit Note Lines</div>
+                    <span class="dn-count-pill">@CreditNote.Lines.Count items</span>
+                </div>
+                <div class="dn-lines-card dn-lines-desktop">
+                    <table class="dn-table">
+                        <thead class="bg-light">
+                            <tr>
+                                <th>#</th>
+                                <th>Description</th>
+                                <th class="r">Qty</th>
+                                <th class="r">Unit Price</th>
+                                <th class="r">Disc %</th>
+                                <th class="r">Tax %</th>
+                                <th class="r">Tax Amt</th>
+                                <th class="r">Line Total</th>
+                                <th>Reversal Acct</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @{
+                                int idx = 0;
+                            }
+                            @foreach (var line in CreditNote.Lines.OrderBy(l => l.LineNumber))
+                            {
+                                idx++;
+                                <tr class="dn-tr" style="animation-delay:@(idx * 50)ms">
+                                    <td class="dn-td-num">@line.LineNumber</td>
+                                    <td class="dn-td-desc">@line.Description</td>
+                                    <td class="r dn-td-mono">@line.Quantity</td>
+                                    <td class="r dn-td-mono">@line.UnitPrice.ToString("N2")</td>
+                                    <td class="r dn-td-mono">@line.DiscountPercent.ToString("N2")%</td>
+                                    <td class="r dn-td-mono">@line.TaxRatePercent%</td>
+                                    <td class="r dn-td-mono">@line.TaxAmount.ToString("N2")</td>
+                                    <td class="r dn-td-total">@line.LineTotalAmount.ToString("N2")</td>
+                                    <td><span class="dn-acct-chip">@(line.ReversalAccountCode ?? "—")</span></td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+                <div class="dn-lines-mobile">
+                    @foreach (var line in CreditNote.Lines.OrderBy(l => l.LineNumber))
+                    {
+                        <div class="dn-line-mob-card">
+                            <div class="dn-lmc-head">
+                                <span class="dn-lmc-num">Line @line.LineNumber</span>
+                                <span class="dn-lmc-total">@line.LineTotalAmount.ToString("N2")</span>
+                            </div>
+                            <div class="dn-lmc-desc">@line.Description</div>
+                            <div class="dn-lmc-rows">
+                                <div class="dn-lmc-row"><span>Qty × Price</span><span>@line.Quantity × @line.UnitPrice.ToString("N2")</span></div>
+                                <div class="dn-lmc-row"><span>Discount</span><span>@line.DiscountPercent.ToString("N2")%</span></div>
+                                <div class="dn-lmc-row"><span>Tax (@line.TaxRatePercent%)</span><span>@line.TaxAmount.ToString("N2")</span></div>
+                                <div class="dn-lmc-row"><span>Reversal Acct</span><span class="dn-acct-chip">@(line.ReversalAccountCode ?? "—")</span></div>
+                            </div>
+                        </div>
+                    }
+                </div>
+            </div>
+
+            <!-- TAB: COMPLIANCE -->
+            <div id="tab-compliance" class="dn-tab-panel">
+                <div class="dn-section-label">Tax &amp; Compliance Details</div>
+                <div class="dn-culture-grid">
+                    <div class="dn-culture-card dn-animate-card" style="--d:0ms">
+                        <div class="dn-culture-icon"><i class="ti ti-receipt-tax"></i></div>
+                        <div class="dn-culture-name">GST APPLICABLE</div>
+                        <div class="dn-culture-desc">
+                            @if (CreditNote.IsGSTApplicable)
+                            {
+                                <span class="dn-yn dn-yn--yes dn-yn--lg">Yes &mdash; GST applies to this transaction</span>
+                            }
+                            else
+                            {
+                                <span class="dn-yn dn-yn--no dn-yn--lg">No &mdash; GST not applicable</span>
+                            }
+                        </div>
+                    </div>
+                    <div class="dn-culture-card dn-animate-card" style="--d:80ms">
+                        <div class="dn-culture-icon dn-ci--amber"><i class="ti ti-alert-triangle"></i></div>
+                        <div class="dn-culture-name">REVERSE CHARGE</div>
+                        <div class="dn-culture-desc">
+                            @if (CreditNote.IsReverseChargeApplicable)
+                            {
+                                <span class="dn-yn dn-yn--warn dn-yn--lg">Yes &mdash; Reverse charge mechanism applies</span>
+                            }
+                            else
+                            {
+                                <span class="dn-yn dn-yn--no dn-yn--lg">No &mdash; Standard charge applies</span>
+                            }
+                        </div>
+                    </div>
+                    <div class="dn-culture-card dn-animate-card" style="--d:160ms">
+                        <div class="dn-culture-icon dn-ci--blue"><i class="ti ti-currency-dollar"></i></div>
+                        <div class="dn-culture-name">CURRENCY</div>
+                        <div class="dn-culture-desc">
+                            <strong>@CreditNote.CurrencyCode</strong> &mdash; @CreditNote.CurrencyName<br />
+                            <span class="dn-small">Exchange Rate: @CreditNote.ExchangeRate</span>
+                        </div>
+                    </div>
+                    <div class="dn-culture-card dn-animate-card" style="--d:240ms">
+                        <div class="dn-culture-icon dn-ci--emerald"><i class="ti ti-refresh"></i></div>
+                        <div class="dn-culture-name">SETTLEMENT</div>
+                        <div class="dn-culture-desc">
+                            <span class="dn-settle-badge-lg @GetSettlementBadgeClass(CreditNote.CreditSettlementStatus)">
+                                @CreditSettlementStatuses.GetDisplayName(CreditNote.CreditSettlementStatus)
+                            </span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- TAB: AUDIT -->
+            <div id="tab-audit" class="dn-tab-panel">
+                <div class="dn-section-label">Audit Trail</div>
+                <div class="dn-timeline">
+                    <div class="dn-tl-item dn-tl-created dn-animate-card" style="--d:0ms">
+                        <div class="dn-tl-connector"></div>
+                        <div class="dn-tl-dot"></div>
+                        <div class="dn-tl-body">
+                            <div class="dn-tl-card">
+                                <div class="dn-tl-header">
+                                    <div class="dn-tl-icon"><i class="ti ti-plus"></i></div>
+                                    <div>
+                                        <div class="dn-tl-event">Created</div>
+                                        <div class="dn-tl-time">@CreditNote.CreatedAt.ToString("dd MMM yyyy, HH:mm")</div>
+                                    </div>
+                                    <div class="dn-tl-badge">Step 1</div>
+                                </div>
+                                @if (!string.IsNullOrEmpty(CreditNote.CreatedBy))
+                                {
+                                    <div class="dn-tl-user"><i class="ti ti-user-circle"></i> @CreditNote.CreatedBy</div>
+                                }
+                            </div>
+                        </div>
+                    </div>
+                    @if (CreditNote.UpdatedAt.HasValue && !string.IsNullOrEmpty(CreditNote.UpdatedBy))
+                    {
+                        <div class="dn-tl-item dn-tl-updated dn-animate-card" style="--d:100ms">
+                            <div class="dn-tl-connector"></div>
+                            <div class="dn-tl-dot"></div>
+                            <div class="dn-tl-body">
+                                <div class="dn-tl-card">
+                                    <div class="dn-tl-header">
+                                        <div class="dn-tl-icon dn-tl-icon--indigo"><i class="ti ti-edit"></i></div>
+                                        <div>
+                                            <div class="dn-tl-event" style="color: #5046ce;">Updated</div>
+                                            <div class="dn-tl-time">@CreditNote.UpdatedAt.Value.ToString("dd MMM yyyy, HH:mm")</div>
+                                        </div>
+                                        <div class="dn-tl-badge dn-tl-badge--indigo">Step 2</div>
+                                    </div>
+                                    <div class="dn-tl-user"><i class="ti ti-user-circle"></i> @CreditNote.UpdatedBy</div>
+                                </div>
+                            </div>
+                        </div>
+                    }
+                    @if (CreditNote.ApprovedAt.HasValue && !string.IsNullOrEmpty(CreditNote.ApprovedBy))
+                    {
+                        <div class="dn-tl-item dn-tl-approved dn-animate-card" style="--d:200ms">
+                            <div class="dn-tl-connector"></div>
+                            <div class="dn-tl-dot"></div>
+                            <div class="dn-tl-body">
+                                <div class="dn-tl-card">
+                                    <div class="dn-tl-header">
+                                        <div class="dn-tl-icon dn-tl-icon--green"><i class="ti ti-shield-check"></i></div>
+                                        <div>
+                                            <div class="dn-tl-event dn-tl-time--good">Approved</div>
+                                            <div class="dn-tl-time">@CreditNote.ApprovedAt.Value.ToString("dd MMM yyyy, HH:mm")</div>
+                                        </div>
+                                        <div class="dn-tl-badge dn-tl-badge--green">Step 3</div>
+                                    </div>
+                                    <div class="dn-tl-user"><i class="ti ti-user-circle"></i> @CreditNote.ApprovedBy</div>
+                                </div>
+                            </div>
+                        </div>
+                    }
+                    @if (CreditNote.PostedAt.HasValue && !string.IsNullOrEmpty(CreditNote.PostedBy))
+                    {
+                        <div class="dn-tl-item dn-tl-posted dn-animate-card" style="--d:300ms">
+                            <div class="dn-tl-connector"></div>
+                            <div class="dn-tl-dot"></div>
+                            <div class="dn-tl-body">
+                                <div class="dn-tl-card">
+                                    <div class="dn-tl-header">
+                                        <div class="dn-tl-icon dn-tl-icon--orange"><i class="ti ti-send"></i></div>
+                                        <div>
+                                            <div class="dn-tl-event">Posted to Ledger</div>
+                                            <div class="dn-tl-time dn-tl-time--good">@CreditNote.PostedAt.Value.ToString("dd MMM yyyy, HH:mm")</div>
+                                        </div>
+                                        <div class="dn-tl-badge dn-tl-badge--orange">Final</div>
+                                    </div>
+                                    <div class="dn-tl-user"><i class="ti ti-user-circle"></i> @CreditNote.PostedBy</div>
+                                </div>
+                            </div>
+                        </div>
+                    }
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- MODALS -->
+    <div class="modal fade" id="approveModal" data-bs-backdrop="static">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content dn-modal">
+                <div class="dn-modal-bar dn-modal-bar--orange"></div>
+                <div class="dn-modal-body">
+                    <div class="dn-modal-icon dn-modal-icon--orange"><i class="ti ti-shield-check"></i></div>
+                    <h4 class="dn-modal-title">Approve Credit Note</h4>
+                    <p class="dn-modal-desc">Approve <strong class="dn-modal-ref">@CreditNote.CreditNoteNumber</strong>? This will move it to the posting queue.</p>
+                    <div class="dn-modal-actions">
+                        <button class="dn-mb dn-mb--ghost" data-bs-dismiss="modal"><i class="ti ti-x me-1"></i>Cancel</button>
+                        <button class="dn-mb dn-mb--orange" @onclick="Approve" data-bs-dismiss="modal"><i class="ti ti-check"></i> Approve</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal fade" id="rejectModal" data-bs-backdrop="static">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content dn-modal">
+                <div class="dn-modal-bar dn-modal-bar--red"></div>
+                <div class="dn-modal-body">
+                    <div class="dn-modal-icon dn-modal-icon--red"><i class="ti ti-circle-x"></i></div>
+                    <h4 class="dn-modal-title">Reject Credit Note</h4>
+                    <p class="dn-modal-desc">Reject <strong class="dn-modal-ref">@CreditNote.CreditNoteNumber</strong>? Please provide a reason.</p>
+                    <div class="dn-modal-field">
+                        <label>Rejection Reason <span class="dn-req">*</span></label>
+                        <textarea class="dn-ta" rows="3" @bind="rejectReason" placeholder="Enter rejection reason..."></textarea>
+                    </div>
+                    <div class="dn-modal-actions">
+                        <button class="dn-mb dn-mb--ghost" data-bs-dismiss="modal"><i class="ti ti-x me-1"></i>Cancel</button>
+                        <button class="dn-mb dn-mb--red" @onclick="Reject" data-bs-dismiss="modal"><i class="ti ti-x"></i> Reject</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal fade" id="postModal" data-bs-backdrop="static">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content dn-modal">
+                <div class="dn-modal-bar dn-modal-bar--green"></div>
+                <div class="dn-modal-body">
+                    <div class="dn-modal-icon dn-modal-icon--green"><i class="ti ti-send"></i></div>
+                    <h4 class="dn-modal-title">Post Credit Note</h4>
+                    <p class="dn-modal-desc">Post <strong class="dn-modal-ref">@CreditNote.CreditNoteNumber</strong> to the general ledger?</p>
+                    <div class="dn-modal-alert">
+                        <i class="ti ti-lock"></i>
+                        Once posted, this credit note cannot be edited or deleted.
+                    </div>
+                    <div class="dn-modal-actions">
+                        <button class="dn-mb dn-mb--ghost" data-bs-dismiss="modal"><i class="ti ti-x me-1"></i>Cancel</button>
+                        <button class="dn-mb dn-mb--green" @onclick="Post" data-bs-dismiss="modal"><i class="ti ti-send"></i> Post</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal fade" id="cancelModal" data-bs-backdrop="static">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content dn-modal">
+                <div class="dn-modal-bar dn-modal-bar--amber"></div>
+                <div class="dn-modal-body">
+                    <div class="dn-modal-icon dn-modal-icon--amber"><i class="ti ti-ban"></i></div>
+                    <h4 class="dn-modal-title">Cancel Credit Note</h4>
+                    <p class="dn-modal-desc">Cancel <strong class="dn-modal-ref">@CreditNote.CreditNoteNumber</strong>?</p>
+                    <div class="dn-modal-field">
+                        <label>Cancellation Reason <span class="dn-req">*</span></label>
+                        <textarea class="dn-ta" rows="3" @bind="cancelReason" placeholder="Enter cancellation reason..."></textarea>
+                    </div>
+                    <div class="dn-modal-actions">
+                        <button class="dn-mb dn-mb--ghost" data-bs-dismiss="modal"><i class="ti ti-x me-1"></i>Cancel</button>
+                        <button class="dn-mb dn-mb--amber" @onclick="CancelCreditNote" data-bs-dismiss="modal"><i class="ti ti-ban"></i> Cancel</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+<script>
+    function switchTab(tabId, btn) {
+        document.querySelectorAll('.dn-tab-panel').forEach(p => p.classList.remove('dn-tab-panel--active'));
+        document.querySelectorAll('.dn-tab').forEach(t => t.classList.remove('dn-tab--active'));
+        document.getElementById('tab-' + tabId).classList.add('dn-tab-panel--active');
+        btn.classList.add('dn-tab--active');
+
+        document.querySelectorAll('#tab-' + tabId + ' .dn-animate-card').forEach((el, i) => {
+            el.style.animation = 'none';
+            el.offsetHeight;
+            el.style.animation = '';
+        });
+    }
+</script>

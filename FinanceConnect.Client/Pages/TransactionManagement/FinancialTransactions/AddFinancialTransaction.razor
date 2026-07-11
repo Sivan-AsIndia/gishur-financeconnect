@@ -1,0 +1,636 @@
+﻿@page "/financial-transactions/create"
+@page "/financial-transactions/{Id:guid}"
+
+@using FinanceConnect.Client.ViewModels
+@using FinanceConnect.Client.Services
+
+
+<style>
+    .form-select option:checked {
+        color: #fff;
+        background: var(--primary);
+    }
+
+    .form-select:focus {
+        border-color: var(--primary);
+        box-shadow: none;
+    }
+
+    .validation-message {
+        color: #dc3545;
+        font-size: 12px;
+    }
+
+    .header-ribbon {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        background: #f8f9fa;
+        padding: 15px 20px;
+        border-radius: 8px;
+        margin-bottom: 15px;
+    }
+
+    .badge-lg {
+        font-size: 14px;
+        padding: 6px 10px;
+    }
+
+  
+</style>
+
+<div class="content Accordion-form">
+
+    <!-- HEADER RIBBON -->
+    <div class="header-ribbon">
+        <div class="page-title">
+            <h4 class="fw-bold mb-0">
+                @(IsEdit ? transaction.DocumentNo : "New Financial Transaction")
+                <span class="badge badge-lg-tranparent text-lg @GetStatusBadge(transaction.Status) me-2">
+                    @transaction.Status
+                </span>
+                @if (!string.IsNullOrEmpty(transaction.DocumentNo))
+                {
+                    <span class="badge bg-secondary">@transaction.DocumentNo</span>
+                }
+            </h4>
+            <small class="text-muted">
+                @(IsEdit ? "View or manage financial transaction lifecycle"
+                         : "Create a new financial transaction draft")
+            </small>
+        </div>
+
+        <div class="d-flex gap-2">
+            @* <span class="badge badge-lg @GetStatusBadge(transaction.Status)">
+                @transaction.Status
+            </span>
+
+            @if (!string.IsNullOrWhiteSpace(transaction.TransactionTypeName))
+            {
+                <span class="badge bg-info-transparent text-info badge-lg">
+                    @transaction.TransactionTypeName
+                </span>
+            } *@
+
+            <button class="btn btn-outline-secondary"
+                    @onclick="BackToList">
+                <i class="ti ti-arrow-left"></i> Back
+            </button>
+        </div>
+    </div>
+
+    <EditForm EditContext="_editContext" OnSubmit="HandleSubmit">
+        <DataAnnotationsValidator />
+
+        <div class="add-product" style="background:#f4f7fb; padding:24px 14px;">
+            <div class="tl-accordion">
+
+                <!--  LEFT PANEL -->
+                <div class="tl-left-panel">
+
+                    <!-- OWNERSHIP -->
+                    <div class="tl-label @(ShowOwnership ? "active accent-orange" : "")"
+                         @onclick="@(() => ToggleAccordion("ownership"))">
+                        <div class="tl-label-icon ico-orange"><i data-feather="briefcase"></i></div>
+                        <div class="tl-label-text">
+                            <div class="tl-label-title">Ownership & Context</div>
+                            <div class="tl-label-sub">Company, Branch & Document</div>
+                        </div>
+                        <span class="tl-label-chevron @(ShowOwnership ? "open" : "")">
+                            <i data-feather="chevron-right"></i>
+                        </span>
+                    </div>
+
+                    <!-- CLASSIFICATION -->
+                    <div class="tl-label @(ShowClassification ? "active accent-blue" : "")"
+                         @onclick="@(() => ToggleAccordion("classification"))">
+                        <div class="tl-label-icon ico-blue"><i data-feather="tag"></i></div>
+                        <div class="tl-label-text">
+                            <div class="tl-label-title">Classification</div>
+                            <div class="tl-label-sub">Type & Source</div>
+                        </div>
+                        <span class="tl-label-chevron @(ShowClassification ? "open" : "")">
+                            <i data-feather="chevron-right"></i>
+                        </span>
+                    </div>
+
+                    <!-- DATES -->
+                    <div class="tl-label @(ShowDates ? "active accent-purple" : "")"
+                         @onclick="@(() => ToggleAccordion("dates"))">
+                        <div class="tl-label-icon ico-purple"><i data-feather="calendar"></i></div>
+                        <div class="tl-label-text">
+                            <div class="tl-label-title">Dates & Period</div>
+                            <div class="tl-label-sub">Transaction & Accounting</div>
+                        </div>
+                        <span class="tl-label-chevron @(ShowDates ? "open" : "")">
+                            <i data-feather="chevron-right"></i>
+                        </span>
+                    </div>
+
+                    <!-- CURRENCY -->
+                    <div class="tl-label @(ShowCurrency ? "active accent-green" : "")"
+                         @onclick="@(() => ToggleAccordion("currency"))">
+                        <div class="tl-label-icon ico-green"><i data-feather="dollar-sign"></i></div>
+                        <div class="tl-label-text">
+                            <div class="tl-label-title">Currency & Amount</div>
+                            <div class="tl-label-sub">FX snapshot & totals</div>
+                        </div>
+                        <span class="tl-label-chevron @(ShowCurrency ? "open" : "")">
+                            <i data-feather="chevron-right"></i>
+                        </span>
+                    </div>
+
+                    <!-- NARRATION -->
+                    <div class="tl-label @(ShowNarration ? "active accent-rose" : "")"
+                         @onclick="@(() => ToggleAccordion("narration"))">
+                        <div class="tl-label-icon ico-rose"><i data-feather="file-text"></i></div>
+                        <div class="tl-label-text">
+                            <div class="tl-label-title">Narration & Control</div>
+                            <div class="tl-label-sub">Description & flags</div>
+                        </div>
+                        <span class="tl-label-chevron @(ShowNarration ? "open" : "")">
+                            <i data-feather="chevron-right"></i>
+                        </span>
+                    </div>
+
+                    @if (IsEdit && (transaction.Status == "Posted" || transaction.Status == "Reversed" || transaction.Status == "Submitted"))
+                    {
+                        <div class="tl-label @(ShowAudit ? "active accent-teal" : "")"
+                             @onclick="@(() => ToggleAccordion("audit"))">
+                            <div class="tl-label-icon ico-teal"><i data-feather="shield"></i></div>
+                            <div class="tl-label-text">
+                                <div class="tl-label-title">Audit & Workflow</div>
+                                <div class="tl-label-sub">Lifecycle stamps</div>
+                            </div>
+                            <span class="tl-label-chevron @(ShowAudit ? "open" : "")">
+                                <i data-feather="chevron-right"></i>
+                            </span>
+                        </div>
+                    }
+
+                </div>
+
+
+                <!--  RIGHT PANEL  -->
+                <div class="tl-right-area">
+
+                    <!-- OWNERSHIP -->
+                    <div class="tl-card-row @(ShowOwnership ? "row-active" : "")">
+                        <div class="tl-dot-col">
+                            <div class="tl-dot" @onclick="@(() => ToggleAccordion("ownership"))"></div>
+                        </div>
+                        <div class="tl-card-col">
+                            <div class="tl-card @(ShowOwnership ? "card-active border-orange" : "")">
+
+                                <div class="tl-card-header"
+                                     @onclick="@(() => ToggleAccordion("ownership"))">
+                                    <div class="tl-card-header-title">
+                                        <span class="tl-card-step step-orange">01</span>
+                                        Ownership & Context
+                                    </div>
+                                    <span class="tl-card-toggle @(ShowOwnership ? "toggle-open" : "")">
+                                        <i data-feather="chevron-down"></i>
+                                    </span>
+                                </div>
+
+                                <div class="tl-collapse @(ShowOwnership ? "tl-open" : "")">
+                                    <div class="tl-card-body">
+                                        <div class="tl-card-body-inner @(OwnershipTouched ? "touched" : "")">
+
+                                            <div class="row">
+
+                                                @* <div class="col-sm-4 mb-3">
+                                                    <label class="form-label">Document Number <span class="text-danger">*</span></label>
+                                                    <input class="@($"form-control {GetValidationClass(() => transaction.DocumentNo)}")"
+                                                           @bind="transaction.DocumentNo"
+                                                           disabled="@IsLocked"
+                                                           placeholder="Document No" readonly @oninput="TouchOwnership" />
+                                                    <ValidationMessage For="@(() => transaction.DocumentNo)" />
+                                                </div> *@
+
+                                                <div class="col-sm-4 mb-3">
+                                                    <label class="form-label">Company <span class="text-danger">*</span></label>
+                                                    <select class="@($"form-select {GetValidationClass(() => transaction.CompanyId)}")"
+                                                            @bind="transaction.CompanyId"
+                                                            disabled="@IsLocked"
+                                                            @bind:after="() => { OnCompanyChanged(); TouchOwnership(); }">
+                                                        <option value="">-- Select Company --</option>
+                                                        @foreach (var c in Companies)
+                                                        {
+                                                            <option value="@c.Id">@c.LegalName</option>
+                                                        }
+                                                    </select>
+                                                    <ValidationMessage For="@(() => transaction.CompanyId)" />
+                                                </div>
+
+                                                <div class="col-sm-4 mb-3">
+                                                    <label class="form-label">Branch <span class="text-danger">*</span></label>
+                                                    <select class="@($"form-select {GetValidationClass(() => transaction.BranchId)}")"
+                                                            @bind="transaction.BranchId"
+                                                            disabled="@IsLocked" @oninput="TouchOwnership">
+                                                        <option value="">-- Select Branch --</option>
+                                                        @foreach (var b in FilteredBranches)
+                                                        {
+                                                            <option value="@b.Id">@b.BranchCode - @b.BranchName</option>
+                                                        }
+                                                    </select>
+                                                    <ValidationMessage For="@(() => transaction.BranchId)" />
+                                                </div>
+
+
+                                            </div>
+
+                                        </div>
+                                    </div>
+                                </div>
+
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- CLASSIFICATION -->
+                    <div class="tl-card-row @(ShowClassification ? "row-active" : "")">
+                        <div class="tl-dot-col">
+                            <div class="tl-dot" @onclick="@(() => ToggleAccordion("classification"))"></div>
+                        </div>
+                        <div class="tl-card-col">
+                            <div class="tl-card @(ShowClassification ? "card-active border-blue" : "")">
+
+                                <div class="tl-card-header"
+                                     @onclick="@(() => ToggleAccordion("classification"))">
+                                    <div class="tl-card-header-title">
+                                        <span class="tl-card-step step-blue">02</span>
+                                        Classification
+                                    </div>
+                                    <span class="tl-card-toggle @(ShowClassification ? "toggle-open" : "")">
+                                        <i data-feather="chevron-down"></i>
+                                    </span>
+                                </div>
+
+                                <div class="tl-collapse @(ShowClassification ? "tl-open" : "")">
+                                    <div class="tl-card-body">
+                                        <div class="tl-card-body-inner @(ClassificationTouched ? "touched" : "")">
+
+                                            <div class="row">
+
+                                                <div class="col-sm-4 mb-3">
+                                                    <label class="form-label">Transaction Type <span class="text-danger">*</span></label>
+                                                    <select class="@($"form-select {GetValidationClass(() => transaction.TransactionTypeId)}")"
+                                                            @bind="transaction.TransactionTypeId"
+                                                            disabled="@IsLocked"
+                                                            @bind:after="() => { OnTypeChanged(); TouchClassification(); }">
+                                                        <option value="">-- Select Type --</option>
+                                                        @foreach (var t in TransactionTypes)
+                                                        {
+                                                            <option value="@t.TransactionTypeId">@t.Name</option>
+                                                        }
+                                                    </select>
+                                                    <ValidationMessage For="@(() => transaction.TransactionTypeId)" />
+                                                </div>
+
+                                                <div class="col-sm-4 mb-3">
+                                                    <label class="form-label">Source Module <span class="text-danger">*</span></label>
+                                                    <select class="form-select"
+                                                            @bind="transaction.SourceModule"
+                                                            disabled="@IsLocked" @oninput="TouchClassification">
+                                                        @foreach (var module in Enum.GetValues<SourceModule>())
+                                                        {
+                                                            <option value="@module">@module</option>
+                                                        }
+                                                    </select>
+                                                    <ValidationMessage For="@(() => transaction.SourceModule)" />
+                                                </div>
+
+                                                <div class="col-sm-4 mb-3">
+                                                    <label class="form-label">Source Reference No</label>
+                                                    <input class="form-control"
+                                                           @bind="transaction.SourceDocumentNo"
+                                                           disabled="@IsLocked"
+                                                           placeholder="Optional source document reference" @oninput="TouchClassification" />
+                                                </div>
+
+                                            </div>
+
+                                        </div>
+                                    </div>
+                                </div>
+
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- DATES -->
+                    <div class="tl-card-row @(ShowDates ? "row-active" : "")">
+                        <div class="tl-dot-col">
+                            <div class="tl-dot" @onclick="@(() => ToggleAccordion("dates"))"></div>
+                        </div>
+                        <div class="tl-card-col">
+                            <div class="tl-card @(ShowDates ? "card-active border-purple" : "")">
+
+                                <div class="tl-card-header"
+                                     @onclick="@(() => ToggleAccordion("dates"))">
+                                    <div class="tl-card-header-title">
+                                        <span class="tl-card-step step-purple">03</span>
+                                        Dates & Period
+                                    </div>
+                                    <span class="tl-card-toggle @(ShowDates ? "toggle-open" : "")">
+                                        <i data-feather="chevron-down"></i>
+                                    </span>
+                                </div>
+
+                                <div class="tl-collapse @(ShowDates ? "tl-open" : "")">
+                                    <div class="tl-card-body">
+                                        <div class="tl-card-body-inner @(DatesTouched ? "touched" : "")">
+
+                            <div class="row">
+
+                                <div class="col-sm-4 mb-3">
+                                    <label class="form-label">Transaction Date <span class="text-danger">*</span></label>
+                                    <input type="date"
+                                           class="@($"form-control {GetValidationClass(() => transaction.TransactionDate)}")"
+                                           @bind="transaction.TransactionDate"
+                                           disabled="@IsLocked"
+                                           @bind:after="() => { ResolveAccountingPeriod(); TouchDates(); }" />
+                                    <ValidationMessage For="@(() => transaction.TransactionDate)" />
+                                </div>
+
+                                <div class="col-sm-4 mb-3">
+                                    <label class="form-label">Accounting Period <span class="text-danger">*</span></label>
+                                    <input class="form-control"
+                                           disabled
+                                           value="@transaction.AccountingPeriod" @oninput="TouchDates" />
+                                    <ValidationMessage For="@(() => transaction.AccountingPeriodId)" />
+                                </div>
+
+                                @if (transaction.Status == "Posted")
+                                {
+                                    <div class="col-sm-4 mb-3">
+                                        <label class="form-label">Posting Date</label>
+                                        <input class="form-control"
+                                               disabled
+                                               value="@(transaction.PostedAt?.ToString("dd MMM yyyy") ?? "—")" @oninput="TouchDates" />
+                                    </div>
+                                }
+
+
+                            </div>
+
+                                        </div>
+                                    </div>
+                                </div>
+
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- CURRENCY -->
+                    <div class="tl-card-row @(ShowCurrency ? "row-active" : "")">
+                        <div class="tl-dot-col">
+                            <div class="tl-dot" @onclick="@(() => ToggleAccordion("currency"))"></div>
+                        </div>
+                        <div class="tl-card-col">
+                            <div class="tl-card @(ShowCurrency ? "card-active border-green" : "")">
+
+                                <div class="tl-card-header"
+                                     @onclick="@(() => ToggleAccordion("currency"))">
+                                    <div class="tl-card-header-title">
+                                        <span class="tl-card-step step-green">04</span>
+                                        Currency & Amount
+                                    </div>
+                                    <span class="tl-card-toggle @(ShowCurrency ? "toggle-open" : "")">
+                                        <i data-feather="chevron-down"></i>
+                                    </span>
+                                </div>
+
+                                <div class="tl-collapse @(ShowCurrency ? "tl-open" : "")">
+                                    <div class="tl-card-body">
+                                        <div class="tl-card-body-inner @(CurrencyTouched ? "touched" : "")">
+
+                                            <div class="row">
+
+                                                <div class="col-sm-3 mb-3">
+                                                    <label class="form-label">Currency <span class="text-danger">*</span></label>
+                                                    <select class="form-select"
+                                                            @bind="transaction.CurrencyId"
+                                                            disabled="@IsEditCurrency" @oninput="TouchCurrency">
+                                                        <option value="">-- Select Currency --</option>
+                                                        @foreach (var c in Currencies)
+                                                        {
+                                                            <option value="@c.Id">@c.CurrencyName (@c.CurrencyCode)</option>
+                                                        }
+                                                    </select>
+                                                    <ValidationMessage For="@(() => transaction.CurrencyId)" />
+                                                </div>
+
+                                                @if (transaction.CurrencyId != selectedCompany.BaseCurrencyId)
+                                                {
+                                                    <div class="col-sm-3 mb-3">
+                                                        <label class="form-label">Exchange Rate <span class="text-danger">*</span></label>
+                                                        <input class="form-control"
+                                                               type="number"
+                                                               step="0.0001"
+                                                               @bind-Value="ExchangeRate"
+                                                               @bind-Value:event="oninput"
+                                                               @bind-Value:after="() => { RecalculateBase(); TouchCurrency(); }"
+                                                               disabled="@IsLocked" />
+                                                    </div>
+                                                }
+
+
+                                                <div class="col-sm-3 mb-3">
+                                                    <label class="form-label">Transaction Amount <span class="text-danger">*</span></label>
+                                                    <input class="@($"form-control {GetValidationClass(() => transaction.TransactionAmount)}")"
+                                                           type="number"
+                                                           step="0.01"
+                                                           @bind-Value="transaction.TransactionAmount"
+                                                           @bind-Value:event="oninput"
+                                                           @bind-Value:after="() => { RecalculateBase(); TouchCurrency(); }"
+                                                           disabled="@IsLocked" />
+                                                    <ValidationMessage For="@(() => transaction.TransactionAmount)" />
+                                                </div>
+
+
+                                                <div class="col-sm-3 mb-3">
+                                                    <label class="form-label">Base Amount</label>
+                                                    <input class="@($"form-control {GetValidationClass(() => transaction.BaseAmount)}")"
+                                                           disabled
+                                                           value="@transaction.BaseAmount.ToString("N2")" />
+                                                    <ValidationMessage For="@(() => transaction.BaseAmount)" />
+                                                </div>
+
+                                            </div>
+
+                                        </div>
+                                    </div>
+                                </div>
+
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- NARRATION -->
+                    <div class="tl-card-row @(ShowNarration ? "row-active" : "")">
+                        <div class="tl-dot-col">
+                            <div class="tl-dot" @onclick="@(() => ToggleAccordion("narration"))"></div>
+                        </div>
+                        <div class="tl-card-col">
+                            <div class="tl-card @(ShowNarration ? "card-active border-rose" : "")">
+
+                                <div class="tl-card-header"
+                                     @onclick="@(() => ToggleAccordion("narration"))">
+                                    <div class="tl-card-header-title">
+                                        <span class="tl-card-step step-rose">05</span>
+                                        Narration & Control
+                                    </div>
+                                    <span class="tl-card-toggle @(ShowNarration ? "toggle-open" : "")">
+                                        <i data-feather="chevron-down"></i>
+                                    </span>
+                                </div>
+
+                                <div class="tl-collapse @(ShowNarration ? "tl-open" : "")">
+                                    <div class="tl-card-body">
+                                        <div class="tl-card-body-inner @(NarrationTouched ? "touched" : "")">
+                                            <div class="row">
+                                                @* maxlength="1000" *@
+                                                <div class="col-sm-8 mb-3">
+                                                    <label class="form-label">Narration</label>
+                                                     <RichTextEditor @ref="_narrationEditor"
+                                                                    Value="@transaction.Narration"
+                                                                        MaxHeight="200" MinHeight="80"
+                                                                    placeholder="Describe this financial event" />
+                                                </div>
+
+                                                <div class="col-sm-4 mt-4">
+                                                    <div class="form-check form-switch">
+                                                        <input class="form-check-input"
+                                                               type="checkbox" id="isAutoGenerated"
+                                                               @bind="transaction.IsAutoGenerated" @oninput="TouchNarration" />
+                                                        <label class="form-check-label" for="isAutoGenerated">
+                                                            Auto Generated
+                                                        </label>
+                                                    </div>
+
+                                                    <div class="form-check form-switch mt-2">
+                                                        <input class="form-check-input"
+                                                               type="checkbox" id="isReversalSwitch"
+                                                               @bind="transaction.IsReversal" @oninput="TouchNarration" />
+                                                        <label class="form-check-label" for="isReversalSwitch">
+                                                            Is Reversal
+                                                        </label>
+                                                    </div>
+                                                </div>
+
+                                            </div>
+
+                                        </div>
+                                    </div>
+                                </div>
+
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- AUDIT -->
+                    @if (IsEdit && (transaction.Status == "Posted" || transaction.Status == "Reversed" || transaction.Status == "Submitted"))
+                    {
+                        <div class="tl-card-row @(ShowAudit ? "row-active" : "")">
+                            <div class="tl-dot-col">
+                                <div class="tl-dot" @onclick="@(() => ToggleAccordion("audit"))"></div>
+                            </div>
+                            <div class="tl-card-col">
+                                <div class="tl-card @(ShowAudit ? "card-active border-teal" : "")">
+
+                                    <div class="tl-card-header"
+                                         @onclick="@(() => ToggleAccordion("audit"))">
+                                        <div class="tl-card-header-title">
+                                            <span class="tl-card-step step-teal">06</span>
+                                            Audit & Workflow
+                                        </div>
+                                        <span class="tl-card-toggle @(ShowAudit ? "toggle-open" : "")">
+                                            <i data-feather="chevron-down"></i>
+                                        </span>
+                                    </div>
+
+                                    <div class="tl-collapse @(ShowAudit ? "tl-open" : "")">
+                                        <div class="tl-card-body">
+                                            <div class="tl-card-body-inner @(AuditTouched ? "touched" : "")">
+
+                            <div class="row">
+
+                                <div class="col-sm-3 mb-3">
+                                    <label class="form-label">Submitted At</label>
+                                    <input class="form-control"
+                                           disabled
+                                           value="@transaction.SubmittedAt" />
+                                </div>
+
+                                <div class="col-sm-3 mb-3">
+                                    <label class="form-label">Approved At</label>
+                                    <input class="form-control"
+                                           disabled
+                                           value="@transaction.ApprovedAt" />
+                                </div>
+
+                                <div class="col-sm-3 mb-3">
+                                    <label class="form-label">Posted At</label>
+                                    <input class="form-control"
+                                           disabled
+                                           value="@transaction.PostedAt" />
+                                </div>
+
+                                <div class="col-sm-3 mb-3">
+                                    <label class="form-label">Created At</label>
+                                    <input class="form-control"
+                                           disabled
+                                           value="@transaction.CreatedAt" />
+                                </div>
+
+                            </div>
+
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                </div>
+                            </div>
+                        </div>
+                    }
+
+                </div>
+
+            </div>
+        </div>
+
+        <!-- ACTIONS -->
+        <div class="d-flex justify-content-end mb-4 gap-2">
+
+            <button type="button"
+                    class="btn btn-outline-secondary"
+                    @onclick="BackToList">
+                <i class="ti ti-x"></i> Cancel
+            </button>
+
+            @if (transaction.Status == "Draft")
+            {
+                <button type="submit" class="btn btn-primary">
+                    <i class="ti ti-device-floppy"></i> @(IsEdit ? "Update" : "Save")
+                </button>
+
+            }
+
+            
+            @* @if (transaction.Status == "Draft" && IsEdit)
+            {
+
+                <button type="button"
+                        class="btn btn-success"
+                        @onclick="SubmitTx">
+                    Submit
+                </button>
+            } *@
+
+
+        </div>
+
+    </EditForm>
+</div>

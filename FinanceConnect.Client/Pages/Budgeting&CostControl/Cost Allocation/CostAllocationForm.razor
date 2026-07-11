@@ -1,0 +1,402 @@
+﻿@page "/cost-allocations/create"
+@page "/cost-allocations/edit/{Id:guid}"
+@using FinanceConnect.Client.ViewModels
+@using FinanceConnect.Client.Services
+@using static FinanceConnect.Client.ViewModels.CostAllocationViewModel
+
+<style>
+    .validation-message { color: #dc3545; font-size: 12px; }
+    .form-check-label   { font-size: 13px; }
+    .line-actions a     { font-size: 13px; }
+</style>
+
+<div class="content flat-form">
+    <div class="page-header">
+        <div class="page-title">
+            <h4 class="fw-bold">@(IsEdit ? "Edit Cost Allocation" : "Create Cost Allocation")</h4>
+            <h6>Define source amount, method, and target distribution lines</h6>
+        </div>
+        <div class="page-btn">
+            <a href="/cost-allocations" class="btn btn-outline-secondary">
+                <i class="ti ti-arrow-left"></i> Back
+            </a>
+        </div>
+    </div>
+
+    <EditForm EditContext="_editContext" OnValidSubmit="Save">
+        <DataAnnotationsValidator />
+
+        <!-- ── SECTION 1: CORE IDENTITY ─────────────────────────────────── -->
+        <div class="card mt-4">
+            <div class="card-body">
+                <h5 class="text-primary mb-3 d-flex align-items-center"><i class="ti ti-id me-2" style="font-size: 22px;"></i>Core Identity</h5>
+                <div class="row g-3">
+                    <div class="col-md-3">
+                        <label class="form-label">Allocation Code <span class="text-danger">*</span></label>
+                        <InputText class="form-control text-uppercase"
+                                   @bind-Value="Model.AllocationCode"
+                                   placeholder="e.g. ALLOC-2026-001"
+                                   title="Unique allocation code per company" />
+                        <ValidationMessage For="@(() => Model.AllocationCode)" />
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">Allocation Name <span class="text-danger">*</span></label>
+                        <InputText class="form-control"
+                                   @bind-Value="Model.AllocationName"
+                                   placeholder="e.g. Head Office Rent Allocation – Apr 2026"
+                                   title="Descriptive allocation name" />
+                        <ValidationMessage For="@(() => Model.AllocationName)" />
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">Status</label>
+                        <InputSelect class="form-select" @bind-Value="Model.AllocationStatus">
+                            @foreach (var s in Enum.GetValues<AllocationStatus>())
+                            {
+                                <option value="@s">@s</option>
+                            }
+                        </InputSelect>
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">Allocation Type <span class="text-danger">*</span></label>
+                        <InputSelect class="form-select" @bind-Value="Model.AllocationType"
+                                     title="Type of cost allocation">
+                            @foreach (var v in Enum.GetValues<AllocationType>())
+                            {
+                                <option value="@v">@v</option>
+                            }
+                        </InputSelect>
+                        <ValidationMessage For="@(() => Model.AllocationType)" />
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">Allocation Date <span class="text-danger">*</span></label>
+                        <InputDate class="form-control" @bind-Value="Model.AllocationDate"
+                                   title="Date this allocation was created/applicable" />
+                        <ValidationMessage For="@(() => Model.AllocationDate)" />
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">Effective Date <span class="text-danger">*</span></label>
+                        <InputDate class="form-control" @bind-Value="Model.EffectiveDate"
+                                   title="Date the allocation takes effect in reporting" />
+                        <ValidationMessage For="@(() => Model.EffectiveDate)" />
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">Scope Type <span class="text-danger">*</span></label>
+                        <InputSelect class="form-select" @bind-Value="Model.ScopeType"
+                                     title="Organisational scope of this allocation">
+                            @foreach (var v in Enum.GetValues<ScopeTypecost>())
+                            {
+                                <option value="@v">@v</option>
+                            }
+                        </InputSelect>
+                        <ValidationMessage For="@(() => Model.ScopeType)" />
+                    </div>
+                    <div class="col-md-12">
+                        <label class="form-label">Description</label>
+                        <InputTextArea class="form-control" rows="2"
+                                       @bind-Value="Model.Description"
+                                       placeholder="Purpose and context of this cost allocation..." />
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ── SECTION 2: SOURCE DEFINITION ─────────────────────────────── -->
+        <div class="card mt-4">
+            <div class="card-body">
+                <h5 class="text-primary mb-3 d-flex align-items-center">
+                    <i class="ti ti-database me-2" style="font-size: 22px;"></i>Source Definition
+                </h5>
+                <div class="row g-3">
+                    <div class="col-md-3">
+                        <label class="form-label">Source Amount <span class="text-danger">*</span></label>
+                        <InputNumber class="form-control" @bind-Value="Model.SourceAmount"
+                                     placeholder="0.00" title="Total amount to be distributed" />
+                        <ValidationMessage For="@(() => Model.SourceAmount)" />
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">Source Amount Type <span class="text-danger">*</span></label>
+                        <InputSelect class="form-select" @bind-Value="Model.SourceAmountType"
+                                     title="Nature of the source amount">
+                            @foreach (var v in Enum.GetValues<SourceAmountType>())
+                            {
+                                <option value="@v">@v</option>
+                            }
+                        </InputSelect>
+                        <ValidationMessage For="@(() => Model.SourceAmountType)" />
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">Source Category Code</label>
+                        <InputText class="form-control" @bind-Value="Model.SourceCategoryCode"
+                                   placeholder="e.g. Rent, Utilities, Software"
+                                   title="Optional category tag for the source cost" />
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">Source Reference Text</label>
+                        <InputText class="form-control" @bind-Value="Model.SourceReferenceText"
+                                   placeholder="e.g. HO Rent Apr 2026, EB Bill #INV-001"
+                                   title="Human-readable reference for source cost" />
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ── SECTION 3: ALLOCATION METHOD ─────────────────────────────── -->
+        <div class="card mt-4">
+            <div class="card-body">
+                <h5 class="text-primary mb-3 d-flex align-items-center">
+                    <i class="ti ti-adjustments me-2" style="font-size: 22px;"></i>Allocation Method
+                </h5>
+                <div class="row g-3">
+                    <div class="col-md-3">
+                        <label class="form-label">Method <span class="text-danger">*</span></label>
+                        <InputSelect class="form-select" @bind-Value="Model.AllocationMethod"
+                                     title="How the source amount is split across targets">
+                            @foreach (var v in Enum.GetValues<AllocationMethod>())
+                            {
+                                <option value="@v">@v</option>
+                            }
+                        </InputSelect>
+                        <ValidationMessage For="@(() => Model.AllocationMethod)" />
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">Basis Type <span class="text-danger">*</span></label>
+                        <InputSelect class="form-select" @bind-Value="Model.AllocationBasisType"
+                                     title="How basis/driver values are sourced">
+                            @foreach (var v in Enum.GetValues<AllocationBasisType>())
+                            {
+                                <option value="@v">@v</option>
+                            }
+                        </InputSelect>
+                        <ValidationMessage For="@(() => Model.AllocationBasisType)" />
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">Rounding Rule <span class="text-danger">*</span></label>
+                        <InputSelect class="form-select" @bind-Value="Model.RoundingRule"
+                                     title="How rounding residuals are handled">
+                            @foreach (var v in Enum.GetValues<RoundingRule>())
+                            {
+                                <option value="@v">@v</option>
+                            }
+                        </InputSelect>
+                        <ValidationMessage For="@(() => Model.RoundingRule)" />
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">Driver Reference Code</label>
+                        <InputText class="form-control" @bind-Value="Model.DriverReferenceCode"
+                                   placeholder="e.g. HEADCOUNT, FLOOR_AREA, ACTIVE_USERS"
+                                   title="Statistical driver identifier when using driver-based method" />
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">Driver As-of Date</label>
+                        <InputDate class="form-control" @bind-Value="Model.DriverAsOfDate"
+                                   title="Date the driver snapshot was taken" />
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">Min Allocation Amount</label>
+                        <InputNumber class="form-control" @bind-Value="Model.MinimumAllocationAmount"
+                                     placeholder="0.00" title="Optional floor for any single target allocation" />
+                        <ValidationMessage For="@(() => Model.MinimumAllocationAmount)" />
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">Max Allocation Amount</label>
+                        <InputNumber class="form-control" @bind-Value="Model.MaximumAllocationAmount"
+                                     placeholder="0.00" title="Optional cap for any single target allocation" />
+                        <ValidationMessage For="@(() => Model.MaximumAllocationAmount)" />
+                    </div>
+                    <div class="col-md-3 d-flex align-items-end gap-4">
+                        <div class="form-check">
+                            <InputCheckbox class="form-check-input" id="chkManualOverride"
+                                           @bind-Value="Model.IsManualOverrideAllowed" />
+                            <label class="form-check-label" for="chkManualOverride">
+                                Allow Manual Override
+                            </label>
+                        </div>
+                        <div class="form-check">
+                            <InputCheckbox class="form-check-input" id="chkFullyAllocate"
+                                           @bind-Value="Model.MustFullyAllocateSource" />
+                            <label class="form-check-label" for="chkFullyAllocate">
+                                Must Fully Allocate
+                            </label>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ── SECTION 4: TARGET LINES ───────────────────────────────────── -->
+        <div class="card mt-4">
+            <div class="card-body">
+                <div class="d-flex align-items-center justify-content-between mb-3">
+                    <h5 class="text-primary mb-3 d-flex align-items-center">
+                        <i class="ti ti-list-details me-2" style="font-size: 22px;"></i>Target Allocation Lines
+                    </h5>
+                    <button type="button" class="btn btn-sm btn-outline-primary" @onclick="AddLine">
+                        <i class="ti ti-plus me-1"></i> Add Line
+                    </button>
+                </div>
+
+                @if (Lines.Any())
+                {
+                    <div class="table-responsive">
+                        <table class="table table-sm align-middle">
+                            <thead class="thead-light">
+                                <tr>
+                                    <th style="width:70px">Line #</th>
+                                    <th>Target Cost Center <span class="text-danger">*</span></th>
+                                    <th style="width:120px">Basis Value</th>
+                                    <th style="width:110px">Alloc %</th>
+                                    <th style="width:140px">Allocated Amount <span class="text-danger">*</span></th>
+                                    <th style="width:90px">Override</th>
+                                    <th>Override Reason</th>
+                                    <th style="width:50px"></th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var line in Lines)
+                                {
+                                    var ln = line;
+                                    <tr>
+                                        <td class="text-muted">@ln.LineNumber</td>
+                                        <td>
+                                            <select class="form-select form-select-sm @(ln.TargetCostCenterId == Guid.Empty ? "is-invalid" : "")"
+                                                    @bind="ln.TargetCostCenterId"
+                                                    @bind:after="() => OnCostCenterChanged(ln)">
+                                                <option value="@Guid.Empty">-- Select Target Cost Center --</option>
+                                                @foreach (var cc in CostCenterOptions)
+                                                {
+                                                    <option value="@cc.Key">@cc.Value</option>
+                                                }
+                                            </select>
+                                            @if (ln.TargetCostCenterId == Guid.Empty && _submitted)
+                                            {
+                                                <div class="validation-message">Target Cost Center is required.</div>
+                                            }
+                                        </td>
+                                        <td>
+                                            <input type="number" class="form-control form-control-sm"
+                                                   step="0.0001"
+                                                   @bind="ln.BasisValue"
+                                                   placeholder="0" />
+                                        </td>
+                                        <td>
+                                            <input type="number" class="form-control form-control-sm"
+                                                   step="0.0001" min="0" max="100"
+                                                   @bind="ln.AllocationPercent"
+                                                   @bind:after="() => OnPercentChanged(ln)"
+                                                   placeholder="0.00" />
+                                        </td>
+                                        <td>
+                                            <input type="number"
+                                                   class="form-control form-control-sm @(ln.AllocatedAmount <= 0 && _submitted ? "is-invalid" : "")"
+                                                   step="0.01"
+                                                   @bind="ln.AllocatedAmount"
+                                                   placeholder="0.00" />
+                                            @if (ln.AllocatedAmount <= 0 && _submitted)
+                                            {
+                                                <div class="validation-message">Allocated Amount must be > 0.</div>
+                                            }
+                                        </td>
+                                        <td class="text-center">
+                                            <div class="form-check d-flex justify-content-center">
+                                                <input type="checkbox" class="form-check-input"
+                                                       @bind="ln.ManualOverrideFlag" />
+                                            </div>
+                                        </td>
+                                        <td>
+                                            @if (ln.ManualOverrideFlag)
+                                            {
+                                                <input type="text"
+                                                       class="form-control form-control-sm @(ln.ManualOverrideFlag && string.IsNullOrWhiteSpace(ln.ManualOverrideReason) && _submitted ? "is-invalid" : "")"
+                                                       @bind="ln.ManualOverrideReason"
+                                                       placeholder="Reason required" />
+                                                @if (ln.ManualOverrideFlag && string.IsNullOrWhiteSpace(ln.ManualOverrideReason) && _submitted)
+                                                {
+                                                    <div class="validation-message">Override reason is required.</div>
+                                                }
+                                            }
+                                        </td>
+                                        <td>
+                                            <a href="javascript:void(0);" class="text-danger"
+                                               title="Remove line" @onclick="() => RemoveLine(ln)">
+                                                <i class="ti ti-trash"></i>
+                                            </a>
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                            <tfoot>
+                                <tr class="fw-bold @(IsBalanced ? "text-success" : "text-danger")">
+                                    <td colspan="3" class="text-end">Total:</td>
+                                    <td>@TotalPercent.ToString("N2")%</td>
+                                    <td>@TotalAllocated.ToString("N2")</td>
+                                    <td colspan="3">
+                                        @if (IsBalanced)
+                                        {
+                                            <span class="badge bg-success-transparent">✓ Balanced</span>
+                                        }
+                                        else
+                                        {
+                                            <span class="badge bg-danger-transparent">
+                                                Residual: @(Model.SourceAmount - TotalAllocated).ToString("N2")
+                                            </span>
+                                        }
+                                    </td>
+                                </tr>
+                            </tfoot>
+                        </table>
+                    </div>
+
+                    @if (_submitted && !Lines.Any())
+                    {
+                        <div class="alert alert-danger py-2 mt-2">
+                            <i class="ti ti-alert-circle me-2"></i>
+                            At least one target line is required.
+                        </div>
+                    }
+                }
+                else
+                {
+                    <div class="alert @(_submitted ? "alert-danger" : "alert-warning") py-2">
+                        <i class="ti ti-alert-triangle me-2"></i>
+                        At least one target line is required before saving.
+                    </div>
+                }
+            </div>
+        </div>
+
+        <!-- ── SECTION 5: ASSUMPTIONS & NOTES ───────────────────────────── -->
+        <div class="card mt-4">
+            <div class="card-body">
+                <h5 class="text-primary mb-3 d-flex align-items-center">
+                    <i class="ti ti-bulb me-2" style="font-size: 22px;"></i>Assumptions & Notes
+                </h5>
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <label class="form-label">Allocation Assumptions</label>
+                        <InputTextArea class="form-control" rows="3"
+                                       @bind-Value="Model.AllocationAssumptionText"
+                                       placeholder="e.g. Allocated based on Apr 2026 headcount snapshot, Revenue-based split using Q1 actuals..." />
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">Notes</label>
+                        <InputTextArea class="form-control" rows="3"
+                                       @bind-Value="Model.Notes"
+                                       placeholder="Additional notes or audit comments..." />
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ── ACTIONS ───────────────────────────────────────────────────── -->
+        <div class="text-end mt-4 mb-5">
+            <a href="/cost-allocations" class="btn btn-outline-secondary me-2">
+                <i class="ti ti-x"></i> Cancel
+            </a>
+            <button type="submit" class="btn btn-primary" >
+                <i class="ti ti-device-floppy me-1"></i>
+                @(IsEdit ? "Update" : "Create")
+            </button>
+        </div>
+
+    </EditForm>
+</div>

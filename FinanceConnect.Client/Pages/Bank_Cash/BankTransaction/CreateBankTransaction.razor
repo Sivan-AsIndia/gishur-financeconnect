@@ -1,0 +1,880 @@
+@page "/bank-transactions/create"
+@page "/bank-transactions/{Id:guid}"
+@inject ToastService ToastService
+@inject MasterDataService MasterDataService
+
+<style>
+    .form-select option:checked {
+        color: #fff;
+        background: var(--primary);
+    }
+
+    .form-select:focus {
+        border-color: var(--primary);
+        box-shadow: none;
+    }
+
+    .validation-message {
+        color: #dc3545;
+        font-size: 12px;
+    }
+
+    .form-select.is-invalid {
+        border-color: #dc3545;
+    }
+
+    .field-validation-error {
+        color: #dc3545;
+        font-size: 12px;
+        display: block;
+        margin-top: 4px;
+    }
+
+
+    /* Hook Design  */
+      .wire-tag {
+        display: inline-flex;
+        flex-direction: column;
+        align-items: center;
+        position: relative;
+    }
+    .nail {
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        background: #888;
+        box-shadow: 0 1px 4px rgba(0,0,0,0.25);
+        position: relative;
+        z-index: 2;
+    }
+
+        .nail.orange {
+            background: #f97316;
+            box-shadow: 0 0 0 3px #f9731622, 0 2px 6px #f9731644;
+        }
+
+    .wire {
+        width: 1.5px;
+        height: 14px;
+        background: linear-gradient(180deg, #999 0%, #ccc 100%);
+        position: relative;
+    }
+
+        .wire.orange-wire {
+            background: linear-gradient(180deg, #f97316 0%, #f9731666 100%);
+        }
+
+        .wire::after {
+            content: '';
+            position: absolute;
+            bottom: -3px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 5px;
+            height: 5px;
+            border-radius: 50%;
+            border: 1.5px solid #aaa;
+            background: transparent;
+        }
+
+        .wire.orange-wire::after {
+            border-color: #f97316;
+        }
+
+    .tag-hang {
+        transform-origin: top center;
+        animation: tagSway 5s ease-in-out infinite;
+        position: relative;
+    }
+
+        .tag-hang:nth-of-type(2) {
+            animation-delay: 0.3s;
+        }
+
+        .tag-hang:nth-of-type(3) {
+            animation-delay: 0.6s;
+        }
+
+    @@keyframes tagSway {
+        0% {
+            transform: rotate(-3.5deg);
+        }
+
+        22% {
+            transform: rotate(3deg);
+        }
+
+        50% {
+            transform: rotate(-2deg);
+        }
+
+        75% {
+            transform: rotate(1.5deg);
+        }
+
+        92% {
+            transform: rotate(-0.8deg);
+        }
+
+        100% {
+            transform: rotate(-3.5deg);
+        }
+    }
+
+    /* ── TAG A: White outline, arrow tip right ── */
+    .tag-a {
+        position: relative;
+        width: 150px;
+        height: 54px;
+    }
+
+    .tag-a-content {
+        position: absolute;
+        /* offset right because hole is on left */
+        top: 50%;
+        left: 28px;
+        right: 14px;
+        transform: translateY(-50%);
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+    }
+
+    .tag-lbl {
+        font-size: 7px;
+        letter-spacing: 2.5px;
+        color: #f97316;
+        text-transform: uppercase;
+        font-weight: 700;
+        font-family: 'JetBrains Mono', monospace;
+        line-height: 1;
+    }
+
+    .tag-val {
+        font-family: 'JetBrains Mono', monospace;
+        font-size: 13px;
+        font-weight: 700;
+        color: #1a1a2e;
+        letter-spacing: 0.4px;
+        line-height: 1.2;
+        white-space: nowrap;
+    }
+
+    /* ── TAG B: Solid orange, arrow tip right ── */
+    .tag-b {
+        position: relative;
+        width: 150px;
+        height: 54px;
+    }
+
+    .tag-b-content {
+        position: absolute;
+        top: 50%;
+        left: 28px;
+        right: 14px;
+        transform: translateY(-50%);
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+    }
+
+    .tag-lbl-w {
+        color: #ffffffaa;
+    }
+
+    .tag-val-w {
+        color: #fff;
+    }
+
+    /* ── TAG C: Dark, arrow tip left (mirrored) ── */
+    .tag-c {
+        position: relative;
+        width: 150px;
+        height: 54px;
+    }
+
+    .tag-c-content {
+        position: absolute;
+        top: 50%;
+        left: 14px;
+        right: 28px;
+        transform: translateY(-50%);
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+        align-items: flex-end;
+        text-align: right;
+    }
+
+    /* ── TAG D: Minimal thin, vertical ── */
+    .tag-d {
+        position: relative;
+        width: 60px;
+        height: 110px;
+    }
+
+    .tag-d-content {
+        position: absolute;
+        top: 28px;
+        left: 0;
+        right: 0;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 4px;
+        padding: 0 8px;
+    }
+
+    .tag-d-lbl {
+        font-size: 6px;
+        letter-spacing: 2px;
+        color: #f97316;
+        text-transform: uppercase;
+        font-weight: 700;
+        font-family: 'JetBrains Mono', monospace;
+        writing-mode: vertical-rl;
+        text-orientation: mixed;
+        transform: rotate(180deg);
+    }
+
+    .tag-d-line {
+        width: 70%;
+        height: 1px;
+        background: linear-gradient(90deg, transparent, #f9731644, transparent);
+    }
+
+    .tag-d-val {
+        font-family: 'JetBrains Mono', monospace;
+        font-size: 10px;
+        font-weight: 700;
+        color: #1a1a2e;
+        writing-mode: vertical-rl;
+        text-orientation: mixed;
+        transform: rotate(180deg);
+        letter-spacing: 1px;
+        line-height: 1.3;
+        text-align: center;
+    }
+
+</style>
+
+
+@if (!isInitialized)
+{
+    <div class="page-loading-overlay"><div class="whirly-loader"></div></div>
+}
+else
+{
+    <div class="content Accordion-form">
+
+        <div class="page-header">
+            <div class="add-item d-flex">
+                <div class="page-title">
+                    <div style="display: flex;gap: 10px;">
+                        <div>
+
+                            <h4 class="fw-bold">@PageTitle</h4>
+                            <h6>@PageSubTitle</h6>
+                            </div>
+                   
+
+<div class="wire-tag">
+    <div class="nail"></div>
+    <div class="wire"></div>
+    <div class="tag-hang">
+        <svg width="150" height="54" viewBox="0 0 150 54" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <!-- tag shape: left has hole, right has pointed tip -->
+            <path d="M20 3 H118 Q147 3 147 27 Q147 51 118 51 H20 L3 27 Z"
+                  fill="white" stroke="#f97316" stroke-width="1.8"
+                  filter="url(#shadow-a)" />
+            <defs>
+                <filter id="shadow-a" x="-10%" y="-10%" width="120%" height="130%">
+                    <feDropShadow dx="0" dy="3" stdDeviation="4" flood-color="#f9731618" />
+                </filter>
+            </defs>
+            <!-- hole -->
+            <circle cx="13" cy="27" r="2.5" fill="#f5f6fa" stroke="#f97316" stroke-width="1.5" />
+            <!-- inner hole ring -->
+            <circle cx="13" cy="27" r="2.5" fill="none" stroke="#f9731666" stroke-width="1" />
+            <!-- hash watermark -->
+            <text x="28" y="36" font-family="JetBrains Mono" font-size="22" font-weight="800" fill="#f9731615">#</text>
+        </svg>
+        <div class="tag-a-content">
+          <span class="tag-val">@Model.TransactionNumber</span>
+        </div>
+    </div>
+</div>
+                        </div>
+                  
+
+
+                </div>
+            </div>
+
+            <div class="page-btn mt-0">
+                <a href="/bank-transactions" class="btn btn-outline-secondary"> <i class="ti ti-arrow-left"></i> Back</a>
+            </div>
+        </div>
+
+        <EditForm EditContext="_editContext" OnSubmit="HandleSubmit">
+            <DataAnnotationsValidator />
+
+        <div class="add-product" style="background:#f4f7fb; padding:24px 14px;">
+            <div class="tl-accordion">
+
+                <!-- ================= LEFT PANEL ================= -->
+                <div class="tl-left-panel">
+
+                    <!-- 1. General Info -->
+                    <div class="tl-label @(ShowIdentity ? "active accent-orange" : "")"
+                         @onclick="@(() => ToggleAccordion("identity"))">
+                        <div class="tl-label-icon ico-orange">
+                            <i data-feather="file-text"></i>
+                        </div>
+                        <div class="tl-label-text">
+                            <div class="tl-label-title">Core Identity</div>
+                            <div class="tl-label-sub">Basic transaction information</div>
+                        </div>
+                        <span class="tl-label-chevron @(ShowIdentity ? "open" : "")">
+                            <i data-feather="chevron-right"></i>
+                        </span>
+                    </div>
+
+                    <!-- 2. Account Selection & Source -->
+                    <div class="tl-label @(ShowDetails ? "active accent-blue" : "")"
+                         @onclick="@(() => ToggleAccordion("details"))">
+                        <div class="tl-label-icon ico-blue">
+                            <i data-feather="briefcase"></i>
+                        </div>
+                        <div class="tl-label-text">
+                            <div class="tl-label-title">Account Selection & Source</div>
+                            <div class="tl-label-sub">Account type, source and counterparty</div>
+                        </div>
+                        <span class="tl-label-chevron @(ShowDetails ? "open" : "")">
+                            <i data-feather="chevron-right"></i>
+                        </span>
+                    </div>
+
+                    <!-- 3.Date & Amount -->
+                        <div class="tl-label @(ShowDateAmount ? "active accent-purple" : "")"
+                             @onclick="@(() => ToggleAccordion("dateAmount"))">
+                        <div class="tl-label-icon ico-purple">
+                            <i data-feather="shield"></i>
+                        </div>
+                        <div class="tl-label-text">
+                            <div class="tl-label-title">Date & Amount</div>
+                            <div class="tl-label-sub">Dates, currency and amount details</div>
+                        </div>
+                            <span class="tl-label-chevron @(ShowDateAmount ? "open" : "")">
+                            <i data-feather="chevron-right"></i>
+                        </span>
+                    </div>
+
+                        <!-- 4. ShowClassification -->
+                    <div class="tl-label @(ShowClassification ? "active accent-teal" : "")"
+                             @onclick="@(() => ToggleAccordion("classification"))">
+                        <div class="tl-label-icon ico-teal">
+                            <i data-feather="book"></i>
+                        </div>
+                        <div class="tl-label-text">
+                            <div class="tl-label-title">Classification & Instrument Details</div>
+                            <div class="tl-label-sub">Payment method, reference & instrument info</div>
+                        </div>
+                        <span class="tl-label-chevron @(ShowClassification ? "open" : "")">
+                            <i data-feather="chevron-right"></i>
+                        </span>
+                    </div>
+
+                </div>
+
+                <!-- ================= RIGHT AREA ================= -->
+                <div class="tl-right-area">
+
+                        <!-- ================= 01  Core Identity ================= -->
+                    <div class="tl-card-row @(ShowIdentity ? "row-active" : "")">
+
+                        <div class="tl-dot-col">
+                            <div class="tl-dot"
+                                 @onclick="@(() => ToggleAccordion("identity"))"></div>
+                        </div>
+
+                        <div class="tl-card-col">
+
+                            <div class="tl-card @(ShowIdentity ? "card-active border-orange" : "")">
+
+                                <div class="tl-card-header"
+                                     @onclick="@(() => ToggleAccordion("identity"))">
+                                    <div class="tl-card-header-title">
+                                        <span class="tl-card-step step-orange">01</span>
+                                        Core Identity
+                                    </div>
+                                    <span class="tl-card-toggle @(ShowIdentity ? "toggle-open" : "")">
+                                        <i data-feather="chevron-down"></i>
+                                    </span>
+                                </div>
+
+                                <div class="tl-collapse @(ShowIdentity ? "tl-open" : "")">
+                                    <div class="tl-card-body">
+                                        <div class="tl-card-body-inner @(IdentityTouched ? "touched" : "")">
+                                            <div class="row">
+                                                <div class="col-sm-6 col-md-3 mb-3">
+                                                    <label class="form-label">Company <span class="text-danger ms-1">*</span></label>
+                                                    <select class="form-select @(CompanyValidationError != null ? "is-invalid" : "")"
+                                                            value="@Model.CompanyId" @onchange="OnCompanyChanged">
+                                                        <option value="">-- Select Company --</option>
+                                                        @foreach (var company in Companies)
+                                                        {
+                                                            <option value="@company.Id">@company.CompanyCode - @company.LegalName</option>
+                                                        }
+                                                    </select>
+                                                    @if (CompanyValidationError != null)
+                                                    {
+                                                        <span class="field-validation-error">@CompanyValidationError</span>
+                                                    }
+                                                </div>
+
+                                                <div class="col-sm-6 col-md-3 mb-3">
+                                                    <label class="form-label">Branch <span class="text-danger ms-1">*</span></label>
+                                                    <select class="form-select @(BranchValidationError != null ? "is-invalid" : "")"
+                                                            value="@Model.BranchId" @onchange="OnBranchSelected"
+                                                            disabled="@IsBranchDisabled">
+                                                        <option value="">-- Select Branch --</option>
+                                                        @foreach (var branch in FilteredBranches)
+                                                        {
+                                                            <option value="@branch.Id">@branch.BranchCode - @branch.BranchName</option>
+                                                        }
+                                                    </select>
+                                                    @if (BranchValidationError != null)
+                                                    {
+                                                        <span class="field-validation-error">@BranchValidationError</span>
+                                                    }
+                                                </div>
+
+                                                @* <div class="col-sm-6 col-md-3 mb-3">
+                                                    <label class="form-label">Transaction No</label>
+                                                    <input class="form-control" @bind="Model.TransactionNumber" @bind:event="oninput" placeholder="BNKTXN-000001" maxlength="200" readonly />
+                                                </div> *@
+
+                                                <div class="col-12 col-md-3 mb-3">
+                                                    <label class="form-label">Status</label>
+                                                    <select class="form-select" @bind="Model.TransactionStatus">
+                                                        <option value="">-- Select Status --</option>
+                                                        <option>Draft</option>
+                                                        <option>Submitted</option>
+                                                        <option>Approved</option>
+                                                        <option>Posted</option>
+                                                        <option>Cancelled</option>
+                                                        <option>Reversed</option>
+                                                    </select>
+                                                </div>
+                                            </div>
+
+
+                                        </div>
+                                    </div>
+                                </div>
+
+                            </div>
+
+                        </div>
+                    </div>
+
+
+                    <!-- ================= 02   Account Selection & Source================= -->
+
+                    <div class="tl-card-row @(ShowDetails ? "row-active" : "")">
+
+                        <div class="tl-dot-col">
+                            <div class="tl-dot"
+                                 @onclick="@(() => ToggleAccordion("details"))"></div>
+                        </div>
+
+                        <div class="tl-card-col">
+
+                            <div class="tl-card @(ShowDetails ? "card-active border-blue" : "")">
+
+                                <div class="tl-card-header"
+                                     @onclick="@(() => ToggleAccordion("details"))">
+                                    <div class="tl-card-header-title">
+                                        <span class="tl-card-step step-blue">02</span>
+                                        Account Selection & Source
+                                    </div>
+                                    <span class="tl-card-toggle @(ShowDetails ? "toggle-open" : "")">
+                                        <i data-feather="chevron-down"></i>
+                                    </span>
+                                </div>
+
+                                <div class="tl-collapse @(ShowDetails ? "tl-open" : "")">
+                                    <div class="tl-card-body">
+                                        <div class="tl-card-body-inner @(ShowDetailsTouched ? "touched" : "")">
+
+                                            <div class="row">
+                                                <div class="col-sm-6 col-md-3 mb-3">
+                                                    <label class="form-label d-block">Account Type</label>
+                                                    <InputRadioGroup @bind-Value="Model.AccountKind" class="d-flex gap-3">
+                                                        <label class="form-check form-check-inline">
+                                                            <InputRadio class="form-check-input" Value="@("Bank")" /> Bank
+                                                        </label>
+                                                        <label class="form-check form-check-inline">
+                                                            <InputRadio class="form-check-input" Value="@("Cash")" /> Cash
+                                                        </label>
+                                                    </InputRadioGroup>
+                                                </div>
+
+                                                <div class="col-sm-6 col-md-3 mb-3">
+                                                    @if (Model.AccountKind == "Bank")
+                                                    {
+                                                        <label class="form-label">Bank Account <span class="text-danger ms-1">*</span></label>
+                                                        <select class="form-select @(BankAccountValidationError != null ? "is-invalid" : "")" value="@Model.BankAccountId" @onchange="OnBankAccountChanged">
+                                                            <option value="">-- Select Bank Account --</option>
+                                                            @foreach (var acc in BankAccounts)
+                                                            {
+                                                                <option value="@acc.Id">@acc.AccountName</option>
+                                                            }
+                                                        </select>
+                                                        @if (BankAccountValidationError != null)
+                                                        {
+                                                            <span class="field-validation-error">@BankAccountValidationError</span>
+                                                        }
+                                                    }
+                                                    else if (Model.AccountKind == "Cash")
+                                                    {
+                                                        <label class="form-label">Cash Account <span class="text-danger ms-1">*</span></label>
+                                                        <select class="form-select @(CashAccountValidationError != null ? "is-invalid" : "")" value="@Model.CashAccountId" @onchange="OnCashAccountChanged">
+                                                            <option value="">-- Select Cash Account --</option>
+                                                            @foreach (var acc in CashAccounts)
+                                                            {
+                                                                <option value="@acc.Id">@acc.AccountName</option>
+                                                            }
+                                                        </select>
+                                                        @if (CashAccountValidationError != null)
+                                                        {
+                                                            <span class="field-validation-error">@CashAccountValidationError</span>
+                                                        }
+                                                    }
+                                                </div>
+
+                                                <div class="col-sm-6 col-md-3 mb-3">
+                                                    <label class="form-label">Source <span class="text-danger ms-1">*</span></label>
+                                                    <select value="@Model.SourceModule" class="form-select @(SourceModuleValidationError != null ? "is-invalid" : "")"
+                                                            @onchange="OnSourceModuleChanged">
+                                                        <option value="">-- Select Source Module --</option>
+                                                        @foreach (var module in Enum.GetValues(typeof(SourceModule)).Cast<SourceModule>())
+                                                        {
+                                                            <option value="@module">@SourceModuleDisplay[module]</option>
+                                                        }
+                                                    </select>
+                                                    @if (SourceModuleValidationError != null)
+                                                    {
+                                                        <span class="field-validation-error">@SourceModuleValidationError</span>
+                                                    }
+                                                </div>
+
+                                                <div class="col-sm-6 col-md-3 mb-3">
+                                                    <label class="form-label">Source Document Type</label>
+                                                    <select class="form-select" @bind="Model.SourceDocumentType">
+                                                        <option value="">-- Select Document Type --</option>
+                                                        <option value="CustomerPayment">Customer Payment</option>
+                                                        <option value="VendorPayment">Vendor Payment</option>
+                                                        <option value="FundTransfer">Fund Transfer</option>
+                                                        <option value="CashTransfer">Cash Transfer</option>
+                                                        <option value="JournalEntry">Journal Entry</option>
+                                                        <option value="BankReconciliationAdjustment">Bank Recon Adjustment</option>
+                                                    </select>
+                                                </div>
+
+                                                <div class="col-sm-6 col-md-3 mb-3">
+                                                    <label class="form-label">Counterparty Type</label>
+                                                    <select class="form-select" @bind="Model.CounterpartyType">
+                                                        <option value="">-- Select Counterparty Type --</option>
+                                                        <option value="Customer">Customer</option>
+                                                        <option value="Vendor">Vendor</option>
+                                                        <option value="Employee">Employee</option>
+                                                        <option value="Bank">Bank</option>
+                                                        <option value="Other">Other</option>
+                                                    </select>
+                                                </div>
+
+                                                <div class="col-sm-6 col-md-3 mb-3">
+                                                    <label class="form-label">Counterparty Name</label>
+                                                    <input class="form-control" @bind="Model.CounterpartyNameSnapshot" maxlength="200" placeholder="Auto-fill or enter name" />
+                                                </div>
+                                            </div>
+
+
+                                        </div>
+                                    </div>
+                                </div>
+
+                            </div>
+
+                        </div>
+                    </div>
+
+
+                    <!-- ================= 03 Date & Amount ================= -->
+
+                    <div class="tl-card-row @(ShowDateAmount ? "row-active" : "")">
+
+                        <div class="tl-dot-col">
+                            <div class="tl-dot"
+                                     @onclick="@(() => ToggleAccordion("dateAmount"))"></div>
+                        </div>
+
+                        <div class="tl-card-col">
+
+                            <div class="tl-card @(ShowDateAmount ? "card-active border-purple" : "")">
+
+                                <div class="tl-card-header"
+                                         @onclick="@(() => ToggleAccordion("dateAmount"))">
+
+                                    <div class="tl-card-header-title">
+                                        <span class="tl-card-step step-purple">03</span>
+                                        Date & Amount
+                                    </div>
+
+                                    <span class="tl-card-toggle @(ShowDateAmount ? "toggle-open" : "")">
+                                        <i data-feather="chevron-down"></i>
+                                    </span>
+
+                                </div>
+
+                                    <div class="tl-collapse @(ShowDateAmount ? "tl-open" : "")">
+                                    <div class="tl-card-body">
+                                            <div class="tl-card-body-inner @(showDateTouched ? "toggle-open" : "")">
+                                            <div class="row">
+                                                <div class="col-sm-6 col-md-3 mb-3">
+                                                    <label class="form-label">Transaction Date <span class="text-danger ms-1">*</span></label>
+                                                    <InputDate class="@($"form-control {(TransactionDateValidationError != null ? "is-invalid" : "")}")" @bind-Value="Model.TransactionDate"
+                                                               @bind-Value:after="OnChangeDateTime" />
+                                                    @if (TransactionDateValidationError != null)
+                                                    {
+                                                        <span class="field-validation-error">@TransactionDateValidationError</span>
+                                                    }
+                                                </div>
+
+                                                <div class="col-sm-6 col-md-3 mb-3">
+                                                    <label class="form-label">Value Date @if (Model.AccountKind=="Bank"){
+                                                    <span class="text-danger ms-1">*</span>
+                                                                                                        }
+</label>
+                                                    <InputDate class="@($"form-control {(ValueDateValidationError != null ? "is-invalid" : "")}")" @bind-Value="Model.ValueDate"
+                                                               @bind-Value:after="OnValueDateChanged" />
+                                                    @if (Model.AccountKind == "Bank")
+                                                    {
+                                                        <small class="text-muted">Required for bank transactions</small>
+                                                    }
+                                                    @if (ValueDateValidationError != null)
+                                                    {
+                                                        <span class="field-validation-error">@ValueDateValidationError</span>
+                                                    }
+                                                </div>
+
+                                                <div class="col-sm-6 col-md-3 mb-3">
+                                                    <label class="form-label">Posting Date</label>
+                                                    <InputDate class="form-control" @bind-Value="Model.PostingDate"
+                                                               min="@(Model.TransactionDate.ToString("yyyy-MM-dd"))" @bind-Value:after="OnChangeDateTime" />
+                                                    <small class="text-muted">Must be in open period</small>
+                                                </div>
+
+                                                <div class="col-sm-6 col-md-3 mb-3">
+                                                    <label class="form-label">Currency</label>
+                                                    <input class="form-control" @bind="Model.CurrencyCode" readonly />
+                                                    <small class="text-muted">From selected account</small>
+                                                </div>
+
+                                                <div class="col-sm-6 col-md-3 mb-3">
+                                                    <label class="form-label">Exchange Rate</label>
+                                                    <InputNumber class="form-control" @bind-Value="Model.ExchangeRate" step="0.000001"
+                                                                 min="0" @oninput="RecalculateBaseAmount" />
+                                                    <small class="text-muted">Required if currency differs</small>
+                                                </div>
+
+                                                <div class="col-sm-6 col-md-3 mb-3">
+                                                    <label class="form-label">Amount <span class="text-danger ms-1">*</span></label>
+                                                    <InputNumber class="@($"form-control {(AmountValidationError != null ? "is-invalid" : "")}")" min="0" @bind-Value="Model.Amount" @oninput="RecalculateBaseAmount" />
+                                                    @if (AmountValidationError != null)
+                                                    {
+                                                        <span class="field-validation-error">@AmountValidationError</span>
+                                                    }
+                                                </div>
+
+                                                <div class="col-sm-6 col-md-3 mb-3">
+                                                    <label class="form-label">Base Amount</label>
+                                                    <InputNumber class="form-control" @bind-Value="Model.BaseAmount" step="0.01" readonly />
+                                                    <small class="text-muted">Amount × Exchange Rate</small>
+                                                </div>
+
+                                                <div class="col-sm-6 col-md-3 mb-3 mt-3">
+                                                    <label class="form-label d-block">Direction <span class="text-danger">*</span></label>
+                                                    <InputRadioGroup @bind-Value="Model.Direction">
+                                                        <div class="d-flex gap-3 mt-1">
+                                                            <div class="form-check">
+                                                                <InputRadio class="form-check-input" id="Inflow" Value="@("Inflow")" />
+                                                                <label class="form-check-label" for="Inflow">Inflow</label>
+                                                            </div>
+                                                            <div class="form-check">
+                                                                <InputRadio class="form-check-input" id="OutFlow" Value="@("Outflow")" />
+                                                                <label class="form-check-label" for="OutFlow">Outflow</label>
+                                                            </div>
+                                                        </div>
+                                                    </InputRadioGroup>
+                                                    @if (DirectionValidationError != null)
+                                                    {
+                                                        <span class="field-validation-error">@DirectionValidationError</span>
+                                                    }
+                                                </div>
+
+                                                <div class="col-sm-6 col-md-6 mb-3">
+                                                    <label class="form-label">
+                                                        Narration / Notes
+                                                        @if (IsManualTransaction)
+                                                        {
+                                                            <span class="text-danger ms-1">*</span>
+                                                        }
+                                                    </label>
+                                                    @* <InputTextArea class="@($"form-control {(NarrationValidationError != null ? "is-invalid" : "")}")" rows="3" maxlength="1000"
+                                                       @bind-Value="Model.Narration" @oninput="OnInputnarration"
+                                                       placeholder="Enter narration or notes..." /> *@
+
+                                                    <div class="@($"form-control {(NarrationValidationError != null ? "is-invalid" : "")}") p-0">
+
+                                                        <RichTextEditor @ref="descriptionEditor"
+                                                                        Value="@Model.Narration"
+                                                                        Placeholder="Enter narration or notes..."
+                                                                        MinHeight="60"
+                                                                        MaxHeight="150" />
+                                                    </div>
+
+                                                    <div class="d-flex justify-content-between mt-1">
+                                                        <small class="text-muted">Maximum 1000 characters</small>
+                                                        <small class="text-muted">@(Model.Narration?.Length ?? 0) / 1000</small>
+                                                    </div>
+                                                    @if (NarrationValidationError != null)
+                                                    {
+                                                        <span class="field-validation-error">@NarrationValidationError</span>
+                                                    }
+                                                </div>
+
+                                                <div class="col-sm-6 col-md-3 mb-3">
+                                                    <label class="form-label">Posting Status</label>
+                                                    <select class="form-select" @bind="Model.PostingStatus" disabled>
+                                                        <option value="NotPosted">Not Posted</option>
+                                                        <option value="Posted">Posted</option>
+                                                        <option value="Reversed">Reversed</option>
+                                                    </select>
+                                                </div>
+                                            </div>
+
+                                        </div>
+                                    </div>
+                                </div>
+
+                            </div>
+
+                        </div>
+                    </div>
+
+                    <!-- ================= Classification ================= -->
+
+                    <div class="tl-card-row @(ShowClassification ? "row-active" : "")">
+
+                        <div class="tl-dot-col">
+                            <div class="tl-dot"
+                                 @onclick="@(() => ToggleAccordion("classification"))"></div>
+                        </div>
+
+                        <div class="tl-card-col">
+
+                            <div class="tl-card @(ShowClassification ? "card-active border-teal" : "")">
+
+                                <div class="tl-card-header"
+                                     @onclick="@(() => ToggleAccordion("classification"))">
+
+                                    <div class="tl-card-header-title">
+                                        <span class="tl-card-step step-teal">04</span>
+                                        Classification & Instrument Details
+                                    </div>
+
+                                    <span class="tl-card-toggle @(ShowClassification ? "toggle-open" : "")">
+                                        <i data-feather="chevron-down"></i>
+                                    </span>
+
+                                </div>
+
+                                <div class="tl-collapse @(ShowClassification ? "tl-open" : "")">
+                                    <div class="tl-card-body">
+                                        <div class="tl-card-body-inner @(ShowClassificationTouched ? "toggle-open" : "")">
+                                            <div class="row">
+                                                <div class="col-sm-6 col-md-3 mb-3">
+                                                    <label class="form-label">Transaction Type <span class="text-danger ms-1">*</span></label>
+                                                    <select class="form-select @(TransactionTypeValidationError != null ? "is-invalid" : "")" @bind="Model.TransactionType"
+                                                            @bind:after="ClassificationTouched">
+                                                        <option value="">-- Select Transaction Type --</option>
+                                                        @foreach (var type in TransactionTypes)
+                                                        {
+                                                            <option value="@type">@type</option>
+                                                        }
+                                                    </select>
+                                                    @if (TransactionTypeValidationError != null)
+                                                    {
+                                                        <span class="field-validation-error">@TransactionTypeValidationError</span>
+                                                    }
+                                                </div>
+
+                                                <div class="col-sm-6 col-md-3 mb-3">
+                                                    <label class="form-label">Payment Method <span class="text-danger ms-1">*</span></label>
+                                                    <select class="form-select @(PaymentMethodValidationError != null ? "is-invalid" : "")" @bind="Model.PaymentMethod"
+                                                            @bind:after="ClassificationTouched">
+                                                        <option value="">-- Select Payment Method --</option>
+                                                        @foreach (var method in PaymentMethods)
+                                                        {
+                                                            <option value="@method">@method</option>
+                                                        }
+                                                    </select>
+                                                    @if (PaymentMethodValidationError != null)
+                                                    {
+                                                        <span class="field-validation-error">@PaymentMethodValidationError</span>
+                                                    }
+                                                </div>
+
+                                                <div class="col-sm-6 col-md-3 mb-3">
+                                                    <label class="form-label">Reference No</label>
+                                                    <input class="form-control" @bind="Model.ReferenceNumber" maxlength="100"
+                                                           placeholder="UTR / Txn ID / Cheque No" />
+                                                    <small class="text-muted">Optional but recommended</small>
+                                                </div>
+
+                                                <div class="col-sm-6 col-md-3 mb-3">
+                                                    <label class="form-label">UTR Number</label>
+                                                    <input class="form-control" @bind="Model.UTRNumber" maxlength="50"
+                                                           placeholder="Enter UTR number" />
+                                                    <small class="text-muted">Recommended for NEFT/RTGS/IMPS/UPI</small>
+                                                </div>
+                                            </div>
+
+                                        </div>
+                                    </div>
+                                </div>
+
+                            </div>
+
+                        </div>
+                    </div>
+
+
+                </div>
+
+            </div>
+        </div>
+
+
+
+            <div class="d-flex justify-content-end mb-4">
+            <a href="/bank-transactions" class="btn btn-outline-secondary me-2"><i class="ti ti-x"></i> Cancel</a>
+            <button type="submit" class="btn btn-primary"><i class="ti ti-device-floppy"></i> @(IsEdit ? "Update" : "Save")</button>
+            </div>
+        </EditForm>
+
+    </div>
+}

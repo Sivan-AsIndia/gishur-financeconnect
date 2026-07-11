@@ -1,0 +1,866 @@
+@page "/companies/{CompanyId:guid}/view"
+@using FinanceConnect.Client.ViewModels
+@using FinanceConnect.Client.Services
+@inject MasterDataService MasterDataService
+@inject NavigationManager Nav
+@inject IJSRuntime JS
+
+
+@* <div class="content view-screen py-4">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <div>
+            <h4 class="fw-bold mb-1">Company Details</h4>
+            <p class="text-muted mb-0 small">Review company master data and records</p>
+        </div>
+        <a class="btn btn-secondary btn-sm" @onclick="GoBack">
+            <i class="ti ti-arrow-left me-1"></i> Back
+        </a>
+    </div>
+    <div class="row g-4">
+
+        <!-- TOP PANEL : COMPANY HEADER -->
+        <div class="col-lg-12">
+            <div class="profile-list-card">
+
+                <!-- LEFT -->
+                <div class="profile-left">
+                    <div class="avatar letter-avatar">
+                        @if (!string.IsNullOrEmpty(SelectedCompany?.LogoBase64))
+                        {
+                            <img src="data:@(SelectedCompany.LogoContentType);base64,@(SelectedCompany.LogoBase64)"
+                                 alt="Logo" style="width:48px;height:48px;object-fit:contain;border-radius:8px;" />
+                        }
+                        else
+                        {
+                            @SelectedCompany?.LegalName?.Substring(0, 2).ToUpper()
+                        }
+                    </div>
+                </div>
+
+                <!-- CENTER -->
+                <div class="profile-center">
+                    <div class="top-row">
+                        <h5>@SelectedCompany.LegalName</h5>
+
+                        @if (SelectedCompany.Status?.ToLower() == "active")
+                        {
+                            <span class="bg-success rounded-circle"
+                                  data-bs-toggle="tooltip" title="Active"
+                                  style="font-size: 10px; color: white; width: 16px; height: 16px; display: flex; align-items: center; justify-content: center;">
+                                <i class="ti ti-checks"></i>
+                            </span>
+                        }
+                        else if (SelectedCompany.Status?.ToLower() == "draft")
+                        {
+                            <span class="badge bg-warning-transparent text-warning">Draft</span>
+                        }
+                        else
+                        {
+                            <span class="badge bg-danger-transparent text-danger">Inactive</span>
+                        }
+                    </div>
+
+                    <div class="sub-text">
+                        @if (!string.IsNullOrWhiteSpace(SelectedCompany?.PrimaryEmail))
+                        {
+                            <span style="display: flex; gap: 4px; margin-top: 7px;">
+                                <i class="ti ti-mail"></i> @SelectedCompany.PrimaryEmail
+                            </span>
+                        }
+                        @if (!string.IsNullOrWhiteSpace(SelectedCompany?.WebsiteUrl))
+                        {
+                            <span style="display: flex; gap: 4px; margin-top: 7px;">
+                                <i class="ti ti-world"></i> @SelectedCompany.WebsiteUrl
+                            </span>
+                        }
+                        @if (!string.IsNullOrWhiteSpace(SelectedCompany?.PrimaryPhone))
+                        {
+                            <span style="display: flex; gap: 4px; margin-top: 7px;">
+                                <i class="ti ti-phone"></i> @SelectedCompany.PrimaryPhone
+                            </span>
+                        }
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- LEFT COLUMN -->
+        <div class="col-lg-8">
+
+            <!-- Company Identity -->
+            <div class="profile-card">
+                <h5 class="mb-3">
+                    <i class="ti ti-building me-2"></i>Company Details
+                </h5>
+
+                @if (SelectedCompany != null)
+                {
+                    <div class="card mb-0">
+                        <div class="card-header py-2">
+                            <i class="ti ti-id me-2"></i> Company Identity
+                        </div>
+                        <div class="card-body py-2">
+                            <div class="row">
+                                <div class="col-md-3 mb-2">
+                                    <small class="text-muted">Company Code</small>
+                                    <div class="fw-medium">@SelectedCompany.CompanyCode</div>
+                                </div>
+                                <div class="col-md-5 mb-2">
+                                    <small class="text-muted">Legal Name</small>
+                                    <div class="fw-medium">@SelectedCompany.LegalName</div>
+                                </div>
+                                <div class="col-md-4 mb-2">
+                                    <small class="text-muted">Trade Name</small>
+                                    <div>@(SelectedCompany.TradeName ?? "-")</div>
+                                </div>
+                                <div class="col-md-3 mb-2">
+                                    <small class="text-muted">Short Name</small>
+                                    <div>@(SelectedCompany.ShortName ?? "-")</div>
+                                </div>
+                                <div class="col-md-5 mb-2 company-info" style="display: flex; align-items: center; gap: 10px;">
+                                    <small class="text-muted">Legal Structure : </small>
+
+                                    @if (!string.IsNullOrEmpty(SelectedCompany.LegalStructure))
+                                    {
+                                        <span class="ms-2" data-bs-toggle="tooltip" title="@(SelectedCompany.LegalStructure == "Other" && !string.IsNullOrWhiteSpace(SelectedCompany.OtherLegalStructure) ? SelectedCompany.OtherLegalStructure : SelectedCompany.LegalStructure)">
+                                            @switch (SelectedCompany.LegalStructure.ToLower())
+                                            {
+                                                case "private limited":
+                                                    <i class="ti ti-lock text-primary"></i>;
+                                                    break;
+                                                case "public limited":
+                                                    <i class="ti ti-building text-success"></i>;
+                                                    break;
+                                                case "llp":
+                                                    <i class="ti ti-users text-info"></i>;
+                                                    break;
+                                                case "partnership":
+                                                    <i class="ti ti-handshake text-warning"></i>;
+                                                    break;
+                                                case "sole proprietorship":
+                                                    <i class="ti ti-user text-secondary"></i>;
+                                                    break;
+                                                case "trust/society":
+                                                    <i class="ti ti-shield text-dark"></i>;
+                                                    break;
+                                                case "government/psu":
+                                                    <i class="ti ti-flag text-danger"></i>;
+                                                    break;
+                                                default:
+                                                    <i class="ti ti-question-mark text-muted"></i>;
+                                                    break;
+                                            }
+                                        </span>
+                                    }
+                                </div>
+
+                                <div class="col-md-4 mb-2">
+                                    <small class="text-muted">Incorporation Date</small>
+                                    <div>@(SelectedCompany.IncorporationDate?.ToString("dd MMM yyyy") ?? "-")</div>
+                                </div>
+                                <div class="col-md-3 mb-2">
+                                    <small class="text-muted">Status</small>
+                                    <div>
+                                        <span class="badge @(SelectedCompany.Status == "Active" ? "bg-success" : SelectedCompany.Status == "Draft" ? "bg-warning" : "bg-danger")">
+                                            @SelectedCompany.Status
+                                        </span>
+                                    </div>
+                                </div>
+                                @if (!string.IsNullOrWhiteSpace(SelectedCompany.ParentCompanyName))
+                                {
+                                    <div class="col-md-4 mb-2">
+                                        <small class="text-muted">Parent Company</small>
+                                        <div>@SelectedCompany.ParentCompanyName</div>
+                                    </div>
+                                }
+                                @if (!string.IsNullOrWhiteSpace(SelectedCompany.DefaultBranchName))
+                                {
+                                    <div class="col-md-4 mb-2">
+                                        <small class="text-muted">Default Branch</small>
+                                        <div>@SelectedCompany.DefaultBranchName</div>
+                                    </div>
+                                }
+                            </div>
+                        </div>
+                    </div>
+                }
+            </div>
+
+            <!-- Financial Settings -->
+            <div class="profile-card mt-4">
+                <div class="card mb-0">
+                    <div class="card-header py-2">
+                        <i class="ti ti-currency-dollar me-2"></i> Financial Settings
+                    </div>
+                    <div class="card-body py-2">
+                        <div class="row">
+                            <div class="col-md-4 mb-2">
+                                <small class="text-muted">Base Currency</small>
+                                <div class="fw-medium">@(SelectedCompany.BaseCurrencyName ?? "-")</div>
+                            </div>
+                            <div class="col-md-4 mb-2">
+                                <small class="text-muted">Reporting Currency</small>
+                                <div class="fw-medium">@(SelectedCompany.ReportingCurrencyName ?? "Same as Base Currency")</div>
+                            </div>
+                            <div class="col-md-4 mb-2">
+                                <small class="text-muted">Fiscal Year Start</small>
+                                <div>@GetMonthName(SelectedCompany.FiscalYearStartMonth)</div>
+                            </div>
+                            <div class="col-md-4 mb-2">
+                                <small class="text-muted">Books Start Date</small>
+                                <div>@SelectedCompany.BooksStartDate.ToString("dd MMM yyyy")</div>
+                            </div>
+                            <div class="col-md-4 mb-2" style="display: flex; align-items: center;">
+                                <small class="text-muted">Multi Currency : </small>
+                                <span class="ms-2 d-flex align-items-center"
+                                      data-bs-toggle="tooltip"
+                                      title="@(SelectedCompany.EnableMultiCurrency ? "Enabled" : "Disabled")">
+                                    @if (SelectedCompany.EnableMultiCurrency)
+                                    {
+                                        <i class="ti ti-checks text-success"></i>
+                                    }
+                                    else
+                                    {
+                                        <i class="ti ti-x text-danger"></i>
+                                    }
+                                </span>
+                            </div>
+                            <div class="col-md-4 mb-2">
+                                <small class="text-muted">Rounding Precision</small>
+                                <div>@SelectedCompany.RoundingPrecision</div>
+                            </div>
+                            <div class="col-md-4 mb-2">
+                                <small class="text-muted">Rounding Mode</small>
+                                <div>@(SelectedCompany.RoundingMode ?? "-")</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- System & Posting Controls -->
+            <div class="profile-card mt-4">
+                <div class="card mb-0">
+                    <div class="card-header py-2">
+                        <i class="ti ti-lock me-2"></i> System & Posting Controls
+                    </div>
+                    <div class="card-body py-2">
+                        <div class="row">
+                            <div class="col-md-4 mb-2">
+                                <small class="text-muted">Allow Posting From</small>
+                                <div>@(SelectedCompany.AllowPostingFromDate?.ToString("dd MMM yyyy") ?? "-")</div>
+                            </div>
+                            <div class="col-md-4 mb-2">
+                                <small class="text-muted">Allow Posting To</small>
+                                <div>@(SelectedCompany.AllowPostingToDate?.ToString("dd MMM yyyy") ?? "-")</div>
+                            </div>
+                            <div class="col-md-4 mb-2" style="display: flex; align-items: center;">
+                                <small class="text-muted">Lock Back-Dated : </small>
+                                <span class="ms-2 d-flex align-items-center">
+                                    @if (SelectedCompany.LockBackDatedPosting)
+                                    {
+                                        <i class="ti ti-lock text-warning"></i>
+                                    }
+                                    else
+                                    {
+                                        <i class="ti ti-lock-open text-success"></i>
+                                    }
+                                </span>
+                            </div>
+                            <div class="col-md-4 mb-2">
+                                <small class="text-muted">Backdated Days Allowed</small>
+                                <div>@SelectedCompany.BackdatedPostingDaysAllowed</div>
+                            </div>
+                            <div class="col-md-4 mb-2">
+                                <small class="text-muted">Future Days Allowed</small>
+                                <div>@SelectedCompany.FuturePostingDaysAllowed</div>
+                            </div>
+                        </div>
+                        @if (!string.IsNullOrWhiteSpace(SelectedCompany.Notes))
+                        {
+                            <div class="row mt-2">
+                                <div class="col-12">
+                                    <small class="text-muted">Notes</small>
+                                    <div class="ql-rendered">@((MarkupString)(SelectedCompany.Notes ?? string.Empty))</div>
+                                </div>
+                            </div>
+                        }
+                    </div>
+                </div>
+            </div>
+
+            <!-- Contact & Branding -->
+            <div class="profile-card mt-4">
+                <div class="card mb-0">
+                    <div class="card-header py-2">
+                        <i class="ti ti-phone me-2"></i> Contact & Branding
+                    </div>
+                    <div class="card-body py-2">
+                        <div class="row">
+                            <div class="col-md-4 mb-2">
+                                <small class="text-muted">Primary Contact</small>
+                                <div>@(SelectedCompany.PrimaryContactName ?? "-")</div>
+                            </div>
+                            <div class="col-md-4 mb-2">
+                                <small class="text-muted">Email</small>
+                                <div>@(SelectedCompany.PrimaryEmail ?? "-")</div>
+                            </div>
+                            <div class="col-md-4 mb-2">
+                                <small class="text-muted">Phone</small>
+                                <div>@(SelectedCompany.PrimaryPhone ?? "-")</div>
+                            </div>
+                            <div class="col-md-4 mb-2">
+                                <small class="text-muted">Website</small>
+                                <div>@(SelectedCompany.WebsiteUrl ?? "-")</div>
+                            </div>
+                            <div class="col-md-4 mb-2">
+                                <small class="text-muted">Company Logo</small>
+                                <div>
+                                    @if (!string.IsNullOrEmpty(SelectedCompany.LogoFileName))
+                                    {
+                                        <span class="d-flex align-items-center gap-2">
+                                            <i class="ti ti-photo text-success"></i>
+                                            <span>@SelectedCompany.LogoFileName</span>
+                                        </span>
+                                    }
+                                    else
+                                    {
+                                        <span>-</span>
+                                    }
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+
+        <!-- RIGHT COLUMN -->
+        <div class="col-lg-4">
+
+            <!-- Registration & Compliance -->
+            <div class="profile-card">
+                <div class="card mb-0">
+                    <div class="card-header py-2">
+                        <i class="ti ti-file-certificate me-2"></i> Registration & Compliance
+                    </div>
+                    <div class="card-body py-2">
+                        <div class="row">
+                            <div class="col-md-12 mb-2">
+                                <small class="text-muted">Registration Number / CIN</small>
+                                <div>@(SelectedCompany.RegistrationNumber ?? "-")</div>
+                            </div>
+                            <div class="col-md-12 mb-2">
+                                <small class="text-muted">PAN</small>
+                                <div class="fw-medium">@(SelectedCompany.PANNumber ?? "-")</div>
+                            </div>
+                            <div class="col-md-12 mb-2">
+                                <small class="text-muted">GSTIN</small>
+                                <div class="fw-medium">@(SelectedCompany.GSTIN ?? "-")</div>
+                            </div>
+                            <div class="col-md-12 mb-2">
+                                <small class="text-muted">TAN Number</small>
+                                <div>@(SelectedCompany.TANNumber ?? "-")</div>
+                            </div>
+                            <div class="col-md-12 mb-2">
+                                <small class="text-muted">Other Tax Identifier</small>
+                                <div>@(SelectedCompany.OtherTaxId ?? "-")</div>
+                            </div>
+                            <div class="col-md-12 mb-2">
+                                <small class="text-muted">GST Registered</small>
+                                <div>
+                                    @if (SelectedCompany.IsGSTRegistered)
+                                    {
+                                        <span class="badge bg-success-transparent text-success">Yes</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="badge bg-secondary-transparent text-secondary">No</span>
+                                    }
+                                </div>
+                            </div>
+                            <div class="col-12 mt-2 mb-2">
+                                <hr class="my-1" />
+                                <small class="text-muted fw-medium">Registration Location</small>
+                            </div>
+                            <div class="col-md-12 mb-2">
+                                <small class="text-muted">Country</small>
+                                <div>@(SelectedCompany.RegistrationCountryName ?? "-")</div>
+                            </div>
+                            <div class="col-md-12 mb-2">
+                                <small class="text-muted">State</small>
+                                <div>@(SelectedCompany.RegistrationStateProvinceName ?? "-")</div>
+                            </div>
+                            <div class="col-md-12 mb-2">
+                                <small class="text-muted">City</small>
+                                <div>@(SelectedCompany.RegistrationCityName ?? "-")</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Registered Address -->
+            <div class="profile-card mt-4">
+                <div class="card mb-0">
+                    <div class="card-header py-2">
+                        <i class="ti ti-map-pin me-2"></i> Registered Address
+                    </div>
+                    <div class="card-body py-2">
+                        <div class="row">
+                            <div class="col-12 mb-2">
+                                <small class="text-muted">Address</small>
+                                <div>@SelectedCompany.AddressLine1</div>
+                                @if (!string.IsNullOrWhiteSpace(SelectedCompany.AddressLine2))
+                                {
+                                    <div>@SelectedCompany.AddressLine2</div>
+                                }
+                            </div>
+                            <div class="col-md-12 mb-2">
+                                <small class="text-muted">City, State</small>
+                                <div>@(SelectedCompany.CityName ?? "-"), @(SelectedCompany.StateProvinceName ?? "-")</div>
+                            </div>
+                            <div class="col-md-12 mb-2">
+                                <small class="text-muted">Country</small>
+                                <div>@(SelectedCompany.CountryName ?? "-")</div>
+                            </div>
+                            <div class="col-md-12 mb-2">
+                                <small class="text-muted">Postal Code</small>
+                                <div>@(SelectedCompany.PostalCode ?? "-")</div>
+                            </div>
+                            <div class="col-md-12 mb-2">
+                                <small class="text-muted">Time Zone</small>
+                                <div>@(SelectedCompany.TimeZoneName ?? "-")</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+
+    </div>
+</div> *@
+
+<div class="content">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <div>
+            <h4 class="fw-bold mb-1">Company Details</h4>
+            <p class="text-muted mb-0 small">Company information and status</p>
+        </div>
+        <div class="d-flex gap-2 page-btn">
+            <a @onclick="PrintPage" class="btn bg-primary text-white">
+                <i class="bi bi-printer"></i> Print
+            </a>
+            <a class="btn btn-outline-secondary" href="/companies">
+               <i class="ti ti-arrow-left me-1"></i> Back
+            </a>
+        </div>
+
+    </div>
+<div class="card">
+
+    <!-- TOP HEADER CARD -->
+    <div class="header-card">
+        <div class="header-inner">
+                <div class="header-left1">
+                <div class="company-logo">
+                    @if (!string.IsNullOrEmpty(SelectedCompany?.LogoBase64))
+                    {
+                        <img src="data:@(SelectedCompany.LogoContentType);base64,@(SelectedCompany.LogoBase64)"
+                             alt="Logo" />
+                    }
+                    else
+                    {
+                        <span class="logo-initials">@SelectedCompany?.LegalName?.Substring(0, 2).ToUpper()</span>
+                    }
+                </div>
+
+                <div class="header-meta">
+                    <h2 class="company-title">@SelectedCompany?.LegalName</h2>
+                    <div class="company-subtitle">
+                        @if (!string.IsNullOrWhiteSpace(SelectedCompany?.TradeName))
+                        {
+                            <span>@SelectedCompany.TradeName</span>
+                            <span class="dot">·</span>
+                        }
+                        @if (SelectedCompany?.IncorporationDate != null)
+                        {
+                            <span>Est. @SelectedCompany.IncorporationDate?.Year</span>
+                            <span class="dot">·</span>
+                        }
+                        @if (!string.IsNullOrWhiteSpace(SelectedCompany?.CityName))
+                        {
+                            <span>@SelectedCompany.CityName</span>
+                        }
+                    </div>
+                    <div class="header-tags">
+                        @if (!string.IsNullOrWhiteSpace(SelectedCompany?.LegalStructure))
+                        {
+                                <span class="tag tag-default" style="border: 1px solid #c6b500;
+        background: #f7ffdf;
+        color: #b4ac00;">@SelectedCompany.LegalStructure</span>
+                        }
+                        @if (!string.IsNullOrWhiteSpace(SelectedCompany?.BaseCurrencyName))
+                        {
+                                <span class="tag tag-default" style="    border: 1px solid #0081ff;
+        background: #e9f3ff;
+        color: #1420ff;">@SelectedCompany.BaseCurrencyName</span>
+                        }
+                    </div>
+                </div>
+            </div>
+
+            <div class="header-right">
+                @if (SelectedCompany?.Status?.ToLower() == "active")
+                {
+                    <span class="status-badge status-active">● ACTIVE</span>
+                }
+                else if (SelectedCompany?.Status?.ToLower() == "draft")
+                {
+                    <span class="status-badge status-draft">● DRAFT</span>
+                }
+                else
+                {
+                    <span class="status-badge status-inactive">● INACTIVE</span>
+                }
+                <div class="created-info">Created @SelectedCompany?.CreatedAt.ToString("dd MMM yyyy")</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- SCROLLABLE BODY -->
+    <div class="details-body">
+
+        <!-- COMPANY IDENTITY -->
+        <div class="section-block">
+            <div class="section-header">
+                    <span class="section-icon" style="background:#fe6dde36;
+    padding: 2px 6px 0px 6px;
+    border-radius: 5px;
+    border: 1px solid #ff79f2;
+    color: #eb0091;"><i class="ti ti-id"></i></span>
+                <span class="section-title">COMPANY IDENTITY</span>
+                <div class="line"></div>
+            </div>
+                <div class="section-content">
+                <div class="fields-grid fields-grid-3">
+                    <div class="field-item">
+                        <div class="field-label">COMPANY CODE</div>
+                        <div class="field-value">@(SelectedCompany?.CompanyCode ?? "-")</div>
+                    </div>
+                    <div class="field-item">
+                        <div class="field-label">LEGAL NAME</div>
+                        <div class="field-value fw">@(SelectedCompany?.LegalName ?? "-")</div>
+                    </div>
+                    <div class="field-item">
+                        <div class="field-label">TRADE NAME</div>
+                        <div class="field-value">@(SelectedCompany?.TradeName ?? "-")</div>
+                    </div>
+                    <div class="field-item">
+                        <div class="field-label">SHORT NAME</div>
+                        <div class="field-value">@(SelectedCompany?.ShortName ?? "-")</div>
+                    </div>
+                    <div class="field-item">
+                        <div class="field-label">LEGAL STRUCTURE</div>
+                        <div class="field-value">@(SelectedCompany?.LegalStructure ?? "-")</div>
+                    </div>
+                    <div class="field-item">
+                        <div class="field-label">INCORPORATION DATE</div>
+                        <div class="field-value">@(SelectedCompany?.IncorporationDate?.ToString("dd MMM yyyy") ?? "-")</div>
+                    </div>
+                    @if (!string.IsNullOrWhiteSpace(SelectedCompany?.ParentCompanyName))
+                    {
+                        <div class="field-item">
+                            <div class="field-label">PARENT COMPANY</div>
+                            <div class="field-value">@SelectedCompany.ParentCompanyName</div>
+                        </div>
+                    }
+                    @if (!string.IsNullOrWhiteSpace(SelectedCompany?.DefaultBranchName))
+                    {
+                        <div class="field-item">
+                            <div class="field-label">DEFAULT BRANCH</div>
+                            <div class="field-value">@SelectedCompany.DefaultBranchName</div>
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+
+        <!-- FINANCIAL SETTINGS -->
+        <div class="section-block">
+            <div class="section-header">
+                    <span class="section-icon" style="background: #dae4ff6e;
+    padding: 2px 6px 0px 6px;
+    border-radius: 5px;
+    border: 1px solid #3741ff;
+    color: #0037ff;"> <i class="ti ti-currency-dollar"></i></span>
+                <span class="section-title">FINANCIAL SETTINGS</span>
+                    <div class="line"></div>
+            </div>
+                <div class="section-content">
+                <div class="fields-grid fields-grid-3">
+                    <div class="field-item">
+                        <div class="field-label">BASE CURRENCY</div>
+                        <div class="field-value fw">@(SelectedCompany?.BaseCurrencyName ?? "-")</div>
+                    </div>
+                    <div class="field-item">
+                        <div class="field-label">REPORTING CURRENCY</div>
+                        <div class="field-value">@(SelectedCompany?.ReportingCurrencyName ?? "Same as Base")</div>
+                    </div>
+                    <div class="field-item">
+                        <div class="field-label">FISCAL YEAR START</div>
+                        <div class="field-value">@GetMonthName(SelectedCompany?.FiscalYearStartMonth ?? 1)</div>
+                    </div>
+                    <div class="field-item">
+                        <div class="field-label">BOOKS START DATE</div>
+                        <div class="field-value">@(SelectedCompany?.BooksStartDate.ToString("dd MMM yyyy") ?? "-")</div>
+                    </div>
+                    <div class="field-item">
+                        <div class="field-label">MULTI CURRENCY</div>
+                        <div class="field-value">
+                            @if (SelectedCompany?.EnableMultiCurrency == true)
+                            {
+                                <span class="pill pill-yes">✓ Yes</span>
+                            }
+                            else
+                            {
+                                <span class="pill pill-no">✕ No</span>
+                            }
+                        </div>
+                    </div>
+                    <div class="field-item">
+                        <div class="field-label">ROUNDING PRECISION</div>
+                        <div class="field-value">@SelectedCompany?.RoundingPrecision</div>
+                    </div>
+                    <div class="field-item">
+                        <div class="field-label">ROUNDING MODE</div>
+                        <div class="field-value">@(SelectedCompany?.RoundingMode ?? "-")</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- CONTACT & BRANDING -->
+        <div class="section-block">
+            <div class="section-header">
+                    <span class="section-icon" style="    background: #daffde61;
+    padding: 3px 6px 2px 6px;
+    border-radius: 5px;
+    border: 1px solid #12e141;
+    color: #00ce3f;">    <i class="ti ti-map-pin"></i> </span>
+                <span class="section-title">LOCATION &amp; CONTACT</span>
+                    <div class="line"></div>
+            </div>
+                <div class="section-content">
+                    <div class="fields-grid fields-grid-3">
+                    <div class="field-item field-span-2">
+                        <div class="field-label">ADDRESS</div>
+                        <div class="field-value">
+                            @SelectedCompany?.AddressLine1
+                            @if (!string.IsNullOrWhiteSpace(SelectedCompany?.AddressLine2))
+                            {
+                                <br />
+                                @SelectedCompany.AddressLine2
+                            }
+                        </div>
+                    </div>
+                    <div class="field-item">
+                        <div class="field-label">CITY / REGION</div>
+                        <div class="field-value">@(SelectedCompany?.CityName ?? "-") · @(SelectedCompany?.StateProvinceName ?? "-")</div>
+                    </div>
+                    <div class="field-item">
+                        <div class="field-label">PHONE</div>
+                        <div class="field-value">@(SelectedCompany?.PrimaryPhone ?? "-")</div>
+                    </div>
+                    <div class="field-item">
+                        <div class="field-label">EMAIL</div>
+                        <div class="field-value">@(SelectedCompany?.PrimaryEmail ?? "-")</div>
+                    </div>
+                    <div class="field-item">
+                        <div class="field-label">POSTAL CODE</div>
+                        <div class="field-value">@(SelectedCompany?.PostalCode ?? "-")</div>
+                    </div>
+                    <div class="field-item">
+                        <div class="field-label">COUNTRY</div>
+                        <div class="field-value">@(SelectedCompany?.CountryName ?? "-")</div>
+                    </div>
+                    <div class="field-item">
+                        <div class="field-label">WEBSITE</div>
+                        <div class="field-value">@(SelectedCompany?.WebsiteUrl ?? "-")</div>
+                    </div>
+                    <div class="field-item">
+                        <div class="field-label">TIME ZONE</div>
+                        <div class="field-value">@(SelectedCompany?.TimeZoneName ?? "-")</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- SYSTEM & POSTING CONTROLS -->
+        <div class="section-block">
+            <div class="section-header">
+                    <span class="section-icon" style="    background: #6debfe2b;
+    padding: 2px 6px 0px 6px;
+    border-radius: 5px;
+    border: 1px solid #00a785;
+    color: #008f9c;"> <i class="ti ti-lock"></i></span>
+                <span class="section-title">OPERATIONS &amp; POSTING CONTROLS</span>
+                    <div class="line"></div>
+            </div>
+                <div class="section-content">
+                <div class="fields-grid fields-grid-3">
+                    <div class="field-item">
+                        <div class="field-label">ALLOW POSTING FROM</div>
+                        <div class="field-value">@(SelectedCompany?.AllowPostingFromDate?.ToString("dd MMM yyyy") ?? "-")</div>
+                    </div>
+                    <div class="field-item">
+                        <div class="field-label">ALLOW POSTING TO</div>
+                        <div class="field-value">@(SelectedCompany?.AllowPostingToDate?.ToString("dd MMM yyyy") ?? "-")</div>
+                    </div>
+                    <div class="field-item">
+                        <div class="field-label">LOCK BACK-DATED</div>
+                        <div class="field-value">
+                            @if (SelectedCompany?.LockBackDatedPosting == true)
+                            {
+                                <span class="pill pill-no">✕ No</span>
+                            }
+                            else
+                            {
+                                <span class="pill pill-yes">✓ Yes</span>
+                            }
+                        </div>
+                    </div>
+                    <div class="field-item">
+                        <div class="field-label">BACKDATED DAYS ALLOWED</div>
+                        <div class="field-value">@SelectedCompany?.BackdatedPostingDaysAllowed</div>
+                    </div>
+                    <div class="field-item">
+                        <div class="field-label">FUTURE DAYS ALLOWED</div>
+                        <div class="field-value">@SelectedCompany?.FuturePostingDaysAllowed</div>
+                    </div>
+                </div>
+                @if (!string.IsNullOrWhiteSpace(SelectedCompany?.Notes))
+                {
+                    <div class="notes-box">
+                        <div class="field-label">NOTES</div>
+                            <div class="notes-text ql-editor">@((MarkupString)(SelectedCompany.Notes ?? string.Empty))</div>
+                    </div>
+                }
+            </div>
+        </div>
+
+        <!-- REGISTRATION & COMPLIANCE -->
+        <div class="section-block">
+            <div class="section-header">
+                    <span class="section-icon" style="background: #ff708d30;
+    padding: 2px 6px 0px 6px;
+    border-radius: 5px;
+    border: 1px solid #ff2173;
+    color: #ff1b2d;"><i class="ti ti-file-certificate"></i> </span>
+                <span class="section-title">REGISTRATION &amp; COMPLIANCE</span>
+                    <div class="line"></div>
+            </div>
+                <div class="section-content">
+                <div class="fields-grid fields-grid-3">
+                    <div class="field-item">
+                        <div class="field-label">REGISTRATION NUMBER / CIN</div>
+                        <div class="field-value">@(SelectedCompany?.RegistrationNumber ?? "-")</div>
+                    </div>
+                    <div class="field-item">
+                        <div class="field-label">PAN</div>
+                        <div class="field-value fw">@(SelectedCompany?.PANNumber ?? "-")</div>
+                    </div>
+                    <div class="field-item">
+                        <div class="field-label">TAN NUMBER</div>
+                        <div class="field-value">@(SelectedCompany?.TANNumber ?? "-")</div>
+                    </div>
+                    <div class="field-item">
+                        <div class="field-label">GSTIN</div>
+                        <div class="field-value fw">@(SelectedCompany?.GSTIN ?? "-")</div>
+                    </div>
+                    <div class="field-item">
+                        <div class="field-label">OTHER TAX ID</div>
+                        <div class="field-value">@(SelectedCompany?.OtherTaxId ?? "-")</div>
+                    </div>
+                    <div class="field-item">
+                        <div class="field-label">GST REGISTERED</div>
+                        <div class="field-value">
+                            @if (SelectedCompany?.IsGSTRegistered == true)
+                            {
+                                <span class="pill pill-yes">✓ Yes</span>
+                            }
+                            else
+                            {
+                                <span class="pill pill-no">✕ No</span>
+                            }
+                        </div>
+                    </div>
+                    <div class="field-item">
+                        <div class="field-label">REGISTRATION COUNTRY</div>
+                        <div class="field-value">@(SelectedCompany?.RegistrationCountryName ?? "-")</div>
+                    </div>
+                    <div class="field-item">
+                        <div class="field-label">REGISTRATION STATE</div>
+                        <div class="field-value">@(SelectedCompany?.RegistrationStateProvinceName ?? "-")</div>
+                    </div>
+                    <div class="field-item">
+                        <div class="field-label">REGISTRATION CITY</div>
+                        <div class="field-value">@(SelectedCompany?.RegistrationCityName ?? "-")</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- RECORD INFO -->
+        <div class="section-block">
+            <div class="section-header">
+                    <span class="section-icon" style="    background: #f8c5051f;
+    padding: 2px 6px 0px 6px;
+    border-radius: 5px;
+    border: 1px solid #a7b500;
+    color: #c0a700;"><i class="ti ti-history"></i></span>
+                <span class="section-title">RECORD INFO</span>
+                    <div class="line"></div>
+            </div>
+                <div class="section-content">
+                    <div class="fields-grid fields-grid-3">
+                    <div class="field-item">
+                        <div class="field-label">STATUS</div>
+                        <div class="field-value">
+                            @if (SelectedCompany?.Status?.ToLower() == "active")
+                            {
+                                <span class="pill pill-yes">● ACTIVE</span>
+                            }
+                            else if (SelectedCompany?.Status?.ToLower() == "draft")
+                            {
+                                <span class="pill pill-draft">● DRAFT</span>
+                            }
+                            else
+                            {
+                                <span class="pill pill-no">● INACTIVE</span>
+                            }
+                        </div>
+                    </div>
+                    <div class="field-item">
+                        <div class="field-label">COMPANY CODE</div>
+                        <div class="field-value">@(SelectedCompany?.CompanyCode ?? "-")</div>
+                    </div>
+                    <div class="field-item">
+                        <div class="field-label">CREATED</div>
+                        <div class="field-value">@(SelectedCompany?.CreatedAt.ToString("dd MMM yyyy") ?? "-")</div>
+                    </div>
+                    <div class="field-item">
+                        <div class="field-label">CREATED BY</div>
+                        <div class="field-value">@(SelectedCompany.CreatedBy ?? "-")</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+
+</div>
+</div>

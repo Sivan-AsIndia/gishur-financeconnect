@@ -1,0 +1,139 @@
+@page "/gst-return-runs/create"
+@page "/gst-return-runs/{Id:guid}"
+@namespace FinanceConnect.Client.Pages.Tax___Statutory.GSTReturnRun
+
+<style>
+    .form-select option:checked {
+        color: #fff;
+        background: var(--primary);
+    }
+
+    .form-select:focus {
+        border-color: var(--primary);
+        box-shadow: none;
+    }
+
+    .validation-message {
+        color: #dc3545;
+        font-size: 12px;
+    }
+
+    .header-ribbon {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        background: #f8f9fa;
+        padding: 15px 20px;
+        border-radius: 8px;
+    }
+
+    .section-card {
+        background: #fff;
+        border-radius: 8px;
+        padding: 20px;
+        margin-bottom: 16px;
+        border: 1px solid #e9ecef;
+    }
+    /* .section-title { font-size:15px; font-weight:600; margin-bottom:16px; color:var(--primary); border-bottom:2px solid var(--primary); padding-bottom:6px; } */
+</style>
+
+<div class="content">
+    <div class="header-ribbon">
+        <div class="page-title">
+            <h4 class="fw-bold mb-0">
+                @(IsEdit ? (model.ReturnRunNumber ?? "Return Run") : "New GST Return Run")@if(IsEdit){
+                <span class="badge @GetStatusBadge(model.ReturnRunStatus) ms-2">@model.ReturnRunStatus</span>
+                                }
+            </h4><small class="text-muted">@(IsEdit ? "Edit return run" : "Create a new GST return run")</small>
+        </div>
+        <div class="d-flex gap-2"><button class="btn btn-outline-secondary" @onclick="BackToList"><i class="ti ti-arrow-left"></i> Back</button></div>
+    </div>
+    <EditForm EditContext="_editContext" OnSubmit="HandleSubmit">
+        <DataAnnotationsValidator />
+        <div style="background:#f4f7fb;">
+
+            <!-- Section 1: Core Identity -->
+            <div class="section-card">
+                <div class="section-title text-primary fw-bold mb-3"><i class="ti ti-id me-2"></i>Core Identity (Header)</div>
+                <div class="row g-3">
+                    <div class="col-md-4"><label class="form-label">Return Run No</label><input type="text" class="form-control" value="@(model.ReturnRunNumber ?? "Auto-generated")" disabled title="System generated return run number" /></div>
+                    <div class="col-md-4">
+                        <label class="form-label">Return Type <span class="text-danger">*</span></label><select class="form-select" @bind="model.ReturnType" disabled="@IsReadOnly" title="Type of GST return"><option value="">--Select Return Type--</option><option value="GSTR1Style">GSTR-1 Style</option><option value="GSTR3BStyle">GSTR-3B Style</option><option value="CombinedGSTPack">Combined GST Pack</option></select>@if(submitted && string.IsNullOrWhiteSpace(model.ReturnType)){
+                        <div class="validation-message">Return Type is required.</div>
+                                                }
+                    </div>
+                    <div class="col-md-4"><label class="form-label">Status</label><input type="text" class="form-control" value="@model.ReturnRunStatus" disabled title="Current status" /></div>
+                    <div class="col-md-4">
+                        <label class="form-label">GST Period <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control @(submitted && string.IsNullOrWhiteSpace(model.ReturnPeriodKey) ? "is-invalid" : "")" @bind="model.ReturnPeriodKey" disabled="@IsReadOnly" placeholder="e.g. 2026-03" title="GST return period key (YYYY-MM)" />
+                        @if (submitted && string.IsNullOrWhiteSpace(model.ReturnPeriodKey))
+                        {
+                            <div class="validation-message">Return Period is required.</div>
+                        }
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">Period Start Date <span class="text-danger">*</span></label>
+                        <input type="date" class="form-control @(submitted && model.PeriodStartDate == default ? "is-invalid" : "")" @bind="model.PeriodStartDate" disabled="@IsReadOnly" title="Start date of the return period" />@if(submitted && model.PeriodStartDate==default){
+                        <div class="validation-message">Period Start Date is required.</div>
+                                                }
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">Period End Date <span class="text-danger">*</span></label>
+                        <input type="date" class="form-control @(submitted && model.PeriodEndDate == default ? "is-invalid" : "")" @bind="model.PeriodEndDate" disabled="@IsReadOnly" title="End date of the return period" />
+                        @if (submitted && model.PeriodEndDate == default)
+                        {
+                            <div class="validation-message">Period End Date is required.</div>
+                        }
+                        @if (submitted && model.PeriodEndDate < model.PeriodStartDate)
+                        {
+                            <div class="validation-message">End Date must be >= Start Date.</div>
+                        }
+                    </div>
+                    <div class="col-md-4"><label class="form-label">Branch</label><input type="text" class="form-control" value="@(model.BranchName ?? "Chennai HQ")" disabled title="Branch / GST registration scope" /></div>
+                    <div class="col-md-4"><label class="form-label">Generation Date</label><input type="text" class="form-control" value="@(model.GenerationDate?.ToString("dd MMM yyyy HH:mm") ?? "Not generated")" disabled title="When the dataset was generated" /></div>
+                </div>
+            </div>
+
+            <!-- Section 2: Scope & Selection -->
+            <div class="section-card">
+                <div class="section-title text-primary fw-bold mb-3"><i class="ti ti-filter me-2"></i>Scope &amp; Selection Rules</div>
+                <div class="row g-3">
+                    <div class="col-md-4">
+                        <label class="form-label">Selection Mode <span class="text-danger">*</span></label><select class="form-select" @bind="model.SelectionMode" disabled="@IsReadOnly" title="How transactions are selected"><option value="">--Select Selection Mode--</option><option value="ByPostingDate">By Posting Date</option><option value="ByDocumentDate">By Document Date</option></select>@if(submitted && string.IsNullOrWhiteSpace(model.SelectionMode)){
+                        <div class="validation-message">Selection Mode is required.</div>
+                                                }
+                    </div>
+                    <div class="col-md-8">
+                        <label class="form-label">Inclusion Filters</label>
+                        <div class="d-flex flex-wrap gap-4 mt-1">
+                            <div class="form-check"><input class="form-check-input" type="checkbox" @bind="model.IncludeOutwardSupplies" disabled="@IsReadOnly" /><label class="form-check-label" title="Include outward supply transactions">Outward Supplies</label></div>
+                            <div class="form-check"><input class="form-check-input" type="checkbox" @bind="model.IncludeInwardSupplies" disabled="@IsReadOnly" /><label class="form-check-label" title="Include inward supply transactions">Inward Supplies</label></div>
+                            <div class="form-check"><input class="form-check-input" type="checkbox" @bind="model.IncludeRCMTransactions" disabled="@IsReadOnly" /><label class="form-check-label" title="Include reverse charge transactions">RCM Transactions</label></div>
+                            <div class="form-check"><input class="form-check-input" type="checkbox" @bind="model.IncludeCreditDebitNotes" disabled="@IsReadOnly" /><label class="form-check-label" title="Include credit and debit notes">Credit/Debit Notes</label></div>
+                            <div class="form-check"><input class="form-check-input" type="checkbox" @bind="model.IncludeExemptNilNonGST" disabled="@IsReadOnly" /><label class="form-check-label" title="Include exempt, nil-rated, non-GST">Exempt/Nil/Non-GST</label></div>
+                            <div class="form-check"><input class="form-check-input" type="checkbox" @bind="model.IncludeOnlyPostedTransactions" disabled="@IsReadOnly" /><label class="form-check-label" title="Include only posted transactions">Only Posted</label></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Section 3: Notes -->
+            <div class="section-card">
+                <div class="section-title text-primary fw-bold mb-3"><i class="ti ti-notes me-2"></i>Notes</div>
+                <div class="row g-3">
+                    <div class="col-md-6"><label class="form-label">Reviewer Notes</label><textarea class="form-control" rows="2" @bind="model.ReviewerNotes" disabled="@IsReadOnly" placeholder="Reviewer notes..." title="Notes from the reviewer"></textarea></div>
+                    <div class="col-md-6"><label class="form-label">Filing Notes</label><textarea class="form-control" rows="2" @bind="model.FilingNotes" disabled="@IsReadOnly" placeholder="Filing notes..." title="Additional filing notes"></textarea></div>
+                </div>
+            </div>
+
+            @if (!IsReadOnly)
+            {
+                <div class="d-flex gap-2 justify-content-end mt-3 mb-4">
+                    <button class="btn btn-outline-secondary" type="button" @onclick="BackToList">
+                        <i class="ti ti-x"></i> Cancel
+                    </button><button class="btn btn-primary" type="submit"><i class="ti ti-device-floppy me-1"></i>@(IsEdit ? "Update" : "Save")</button>
+                </div>
+            }
+        </div>
+    </EditForm>
+</div>

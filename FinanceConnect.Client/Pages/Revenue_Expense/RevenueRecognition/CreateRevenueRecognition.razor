@@ -1,0 +1,394 @@
+@page "/revenue-recognitions/create"
+@page "/revenue-recognitions/{Id:guid}"
+@using FinanceConnect.Client.ViewModels
+@using FinanceConnect.Client.Services
+@using static FinanceConnect.Client.ViewModels.RevenueRecognitionViewModel
+
+<style>.validation-message{color:#dc3545;font-size:12px;}.form-check-label{font-size:13px;}</style>
+
+<div class="content flat-form">
+    <div class="page-header">
+        <div class="page-title"><h4 class="fw-bold">@(IsEdit ? "Edit Revenue Recognition" : "Create Revenue Recognition")</h4><h6>Accounting recognition record for revenue earning &amp; period assignment</h6></div>
+        <div class="page-btn"><a href="/revenue-recognitions" class="btn btn-outline-secondary"><i class="ti ti-arrow-left"></i> Back</a></div>
+    </div>
+
+    <EditForm EditContext="_editContext" OnSubmit="Save">
+        <DataAnnotationsValidator />
+
+        <!-- SECTION 1: CORE IDENTITY (HEADER) -->
+        <div class="card mt-4"><div class="card-body">
+                <h6 class="text-primary mb-3 d-flex align-items-center"><i class="ti ti-id me-2" style="font-size: 22px;"></i> Core Identity</h6>
+            <div class="row g-3">
+                <div class="col-md-4">
+                    <label class="form-label">Recognition Code <span class="text-danger">*</span></label>
+                    @if (IsEdit)
+                    {
+                        <div class="fw-semibold fs-14 mt-1">@(Model.RecognitionCode ?? "–")</div>
+                    }
+                    else
+                    {
+                        <InputText class="form-control text-uppercase" @bind-Value="Model.RecognitionCode" placeholder="e.g. REVREC-2026-001" title="Unique recognition code per company" />
+                    }
+                    <ValidationMessage For="@(() => Model.RecognitionCode)" />
+                </div>
+                <div class="col-md-5">
+                    <label class="form-label">Recognition Name <span class="text-danger">*</span></label>
+                    <InputText class="form-control" @bind-Value="Model.RecognitionName" placeholder="e.g. Revenue Recognition – Subscription Customer A" title="Descriptive recognition name (max 200 chars)" />
+                    <ValidationMessage For="@(() => Model.RecognitionName)" />
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">Status <span class="text-danger">*</span></label>
+                    <InputSelect class="form-select" @bind-Value="Model.RecognitionStatus" title="Current recognition status">
+                        @foreach (var s in Enum.GetValues<RecognitionStatusEnum>()) { <option value="@s">@s</option> }
+                    </InputSelect>
+                    <ValidationMessage For="@(() => Model.RecognitionStatus)" />
+                </div>
+                <div class="col-md-12">
+                    <label class="form-label">Description</label>
+                    <InputTextArea class="form-control" rows="2" @bind-Value="Model.Description" placeholder="Optional description..." title="Detailed description (max 1000 chars)" />
+                </div>
+            </div>
+        </div></div>
+
+        <!-- SECTION 2: SOURCE REVENUE CONTEXT -->
+        <div class="card mt-4"><div class="card-body">
+                <h6 class="text-primary mb-3 d-flex align-items-center"><i class="ti ti-receipt me-2" style="font-size: 22px;"></i> Source Revenue Context</h6>
+            <div class="row g-3">
+                <div class="col-md-4">
+                    <label class="form-label">Source Revenue <span class="text-danger">*</span></label>
+                    <InputSelect class="form-select" @bind-Value="Model.RevenueId" title="Link to source Revenue record" @onchange="OnRevenueSelected">
+                        <option value="">-- Select Revenue --</option>
+                        @foreach (var rev in Revenues) { <option value="@rev.RevenueId">@rev.RevenueCode – @rev.RevenueName</option> }
+                    </InputSelect>
+                    <ValidationMessage For="@(() => Model.RevenueId)" />
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">Revenue Code</label>
+                    <div class="form-control bg-light" title="Auto-populated from source revenue">@(Model.RevenueCodeSnapshot ?? "–")</div>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">Revenue Name</label>
+                    <div class="form-control bg-light" title="Auto-populated from source revenue">@(Model.RevenueNameSnapshot ?? "–")</div>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">Customer <span class="text-danger">*</span></label>
+                    <div class="form-control bg-light" title="Customer from source revenue">@(Model.CustomerNameSnapshot ?? "–")</div>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">Source Document Type <span class="text-danger">*</span></label>
+                    <InputText class="form-control" @bind-Value="Model.SourceDocumentTypeSnapshot" placeholder="e.g. Subscription, CustomerInvoice" title="Source document type snapshot" />
+                    <ValidationMessage For="@(() => Model.SourceDocumentTypeSnapshot)" />
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">Source Document Number</label>
+                    <InputText class="form-control" @bind-Value="Model.SourceDocumentNumberSnapshot" placeholder="e.g. SUB-2026-001" title="Optional document number reference" />
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">Revenue Type <span class="text-danger">*</span></label>
+                    <InputText class="form-control" @bind-Value="Model.RevenueTypeSnapshot" placeholder="e.g. OneTime, Subscription" title="Revenue type snapshot" />
+                    <ValidationMessage For="@(() => Model.RevenueTypeSnapshot)" />
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">Revenue Nature <span class="text-danger">*</span></label>
+                    <InputText class="form-control" @bind-Value="Model.RevenueNatureSnapshot" placeholder="e.g. EarnedImmediately, EarnedOverTime" title="Revenue nature snapshot" />
+                    <ValidationMessage For="@(() => Model.RevenueNatureSnapshot)" />
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">Source Revenue Amount <span class="text-danger">*</span></label>
+                    <InputNumber class="form-control" @bind-Value="Model.SourceGrossRevenueAmount" placeholder="0.00" title="Gross revenue amount from source" />
+                    <ValidationMessage For="@(() => Model.SourceGrossRevenueAmount)" />
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">Currency <span class="text-danger">*</span></label>
+                    <InputSelect class="form-select" @bind-Value="Model.CurrencyId" title="Transaction currency">
+                        <option value="">-- Select Currency --</option>
+                        @foreach (var c in CurrencyList) { <option value="@c.Key">@c.Value</option> }
+                    </InputSelect>
+                    <ValidationMessage For="@(() => Model.CurrencyId)" />
+                </div>
+            </div>
+        </div></div>
+
+        <!-- SECTION 3: RECOGNITION METHOD & BASIS -->
+        <div class="card mt-4"><div class="card-body">
+                <h6 class="text-primary mb-3 d-flex align-items-center"><i class="ti ti-settings me-2" style="font-size: 22px;"></i> Recognition Method & Basis</h6>
+            <div class="row g-3">
+                <div class="col-md-3">
+                    <label class="form-label">Recognition Method <span class="text-danger">*</span></label>
+                    <InputSelect class="form-select" @bind-Value="Model.RecognitionMethod" title="How revenue is recognized">
+                        @foreach (var v in Enum.GetValues<RecognitionMethodEnum>()) { <option value="@v">@v</option> }
+                    </InputSelect>
+                    <ValidationMessage For="@(() => Model.RecognitionMethod)" />
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">Recognition Basis <span class="text-danger">*</span></label>
+                    <InputSelect class="form-select" @bind-Value="Model.RecognitionBasis" title="Basis for recognition timing">
+                        @foreach (var v in Enum.GetValues<RecognitionBasisEnum>()) { <option value="@v">@v</option> }
+                    </InputSelect>
+                    <ValidationMessage For="@(() => Model.RecognitionBasis)" />
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">Recognition Start</label>
+                    <InputDate class="form-control" @bind-Value="Model.RecognitionStartDate" title="Start date for scheduled recognition" />
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">Recognition End</label>
+                    <InputDate class="form-control" @bind-Value="Model.RecognitionEndDate" title="End date for over-time recognition" />
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">Frequency</label>
+                    <InputSelect class="form-select" @bind-Value="Model.RecognitionFrequency" title="Recognition frequency for scheduled methods">
+                        <option value="">-- Select --</option>
+                        @foreach (var v in Enum.GetValues<RecognitionFrequencyEnum>()) { <option value="@v">@v</option> }
+                    </InputSelect>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">Schedule Template Code</label>
+                    <InputText class="form-control" @bind-Value="Model.ScheduleTemplateCode" placeholder="e.g. STRAIGHT_LINE_MONTHLY" title="Optional template code for schedule generation" />
+                </div>
+                <div class="col-md-3 d-flex flex-column gap-2 mt-4">
+                    <div class="d-flex align-items-center gap-2">
+                        <InputCheckbox class="form-check-input" @bind-Value="Model.MilestoneTriggerRequired" />
+                        <label class="form-check-label" title="Requires milestone evidence before recognition">Milestone Trigger Required</label>
+                    </div>
+                    <div class="d-flex align-items-center gap-2">
+                        <InputCheckbox class="form-check-input" @bind-Value="Model.ManualApprovalRequiredFlag" />
+                        <label class="form-check-label" title="Manual approval required before recognition">Manual Approval Required</label>
+                    </div>
+                </div>
+                <div class="col-md-3 d-flex align-items-end">
+                    <div class="d-flex align-items-center gap-2 mb-2">
+                        <InputCheckbox class="form-check-input" @bind-Value="Model.IsScheduleGenerated" />
+                        <label class="form-check-label" title="Has the recognition schedule been generated">Schedule Generated</label>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">Deferred Revenue Ref</label>
+                    <InputText class="form-control" @bind-Value="Model.DeferredRevenueReference" placeholder="e.g. DEFREV-2026-001" title="Reference to linked Deferred Revenue record (used for DeferredThenRelease method)" />
+                </div>
+            </div>
+        </div></div>
+
+        <!-- SECTION 4: AMOUNTS & BALANCES -->
+        <div class="card mt-4"><div class="card-body">
+                <h6 class="text-primary mb-3 d-flex align-items-center"><i class="ti ti-currency-dollar me-2" style="font-size: 22px;"></i> Amounts & Balances</h6>
+            <div class="row g-3">
+                <div class="col-md-3">
+                    <label class="form-label">Total Recognizable Amount <span class="text-danger">*</span></label>
+                    <InputNumber class="form-control" @bind-Value="Model.TotalRecognizableAmount" placeholder="0.00" title="Total amount eligible for recognition" />
+                    <ValidationMessage For="@(() => Model.TotalRecognizableAmount)" />
+                </div>
+                @if (IsEdit)
+                {
+                    <div class="col-md-3">
+                        <label class="form-label">Recognized To Date</label>
+                        <div class="form-control bg-light fw-medium">@Model.RecognizedAmountToDate.ToString("N2")</div>
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">Current Period Amount</label>
+                        <div class="form-control bg-light">@Model.CurrentPeriodRecognitionAmount.ToString("N2")</div>
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">Remaining Amount</label>
+                        <div class="form-control bg-light @(Model.RemainingRecognitionAmount < 0 ? "text-danger fw-bold" : "")">@Model.RemainingRecognitionAmount.ToString("N2")</div>
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">Completion %</label>
+                        <div class="form-control bg-light">@Model.RecognitionCompletionPercent.ToString("N2")%</div>
+                    </div>
+                }
+                <div class="col-md-3">
+                    <label class="form-label">Adjustment Amount</label>
+                    <InputNumber class="form-control" @bind-Value="Model.AdjustmentAmount" placeholder="0.00" title="Controlled adjustment/reclassification amount" />
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">Rounding Difference</label>
+                    <InputNumber class="form-control" @bind-Value="Model.RoundingDifferenceAmount" placeholder="0.00" title="Final schedule balancing rounding difference" />
+                </div>
+                @if (IsEdit)
+                {
+                    <div class="col-md-3">
+                        <label class="form-label">Attachment Count</label>
+                        <div class="form-control bg-light">@Model.AttachmentCount</div>
+                    </div>
+                }
+            </div>
+        </div></div>
+
+        <!-- SECTION 5: PERIOD & ACCOUNTING IMPACT -->
+        <div class="card mt-4"><div class="card-body">
+                <h6 class="text-primary mb-3 d-flex align-items-center"><i class="ti ti-calendar-stats me-2" style="font-size: 22px;"></i> Period & Accounting Impact</h6>
+            <div class="row g-3">
+                <div class="col-md-3">
+                    <label class="form-label">Fiscal Year <span class="text-danger">*</span></label>
+                    <InputSelect class="form-select" @bind-Value="Model.FiscalYearId" title="Associated fiscal year">
+                        <option value="">-- Select Fiscal Year --</option>
+                        @foreach (var fy in FiscalYears) { <option value="@fy.Key">@fy.Value</option> }
+                    </InputSelect>
+                    <ValidationMessage For="@(() => Model.FiscalYearId)" />
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">Recognition Posting Date</label>
+                    <InputDate class="form-control" @bind-Value="Model.RecognitionPostingDate" title="Date used for actual recognition posting" />
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">Next Recognition Due</label>
+                    <InputDate class="form-control" @bind-Value="Model.NextRecognitionDueDate" title="Next scheduled recognition date" />
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">Current Accounting Period</label>
+                    <InputText class="form-control" @bind-Value="Model.CurrentAccountingPeriodReference" placeholder="e.g. Apr-2026" title="Current accounting period for release runs" />
+                </div>
+                @if (IsEdit)
+                {
+                    <div class="col-md-3">
+                        <label class="form-label">Last Recognition Run</label>
+                        <div class="form-control bg-light">@(Model.LastRecognitionRunDate?.ToString("dd MMM yyyy HH:mm") ?? "–")</div>
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">Recognized Periods</label>
+                        <div class="form-control bg-light">@Model.RecognizedPeriodsCount</div>
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">Pending Periods</label>
+                        <div class="form-control bg-light">@Model.PendingPeriodsCount</div>
+                    </div>
+                }
+            </div>
+        </div></div>
+
+        <!-- SECTION 6: RECOGNITION SCHEDULE (Child Grid) -->
+        @if (IsEdit && Model.ScheduleLines.Any())
+        {
+            <div class="card mt-4"><div class="card-body">
+                    <h6 class="text-primary mb-3 d-flex align-items-center"><i class="ti ti-list-details me-2" style="font-size: 22px;"></i> Recognition Schedule Lines</h6>
+                <div class="table-responsive">
+                    <table class="table table-sm table-bordered align-middle mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th style="width:50px">#</th>
+                                <th>Schedule Date</th>
+                                <th class="text-end">Scheduled</th>
+                                <th class="text-end">Recognized</th>
+                                <th class="text-end">Remaining</th>
+                                <th>Status</th>
+                                <th>Approval</th>
+                                <th>Milestone / Trigger</th>
+                                <th>Recognized On</th>
+                                <th>Notes</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var line in Model.ScheduleLines.OrderBy(l => l.LineNumber))
+                            {
+                                <tr>
+                                    <td class="text-center">@line.LineNumber</td>
+                                    <td>@line.ScheduleDate?.ToString("dd MMM yyyy")</td>
+                                    <td class="text-end">@line.ScheduledAmount.ToString("N2")</td>
+                                    <td class="text-end">@line.RecognizedAmount.ToString("N2")</td>
+                                    <td class="text-end @(line.RemainingAmount < 0 ? "text-danger" : "")">@line.RemainingAmount.ToString("N2")</td>
+                                    <td><span class="badge @GetLineStatusBadge(line.RecognitionLineStatus)">@line.RecognitionLineStatus</span></td>
+                                    <td><span class="badge @GetApprovalBadge(line.ManualApprovalStatus)">@line.ManualApprovalStatus</span></td>
+                                    <td class="small">
+                                        @(line.MilestoneReference ?? "–")
+                                        @if (!string.IsNullOrWhiteSpace(line.TriggerEventReference))
+                                        {
+                                            <div class="text-muted" style="font-size:11px;">@line.TriggerEventReference</div>
+                                        }
+                                    </td>
+                                    <td class="small">
+                                        @(line.RecognizedOn?.ToString("dd MMM yyyy") ?? "–")
+                                        @if (!string.IsNullOrWhiteSpace(line.RecognizedBy))
+                                        {
+                                            <div class="text-muted" style="font-size:11px;">by @line.RecognizedBy</div>
+                                        }
+                                    </td>
+                                    <td class="small">@(line.RecognitionLineNotes ?? "–")</td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </div></div>
+        }
+
+        <!-- SECTION 7: WORKFLOW & GOVERNANCE -->
+        <div class="card mt-4"><div class="card-body">
+                <h6 class="text-primary mb-3 d-flex align-items-center"><i class="ti ti-users me-2" style="font-size: 22px;"></i> Workflow & Governance</h6>
+            <div class="row g-3">
+                <div class="col-md-3">
+                    <label class="form-label">Prepared By</label>
+                    <InputText class="form-control" @bind-Value="Model.PreparedByUserId" placeholder="e.g. finance.admin" title="User who prepared this record" />
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">Reviewed By</label>
+                    <InputText class="form-control" @bind-Value="Model.ReviewedByUserId" placeholder="Reviewer" title="User who reviewed this record" />
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">Approved By</label>
+                    <InputText class="form-control" @bind-Value="Model.ApprovedByUserId" placeholder="Approver" title="User who approved this record" />
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">Prepared On</label>
+                    <InputDate class="form-control" @bind-Value="Model.PreparedOn" title="Date prepared" />
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">Reviewed On</label>
+                    <InputDate class="form-control" @bind-Value="Model.ReviewedOn" title="Date reviewed" />
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">Approved On</label>
+                    <InputDate class="form-control" @bind-Value="Model.ApprovedOn" title="Date approved" />
+                </div>
+                @if (Model.RecognitionStatus == RecognitionStatusEnum.Cancelled)
+                {
+                    <div class="col-md-6">
+                        <label class="form-label">Cancellation Reason <span class="text-danger">*</span></label>
+                        <InputTextArea class="form-control" rows="2" @bind-Value="Model.CancellationReason" placeholder="Reason for cancellation..." title="Required when status is Cancelled" />
+                    </div>
+                }
+                @if (IsEdit)
+                {
+                    <div class="col-md-3">
+                        <label class="form-label">Is Locked</label>
+                        <div class="form-control bg-light">@(Model.IsLocked ? "Yes" : "No")</div>
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">Locked On</label>
+                        <div class="form-control bg-light">@(Model.LockedOn?.ToString("dd MMM yyyy HH:mm") ?? "–")</div>
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">Locked By</label>
+                        <div class="form-control bg-light">@(Model.LockedBy ?? "–")</div>
+                    </div>
+                }
+            </div>
+        </div></div>
+
+        <!-- SECTION 8: NOTES & EVIDENCE -->
+        <div class="card mt-4"><div class="card-body">
+                <h6 class="text-primary mb-3 d-flex align-items-center"><i class="ti ti-notes me-2" style="font-size: 22px;"></i> Notes & Evidence</h6>
+            <div class="row g-3">
+                <div class="col-md-6">
+                    <label class="form-label">Recognition Assumption</label>
+                    <InputTextArea class="form-control" rows="3" @bind-Value="Model.RecognitionAssumptionText" placeholder="Assumptions for manual/custom recognition logic..." title="Useful for manual/custom recognition logic (max 1500 chars)" />
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label">Notes</label>
+                    <InputTextArea class="form-control" rows="3" @bind-Value="Model.Notes" placeholder="Additional notes..." title="General notes (max 1500 chars)" />
+                </div>
+            </div>
+        </div></div>
+
+        <!-- Action Buttons -->
+        <div class="d-flex justify-content-end mt-4 mb-5 gap-2">
+            <button type="button" class="btn btn-outline-secondary" @onclick='() => Nav.NavigateTo("/revenue-recognitions")'>
+                <i class="ti ti-x"></i> Cancel
+            </button>
+            <button type="submit" class="btn btn-primary">
+                <i class="ti ti-device-floppy"></i>
+                @(IsEdit ? "Update" : "Create")
+            </button>
+        </div>
+    </EditForm>
+</div>

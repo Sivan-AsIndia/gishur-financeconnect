@@ -1,0 +1,135 @@
+﻿.asset-snapshot {
+    background: #f9fafb;
+    border: 1px solid #e5e7eb;
+    border-radius: 10px;
+    padding: 18px;
+}
+
+.snapshot-title {
+    font-weight: 600;
+    margin-bottom: 15px;
+    color: #374151;
+}
+
+.snapshot-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 14px;
+}
+
+.snapshot-item {
+    background: white;
+    border-radius: 8px;
+    padding: 10px 14px;
+    border: 1px solid #eee;
+}
+
+    .snapshot-item .label {
+        font-size: 12px;
+        color: #6b7280;
+        display: block;
+    }
+
+    .snapshot-item .value {
+        font-size: 15px;
+        font-weight: 600;
+        color: #111827;
+    }
+
+    .snapshot-item.highlight {
+        background: #fef3c7;
+    }
+
+.nbv-card {
+    background: #ffffff;
+    border: 1px solid #e5e7eb;
+    border-left: 4px solid var(--primary, #6366f1);
+    border-radius: 8px;
+    padding: 12px 14px;
+}
+
+.nbv-label {
+    font-size: 12px;
+    color: #6b7280;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.nbv-value {
+    font-size: 20px;
+    font-weight: 700;
+    color: #111827;
+    margin-top: 2px;
+}
+
+.calc-field {
+    height: 38px;
+    border: 1px solid #e5e7eb;
+    border-radius: 6px;
+    background: #f9fafb;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 0 12px;
+    font-weight: 600;
+    font-size: 14px;
+    color: #111827;
+}
+
+    .calc-field i {
+        color: #10b981;
+        font-size: 16px;
+    }
+
+.metric-card {
+    background: #ffffff;
+    border: 1px solid #e5e7eb;
+    border-radius: 10px;
+    padding: 16px 18px;
+    transition: all 0.2s ease;
+}
+
+    .metric-card:hover {
+        box-shadow: 0 6px 18px rgba(0,0,0,0.08);
+    }
+
+.metric-label {
+    font-size: 13px;
+    color: #6b7280;
+    margin-bottom: 6px;
+}
+
+.metric-value {
+    font-size: 22px;
+    font-weight: 700;
+    color: #111827;
+}
+
+.metric-status {
+    font-size: 16px;
+    font-weight: 600;
+}
+
+.status {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 10px;
+    border-radius: 6px;
+}
+
+    .status.gain {
+        background: #ecfdf5;
+        color: #059669;
+    }
+
+    .status.loss {
+        background: #fef2f2;
+        color: #dc2626;
+    }
+
+    .status.neutral {
+        background: #f3f4f6;
+        color: #6b7280;
+    }

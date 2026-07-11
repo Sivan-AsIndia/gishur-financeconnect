@@ -1,0 +1,194 @@
+@page "/tax-settlements/{Id:guid}/view"
+@namespace FinanceConnect.Client.Pages.Tax___Statutory.TaxSettlement
+@using FinanceConnect.Client.ViewModels
+
+@if (!isInitialized)
+{ <div class="page-loading-overlay"><div class="whirly-loader"></div></div> }
+else if (S == null)
+{ <div class="vb-root"><div class="content"><div class="alert alert-danger"><i class="ti ti-alert-circle me-2"></i>Settlement not found. <a href="/tax-settlements" class="alert-link ms-2">Return to list</a></div></div></div> }
+else
+{
+<div class="vb-root"><div class="content"><div>
+    <!-- PROFILE HEADER -->
+    <div class="vb-header-card">
+        <div class="vb-cover"><div class="vb-cover-orb vb-orb-1"></div><div class="vb-cover-orb vb-orb-2"></div><div class="vb-cover-orb vb-orb-3"></div></div>
+        <div class="vb-header-body">
+            <div class="vb-avatar">TS</div>
+            <div class="vb-header-meta">
+                <div>
+                    <p class="vb-bill-number">@S.SettlementNumber</p>
+                    <p class="vb-bill-sub">@S.CompanyName &nbsp;·&nbsp; @S.BranchName &nbsp;·&nbsp; @FormatType(S.SettlementType)</p>
+                    <div class="vb-badges">
+                        <span class="badge @GetStatusBadge(S.SettlementStatus)">@S.SettlementStatus</span>
+                        <span class="badge @GetScopeBadge(S.TaxTypeScope)">@S.TaxTypeScope</span>
+                        <span class="badge @GetReconBadge(S.ReconciliationStatus)">@S.ReconciliationStatus</span>
+                        @if(S.IsRemittanceProofAttached){<span class="badge badge-green">📎 Proof Attached</span>}
+                        @if(S.IsFullyAllocated){<span class="badge badge-green">✓ Fully Allocated</span>}
+                        @if(S.IsFullyReconciled){<span class="badge badge-green">✓ Fully Reconciled</span>}
+                    </div>
+                </div>
+                <div class="vb-header-actions">
+                                <a @onclick="PrintPage" class="btn btn-primary"><i class="bi bi-printer"></i> Print</a>
+                    <a href="/tax-settlements" class="btn btn-outline-secondary"><i class="ti ti-arrow-left me-1"></i> Back</a>
+                
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Summary Tiles -->
+    <div class="vb-card" style="background:transparent;border:none;box-shadow:none;">
+        <div class="vb-summary-grid mb-4 mt-2">
+            <div class="vb-tile"><div class="vb-tile-label">Outstanding</div><div class="vb-tile-value">@S.TotalOutstandingAmount.ToString("N2")</div></div>
+            <div class="vb-tile"><div class="vb-tile-label">Cash/Bank Paid</div><div class="vb-tile-value">@S.TotalCashOrBankPaidAmount.ToString("N2")</div></div>
+            <div class="vb-tile"><div class="vb-tile-label">Credit Offset</div><div class="vb-tile-value">@S.TotalCreditOffsetAmount.ToString("N2")</div></div>
+            <div class="vb-tile-wide"><div class="vb-tile-label">Remaining Unsettled</div><div class="vb-tile-value @(S.RemainingUnsettledAmount>0?"danger":"success")" style="font-size:26px;">@S.RemainingUnsettledAmount.ToString("N2")</div></div>
+            <div class="vb-tile"><div class="vb-tile-label">Total Settlement</div><div class="vb-tile-value primary">@S.TotalSettlementAmount.ToString("N2")</div></div>
+            <div class="vb-tile"><div class="vb-tile-label">Allocations</div><div class="vb-tile-value">@S.AllocationCount</div></div>
+            <div class="vb-tile"><div class="vb-tile-label">Attachments</div><div class="vb-tile-value">@S.AttachmentCount</div></div>
+        </div>
+    </div>
+
+    <div class="vb-two-col mb-4">
+        <!-- SIDEBAR -->
+        <aside class="vb-sidebar">
+            <div class="vb-card"><div class="vb-card-header"><h6><i class="ti ti-file-invoice"></i> Settlement Identity</h6></div><div class="vb-card-body">
+                <div class="vb-row"><span class="vb-label">Settlement No</span><span class="vb-val">@S.SettlementNumber</span></div>
+                <div class="vb-row"><span class="vb-label">Type</span><span class="vb-val">@FormatType(S.SettlementType)</span></div>
+                <div class="vb-row"><span class="vb-label">Settlement Date</span><span class="vb-val">@S.SettlementDate.ToString("dd MMM yyyy")</span></div>
+                @if(S.PostingDate.HasValue){<div class="vb-row"><span class="vb-label">Posting Date</span><span class="vb-val">@S.PostingDate.Value.ToString("dd MMM yyyy")</span></div>}
+                <div class="vb-row"><span class="vb-label">Tax Period</span><span class="vb-val">@S.TaxPeriodKey</span></div>
+                <div class="vb-row"><span class="vb-label">Tax Scope</span><span class="vb-val">@S.TaxTypeScope</span></div>
+                <div class="vb-row"><span class="vb-label">Authority</span><span class="vb-val">@S.GovernmentAuthorityType</span></div>
+                <div class="vb-row"><span class="vb-label">Payment Mode</span><span class="vb-val">@S.PaymentMode</span></div>
+                @if(!string.IsNullOrWhiteSpace(S.JurisdictionCode)){<div class="vb-row"><span class="vb-label">Jurisdiction</span><span class="vb-val">@S.JurisdictionCode</span></div>}
+                <div class="vb-row"><span class="vb-label">Accounting Period</span><span class="vb-val">@(S.AccountingPeriodName ?? "N/A")</span></div>
+                @if(!string.IsNullOrWhiteSpace(S.ReturnRunNumber)){<div class="vb-row"><span class="vb-label">Return Run</span><span class="vb-val">@S.ReturnRunNumber</span></div>}
+            </div></div>
+
+            <div class="vb-card"><div class="vb-card-header"><h6><i class="ti ti-credit-card"></i> Challan / Remittance</h6></div><div class="vb-card-body">
+                <div class="vb-row"><span class="vb-label">Challan No</span><span class="vb-val">@(S.ChallanNumber ?? "N/A")</span></div>
+                <div class="vb-row"><span class="vb-label">Challan Date</span><span class="vb-val">@(S.ChallanDate?.ToString("dd MMM yyyy") ?? "N/A")</span></div>
+                <div class="vb-row"><span class="vb-label">Govt Ref</span><span class="vb-val">@(S.GovernmentReferenceNumber ?? "N/A")</span></div>
+                <div class="vb-row"><span class="vb-label">Payment Ref</span><span class="vb-val">@(S.PaymentReferenceNumber ?? "N/A")</span></div>
+                <div class="vb-row"><span class="vb-label">Remitted On</span><span class="vb-val">@(S.RemittedOn?.ToString("dd MMM yyyy") ?? "N/A")</span></div>
+                <div class="vb-row"><span class="vb-label">Bank Account</span><span class="vb-val">@(S.BankAccountName ?? "N/A")</span></div>
+                <div class="vb-row"><span class="vb-label">Cash Account</span><span class="vb-val">@(S.CashAccountName ?? "N/A")</span></div>
+                <div class="vb-row"><span class="vb-label">Proof Attached</span><span class="vb-val">@(S.IsRemittanceProofAttached ? "Yes" : "No")</span></div>
+            </div></div>
+
+            <div class="vb-card"><div class="vb-card-header"><h6><i class="ti ti-checkbox"></i> Reconciliation &amp; Closure</h6></div><div class="vb-card-body">
+                <div class="vb-row"><span class="vb-label">Reconciliation</span><span class="vb-val"><span class="badge @GetReconBadge(S.ReconciliationStatus)">@S.ReconciliationStatus</span></span></div>
+                <div class="vb-row"><span class="vb-label">Fully Allocated</span><span class="vb-val">@(S.IsFullyAllocated ? "Yes" : "No")</span></div>
+                <div class="vb-row"><span class="vb-label">Fully Reconciled</span><span class="vb-val">@(S.IsFullyReconciled ? "Yes" : "No")</span></div>
+                @if(S.ClosedOn.HasValue){<div class="vb-row"><span class="vb-label">Closed On</span><span class="vb-val">@S.ClosedOn.Value.ToString("dd MMM yyyy")</span></div>}
+                @if(!string.IsNullOrWhiteSpace(S.ClosedBy)){<div class="vb-row"><span class="vb-label">Closed By</span><span class="vb-val">@S.ClosedBy</span></div>}
+            </div></div>
+
+            <div class="vb-card"><div class="vb-card-header"><h6><i class="ti ti-history"></i> History</h6></div><div class="vb-card-body">
+                <div class="vb-row"><span class="vb-label">Created</span><span class="vb-val">@S.CreatedAt.ToString("dd MMM yyyy HH:mm")</span></div>
+                @if(!string.IsNullOrWhiteSpace(S.CreatedBy)){<div class="vb-row"><span class="vb-label">Created By</span><span class="vb-val">@S.CreatedBy</span></div>}
+                @if(S.UpdatedAt.HasValue){<div class="vb-row"><span class="vb-label">Updated</span><span class="vb-val">@S.UpdatedAt.Value.ToString("dd MMM yyyy HH:mm")</span></div>}
+                @if(!string.IsNullOrWhiteSpace(S.UpdatedBy)){<div class="vb-row"><span class="vb-label">Updated By</span><span class="vb-val">@S.UpdatedBy</span></div>}
+                @if(S.PostedOn.HasValue){<div class="vb-row"><span class="vb-label">Posted</span><span class="vb-val">@S.PostedOn.Value.ToString("dd MMM yyyy HH:mm")</span></div>}
+                @if(!string.IsNullOrWhiteSpace(S.PostedBy)){<div class="vb-row"><span class="vb-label">Posted By</span><span class="vb-val">@S.PostedBy</span></div>}
+            </div></div>
+        </aside>
+
+        <!-- MAIN CONTENT -->
+        <div class="vb-main">
+            <div class="vb-card"><div class="vb-card-header"><h6><i class="ti ti-building"></i> Company &amp; Period</h6></div><div class="vb-card-body">
+                                <div style="display:grid;grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));gap:0 32px;">
+                    <div class="vb-row"><span class="vb-label">Company</span><span class="vb-val">@S.CompanyName</span></div>
+                    <div class="vb-row"><span class="vb-label">Branch</span><span class="vb-val">@S.BranchName</span></div>
+                    <div class="vb-row"><span class="vb-label">Accounting Period</span><span class="vb-val">@(S.AccountingPeriodName ?? "N/A")</span></div>
+                    <div class="vb-row"><span class="vb-label">Tax Period</span><span class="vb-val">@S.TaxPeriodKey</span></div>
+                </div>
+            </div></div>
+
+            <!-- Posting & GL Evidence -->
+            <div class="vb-card"><div class="vb-card-header"><h6><i class="ti ti-file-text"></i> Posting &amp; GL Evidence</h6></div><div class="vb-card-body">
+                                <div style="display:grid;grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));gap:0 32px;">
+                    <div class="vb-row"><span class="vb-label">Journal Entry</span><span class="vb-val">@(S.JournalEntryId?.ToString("N").Substring(0,8) ?? "N/A")...</span></div>
+                    <div class="vb-row"><span class="vb-label">Posting Date</span><span class="vb-val">@(S.PostingDate?.ToString("dd MMM yyyy") ?? "N/A")</span></div>
+                    <div class="vb-row"><span class="vb-label">Posted On</span><span class="vb-val">@(S.PostedOn?.ToString("dd MMM yyyy HH:mm") ?? "N/A")</span></div>
+                    <div class="vb-row"><span class="vb-label">Posted By</span><span class="vb-val">@(S.PostedBy ?? "N/A")</span></div>
+                </div>
+            </div></div>
+
+            @if(S.SettlementType.Contains("GST") && (S.InputCreditOffsetCGSTAmount>0 || S.InputCreditOffsetSGSTAmount>0 || S.InputCreditOffsetIGSTAmount>0 || S.InputCreditOffsetCESSAmount>0))
+            {
+                <div class="vb-card"><div class="vb-card-header"><h6><i class="ti ti-arrows-exchange"></i> GST Credit Offset</h6></div><div class="vb-card-body">
+                    <div style="display:grid;grid-template-columns:1fr 1fr;gap:0 32px;">
+                        <div class="vb-row"><span class="vb-label">CGST Offset</span><span class="vb-val">@S.InputCreditOffsetCGSTAmount.ToString("N2")</span></div>
+                        <div class="vb-row"><span class="vb-label">SGST Offset</span><span class="vb-val">@S.InputCreditOffsetSGSTAmount.ToString("N2")</span></div>
+                        <div class="vb-row"><span class="vb-label">IGST Offset</span><span class="vb-val">@S.InputCreditOffsetIGSTAmount.ToString("N2")</span></div>
+                        <div class="vb-row"><span class="vb-label">CESS Offset</span><span class="vb-val">@S.InputCreditOffsetCESSAmount.ToString("N2")</span></div>
+                    </div>
+                </div></div>
+            }
+
+            @if(!string.IsNullOrWhiteSpace(S.Narration))
+            {
+                <div class="vb-card"><div class="vb-card-header"><h6><i class="ti ti-notes"></i> Narration</h6></div><div class="vb-card-body">
+                    <p style="margin:0;font-size:13.5px;color:var(--gray-600);line-height:1.7;font-style:italic;border-left:3px solid color-mix(in srgb,var(--primary) 70%,white);padding-left:14px;">@S.Narration</p>
+                </div></div>
+            }
+
+            @if(!string.IsNullOrWhiteSpace(S.SettlementNotes))
+            {
+                <div class="vb-card"><div class="vb-card-header"><h6><i class="ti ti-note"></i> Settlement Notes</h6></div><div class="vb-card-body">
+                    <p style="margin:0;font-size:13.5px;color:var(--gray-600);line-height:1.7;">@S.SettlementNotes</p>
+                </div></div>
+            }
+
+            <!-- Allocation Lines -->
+            <div class="vb-card"><div class="vb-card-header"><h6><i class="ti ti-list-details"></i> Allocation Lines &nbsp;<span class="badge badge-blue">@S.Allocations.Count items</span></h6></div>
+                <div style="overflow-x:auto;">
+                    <table class="vb-table"><thead class="bg-light"><tr>
+                        <th style="width:40px">#</th><th>Target Type</th><th>Reference</th><th>Tax Code</th><th>Component</th><th class="text-end">Outstanding</th><th class="text-end">Allocated</th><th>Mode</th><th class="text-end">After</th><th>Status</th><th>Notes</th>
+                    </tr></thead><tbody>
+                    @foreach(var a in S.Allocations.OrderBy(x=>x.LineNumber))
+                    {
+                        <tr>
+                            <td>@a.LineNumber</td>
+                            <td><span class="badge bg-light text-dark">@a.AllocationTargetType</span></td>
+                            <td>@a.ReferenceNumberSnapshot</td>
+                            <td>@(a.TaxCodeSnapshot ?? "—")</td>
+                            <td><span class="badge bg-secondary-transparent">@a.LiabilityComponentType</span></td>
+                            <td class="text-end">@a.OutstandingBeforeAllocation.ToString("N2")</td>
+                            <td class="text-end fw-bold text-orange">@a.AllocatedAmount.ToString("N2")</td>
+                            <td><span class="badge bg-info-transparent text-dark">@a.SettlementMode</span></td>
+                            <td class="text-end">@a.OutstandingAfterAllocation.ToString("N2")</td>
+                            <td><span class="badge @(a.AllocationStatus=="Applied"?"bg-success-transparent":a.AllocationStatus=="Reversed"?"bg-danger-transparent":"bg-warning-transparent text-dark")">@a.AllocationStatus</span></td>
+                            <td>@(a.AllocationNotes ?? "—")</td>
+                        </tr>
+                    }
+                    @if(!S.Allocations.Any()){<tr><td colspan="11" class="text-center text-muted py-3">No allocation lines</td></tr>}
+                    </tbody></table>
+                </div>
+            </div>
+
+            @if(!string.IsNullOrWhiteSpace(S.ReversalReason))
+            {
+                <div class="vb-card"><div class="vb-card-header"><h6><i class="ti ti-alert-triangle"></i> Reversal</h6></div><div class="vb-card-body">
+                    <div class="vb-row"><span class="vb-label">Reason</span><span class="vb-val text-danger">@S.ReversalReason</span></div>
+                    @if(S.ReversalJournalEntryId.HasValue){<div class="vb-row"><span class="vb-label">Reversal JE</span><span class="vb-val">@S.ReversalJournalEntryId.Value.ToString("N").Substring(0,8)...</span></div>}
+                </div></div>
+            }
+
+            <!-- Workflow -->
+            @if(S.SettlementStatus!="Draft")
+            {
+                <div class="vb-card"><div class="vb-card-header"><h6><i class="ti ti-git-branch"></i> Workflow History</h6></div><div class="vb-card-body"><div class="vb-timeline">
+                    <div class="vb-tl-item"><div class="vb-tl-dot"><i class="ti ti-file-text"></i></div><div class="vb-tl-content"><div class="vb-tl-title">Created</div><div class="vb-tl-meta">@S.CreatedAt.ToString("dd MMM yyyy HH:mm") by @(S.CreatedBy ?? "system")</div></div></div>
+                    @if(S.SettlementStatus!="Draft"){<div class="vb-tl-item"><div class="vb-tl-dot" style="background:color-mix(in srgb,var(--primary) 12%,white);border-color:#3b82f6;color:#3b82f6;"><i class="ti ti-send"></i></div><div class="vb-tl-content"><div class="vb-tl-title">Submitted</div></div></div>}
+                    @if(S.PostedOn.HasValue){<div class="vb-tl-item"><div class="vb-tl-dot" style="background:color-mix(in srgb,var(--primary) 12%,white);border-color:var(--orange);color:var(--orange-d);"><i class="ti ti-book"></i></div><div class="vb-tl-content"><div class="vb-tl-title">Posted</div><div class="vb-tl-meta">@S.PostedOn.Value.ToString("dd MMM yyyy HH:mm") @(!string.IsNullOrWhiteSpace(S.PostedBy)?$"by {S.PostedBy}":"")</div></div></div>}
+                    @if(S.ClosedOn.HasValue){<div class="vb-tl-item"><div class="vb-tl-dot" style="background:color-mix(in srgb,var(--primary) 12%,white);border-color:#16a34a;color:#16a34a;"><i class="ti ti-lock"></i></div><div class="vb-tl-content"><div class="vb-tl-title">Closed</div><div class="vb-tl-meta">@S.ClosedOn.Value.ToString("dd MMM yyyy") @(!string.IsNullOrWhiteSpace(S.ClosedBy)?$"by {S.ClosedBy}":"")</div></div></div>}
+                    @if(!string.IsNullOrWhiteSpace(S.ReversalReason)){<div class="vb-tl-item"><div class="vb-tl-dot" style="background:#fee2e2;border-color:#dc2626;color:#dc2626;"><i class="ti ti-rotate"></i></div><div class="vb-tl-content"><div class="vb-tl-title">Reversed</div><div class="text-danger" style="font-size:12px;">@S.ReversalReason</div></div></div>}
+                </div></div></div>
+            }
+        </div>
+    </div>
+</div></div></div>
+}

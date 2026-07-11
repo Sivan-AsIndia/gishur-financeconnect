@@ -1,0 +1,318 @@
+@page "/cash-accounts/create"
+@page "/cash-accounts/edit/{Code}"
+
+@inject ToastService ToastService
+
+
+<style>
+    .form-select option:checked {
+        color: #fff;
+        background: var(--primary);
+    }
+
+    .form-select:focus {
+        border-color: var(--primary);
+        box-shadow: none;
+    }
+
+    .validation-message {
+        color: #dc3545;
+        font-size: 12px;
+    }
+</style>
+
+
+
+<div class="content flat-form">
+
+    <!-- Page Header -->
+    <div class="page-header">
+        <div class="page-title">
+            <h4 class="fw-bold">
+                @(IsEditMode ? "Edit Cash Account" : "Create Cash Account")
+            </h4>
+            <h6>
+                @(IsEditMode
+                                ? "Update existing cash account details"
+                                : "Define a new cash holding point")
+            </h6>
+        </div>
+
+        <div class="page-btn">
+            <a href="/cash-accounts" class="btn btn-outline-secondary">
+                <i class="ti ti-arrow-left me-1"></i>
+                Back
+            </a>
+        </div>
+    </div>
+
+    <EditForm EditContext="_editContext" OnSubmit="Save">
+        <DataAnnotationsValidator />
+
+        <div class="card">
+            <div class="card-header text-white mb-4" style="border-bottom: 1px solid #80808036;">
+                <h5>
+                    <i class="ti ti-plus me-2"></i><!--!-->
+                    Add Cash
+                </h5>
+            </div>
+            <div class="card-body">
+
+                <!-- General -->
+                <h5 class="mb-3 text-primary">
+                    <i class="ti ti-id me-2"></i>
+                    General</h5>
+                <div class="row g-3 mb-4">
+
+                    <div class="col-md-4">
+                        <label class="form-label">Company <span class="text-danger">*</span></label>
+                        <select class="form-select @(CompanyValidationError != null ? "is-invalid" : "")"
+                                @bind="SelectedCompanyId"
+                                @bind:after="OnCompanyChanged"
+                            >
+                            <option value="@Guid.Empty">-- Select Company --</option>
+                            @foreach (var company in Companies)
+                            {
+                                <option value="@company.Id">@company.CompanyCode - @company.LegalName</option>
+                            }
+                        </select>
+                        @if (CompanyValidationError != null)
+                        {
+                            <span class="text-danger" style="font-size:12px;">@CompanyValidationError</span>
+                        }
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">Branch <span class="text-danger">*</span></label>
+                        <select class="form-select @(BranchValidationError != null ? "is-invalid" : "")"
+                                @bind="Model.BranchId" @bind:after="OnBranchChanged" disabled="@(IsBranchDisabled)">
+                            <option value="@Guid.Empty">--Select Branch--</option>
+                            @foreach (var b in FilteredBranches)
+                            {
+                                <option value="@b.Id">@b.BranchCode - @b.BranchName</option>
+                            }
+                        </select>
+                        @if (BranchValidationError != null)
+                        {
+                            <span class="text-danger" style="font-size:12px;">@BranchValidationError</span>
+                        }
+                    </div>
+
+                    <div class="col-md-4">
+                        <label class="form-label">Cash Account Code <span class="text-danger">*</span></label>
+                        <InputText class="@($"form-control text-uppercase {(CodeValidationError != null ? "is-invalid" : GetValidationClass(() => Model.Code))}")"
+                                   @bind-Value="Model.Code"
+                                   @bind-Value:after="OnCashAccountCodeChanged"
+                                   placeholder="PC-CHN" disabled="@IsEditMode" />
+                        @if (CodeValidationError != null)
+                        {
+                            <span class="text-danger" style="font-size:12px;">@CodeValidationError</span>
+                        }
+                        else
+                        {
+                            <ValidationMessage For="@(() => Model.Code)" />
+                        }
+                    </div>
+
+                    <div class="col-md-4">
+                        <label class="form-label">Cash Account Name <span class="text-danger">*</span></label>
+                        <InputText class="@($"form-control {(NameValidationError != null ? "is-invalid" : GetValidationClass(() => Model.Name))}")"
+                                   @bind-Value="Model.Name"
+                                   @bind-Value:after="OnCashAccountNameChanged"
+                                   placeholder="Petty Cash Chennai" />
+                        @if (NameValidationError != null)
+                        {
+                            <span class="text-danger" style="font-size:12px;">@NameValidationError</span>
+                        }
+                        else
+                        {
+                            <ValidationMessage For="@(() => Model.Name)"/>
+                        }
+                    </div>
+
+                    <div class="col-md-12">
+                        <label class="form-label">Description</label>
+                        @* <InputTextArea class="form-control" maxlength="500"
+                                       @bind-Value="Model.Description"
+                                       rows="2" /> *@
+                        <RichTextEditor @ref="descriptionEditor"
+                                        Value="@Model.Description"
+                                        Placeholder="Enter line Description..."
+                                        MinHeight="60"
+                                        MaxHeight="150" />
+                    </div>
+                </div>
+
+                <!-- Ownership & Custody -->
+                <h5 class="mb-3 text-primary">
+                    <i class="ti ti-user-shield me-2"></i>Ownership & Custody
+                </h5>
+                <div class="row g-3 mb-4">
+
+                    <div class="col-md-4">
+                        <label class="form-label">Custodian (Cash Holder)</label>
+                        <InputText class="form-control"
+                                   @bind-Value="Model.CustodianName"
+                                   placeholder="Cashier A" />
+                    </div>
+
+                    <div class="col-md-4">
+                        <label class="form-label">Custody Start Date</label>
+                        <InputDate class="form-control"
+                                   @bind-Value="Model.CustodyStartDate" />
+                    </div>
+
+                    <div class="col-md-4">
+                        <label class="form-label">Custody Notes</label>
+                        <InputTextArea class="form-control"
+                                       @bind-Value="Model.CustodyNotes"
+                                       rows="1" maxlength="500"
+                                       placeholder="Handover notes..." />
+                    </div>
+                </div>
+
+                <!-- Currency & Accounting Mapping -->
+                <h5 class="mb-3 text-primary">
+                    <i class="ti ti-book me-2"></i>Currency & Accounting Mapping
+                </h5>
+                <div class="row g-3 mb-4">
+
+                    <div class="col-md-4">
+                        <label class="form-label">Currency <span class="text-danger">*</span></label>
+                        <select class="form-select @(CurrencyValidationError != null ? "is-invalid" : "")"
+                                @bind="Model.CurrencyId">
+                            <option value="@Guid.Empty">--Select Currency--</option>
+                            @foreach (var c in Currencies)
+                            {
+                                <option value="@c.Id">@c.CurrencyCode - @c.CurrencyName</option>
+                            }
+                        </select>
+                        @if (CurrencyValidationError != null)
+                        {
+                            <span class="text-danger" style="font-size:12px;">@CurrencyValidationError</span>
+                        }
+                        else
+                        {
+                            <ValidationMessage For="@(() => Model.CurrencyCode)" />
+                        }
+                    </div>
+
+                    <div class="col-md-4">
+                        <label class="form-label">Cash GL Account (Cash-in-Hand) <span class="text-danger">*</span></label>
+                        <InputText class="@($"form-control {(GlAccountValidationError != null ? "is-invalid" : GetValidationClass(() => Model.CashGlAccount))}")"
+                                   @bind-Value="Model.CashGlAccount"
+                                   placeholder="1010-CASH" />
+                        @if (GlAccountValidationError != null)
+                        {
+                            <span class="text-danger" style="font-size:12px;">@GlAccountValidationError</span>
+                        }
+                        else
+                        {
+                            <ValidationMessage For="@(() => Model.CashGlAccount)" />
+                        }
+                    </div>
+                </div>
+
+                <!-- Controls & Limits -->
+                <h5 class="mb-3 text-primary">
+                    <i class="ti ti-shield-check me-2"></i>Controls & Limits
+                </h5>
+                <div class="row g-3 mb-4">
+
+                    <div class="col-md-4">
+                        <label class="form-label">Max Cash Holding Limit</label>
+                        <InputNumber class="form-control" min="0"
+                                     @bind-Value="Model.MaxCashLimit"
+                                     placeholder="0.00" />
+                    </div>
+
+                    <div class="col-md-4">
+                        <label class="form-label">Require Attachment Above Amount</label>
+                        <InputNumber class="form-control" min="0"
+                                     @bind-Value="Model.RequireAttachmentAboveAmount"
+                                     placeholder="0.00" />
+                    </div>
+
+                    <div class="col-md-4 d-flex align-items-end gap-4">
+                        <div class="form-check form-switch">
+                            <InputCheckbox class="form-check-input" id="NegativeCash"
+                                           @bind-Value="Model.IsNegativeBalanceAllowed" />
+                            <label class="form-check-label" for="NegativeCash" style="cursor:pointer">Allow Negative Cash</label>
+                        </div>
+                    </div>
+
+                    <div class="col-md-4 d-flex align-items-end">
+                        <div class="form-check form-switch">
+                            <InputCheckbox class="form-check-input" id="RequireReason"
+                                           @bind-Value="Model.RequireReasonWhenExceedingLimit" />
+                            <label class="form-check-label" for="RequireReason" style="cursor:pointer">Require Reason if Limit Exceeded</label>
+                        </div>
+                    </div>
+
+                    <div class="col-md-4 d-flex align-items-end">
+                        <div class="form-check form-switch">
+                            <InputCheckbox class="form-check-input" id="LockTxn"
+                                           @bind-Value="Model.IsLockedForTransactions" />
+                            <label class="form-check-label" for="LockTxn" style="cursor:pointer">Lock Cash Account</label>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Status & Lifecycle -->
+                <h5 class="mb-3 text-primary">
+                    <i class="ti ti-activity me-2"></i>Status & Lifecycle
+                </h5>
+                <div class="row g-3 mb-4">
+
+                    <div class="col-md-4">
+                        <label class="form-label">Status <span class="text-danger">*</span></label>
+                        <select class="form-select @(StatusValidationError != null ? "is-invalid" : "")" @bind="Model.Status">
+                            <option value="">--Select Status--</option>
+                            <option value="Active">Active</option>
+                            <option value="Inactive">Inactive</option>
+                            <option value="Closed">Closed</option>
+                        </select>
+                        @if (StatusValidationError != null)
+                        {
+                            <span class="text-danger" style="font-size:12px;">@StatusValidationError</span>
+                        }
+                    </div>
+
+                    @if (Model.Status == "Closed")
+                    {
+                        <div class="col-md-8">
+                            <label class="form-label">Close Reason <span class="text-danger">*</span></label>
+                            <InputTextArea class="form-control"
+                                           @bind-Value="Model.CloseReason"
+                                           rows="1"
+                                           placeholder="Reason for closing this cash account..." />
+                            @if (CloseReasonValidationError != null)
+                            {
+                                <span class="text-danger" style="font-size:12px;">@CloseReasonValidationError</span>
+                            }
+                        </div>
+                    }
+                </div>
+
+            </div>
+
+
+        </div>
+
+        <!-- Footer -->
+        <div class="text-end p-3 mb-4 me-3">
+          <button type="button"
+        class="btn btn-outline-secondary"
+        @onclick='() => NavigationManager.NavigateTo("/cash-accounts")'>
+                <i class="ti ti-x"></i> Cancel
+</button>
+
+            <button type="submit" class="btn btn-primary">
+                <i class="ti ti-device-floppy me-1"></i>
+                Save
+            </button>
+        </div>
+    </EditForm>
+</div>
+
+
+

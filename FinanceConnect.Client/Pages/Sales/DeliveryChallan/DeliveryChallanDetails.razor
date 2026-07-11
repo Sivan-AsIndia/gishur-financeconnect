@@ -1,0 +1,399 @@
+﻿@page "/deliverychallans/{Id:guid}/view"
+
+@using FinanceConnect.Client.ViewModels
+@using FinanceConnect.Client.Services
+@inject IJSRuntime JS
+
+<PageTitle>Delivery Challan Details - FinanceConnect</PageTitle>
+
+@if (!isInitialized)
+{
+    <div class="content">
+        <div class="dn-loading">
+            <div class="dn-spinner"></div>
+            <span>Loading delivery challan…</span>
+        </div>
+    </div>
+}
+else if (Challan == null)
+{
+    <div class="content">
+        <div class="dn-empty">
+            <i class="ti ti-file-off"></i>
+            Delivery Challan not found.
+
+            <div style="margin-top:16px;">
+                <a href="/deliverychallans" class="btn btn-outline-secondary">
+                    <i class="ti ti-arrow-left"></i> Back
+                </a>
+            </div>
+        </div>
+    </div>
+}
+else
+{
+
+    <div class="dn-wrapper">
+
+        <div class="content">
+
+            <!-- HEADER -->
+
+            <div class="pageHeader d-flex justify-content-between align-items-center mb-3">
+
+                <div>
+
+                    <h3>Delivery Challan Details</h3>
+
+                    <p style="color:gray;">
+                        Delivery challan overview and shipment details.
+                    </p>
+
+                </div>
+
+                <div>
+
+
+                    <button class="btn btn-primary"
+                            @onclick="PrintDocument"
+                            style="color:var(--primary);border:1px solid var(--primary);">
+
+                        <i class="ti ti-printer"></i> Print
+
+                    </button>
+                    <a href="/deliverychallans" class="btn btn-outline-secondary">
+                        <i class="ti ti-arrow-left"></i> Back
+                    </a>
+                </div>
+
+            </div>
+
+
+            <!-- HERO -->
+
+            <div class="dn-hero">
+
+                <div class="dn-hero-inner">
+
+                    <div class="dn-icon-wrap">
+                        <i class="ti ti-truck-delivery"></i>
+                    </div>
+
+                    <div class="dn-hero-content">
+
+                        <h1 class="dn-number">@Challan.ChallanNumber</h1>
+
+                        <div class="dn-meta-row">
+
+                            <span class="dn-meta-item">
+                                <i class="ti ti-building"></i>
+                                @Challan.CustomerName
+                            </span>
+
+                            <span class="dn-meta-item">
+                                <i class="ti ti-calendar"></i>
+                                @Challan.ChallanDate?.ToString("dd MMM yyyy")
+                            </span>
+
+                            @if (!string.IsNullOrEmpty(Challan.PONumber))
+                            {
+                                <span class="dn-meta-item">
+                                    <i class="ti ti-link"></i>
+                                    @Challan.PONumber
+                                </span>
+                            }
+
+                        </div>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+
+            <div class="dn-grid">
+
+                <!-- LEFT PANEL -->
+
+                <div class="dn-left">
+
+                    <!-- CORE INFO -->
+
+                    <div class="dn-card">
+
+                        <div class="dn-card-header">
+                            <span class="dn-card-title">
+                                <i class="ti ti-id"></i> Challan Information
+                            </span>
+                        </div>
+
+                        <div class="card-body">
+
+                            <div class="row g-0">
+
+                                <div class="col-md-3 field-item">
+                                    <div class="field-label">Challan No</div>
+                                    <div class="field-value mono">@Challan.ChallanNumber</div>
+                                </div>
+
+                                <div class="col-md-3 field-item">
+                                    <div class="field-label">Challan Date</div>
+                                    <div class="field-value">@Challan.ChallanDate?.ToString("dd MMM yyyy")</div>
+                                </div>
+
+                                <div class="col-md-3 field-item">
+                                    <div class="field-label">Shipping Date</div>
+                                    <div class="field-value">@Challan.ShippingDate?.ToString("dd MMM yyyy")</div>
+                                </div>
+
+                                <div class="col-md-3 field-item">
+                                    <div class="field-label">PO Number</div>
+                                    <div class="field-value mono">@Challan.PONumber</div>
+                                </div>
+
+                                <div class="col-md-6 field-item">
+                                    <div class="field-label">Company</div>
+                                    <div class="field-value">@Challan.CompanyName</div>
+                                </div>
+
+                                <div class="col-md-6 field-item">
+                                    <div class="field-label">Customer</div>
+                                    <div class="field-value">@Challan.CustomerName</div>
+                                </div>
+
+                            </div>
+
+                        </div>
+
+                    </div>
+
+
+                    <!-- LINE ITEMS -->
+
+                    <div class="dn-card">
+
+                        <div class="dn-card-header">
+
+                            <span class="dn-card-title">
+                                <i class="ti ti-list-details"></i> Items
+                            </span>
+
+                            <span class="count-pill">@Challan.Items.Count items</span>
+
+                        </div>
+
+                        <div style="overflow-x:auto">
+
+                            <table class="dn-table">
+
+                                <thead>
+
+                                    <tr>
+
+                                        <th>#</th>
+                                        <th>Item</th>
+                                        <th>Unit</th>
+                                        <th style="text-align:right;">Qty</th>
+                                        <th style="text-align:right;">Price</th>
+                                        <th style="text-align:right;">Tax%</th>
+                                        <th style="text-align:right;">Total</th>
+
+                                    </tr>
+
+                                </thead>
+
+                                <tbody>
+
+                                    @foreach (var line in Challan.Items)
+                                    {
+
+                                        <tr>
+
+                                            <td style="text-align:center;">
+                                                @(Challan.Items.IndexOf(line) + 1)
+                                            </td>
+
+                                            <td>@getItemName(line.ItemId)</td>
+
+                                            <td>@getUnitName(line.UnitId)</td>
+
+                                            <td style="text-align:right">@line.Quantity</td>
+
+                                            <td style="text-align:right">@line.Rate.ToString("N2")</td>
+
+                                            <td style="text-align:right">@line.TaxPercentage%</td>
+
+                                            <td style="text-align:right">@line.TotalAmount.ToString("N2")</td>
+
+                                        </tr>
+
+                                    }
+
+                                </tbody>
+
+                            </table>
+
+                        </div>
+
+                    </div>
+
+
+                    @if (!string.IsNullOrEmpty(Challan.TermsAndConditions))
+                    {
+
+                        <div class="dn-card">
+
+                            <div class="dn-card-header">
+                                <span class="dn-card-title">
+                                    <i class="ti ti-file-text"></i> Terms & Conditions
+                                </span>
+                            </div>
+
+                            <div class="dn-card-body ql-editor">
+                                @(new MarkupString(Challan.TermsAndConditions ?? ""))
+                            </div>
+
+                        </div>
+
+                    }
+
+                    @if (!string.IsNullOrEmpty(Challan.PrivateNotes))
+                    {
+
+                        <div class="dn-card">
+
+                            <div class="dn-card-header">
+                                <span class="dn-card-title">
+                                    <i class="ti ti-notes"></i> Private Notes
+                                </span>
+                            </div>
+
+                            <div class="dn-card-body ql-editor">
+                                @(new MarkupString(Challan.PrivateNotes ?? ""))
+                            </div>
+
+                        </div>
+
+                    }
+
+                </div>
+
+
+                <!-- RIGHT PANEL -->
+
+                <div class="dn-right">
+
+                    <!-- AMOUNT SUMMARY -->
+
+                    <div class="dn-card">
+
+                        <div class="dn-card-header">
+                            <span class="dn-card-title">
+                                <i class="ti ti-receipt"></i> Amount Summary
+                            </span>
+                        </div>
+
+                        <div class="dn-card-body">
+
+                            <div class="amount-row">
+                                <span class="amount-label">Subtotal</span>
+                                <span class="amount-value">₹ @Challan.SubTotal.ToString("N2")</span>
+                            </div>
+
+                            <div class="amount-row">
+                                <span class="amount-label">Tax</span>
+                                <span class="amount-value">₹ @Challan.TaxAmount.ToString("N2")</span>
+                            </div>
+
+                            <div class="amount-row total">
+                                <span class="amount-label grand">Total</span>
+                                <span class="amount-value grand">₹ @Challan.GrandTotal.ToString("N2")</span>
+                            </div>
+
+                        </div>
+
+                    </div>
+
+
+                    @if (Challan.ShowTransportDetails && Challan.TransportDetails != null)
+                    {
+
+                        <div class="dn-card">
+
+                            <div class="dn-card-header">
+                                <span class="dn-card-title">
+                                    <i class="ti ti-truck"></i> Transport Details
+                                </span>
+                            </div>
+
+                            <div class="dn-card-body">
+
+                                <div class="info-row">
+                                    <span class="info-key">Transporter</span>
+                                    <span class="info-val">@Challan.TransportDetails.TransporterName</span>
+                                </div>
+
+                                <div class="info-row">
+                                    <span class="info-key">Vehicle</span>
+                                    <span class="info-val">@Challan.TransportDetails.VehicleNumber</span>
+                                </div>
+
+                                <div class="info-row">
+                                    <span class="info-key">LR Number</span>
+                                    <span class="info-val">@Challan.TransportDetails.LRNumber</span>
+                                </div>
+
+                                <div class="info-row">
+                                    <span class="info-key">LR Date</span>
+                                    <span class="info-val">@Challan.TransportDetails.LRDate?.ToString("dd MMM yyyy")</span>
+                                </div>
+
+                                <div class="info-row">
+                                    <span class="info-key">E-Way Bill</span>
+                                    <span class="info-val">@Challan.TransportDetails.EWayBillNumber</span>
+                                </div>
+
+                            </div>
+
+                        </div>
+
+                    }
+
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>
+
+
+    <div id="printSection" class="d-none">
+
+        <DocumentPrintTemplate Title="DELIVERY CHALLAN"
+                               LogoUrl="/assets/images/logo.png"
+                               DocumentNumber="@Challan.ChallanNumber"
+                               CompanyName="@Company.LegalName"
+                               Company=@Company
+                               CustomerName="@Challan.CustomerName"
+                               Customer=@Customer
+                               ShippingAddress="Tuticorin, Tamil Nadu"
+                               Date="@Challan.ChallanDate?.ToString("dd-MMM-yyyy")"
+                               ExtraMeta1Label="Shipping Date"
+                               ExtraMeta1Value="@Challan.ShippingDate?.ToString("dd-MMM-yyyy")"
+                               ExtraMeta2Label="Place of Supply"
+                               ExtraMeta2Value="TN (33)"
+                               Challan=@Challan
+                               Columns="@(new List<string>
+                                    {
+                                        "S.No",
+                                        "Item Name",
+                                        "Unit",
+                                        "Qty",
+                                        "Amount"
+                                    })"
+                               Rows="@GetRows()" />
+
+</div>
+}

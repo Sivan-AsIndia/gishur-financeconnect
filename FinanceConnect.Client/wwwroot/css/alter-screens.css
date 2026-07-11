@@ -1,0 +1,519 @@
+﻿/* add & Edit form Wizard */
+@media (max-width: 1040px) {
+    .wizard-steps {
+        display: flex;
+        overflow-x: auto;
+        overflow-y: hidden;
+        white-space: nowrap;
+        gap: 30px;
+        position: relative; 
+        padding-top: 40px; 
+        padding-left: 18px;
+        scroll-behavior: smooth;
+    }
+        .wizard-steps .timeline-line {
+            position: absolute;
+            top: 50%; 
+            left: 0;
+            width: 100%;
+            height: 2px;
+            background: #e5e7eb;
+            transform: translateY(-50%);
+            z-index: 1;
+        }
+
+        /* Timeline indicator (moving dot/bar) */
+        .wizard-steps .timeline-indicator {
+            position: absolute;
+            top: 50%;
+            height: 6px;
+            width: 40px; /* length of indicator */
+            border-radius: 4px;
+            transform: translateY(-50%);
+            transition: left 0.3s ease; /* smooth horizontal move */
+            z-index: 2;
+        }
+
+            .wizard-steps .timeline-indicator.success {
+                background: #22c55e;
+            }
+
+            .wizard-steps .timeline-indicator.error {
+                background: #ef4444;
+                display:none
+            }
+
+
+    /* Each step */
+    .wizard-step {
+        position: relative;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        min-width: 120px; 
+        z-index: 3;
+    }
+
+        .wizard-step.completed .dot {
+            background: #22c55e;
+            color: white;
+        }
+
+        .wizard-step.active .dot {
+            background: #2563eb;
+            color: white;
+        }
+
+        /* Label */
+        .wizard-step .label {
+            margin-top: 8px;
+            font-size: 13px;
+            text-align: center;
+            white-space: normal;
+            max-width: 120px;
+        }
+
+    /* Wizard content adjustments */
+    .form-wizard .wizard-modal {
+        flex-direction: column;
+    }
+
+    .form-wizard .wizard-content {
+        padding-top: 0;
+        padding-left: 30px;
+    }
+
+    .form-wizard .wizard-steps {
+        padding-bottom: 0 !important;
+    }
+}
+
+
+
+.form-wizard .wizard-modal {
+    background: white;
+    display: flex;
+    padding-right: 25px;
+}
+
+.form-wizard #gstRegistered {
+    width: auto;
+}
+
+.form-wizard .Back {
+    background: #1a2540;
+    color: white;
+    border-radius: 6px;
+    padding: 3px 20px;
+}
+
+.form-wizard .Next {
+    color: white;
+    border-radius: 6px;
+    padding: 3px 20px;
+}
+
+.form-wizard .wizard-steps {
+    position: relative;
+    max-width: 298px;
+    padding: 40px;
+    overflow-wrap: break-word;
+}
+
+.form-wizard .timeline-line1 {
+    position: relative;
+    top: 12px;
+    height: 369px;
+    bottom: 40px;
+    width: 2px;
+    background: #f4f4f4;
+}
+
+.form-wizard .timeline-indicator1 {
+    width: 14px;
+    height: 14px;
+    border-radius: 50% 50%;
+    transition: .4s;
+    background: #4349fe;
+    position: relative;
+    left: -7px;
+    top: -3px;
+    border: 3px solid white;
+    box-shadow: 0 0 15px #4349fe;
+}
+
+    .form-wizard .timeline-indicator1.success {
+        background: #22c55e;
+        box-shadow: 0 0 15px #22c55e;
+        border: 3px solid white
+    }
+
+    .form-wizard .timeline-indicator1.error {
+        background: #ef4444;
+        box-shadow: 0 0 15px #ef4444;
+        border: 3px solid white;
+    }
+
+.form-wizard .timeline-line {
+    position: absolute;
+    left: 279px;
+    top: 40px;
+    bottom: 40px;
+    width: 2px;
+    background: #f4f4f4;
+}
+
+.form-wizard .timeline-indicator {
+    position: absolute;
+    left: 273px;
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    transform: translateY(-50%);
+    transition: .4s;
+}
+
+    .form-wizard .timeline-indicator.success {
+        background: #22c55e;
+        box-shadow: 0 0 15px #22c55e;
+        border: 3px solid white
+    }
+
+    .form-wizard .timeline-indicator.error {
+        background: #ef4444;
+        box-shadow: 0 0 15px #ef4444;
+        border: 3px solid white;
+    }
+
+.form-wizard .wizard-step {
+    display: flex;
+    gap: 15px;
+    margin-bottom: 30px;
+}
+
+.form-wizard .dot {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    border: 2px solid var(--primary);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.form-wizard .wizard-step.active .dot {
+    background: var(--primary);
+    box-shadow: 0 0 15px var(--primary);
+    color: white;
+}
+
+.form-wizard .label {
+    display: flex;
+    align-items: center;
+}
+
+.form-wizard .wizard-step.done .dot {
+    background: #22c55e;
+    border-color: #22c55e;
+}
+
+.form-wizard .wizard-content {
+    flex: 1;
+    padding-top: 40px;
+    /*    padding-left: 80px;*/
+    padding-left: 15px;
+}
+
+.form-wizard .wizard-input {
+    width: 100%;
+    padding: 10px;
+    border: 1px solid #fe9f43;
+    border-radius: 10px;
+    margin-top: 15px;
+}
+
+.form-wizard .black {
+    background: #1a2540;
+    color: white;
+    padding: 8px 18px;
+    border-radius: 6px;
+}
+
+.form-wizard .next, .form-wizard .complete {
+    background: #fe9f43;
+    color: white;
+    padding: 8px 18px;
+    border-radius: 6px;
+}
+
+.form-wizard .stepsData li {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 10px;
+    border-radius: 12px;
+    margin-bottom: 8px;
+    transition: 0.3s;
+}
+
+    .form-wizard .stepsData li.active {
+        background: linear-gradient(90deg, #ff860e, #ffce9f);
+    }
+
+    .form-wizard .stepsData li.done {
+        background: linear-gradient(90deg, #16a34a, #22c55e);
+        box-shadow: 0 0 15px rgba(34,197,94,.6);
+        color: #022;
+    }
+
+.form-wizard .steps {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: black;
+    border: 2px solid #d0d0d06e;
+}
+
+.form-wizard .stepsData li.done .steps {
+    background: #ffffff;
+    color: #22c55e;
+    border: 2px solid #22c55e;
+}
+
+.form-wizard .stepsData li.done i {
+    font-size: 18px;
+    color: #22c55e;
+}
+
+.form-wizard .summary-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 36px;
+    margin-bottom: 20px;
+}
+
+.form-wizard .stepsData li.active .steps {
+    background: white;
+    color: #fe9f43;
+    font-weight: 800;
+    border: 3px solid #fe9f43;
+}
+
+.form-wizard .setup-container {
+    display: grid;
+    grid-template-columns: 260px 1fr 320px;
+    gap: 20px;
+}
+
+.form-wizard .sidebar1, .form-wizard .form-area, .form-wizard .summary {
+    background: white;
+    border-radius: 16px;
+    overflow-wrap: break-word;
+}
+
+.form-wizard .stepsData li {
+    list-style: none;
+    border-radius: 10px;
+    margin-bottom: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+    gap: 12px;
+}
+
+.form-wizard .steps li.active {
+    background: linear-gradient(90deg, #1b4fd8, #3aa1ff);
+    opacity: 1;
+}
+
+.form-wizard .steps li.done {
+    background: #0d5;
+    color: #022;
+}
+
+.form-wizard input, select {
+    width: 100%;
+    padding: 6px;
+    background: white;
+    border: 1px solid #00000054;
+    border-radius: 7px;
+    color: black;
+}
+
+    .form-wizard input.error, select.error {
+        border: 1px solid #ff5c77;
+        box-shadow: 0 0 10px rgba(255,92,119,.6);
+    }
+
+.form-wizard .form-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.form-wizard .error-text {
+    color: #ff5c77;
+    font-size: 12px;
+}
+
+
+
+.form-wizard .progressBarTop {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+
+/* Add & Edit Accordion  */
+
+.Accordion-form .add-product {
+    background: #f4f7fb;
+}
+
+.Accordion-form .accordions-items-seperate {
+    background: #fff;
+    border-radius: 16px;
+    overflow: hidden;
+    margin-bottom: 15px;
+}
+
+.Accordion-form .accordion-item {
+    border: none !important;
+    border-bottom: 1px solid #e5e9f2 !important;
+    margin: 0 !important;
+}
+
+.Accordion-form .accordion-button {
+    background: #fff !important;
+    box-shadow: none !important;
+    border-radius: 0 !important;
+    padding: 20px 24px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.Accordion-form .acc-left {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+}
+
+.Accordion-form .acc-icon {
+    width: 44px;
+    height: 44px;
+    border-radius: 12px;
+    background: var(--primary);
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.Accordion-form .acc-title {
+    font-weight: 700;
+    font-size: 16px;
+    color: #0f172a;
+}
+
+.acc-sub {
+    font-size: 13px;
+    color: #64748b;
+}
+
+.Accordion-form .acc-arrow {
+    color: #64748b;
+    font-size: 18px;
+    transition: .3s;
+}
+
+.Accordion-form .accordion-body {
+    padding: 24px;
+}
+
+.Accordion-form .accordion-button::after {
+    display: none;
+}
+
+.Accordion-form .acc-arrow {
+    display: inline-flex;
+    transition: transform 0.35s cubic-bezier(.4, 0, .2, 1);
+}
+
+    .Accordion-form .acc-arrow.arrow-open {
+        transform: rotate(180deg);
+    }
+
+.Accordion-form .custom-collapse {
+    max-height: 0;
+    overflow: hidden;
+    opacity: 0;
+    transition: max-height 0.6s cubic-bezier(.4, 0, .2, 1), opacity 0.3s ease;
+}
+
+    .Accordion-form .custom-collapse.show {
+        max-height: 2000px;
+        opacity: 1;
+    }
+
+.bg-fade {
+    background-color: color-mix(in srgb, var(--primary) 5%, transparent);
+}
+
+.Accordion-form .rate-preview {
+    background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+    border-radius: 8px;
+    padding: 1rem;
+}
+
+.Accordion-form .rate-value {
+    font-size: 1.5rem;
+    font-weight: 600;
+    color: #0d6efd;
+}
+
+
+/* Add & Edit Flat Form */
+
+.form-control:focus,
+.form-select:focus,
+input:focus,
+select:focus,
+textarea:focus {
+    border-color: var(--primary) !important;
+    box-shadow: 0 0 0 0.2rem rgba(var(--primary-rgb), 0.15) !important;
+    outline: none !important;
+}
+
+[data-theme="dark"] .accordion-button {
+    background: #060606 !important;
+}
+
+[data-theme="dark"] .Accordion-form .accordions-items-seperate {
+    background: #060606 !important;
+}
+
+[data-theme="dark"] .Accordion-form .add-product {
+    background: #060606 !important;
+}
+
+[data-theme="dark"] .Accordion-form .acc-title {
+    color: white
+}
+
+[data-theme="dark"] .form-wizard .wizard-modal {
+    background: #060606 !important;
+}
+
+[data-theme="dark"] .summary {
+    background: #060606 !important;
+}
+.tl-label:hover .tl-label-title {
+    color: #000 !important;
+}

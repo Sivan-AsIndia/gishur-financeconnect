@@ -1,0 +1,589 @@
+@page "/customer-debit-notes/{Id:guid}/view"
+@using FinanceConnect.Client.ViewModels
+@using FinanceConnect.Client.Services
+
+<PageTitle>Debit Note Details - FinanceConnect</PageTitle>
+
+@if (!isInitialized)
+{
+    <div class="content">
+        <div class="dn-loading">
+            <div class="dn-spinner"></div>
+            <span>Loading debit note…</span>
+        </div>
+    </div>
+}
+else if (DebitNote == null)
+{
+    <div class="content">
+        <div class="">
+            <div class="dn-empty">
+                <i class="ti ti-file-off"></i>
+                Customer Debit Note not found.
+                <div style="margin-top: 16px;">
+                    <a href="/customer-debit-notes" class="btn-dn btn-dn-ghost">
+                        <i class="ti ti-arrow-left"></i> Back to List
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+else
+{
+    <div class="dn-wrapper">
+        <div class="content">
+            <div class="pageHeader" style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 19px;">
+                <div>
+                    <h3>Customer Debit Note Details</h3>
+                    <p style="color: gray;">Customer debit note overview and transaction summary.</p>
+                </div>
+                <div class="dn-hero-actions dn-animate-up dn-delay-1">
+                    <a href="/customer-debit-notes" class="btn btn-outline-secondary">
+                        <i class="ti ti-arrow-left"></i> Back
+                    </a>
+                    <button class="btn btn-primary" onclick="window.print()" title="Print" style="color: var(--primary); border: 1px solid var(--primary);">
+                        <i class="ti ti-printer"></i> Print
+                    </button>
+                </div>
+            </div>
+
+            <!-- HERO HEADER -->
+            <div class="dn-hero">
+                <div class="dn-hero-inner">
+                    <div class="dn-icon-wrap">
+                        <i class="ti ti-file-plus"></i>
+                    </div>
+                    <div class="dn-hero-content">
+                        <h1 class="dn-number">@DebitNote.DebitNoteNumber</h1>
+                        <div class="dn-meta-row">
+                            <span class="dn-meta-item">
+                                <i class="ti ti-user"></i>
+                                @DebitNote.CustomerCode — @DebitNote.CustomerName
+                            </span>
+                            <span class="dn-meta-item">
+                                <i class="ti ti-calendar"></i>
+                                @DebitNote.DebitNoteDate.ToString("dd MMM yyyy")
+                            </span>
+                            @if (DebitNote.IsAgainstInvoice && !string.IsNullOrEmpty(DebitNote.InvoiceNumberSnapshot))
+                            {
+                                <span class="ref-link">
+                                    <i class="ti ti-link"></i> @DebitNote.InvoiceNumberSnapshot
+                                </span>
+                            }
+                        </div>
+                        <div class="dn-badges">
+                            <span class="badge-dn @GetStatusBadgeClass(DebitNote.DebitNoteStatus)">
+                                @DebitNoteStatuses.GetDisplayName(DebitNote.DebitNoteStatus)
+                            </span>
+                            <span class="badge-dn @GetReasonBadgeClass(DebitNote.DebitReasonCode)">
+                                @DebitReasonCodes.GetDisplayName(DebitNote.DebitReasonCode)
+                            </span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- MAIN GRID -->
+            <div class="dn-grid">
+
+                <!-- LEFT PANEL -->
+                <div class="dn-left">
+
+                    <!-- CORE INFORMATION -->
+                    <div class="dn-card">
+                        <div class="dn-card-header">
+                            <span class="dn-card-title">
+                                <i class="ti ti-id"></i> Core Information
+                            </span>
+                        </div>
+
+                        <div class="card-body">
+                            <div class="row g-0">
+
+                                <div class="col-md-3 field-item">
+                                    <div class="field-label">Debit Note No.</div>
+                                    <div class="field-value mono">@DebitNote.DebitNoteNumber</div>
+                                </div>
+
+                                <div class="col-md-3 field-item">
+                                    <div class="field-label">Reason Code</div>
+                                    <div class="field-value">
+                                        <span class="badge-dn badge-type-sm @GetReasonBadgeClass(DebitNote.DebitReasonCode)">
+                                            @DebitReasonCodes.GetDisplayName(DebitNote.DebitReasonCode)
+                                        </span>
+                                    </div>
+                                </div>
+
+                                <div class="col-md-3 field-item">
+                                    <div class="field-label">DN Date</div>
+                                    <div class="field-value">@DebitNote.DebitNoteDate.ToString("dd MMM yyyy")</div>
+                                </div>
+
+                                @if (DebitNote.PostingDate.HasValue)
+                                {
+                                    <div class="col-md-3 field-item">
+                                        <div class="field-label">Posting Date</div>
+                                        <div class="field-value">@DebitNote.PostingDate.Value.ToString("dd MMM yyyy")</div>
+                                    </div>
+                                }
+                                else
+                                {
+                                    <div class="col-md-3 field-item">
+                                        <div class="field-label">Status</div>
+                                        <div class="field-value">
+                                            <span class="badge-dn badge-type-sm @GetStatusBadgeClass(DebitNote.DebitNoteStatus)">
+                                                @DebitNoteStatuses.GetDisplayName(DebitNote.DebitNoteStatus)
+                                            </span>
+                                        </div>
+                                    </div>
+                                }
+
+                                <div class="col-md-6 field-item">
+                                    <div class="field-label">Branch</div>
+                                    <div class="field-value">@DebitNote.BranchCode</div>
+                                    <div class="field-sub">@DebitNote.BranchName</div>
+                                </div>
+
+                                <div class="col-md-3 field-item">
+                                    <div class="field-label">Currency</div>
+                                    <div class="field-value">@DebitNote.CurrencyCode</div>
+                                    <div class="field-sub">@DebitNote.CurrencyName</div>
+                                </div>
+
+                                <div class="col-md-3 field-item">
+                                    <div class="field-label">Exchange Rate</div>
+                                    <div class="field-value mono">@DebitNote.ExchangeRate.ToString("N4")</div>
+                                </div>
+
+                                <div class="col-md-3 field-item">
+                                    <div class="field-label">Tax Impacting</div>
+                                    <div class="field-value @(DebitNote.IsTaxImpacting ? "boolean-yes" : "boolean-no")">
+                                        @(DebitNote.IsTaxImpacting ? "Yes" : "No")
+                                    </div>
+                                </div>
+
+                                <div class="col-md-3 field-item">
+                                    <div class="field-label">Revenue Recognized</div>
+                                    <div class="field-value @(DebitNote.IsRevenueRecognized ? "boolean-yes" : "boolean-no")">
+                                        @(DebitNote.IsRevenueRecognized ? "Yes" : "No")
+                                    </div>
+                                </div>
+
+                                @if (!string.IsNullOrEmpty(DebitNote.ReferenceText))
+                                {
+                                    <div class="col-md-3 field-item">
+                                        <div class="field-label">Reference</div>
+                                        <div class="field-value">@DebitNote.ReferenceText</div>
+                                    </div>
+                                }
+
+                                @if (!string.IsNullOrEmpty(DebitNote.DebitReasonDescription))
+                                {
+                                    <div class="col-md-3 field-item">
+                                        <div class="field-label">Reason Description</div>
+                                        <div class="field-value" style="font-weight: 400; color: var(--ink-soft);">@DebitNote.DebitReasonDescription</div>
+                                    </div>
+                                }
+
+                                @if (!string.IsNullOrEmpty(DebitNote.DebitNoteNarration))
+                                {
+                                    <div class="col-12 field-item-full">
+                                        <div class="field-label">Narration / Notes</div>
+                                        <div class="field-value" style="font-weight: 400; color: var(--ink-soft);">
+                                            @((MarkupString)(DebitNote.DebitNoteNarration ?? ""))
+                                        </div>
+                                    </div>
+                                }
+
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- INVOICE REFERENCE -->
+                    @if (DebitNote.IsAgainstInvoice)
+                    {
+                        <div class="dn-card">
+                            <div class="dn-card-header">
+                                <span class="dn-card-title"><i class="ti ti-link"></i> Invoice Reference</span>
+                                <span class="badge-dn badge-posted" style="font-size: 10px;">Linked</span>
+                            </div>
+                            <div class="field-grid field-grid-3">
+                                <div class="field-item">
+                                    <div class="field-label">Invoice Number</div>
+                                    <div class="field-value mono">@DebitNote.InvoiceNumberSnapshot</div>
+                                </div>
+                                <div class="field-item">
+                                    <div class="field-label">Invoice Date</div>
+                                    <div class="field-value">@DebitNote.InvoiceDateSnapshot?.ToString("dd MMM yyyy")</div>
+                                </div>
+                                <div class="field-item" style="border-right: none;">
+                                    <div class="field-label">Applied Amount</div>
+                                    <div class="field-value mono">@DebitNote.CurrencyCode @DebitNote.AppliedToInvoiceAmount.ToString("N2")</div>
+                                </div>
+                            </div>
+                        </div>
+                    }
+
+                    <!-- LINE ITEMS -->
+                    <div class="dn-card">
+                        <div class="dn-card-header">
+                            <span class="dn-card-title"><i class="ti ti-list-details"></i> Line Items</span>
+                            <span class="count-pill">@DebitNote.Lines.Count lines</span>
+                        </div>
+                        <div style="overflow-x: auto;">
+                            <table class="dn-table">
+                                <thead>
+                                    <tr>
+                                        <th style="width: 44px; text-align: center;">#</th>
+                                        <th style="width: 72px;">Type</th>
+                                        <th>Description</th>
+                                        <th style="text-align: right; width: 72px;">Qty</th>
+                                        <th style="text-align: right; width: 100px;">Price</th>
+                                        <th style="text-align: right; width: 60px;">Disc%</th>
+                                        <th style="text-align: right; width: 60px;">Tax%</th>
+                                        <th style="text-align: right; width: 100px;">Tax Amt</th>
+                                        <th style="text-align: right; width: 110px;">Line Total</th>
+                                        <th style="width: 120px;">Account</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach (var line in DebitNote.Lines.OrderBy(l => l.LineNumber))
+                                    {
+                                        <tr>
+                                            <td style="text-align: center; color: var(--ink-muted); font-size: 11px;">@line.LineNumber</td>
+                                            <td>
+                                                <span class="badge-dn badge-type-sm @GetLineTypeBadgeClass(line.LineType)">@line.LineType</span>
+                                            </td>
+                                            <td>
+                                                <span class="line-desc">@line.Description</span>
+                                                @if (!string.IsNullOrEmpty(line.HSNCode))
+                                                {
+                                                    <br /><small style="color: var(--ink-muted);">HSN/SAC: @line.HSNCode</small>
+                                                }
+                                            </td>
+                                            <td class="mono" style="text-align: right;">@line.Quantity.ToString("N2")</td>
+                                            <td class="mono" style="text-align: right;">@line.UnitPrice.ToString("N2")</td>
+                                            <td style="text-align: right; color: var(--ink-muted); font-size: 11.5px;">
+                                                @(line.DiscountPercent > 0 ? line.DiscountPercent.ToString("N1") + "%" : "—")
+                                            </td>
+                                            <td class="mono" style="text-align: right;">@line.TaxRatePercent.ToString("N0")%</td>
+                                            <td class="mono" style="text-align: right; color: var(--info);">@line.TaxAmount.ToString("N2")</td>
+                                            <td class="mono" style="text-align: right; font-weight: 600;">@line.LineTotalAmount.ToString("N2")</td>
+                                            <td>
+                                                @if (!string.IsNullOrEmpty(line.RevenueAccountCode))
+                                                {
+                                                    <span class="line-acct">@line.RevenueAccountCode</span>
+                                                }
+                                                else
+                                                {
+                                                    <span style="color: var(--ink-muted);">—</span>
+                                                }
+                                            </td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                </div>
+
+                <!-- RIGHT PANEL -->
+                <div class="dn-right">
+
+                    <!-- ACTIONS -->
+                    @if (DebitNote.CanEdit || DebitNote.CanPost || DebitNote.CanCancel || DebitNote.CanReverse)
+                    {
+                        <div class="dn-card" style="margin-bottom: 16px;">
+                            <div class="dn-card-header">
+                                <span class="dn-card-title"><i class="ti ti-settings-2"></i> Actions</span>
+                            </div>
+                            <div class="dn-card-body" style="display: flex; flex-direction: column; gap: 8px;">
+                                @if (DebitNote.CanEdit)
+                                {
+                                    <a href="/customer-debit-notes/@DebitNote.Id" class="btn-dn btn-dn-primary btn-dn-w">
+                                        <i class="ti ti-pencil"></i> Edit
+                                    </a>
+                                    @if (DebitNote.DebitNoteStatus == DebitNoteStatuses.Draft)
+                                    {
+                                        <button class="btn-dn btn-dn-gold btn-dn-w" @onclick="SubmitDebitNote">
+                                            <i class="ti ti-send"></i> Submit
+                                        </button>
+                                    }
+                                }
+                                @if (DebitNote.CanPost)
+                                {
+                                    <button class="btn-dn btn-dn-success btn-dn-w" data-bs-toggle="modal" data-bs-target="#postModal">
+                                        <i class="ti ti-check"></i> Post
+                                    </button>
+                                }
+                                @if (DebitNote.CanCancel)
+                                {
+                                    <button class="btn-dn btn-dn-warning btn-dn-w" data-bs-toggle="modal" data-bs-target="#cancelModal">
+                                        <i class="ti ti-ban"></i> Cancel
+                                    </button>
+                                }
+                                @if (DebitNote.CanReverse)
+                                {
+                                    <button class="btn-dn btn-dn-danger btn-dn-w" data-bs-toggle="modal" data-bs-target="#reverseModal">
+                                        <i class="ti ti-arrow-back-up"></i> Reverse
+                                    </button>
+                                }
+                            </div>
+                        </div>
+                    }
+
+                    <!-- AMOUNT SUMMARY -->
+                    <div class="dn-card" style="margin-bottom: 16px;">
+                        <div class="dn-card-header">
+                            <span class="dn-card-title"><i class="ti ti-receipt-2"></i> Amount Summary</span>
+                        </div>
+                        <div class="dn-card-body">
+                            <div class="amount-row">
+                                <span class="amount-label">Subtotal</span>
+                                <span class="amount-value">@DebitNote.CurrencyCode @DebitNote.SubTotalAmount.ToString("N2")</span>
+                            </div>
+                            @if (DebitNote.DiscountTotalAmount > 0)
+                            {
+                                <div class="amount-row">
+                                    <span class="amount-label">Discount</span>
+                                    <span class="amount-value" style="color: var(--danger);">- @DebitNote.CurrencyCode @DebitNote.DiscountTotalAmount.ToString("N2")</span>
+                                </div>
+                            }
+                            @if (DebitNote.TaxTotalAmount > 0)
+                            {
+                                <div class="amount-row">
+                                    <span class="amount-label">Tax</span>
+                                    <span class="amount-value tax">+ @DebitNote.CurrencyCode @DebitNote.TaxTotalAmount.ToString("N2")</span>
+                                </div>
+                            }
+                            @if (DebitNote.RoundOffAmount != 0)
+                            {
+                                <div class="amount-row">
+                                    <span class="amount-label">Round Off</span>
+                                    <span class="amount-value">@DebitNote.CurrencyCode @DebitNote.RoundOffAmount.ToString("N2")</span>
+                                </div>
+                            }
+                            <div class="amount-row total">
+                                <span class="amount-label grand">Grand Total</span>
+                                <span class="amount-value grand">@DebitNote.CurrencyCode @DebitNote.GrandTotalAmount.ToString("N2")</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- CUSTOMER INFORMATION -->
+                    <div class="dn-card" style="margin-bottom: 16px;">
+                        <div class="dn-card-header">
+                            <span class="dn-card-title"><i class="ti ti-user"></i> Customer</span>
+                        </div>
+                        <div class="dn-card-body">
+                            <div class="info-row">
+                                <span class="info-key">Code</span>
+                                <span class="info-val mono">@DebitNote.CustomerCode</span>
+                            </div>
+                            <div class="info-row">
+                                <span class="info-key">Name</span>
+                                <span class="info-val">@DebitNote.CustomerName</span>
+                            </div>
+                            @if (!string.IsNullOrEmpty(DebitNote.CustomerAccountName))
+                            {
+                                <div class="info-row">
+                                    <span class="info-key">Account</span>
+                                    <span class="info-val">@DebitNote.CustomerAccountName</span>
+                                </div>
+                            }
+                        </div>
+                    </div>
+
+                    <!-- HISTORY (formerly Audit Trail) -->
+                    <div class="dn-card" style="margin-bottom: 16px;">
+                        <div class="dn-card-header">
+                            <span class="dn-card-title"><i class="ti ti-history"></i> History</span>
+                        </div>
+                        <div class="dn-card-body">
+                            <div class="history-item">
+                                <div class="history-label">Created</div>
+                                <div class="history-date">@DebitNote.CreatedAt.ToString("dd MMM yyyy · HH:mm")</div>
+                                @if (!string.IsNullOrEmpty(DebitNote.CreatedBy))
+                                {
+                                    <div class="history-by">by @DebitNote.CreatedBy</div>
+                                }
+                            </div>
+                            @if (DebitNote.UpdatedAt.HasValue)
+                            {
+                                <div class="history-item">
+                                    <div class="history-label">Last Updated</div>
+                                    <div class="history-date">@DebitNote.UpdatedAt.Value.ToString("dd MMM yyyy · HH:mm")</div>
+                                    @if (!string.IsNullOrEmpty(DebitNote.UpdatedBy))
+                                    {
+                                        <div class="history-by">by @DebitNote.UpdatedBy</div>
+                                    }
+                                </div>
+                            }
+                            @if (DebitNote.PostedOn.HasValue)
+                            {
+                                <div class="history-item">
+                                    <div class="history-label" style="color: var(--success);">Posted</div>
+                                    <div class="history-date" style="color: var(--success);">@DebitNote.PostedOn.Value.ToString("dd MMM yyyy · HH:mm")</div>
+                                    @if (!string.IsNullOrEmpty(DebitNote.PostedByUserName))
+                                    {
+                                        <div class="history-by">by @DebitNote.PostedByUserName</div>
+                                    }
+                                </div>
+                            }
+                            @if (DebitNote.DebitNoteStatus == DebitNoteStatuses.Reversed && DebitNote.ReversedOn.HasValue)
+                            {
+                                <div class="history-item">
+                                    <div class="history-label" style="color: var(--danger);">Reversed</div>
+                                    <div class="history-date" style="color: var(--danger);">@DebitNote.ReversedOn.Value.ToString("dd MMM yyyy · HH:mm")</div>
+                                    @if (!string.IsNullOrEmpty(DebitNote.ReversedByUserName))
+                                    {
+                                        <div class="history-by">by @DebitNote.ReversedByUserName</div>
+                                    }
+                                    @if (!string.IsNullOrEmpty(DebitNote.ReversalReason))
+                                    {
+                                        <div class="history-reason danger-reason">@DebitNote.ReversalReason</div>
+                                    }
+                                </div>
+                            }
+                        </div>
+                    </div>
+
+                    <!-- CANCELLATION INFO -->
+                    @if (DebitNote.DebitNoteStatus == DebitNoteStatuses.Cancelled)
+                    {
+                        <div class="dn-card" style="margin-bottom: 16px;">
+                            <div class="dn-card-header" style="background: var(--warning-light);">
+                                <span class="dn-card-title" style="color: var(--warning);"><i class="ti ti-ban" style="color: var(--warning);"></i> Cancellation</span>
+                            </div>
+                            <div class="dn-card-body">
+                                @if (DebitNote.CancelledOn.HasValue)
+                                {
+                                    <div class="history-item">
+                                        <div class="history-label">Cancelled On</div>
+                                        <div class="history-date">@DebitNote.CancelledOn.Value.ToString("dd MMM yyyy · HH:mm")</div>
+                                        @if (!string.IsNullOrEmpty(DebitNote.CancelledByUserName))
+                                        {
+                                            <div class="history-by">by @DebitNote.CancelledByUserName</div>
+                                        }
+                                    </div>
+                                }
+                                @if (!string.IsNullOrEmpty(DebitNote.CancellationReason))
+                                {
+                                    <div class="history-reason" style="border-left-color: var(--warning); color: var(--warning);">
+                                        @DebitNote.CancellationReason
+                                    </div>
+                                }
+                            </div>
+                        </div>
+                    }
+
+                    <!-- SYSTEM GENERATED -->
+                    @if (DebitNote.IsSystemGenerated)
+                    {
+                        <div class="dn-card" style="margin-bottom: 16px;">
+                            <div class="dn-card-header">
+                                <span class="dn-card-title"><i class="ti ti-robot"></i> System Generated</span>
+                            </div>
+                            <div class="dn-card-body">
+                                <div style="font-size: 12.5px; color: var(--ink-soft);">
+                                    <i class="ti ti-info-circle me-1"></i>
+                                    This debit note was automatically generated by the system (e.g., late fee automation).
+                                </div>
+                            </div>
+                        </div>
+                    }
+
+                </div>
+
+            </div>
+        </div>
+    </div>
+
+    <!-- MODALS -->
+    <!-- Post Modal -->
+    <div class="modal fade dn-modal" id="postModal" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-body text-center p-4">
+                    <div class="modal-icon-wrap success">
+                        <i class="ti ti-check"></i>
+                    </div>
+                    <div class="modal-title-dn">Post Debit Note</div>
+                    <p style="font-size: 13.5px; color: var(--ink-soft); margin-bottom: 12px;">
+                        Do you want to post <strong>@DebitNote.DebitNoteNumber</strong>?
+                    </p>
+                    <div class="modal-note warning">
+                        <i class="ti ti-alert-triangle" style="flex-shrink: 0; margin-top: 1px;"></i>
+                        <span>Once posted, this debit note cannot be edited. Any corrections must be made via reversal.</span>
+                    </div>
+                    <div style="display: flex; justify-content: center; gap: 10px; margin-top: 20px;">
+                        <button type="button" class="btn-dn btn-dn-ghost" data-bs-dismiss="modal"><i class="ti ti-x me-1"></i>Cancel</button>
+                        <button type="button" class="btn-dn btn-dn-success" @onclick="PostDebitNote" data-bs-dismiss="modal">
+                            <i class="ti ti-check"></i> Yes, Post
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Cancel Modal -->
+    <div class="modal fade dn-modal" id="cancelModal" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-body text-center p-4">
+                    <div class="modal-icon-wrap warning">
+                        <i class="ti ti-ban"></i>
+                    </div>
+                    <div class="modal-title-dn">Cancel Debit Note</div>
+                    <p style="font-size: 13.5px; color: var(--ink-soft); margin-bottom: 12px;">
+                        Do you want to cancel <strong>@DebitNote.DebitNoteNumber</strong>?
+                    </p>
+                    <div style="text-align: left; margin-bottom: 16px;">
+                        <div class="modal-label">Cancellation Reason <span style="color: var(--danger);">*</span></div>
+                        <textarea class="modal-textarea" rows="3" @bind="cancelReasonInput" placeholder="Enter reason for cancellation…"></textarea>
+                    </div>
+                    <div style="display: flex; justify-content: center; gap: 10px;">
+                        <button type="button" class="btn-dn btn-dn-ghost" data-bs-dismiss="modal"><i class="ti ti-x me-1"></i>Close</button>
+                        <button type="button" class="btn-dn btn-dn-warning" @onclick="CancelDebitNote" data-bs-dismiss="modal">
+                            <i class="ti ti-ban"></i> Yes, Cancel
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Reverse Modal -->
+    <div class="modal fade dn-modal" id="reverseModal" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-body text-center p-4">
+                    <div class="modal-icon-wrap danger">
+                        <i class="ti ti-arrow-back-up"></i>
+                    </div>
+                    <div class="modal-title-dn">Reverse Debit Note</div>
+                    <p style="font-size: 13.5px; color: var(--ink-soft); margin-bottom: 12px;">
+                        Do you want to reverse <strong>@DebitNote.DebitNoteNumber</strong>?
+                    </p>
+                    <div class="modal-note danger">
+                        <i class="ti ti-alert-triangle" style="flex-shrink: 0; margin-top: 1px;"></i>
+                        <span>This will create a reversal entry in the GL and nullify the debit note's effect.</span>
+                    </div>
+                    <div style="text-align: left; margin: 16px 0;">
+                        <div class="modal-label">Reversal Reason <span style="color: var(--danger);">*</span></div>
+                        <textarea class="modal-textarea" rows="3" @bind="reverseReasonInput" placeholder="Enter reason for reversal…"></textarea>
+                    </div>
+                    <div style="display: flex; justify-content: center; gap: 10px;">
+                        <button type="button" class="btn-dn btn-dn-ghost" data-bs-dismiss="modal"><i class="ti ti-x me-1"></i>Close</button>
+                        <button type="button" class="btn-dn btn-dn-danger" @onclick="ReverseDebitNote" data-bs-dismiss="modal">
+                            <i class="ti ti-arrow-back-up"></i> Yes, Reverse
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+}

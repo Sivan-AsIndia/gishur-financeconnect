@@ -1,0 +1,536 @@
+@page "/asset-transfers/create"
+@page "/asset-transfers/edit/{Id:guid}"
+@using AT = FinanceConnect.Client.ViewModels.AssetTransformViewModel
+
+<style>
+    .form-select option:checked {
+        color: white;
+        background-color: var(--primary);
+    }
+
+    .validation-message {
+        color: #dc3545;
+        font-size: 12px;
+    }
+
+    .from-badge {
+        background: #fff3cd42;
+        border-left: 3px solid #ffc107;
+        padding: 8px 12px;
+        border-radius: 4px;
+        height: 100%
+    }
+
+    .to-badge {
+        background: #d1e7dd5c;
+        border-left: 3px solid #198754;
+        padding: 8px 12px;
+        border-radius: 4px;
+        height: 100%
+    }
+</style>
+
+@if (!isInitialized)
+{
+    <div class="page-loading-overlay">
+        <div class="whirly-loader"></div>
+    </div>
+}
+else
+{
+    <div class="content form-wizard">
+        <div class="page-header">
+            <div class="add-item d-flex">
+                <div class="page-title">
+                    <h4 class="fw-bold">@PageTitle</h4>
+                    <h6>@PageSubTitle</h6>
+                </div>
+            </div>
+            <div class="d-flex page-btn mt-0 gap-2">
+                @if (IsEdit)
+                {
+                    <button type="button" class="btn btn-primary" @onclick="Save">
+                        <i class="ti ti-device-floppy"></i> Update
+                    </button>
+                }
+                <a href="/asset-transfers" class="btn btn-outline-secondary">
+                    <i class="ti ti-arrow-left"></i> Back
+                </a>
+            </div>
+        </div>
+
+        <div class="wizard-overlay d-flex mb-4">
+            <EditForm EditContext="editContext" OnSubmit="Save" style="width:100%;">
+                <div class="wizard-overlay">
+                    <div class="wizard-modal">
+
+                        <!-- LEFT STEPPER -->
+                        <div class="wizard-steps">
+                            <div class="timeline-line"></div>
+                            <div class="timeline-indicator @(IsCurrentStepValid() ? "success" : "error")"
+                                 style="top:@IndicatorToppx"></div>
+                            @for (int i = 1; i <= Steps.Count; i++)
+                            {
+                                <div class="wizard-step @StepClass(i)">
+                                    <div class="dot" style="padding:10px;">
+                                        @if (i < CurrentStep)
+                                        {
+                                            <i class="ti ti-check" style="color:white;font-size:22px;"></i>
+                                        }
+                                        else
+                                        {
+                                            <i class="@Steps[i - 1].Icon"></i>
+                                        }
+                                    </div>
+                                    <div class="label"><b>@Steps[i - 1].Title</b></div>
+                                </div>
+                            }
+                        </div>
+
+                        <!-- RIGHT CONTENT -->
+                        <div class="wizard-content">
+                            <h2 style="font-size:17px;margin-bottom:10px;">
+                                @Steps[CurrentStep - 1].Title
+                            </h2>
+
+                            @* ── Step 1: Header & Asset ── *@
+                            @if (CurrentStep == 1)
+                            {
+                                <div class="accordion-body border-top pt-3 p-0">
+                                    <div class="row">
+
+                                        <div class="col-md-6 mb-3">
+                                            <label class="form-label">Transfer No</label>
+                                            <InputText class="form-control"
+                                                       @bind-Value="Model.TransferNumber"
+                                                       placeholder="Auto-generated"
+                                                       disabled="true" />
+                                            <small class="text-muted">e.g. FATR-000001</small>
+                                        </div>
+
+                                        <div class="col-md-6 mb-3">
+                                            <label class="form-label">Transfer Type <span class="text-danger">*</span></label>
+                                            <InputSelect class="@($"form-select {(ShowFieldError(1, "TransferType") ? "is-invalid" : "")}")"
+                                                         @bind-Value="Model.TransferType">
+                                                <option value="">-- Select Type --</option>
+                                                <option value="@AT.TransferType.CustodianChange">Custodian Change</option>
+                                                <option value="@AT.TransferType.LocationChange">Location Change</option>
+                                                <option value="@AT.TransferType.BranchChange">Branch Change</option>
+                                                <option value="@AT.TransferType.FullReassignment">Full Reassignment</option>
+                                            </InputSelect>
+                                            @if (ShowFieldError(1, "TransferType"))
+                                            {
+                                                <div class="text-danger small mt-1">Transfer Type is required</div>
+                                            }
+                                        </div>
+
+                                        <div class="col-md-6 mb-3">
+                                            <label class="form-label">Asset <span class="text-danger">*</span></label>
+                                            <select class="@($"form-select {(ShowFieldError(1, "FixedAssetId") ? "is-invalid" : "")}")"
+                                                    @onchange="OnAssetSelected">
+                                                <option value="">-- Select Asset --</option>
+                                                @foreach (var a in AssetList)
+                                                {
+                                                    <option value="@a.Value"
+                                                            selected="@(Model.FixedAssetId.ToString() == a.Value)">
+                                                        @a.Text
+                                                    </option>
+                                                }
+                                            </select>
+                                            @if (ShowFieldError(1, "FixedAssetId"))
+                                            {
+                                                <div class="text-danger small mt-1">Asset is required</div>
+                                            }
+                                        </div>
+
+                                        <div class="col-md-6 mb-3">
+                                            <label class="form-label">Effective Date <span class="text-danger">*</span></label>
+                                            <InputDate class="@($"form-control {(ShowFieldError(1, "EffectiveTransferDate") ? "is-invalid" : "")}")"
+                                                       @bind-Value="Model.EffectiveTransferDate" />
+                                            @if (ShowFieldError(1, "EffectiveTransferDate"))
+                                            {
+                                                <div class="text-danger small mt-1">Effective Date is required</div>
+                                            }
+                                        </div>
+
+                                    </div>
+                                </div>
+                            }
+
+                            @* ── Step 2: From vs To ── *@
+                            @if (CurrentStep == 2)
+                            {
+                                <div class="accordion-body border-top pt-3 p-0">
+                                    <div class="row">
+
+                                        <!-- FROM COLUMN (read-only) -->
+                                        <div class="col-md-6 mb-3">
+                                            <label class="form-label fw-semibold text-muted">
+                                                <i class="ti ti-arrow-right me-1"></i> FROM (Current)
+                                            </label>
+                                            <div class="from-badge">
+
+                                                @if (Model.TransferType == AT.TransferType.BranchChange ||
+                                                                                        Model.TransferType == AT.TransferType.FullReassignment)
+                                                {
+                                                    <div class="mb-2">
+                                                        <small class="text-muted">Branch</small><br />
+                                                        <strong style="font-size:13px;">@(Model.FromBranchName ?? "—")</strong>
+                                                    </div>
+                                                }
+
+                                                @if (Model.TransferType == AT.TransferType.LocationChange ||
+                                                                                        Model.TransferType == AT.TransferType.FullReassignment)
+                                                {
+                                                    @if (Model.TransferType == AT.TransferType.FullReassignment)
+                                                    {
+                                                        <hr class="my-2" />
+                                                    }
+                                                    <div class="mb-2">
+                                                        <small class="text-muted">Location</small><br />
+                                                        <strong style="font-size:13px;">@(Model.FromLocationName ?? "—")</strong>
+                                                    </div>
+                                                }
+
+                                                @if (Model.TransferType == AT.TransferType.CustodianChange ||
+                                                                                        Model.TransferType == AT.TransferType.FullReassignment)
+                                                {
+                                                    @if (Model.TransferType == AT.TransferType.FullReassignment)
+                                                    {
+                                                        <hr class="my-2" />
+                                                    }
+                                                    <div>
+                                                        <small class="text-muted">Custodian</small><br />
+                                                        <strong style="font-size:13px;">@(Model.FromCustodianName ?? "—")</strong>
+                                                    </div>
+                                                }
+
+                                            </div>
+                                        </div>
+
+                                        <!-- TO COLUMN (user input) -->
+                                        <div class="col-md-6 mb-3">
+                                            <label class="form-label fw-semibold text-success">
+                                                <i class="ti ti-arrow-right me-1"></i> TO (New)
+                                            </label>
+                                            <div class="to-badge">
+
+                                                @* ── New Branch ── *@
+                                                @if (Model.TransferType == AT.TransferType.BranchChange ||
+                                                                                        Model.TransferType == AT.TransferType.FullReassignment)
+                                                {
+                                                    <div class="mb-2">
+                                                        <small class="text-muted">New Branch <span class="text-danger">*</span></small>
+                                                        <select class="@($"form-select form-select-sm mt-1 {(ShowFieldError(2, "ToBranchId") ? "is-invalid" : "")}")"
+                                                                @onchange="OnToBranchChanged">
+                                                            <option value="">-- Select Branch --</option>
+                                                            @foreach (var b in BranchList)
+                                                            {
+                                                                <option value="@b.Id"
+                                                                        selected="@(Model.ToBranchId == b.Id)">
+                                                                    @b.BranchName
+                                                                </option>
+                                                            }
+                                                        </select>
+                                                        @if (ShowFieldError(2, "ToBranchId"))
+                                                        {
+                                                            <div class="text-danger small mt-1">New Branch is required</div>
+                                                        }
+                                                    </div>
+                                                }
+
+                                                @* ── New Location — option value = LocationId (Guid) ── *@
+                                                @if (Model.TransferType == AT.TransferType.LocationChange ||
+                                                                                        Model.TransferType == AT.TransferType.FullReassignment)
+                                                {
+                                                    <div class="mb-2">
+                                                        <small class="text-muted">New Location <span class="text-danger">*</span></small>
+                                                        @if (LocationList.Count == 0)
+                                                        {
+                                                            <div class="text-warning small mt-1">
+                                                                <i class="ti ti-alert-circle me-1"></i>
+                                                                No locations found. Please add Location to assets first.
+                                                            </div>
+                                                        }
+                                                        else
+                                                        {
+                                                            <select class="@($"form-select form-select-sm mt-1 {(ShowFieldError(2, "ToLocationId") ? "is-invalid" : "")}")"
+                                                                    @onchange="OnToLocationChanged">
+                                                                <option value="">-- Select Location --</option>
+                                                                @foreach (var loc in LocationList)
+                                                                {
+                                                                    <option value="@loc.Id"
+                                                                            selected="@(Model.ToLocationId == loc.Id)">
+                                                                        @loc.Name
+                                                                    </option>
+                                                                }
+                                                            </select>
+                                                            @if (ShowFieldError(2, "ToLocationId"))
+                                                            {
+                                                                <div class="text-danger small mt-1">New Location is required</div>
+                                                            }
+                                                        }
+                                                    </div>
+                                                }
+
+                                                @* ── New Custodian — option value = CustodianUserId (Guid) ── *@
+                                                @if (Model.TransferType == AT.TransferType.CustodianChange ||
+                                                                                        Model.TransferType == AT.TransferType.FullReassignment)
+                                                {
+                                                    <div>
+                                                        <small class="text-muted">New Custodian <span class="text-danger">*</span></small>
+                                                        @if (CustodianList.Count == 0)
+                                                        {
+                                                            <div class="text-warning small mt-1">
+                                                                <i class="ti ti-alert-circle me-1"></i>
+                                                                No custodians found. Please add Custodian to assets first.
+                                                            </div>
+                                                        }
+                                                        else
+                                                        {
+                                                            <select class="@($"form-select form-select-sm mt-1 {(ShowFieldError(2, "ToCustodianUserId") ? "is-invalid" : "")}")"
+                                                                    @onchange="OnToCustodianChanged">
+                                                                <option value="">-- Select Custodian --</option>
+                                                                @foreach (var cust in CustodianList)
+                                                                {
+                                                                    <option value="@cust.Id"
+                                                                            selected="@(Model.ToCustodianUserId == cust.Id)">
+                                                                        @cust.Name
+                                                                    </option>
+                                                                }
+                                                            </select>
+                                                            @if (ShowFieldError(2, "ToCustodianUserId"))
+                                                            {
+                                                                <div class="text-danger small mt-1">New Custodian is required</div>
+                                                            }
+                                                        }
+                                                    </div>
+                                                }
+
+                                            </div>
+                                        </div>
+
+                                        <!-- Transfer Reason -->
+                                        <div class="col-md-12 mb-3 mt-3">
+                                            <label class="form-label">Transfer Reason <span class="text-danger">*</span></label>
+                                            <InputTextArea class="@($"form-control {(ShowFieldError(2, "TransferReason") ? "is-invalid" : "")}")"
+                                                           @bind-Value="Model.TransferReason"
+                                                           rows="3"
+                                                           placeholder="Why is this transfer happening?" />
+                                            @if (ShowFieldError(2, "TransferReason"))
+                                            {
+                                                <div class="text-danger small mt-1">Transfer Reason is required</div>
+                                            }
+                                        </div>
+
+                                    </div>
+                                </div>
+                            }
+
+                            @* ── Step 3: Handover & Acknowledgement ── *@
+                            @if (CurrentStep == 3)
+                            {
+                                <div class="accordion-body border-top pt-3 p-0">
+                                    <div class="row">
+
+                                        <div class="col-md-6 mb-3">
+                                            <div class="form-check mt-4">
+                                                <InputCheckbox class="form-check-input"
+                                                               @bind-Value="Model.HandoverRequired"
+                                                               id="handoverReq"
+                                                               style="width:auto;" />
+                                                <label class="form-check-label" for="handoverReq">
+                                                    Physical Handover Required
+                                                </label>
+                                            </div>
+                                            <small class="text-muted">Enable for custodian changes</small>
+                                        </div>
+
+                                        @if (Model.HandoverRequired)
+                                        {
+                                            <div class="col-md-6 mb-3">
+                                                <label class="form-label">Handed Over By</label>
+                                                <InputText class="form-control"
+                                                           @bind-Value="Model.HandedOverByName"
+                                                           placeholder="e.g. IT Manager" />
+                                            </div>
+
+                                            <div class="col-md-6 mb-3">
+                                                <label class="form-label">Handover Date</label>
+                                                <InputDate class="form-control" @bind-Value="Model.HandedOverOn" />
+                                            </div>
+
+                                            <div class="col-md-6 mb-3">
+                                                <label class="form-label">Receiver</label>
+                                                <InputText class="form-control"
+                                                           @bind-Value="Model.ReceiverName"
+                                                           placeholder="e.g. New Custodian Name" />
+                                            </div>
+
+                                            <div class="col-md-6 mb-3">
+                                                <label class="form-label">Received On</label>
+                                                <InputDate class="form-control" @bind-Value="Model.ReceivedOn" />
+                                            </div>
+
+                                            <div class="col-md-6 mb-3">
+                                                <label class="form-label">Asset Condition at Handover</label>
+                                                <InputSelect class="form-select" @bind-Value="Model.AssetConditionAtHandover">
+                                                    <option value="">-- Select --</option>
+                                                    <option value="@AT.AssetCondition.Good">Good</option>
+                                                    <option value="@AT.AssetCondition.RequiresRepair">Requires Repair</option>
+                                                    <option value="@AT.AssetCondition.Damaged">Damaged</option>
+                                                    <option value="@AT.AssetCondition.MissingParts">Missing Parts</option>
+                                                </InputSelect>
+                                            </div>
+
+                                            <div class="col-md-12 mb-3">
+                                                <label class="form-label">Receiver Acknowledgement Note</label>
+                                                <InputTextArea class="form-control"
+                                                               @bind-Value="Model.ReceiverAcknowledgementNote"
+                                                               rows="3"
+                                                               placeholder="Receiver confirmation note..." />
+                                            </div>
+
+                                            <div class="col-md-12 mb-3">
+                                                <label class="form-label">Condition Notes</label>
+                                                <InputTextArea class="form-control"
+                                                               @bind-Value="Model.ConditionNotes"
+                                                               rows="2"
+                                                               placeholder="Any notes about asset condition..." />
+                                            </div>
+                                        }
+
+                                    </div>
+                                </div>
+                            }
+
+                            @* ── Step 4: Review & Submit ── *@
+                            @if (CurrentStep == 4)
+                            {
+                                <div class="accordion-body border-top pt-3 p-0">
+                                    <div class="row">
+                                        <div class="col-md-12 mb-3">
+                                            <div class="card bg-light border-0">
+                                                <div class="card-body">
+                                                    <h6 class="text-primary mb-3">Transfer Summary</h6>
+                                                    <div class="row">
+                                                        <div class="col-md-6">
+                                                            <p class="mb-1"><span class="text-muted">Asset:</span> <strong>@Model.AssetNameSnapshot</strong></p>
+                                                            <p class="mb-1"><span class="text-muted">Type:</span> <strong>@Model.TransferType</strong></p>
+                                                            <p class="mb-1"><span class="text-muted">Effective:</span> <strong>@Model.EffectiveTransferDate.ToString("dd MMM yyyy")</strong></p>
+                                                        </div>
+                                                        <div class="col-md-6">
+                                                            @if (Model.TransferType == AT.TransferType.BranchChange ||
+                                                                                                                Model.TransferType == AT.TransferType.FullReassignment)
+                                                            {
+                                                                <p class="mb-1"><span class="text-muted">From Branch:</span> <strong>@(Model.FromBranchName ?? "—")</strong></p>
+                                                                <p class="mb-1">
+                                                                    <span class="text-muted">To Branch:</span>
+                                                                    <strong>@(Model.ToBranchId == null ? "No change" : BranchList.FirstOrDefault(b => b.Id == Model.ToBranchId)?.BranchName ?? "Unknown")</strong>
+                                                                </p>
+                                                            }
+                                                            @if (Model.TransferType == AT.TransferType.LocationChange ||
+                                                                                                                Model.TransferType == AT.TransferType.FullReassignment)
+                                                            {
+                                                                <p class="mb-1"><span class="text-muted">From Location:</span> <strong>@(Model.FromLocationName ?? "—")</strong></p>
+                                                                <p class="mb-1"><span class="text-muted">To Location:</span> <strong>@(Model.ToLocationName ?? "No change")</strong></p>
+                                                            }
+                                                            @if (Model.TransferType == AT.TransferType.CustodianChange ||
+                                                                                                                Model.TransferType == AT.TransferType.FullReassignment)
+                                                            {
+                                                                <p class="mb-1"><span class="text-muted">From Custodian:</span> <strong>@(Model.FromCustodianName ?? "—")</strong></p>
+                                                                <p class="mb-1"><span class="text-muted">To Custodian:</span> <strong>@(Model.ToCustodianName ?? "No change")</strong></p>
+                                                            }
+                                                            <p class="mb-1"><span class="text-muted">Handover:</span> <strong>@(Model.HandoverRequired ? "Required" : "Not Required")</strong></p>
+                                                        </div>
+                                                    </div>
+                                                    <hr />
+                                                    <p class="mb-0"><span class="text-muted">Reason:</span> @Model.TransferReason</p>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            }
+
+                            <!-- WIZARD FOOTER -->
+                            <div class="d-flex gap-2 wizard-footer mb-4" style="justify-content:end;">
+                                @if (CurrentStep != 1)
+                                {
+                                    <button type="button" class="btn btn-outline-secondary" @onclick="Back">
+                                        <i class="ti ti-chevron-left"></i> Previous
+                                    </button>
+                                }
+                                @if (CurrentStep < Steps.Count)
+                                {
+                                    <button type="button" class="btn btn-primary" @onclick="Next">
+                                        Next <i class="ti ti-chevron-right"></i>
+                                    </button>
+                                }
+                                else
+                                {
+                                    <button type="button" class="btn btn-primary" @onclick="Save">
+                                        <i class="ti ti-device-floppy"></i> @(IsEdit ? "Update" : "Save Draft")
+                                    </button>
+                                }
+                            </div>
+
+                        </div>
+
+                        <!-- LIVE SUMMARY SIDEBAR -->
+                        <aside class="summary p-3 rounded d-none d-xl-flex"
+                               style="height:auto;background:white;border:none;display:flex;padding-left:32px !important;padding-top:42px !important;">
+                            <div class="timeline-line1"></div>
+                            <div class="timeline-indicator1"></div>
+                            <div style="padding-left:15px;width:262px;">
+                                <h3 class="text-primary mb-3" style="font-size:17px;">Live Summary</h3>
+                                <div class="row">
+                                    @if (CurrentStep == 1)
+                                    {
+                                        <div class="col-md-12 mb-4"><span>Transfer No: </span><b>@(string.IsNullOrEmpty(Model.TransferNumber) ? "Auto" : Model.TransferNumber)</b></div>
+                                        <div class="col-md-12 mb-4"><span>Type: </span><b>@Model.TransferType</b></div>
+                                        <div class="col-md-12 mb-4"><span>Asset: </span><b>@(Model.AssetNameSnapshot ?? "—")</b></div>
+                                        <div class="col-md-12 mb-4"><span>Effective: </span><b>@Model.EffectiveTransferDate.ToString("dd MMM yyyy")</b></div>
+                                    }
+                                    @if (CurrentStep == 2)
+                                    {
+                                        @if (Model.TransferType == AT.TransferType.BranchChange ||
+                                                                        Model.TransferType == AT.TransferType.FullReassignment)
+                                        {
+                                            <div class="col-md-12 mb-4"><span>From Branch: </span><b>@(Model.FromBranchName ?? "—")</b></div>
+                                            <div class="col-md-12 mb-4"><span>To Branch: </span><b>@(Model.ToBranchId == null ? "No change" : BranchList.FirstOrDefault(b => b.Id == Model.ToBranchId)?.BranchName ?? "Unknown")</b></div>
+                                        }
+                                        @if (Model.TransferType == AT.TransferType.LocationChange ||
+                                                                        Model.TransferType == AT.TransferType.FullReassignment)
+                                        {
+                                            <div class="col-md-12 mb-4"><span>From Location: </span><b>@(Model.FromLocationName ?? "—")</b></div>
+                                            <div class="col-md-12 mb-4"><span>To Location: </span><b>@(string.IsNullOrEmpty(Model.ToLocationName) ? "No change" : Model.ToLocationName)</b></div>
+                                        }
+                                        @if (Model.TransferType == AT.TransferType.CustodianChange ||
+                                                                        Model.TransferType == AT.TransferType.FullReassignment)
+                                        {
+                                            <div class="col-md-12 mb-4"><span>From Custodian: </span><b>@(Model.FromCustodianName ?? "—")</b></div>
+                                            <div class="col-md-12 mb-4"><span>To Custodian: </span><b>@(string.IsNullOrEmpty(Model.ToCustodianName) ? "No change" : Model.ToCustodianName)</b></div>
+                                        }
+                                    }
+                                    @if (CurrentStep == 3)
+                                    {
+                                        <div class="col-md-12 mb-4"><span>Handover: </span><b>@(Model.HandoverRequired ? "Required" : "Not Required")</b></div>
+                                        <div class="col-md-12 mb-4"><span>Receiver: </span><b>@(string.IsNullOrEmpty(Model.ReceiverName) ? "—" : Model.ReceiverName)</b></div>
+                                        <div class="col-md-12 mb-4"><span>Condition: </span><b>@(Model.AssetConditionAtHandover.HasValue? Model.AssetConditionAtHandover.ToString() : "—")</b></div>
+                                    }
+                                    @if (CurrentStep == 4)
+                                    {
+                                        <div class="col-md-12 mb-4"><span>Status: </span><b class="text-warning">Draft</b></div>
+                                        <div class="col-md-12 mb-4"><span>Reason: </span><b>@(string.IsNullOrEmpty(Model.TransferReason) ? "—" : Model.TransferReason)</b></div>
+                                    }
+                                </div>
+                            </div>
+                        </aside>
+
+                    </div>
+                </div>
+            </EditForm>
+        </div>
+    </div>
+}

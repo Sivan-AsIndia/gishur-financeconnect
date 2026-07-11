@@ -1,0 +1,212 @@
+@page "/variance-analysis/create"
+@page "/variance-analysis/edit/{Id:guid}"
+@using FinanceConnect.Client.ViewModels
+@using FinanceConnect.Client.Services
+@using static FinanceConnect.Client.ViewModels.VarianceAnalysisViewModel
+
+<style>
+    .validation-message { color: #dc3545; font-size: 12px; }
+    .form-check-label { font-size: 13px; }
+</style>
+
+<div class="content flat-form">
+    <div class="page-header">
+        <div class="page-title">
+            <h4 class="fw-bold">@(IsEdit ? "Edit Variance Analysis" : "Create Variance Analysis")</h4>
+            <h6>Define analysis scope and comparison parameters</h6>
+        </div>
+        <div class="page-btn">
+            <a href="/variance-analysis" class="btn btn-outline-secondary">
+                <i class="ti ti-arrow-left"></i> Back
+            </a>
+        </div>
+    </div>
+
+    <EditForm EditContext="_editContext" OnSubmit="Save">
+        <DataAnnotationsValidator />
+
+        <!-- SECTION 1: CORE IDENTITY -->
+        <div class="card mt-4">
+            <div class="card-body">
+                <h6 class="text-primary mb-3 d-flex align-items-center"><i class="ti ti-id me-2" style="font-size: 22px;" ></i> Core Identity</h6>
+                <div class="row g-3">
+                    <div class="col-md-3">
+                        <label class="form-label">Analysis Code <span class="text-danger">*</span></label>
+                        @if (IsEdit)
+                        {
+                            <div class="fw-semibold fs-14 mt-1">@Model.AnalysisCode</div>
+                        }
+                        else
+                        {
+                            <InputText class="form-control text-uppercase" @bind-Value="Model.AnalysisCode"
+                                       placeholder="e.g. VAR-2026-APR-001" title="Unique code for this analysis" />
+                            <ValidationMessage For="@(() => Model.AnalysisCode)" />
+                        }
+                    </div>
+                    <div class="col-md-5">
+                        <label class="form-label">Analysis Name <span class="text-danger">*</span></label>
+                        <InputText class="form-control" @bind-Value="Model.AnalysisName"
+                                   placeholder="e.g. April 2026 Budget vs Actual" title="Descriptive name for the analysis" />
+                        <ValidationMessage For="@(() => Model.AnalysisName)" />
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">Status</label>
+                        <InputSelect class="form-select" @bind-Value="Model.AnalysisStatus">
+                            @foreach (var s in Enum.GetValues<AnalysisStatusEnum>())
+                            { <option value="@s">@s</option> }
+                        </InputSelect>
+                    </div>
+                    <div class="col-md-12">
+                        <label class="form-label">Description</label>
+                        <InputTextArea class="form-control" rows="2" @bind-Value="Model.Description"
+                                       placeholder="Optional description..." title="Detailed description of analysis purpose" />
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- SECTION 2: COMPARISON DEFINITION -->
+        <div class="card mt-4">
+            <div class="card-body">
+                <h6 class="text-primary mb-3 d-flex align-items-center"><i class="ti ti-arrows-exchange me-2" style="font-size: 22px;"></i> Comparison Definition</h6>
+                <div class="row g-3">
+                    <div class="col-md-3">
+                        <label class="form-label">Comparison Mode <span class="text-danger">*</span></label>
+                        <InputSelect class="form-select" @bind-Value="Model.ComparisonMode" title="Select what to compare">
+                            <option value="">-- Select --</option>
+                            @foreach (var v in Enum.GetValues<ComparisonModeEnum>())
+                            { <option value="@v">@v</option> }
+                        </InputSelect>
+                        <ValidationMessage For="@(() => Model.ComparisonMode)" />
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">Time Mode <span class="text-danger">*</span></label>
+                        <InputSelect class="form-select" @bind-Value="Model.AnalysisTimeMode" title="Analysis time scope">
+                            <option value="">-- Select --</option>
+                            @foreach (var v in Enum.GetValues<AnalysisTimeModeEnum>())
+                            { <option value="@v">@v</option> }
+                        </InputSelect>
+                        <ValidationMessage For="@(() => Model.AnalysisTimeMode)" />
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">Scope Level <span class="text-danger">*</span></label>
+                        <InputSelect class="form-select" @bind-Value="Model.AnalysisScopeLevel" title="Analysis granularity level">
+                            <option value="">-- Select --</option>
+                            @foreach (var v in Enum.GetValues<AnalysisScopeLevelEnum>())
+                            { <option value="@v">@v</option> }
+                        </InputSelect>
+                        <ValidationMessage For="@(() => Model.AnalysisScopeLevel)" />
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">Nature Basis <span class="text-danger">*</span></label>
+                        <InputSelect class="form-select" @bind-Value="Model.LineNatureMode" title="Favorable/unfavorable logic">
+                            <option value="">-- Select --</option>
+                            @foreach (var v in Enum.GetValues<LineNatureModeEnum>())
+                            { <option value="@v">@v</option> }
+                        </InputSelect>
+                        <ValidationMessage For="@(() => Model.LineNatureMode)" />
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">Actual Source Mode <span class="text-danger">*</span></label>
+                        <InputSelect class="form-select" @bind-Value="Model.ActualSourceMode" title="Source of actual data">
+                            <option value="">-- Select --</option>
+                            @foreach (var v in Enum.GetValues<ActualSourceModeEnum>())
+                            { <option value="@v">@v</option> }
+                        </InputSelect>
+                        <ValidationMessage For="@(() => Model.ActualSourceMode)" />
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- SECTION 3: PERIOD & SCOPE FILTERS -->
+        <div class="card mt-4">
+            <div class="card-body">
+                <h6 class="text-primary mb-3 d-flex align-items-center"><i class="ti ti-calendar me-2" style="font-size: 22px;"></i> Period & Scope</h6>
+                <div class="row g-3">
+                    <div class="col-md-3">
+                        <label class="form-label">From Date <span class="text-danger">*</span></label>
+                        <InputDate class="form-control" @bind-Value="Model.FromDate" title="Analysis start date" />
+                        <ValidationMessage For="@(() => Model.FromDate)" />
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">To Date <span class="text-danger">*</span></label>
+                        <InputDate class="form-control" @bind-Value="Model.ToDate" title="Analysis end date" />
+                        <ValidationMessage For="@(() => Model.ToDate)" />
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">Materiality Threshold (Amount)</label>
+                        <InputNumber class="form-control" @bind-Value="Model.MaterialityThresholdAmount"
+                                     placeholder="e.g. 50000" title="Variance amount threshold for highlighting" />
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">Materiality Threshold (%)</label>
+                        <InputNumber class="form-control" @bind-Value="Model.MaterialityThresholdPercent"
+                                     placeholder="e.g. 10" title="Variance percentage threshold for highlighting" />
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- SECTION 4: SOURCE INCLUSION RULES -->
+        <div class="card mt-4">
+            <div class="card-body">
+                <h6 class="text-primary mb-3 d-flex align-items-center"><i class="ti ti-settings me-2" style="font-size: 22px;"></i> Source Inclusion Rules</h6>
+                <div class="row g-3">
+                    <div class="col-md-3 d-flex align-items-center gap-2 mt-2">
+                        <InputCheckbox class="form-check-input" id="incAlloc" @bind-Value="Model.IncludeAllocatedValues" />
+                        <label class="form-check-label" for="incAlloc" title="Include allocated budget/actual values">Include Allocated Values</label>
+                    </div>
+                    <div class="col-md-3 d-flex align-items-center gap-2 mt-2">
+                        <InputCheckbox class="form-check-input" id="incCommit" @bind-Value="Model.IncludeCommittedAmounts" />
+                        <label class="form-check-label" for="incCommit" title="Include committed amounts in analysis">Include Committed Amounts</label>
+                    </div>
+                    <div class="col-md-3 d-flex align-items-center gap-2 mt-2">
+                        <InputCheckbox class="form-check-input" id="incTax" @bind-Value="Model.IncludeTaxInActuals" />
+                        <label class="form-check-label" for="incTax" title="Include tax component in actual values">Include Tax in Actuals</label>
+                    </div>
+                    <div class="col-md-3 d-flex align-items-center gap-2 mt-2">
+                        <InputCheckbox class="form-check-input" id="closedOnly" @bind-Value="Model.IncludeClosedPeriodsOnly" />
+                        <label class="form-check-label" for="closedOnly" title="Analyze only closed accounting periods">Closed Periods Only</label>
+                    </div>
+                    <div class="col-md-3 d-flex align-items-center gap-2 mt-2">
+                        <InputCheckbox class="form-check-input" id="reqExp" @bind-Value="Model.RequireExplanationAboveThreshold" />
+                        <label class="form-check-label" for="reqExp" title="Require explanation for significant variances">Require Explanation Above Threshold</label>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- SECTION 5: NOTES -->
+        <div class="card mt-4">
+            <div class="card-body">
+                <h6 class="text-primary mb-3 d-flex align-items-center"><i class="ti ti-notes me-2" style="font-size: 22px;"></i> Notes & Commentary</h6>
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <label class="form-label">Review Notes</label>
+                        <InputTextArea class="form-control" rows="3" @bind-Value="Model.ReviewNotes"
+                                       placeholder="Notes from review process..." title="Review observations and notes" />
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">Management Commentary</label>
+                        <InputTextArea class="form-control" rows="3" @bind-Value="Model.ManagementCommentary"
+                                       placeholder="Management commentary..." title="Executive summary and management observations" />
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- SUBMIT -->
+        <!-- Action Buttons -->
+        <div class="d-flex justify-content-end mt-4 mb-5 gap-2">
+            <button type="button" class="btn btn-outline-secondary"
+                    @onclick='() => Nav.NavigateTo("/variance-analysis")'>
+                <i class="ti ti-x"></i> Cancel
+            </button>
+            <button type="submit" class="btn btn-primary">
+                <i class="ti ti-device-floppy"></i>
+                @(IsEdit ? "Update" : "Create")
+            </button>
+        </div>
+    </EditForm>
+</div>

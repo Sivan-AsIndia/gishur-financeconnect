@@ -1,0 +1,1231 @@
+﻿@page "/tasks"
+@using FinanceConnect.Client.ViewModels
+@using FinanceConnect.Client.Services
+@inject IJSRuntime JS
+
+@if (!isInitialized)
+{
+    <div class="page-loading-overlay">
+        <div class="whirly-loader"></div>
+    </div>
+}
+else
+{
+
+    @if (isLoading)
+    {
+        <div class="page-loading-overlay">
+            <div class="whirly-loader"></div>
+        </div>
+    }
+<div class="content List-view">
+
+    <!-- PAGE HEADER -->
+    <div class="page-header">
+        <div class="add-item d-flex">
+            <div class="page-title">
+                <h4 class="fw-bold">Task List</h4>
+                <h6>Manage your tasks</h6>
+            </div>
+        </div>
+
+        <div style="display: flex;gap: 10px;">
+            <ul class="table-top-head">
+                <li>
+                    <a href="javascript:void(0);"
+                           title="Refresh"
+                               @onclick="OnRefreshAsync">
+                        <i class="ti ti-refresh"></i>
+                    </a>
+                </li>
+            </ul>
+
+            @if (CurrentView == "list")
+            {
+                <button class="btn btn-outline-secondary d-none d-md-block @(CurrentView == "kanban" ? "active" : "")"
+                        @onclick='() => SetView("kanban")'>
+                    <i class="ti ti-layout-kanban" title="Kanban View"></i>
+                </button>
+            }
+            else if (CurrentView == "kanban")
+            {
+                <button class="btn btn-outline-secondary d-none d-md-block @(CurrentView == "list" ? "active" : "")"
+                        @onclick='() => SetView("list")'>
+                    <i class="ti ti-list" title="List View"></i>
+                </button>
+
+            }
+
+
+
+            <div class="page-btn">
+                <a href="javascript:void(0);" class="btn btn-primary" @onclick="() => CreateTask()">
+                    <i class="ti ti-circle-plus me-1"></i>
+                    Create
+                </a>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- CARD -->
+    <div class="card">
+
+        <!-- SEARCH + FILTER -->
+        <div class="card-header d-flex justify-content-between" style="flex-wrap: wrap;">
+
+            <!-- Search -->
+            <div class="search-set">
+                <div class="search-input">
+                    <span class="btn-searchset">
+                        <i class="ti ti-search fs-14"></i>
+                    </span>
+                    <input type="search"
+                           class="form-control form-control-sm"
+                           placeholder="Search task"
+                           @bind="searchText"
+                           @oninput="OnSearch" />
+                </div>
+            </div>
+
+            <div style="display:flex">
+
+                <!-- EMPLOYEE FILTER -->
+                <select class="form-select form-select-sm"
+                        style="min-width:180px"
+                        @bind="SelectedEmployee">
+                    <option value="">All Employees</option>
+
+                    @foreach (var emp in Employees)
+                    {
+                        <option value="@emp.Id">@emp.FirstName @emp.LastName</option>
+                    }
+
+                </select>
+
+                <!-- STATUS FILTER -->
+                <InputSelect class="form-select form-select-sm ms-2"
+                             style="min-width:140px"
+                             @bind-Value="SelectedStatus">
+
+                    <option value="">All Status</option>
+
+                    @foreach (var s in TaskStatuses)
+                    {
+                        <option value="@s.Id">@s.Name</option>
+                    }
+
+                </InputSelect>
+
+            </div>
+
+        </div>
+
+        @if (CurrentView == "list")
+        {
+            <!-- TABLE -->
+            <div class="card-body p-0">
+                <div class="">
+                    <div>
+                        <table class="table align-middle w-100 table-fixed">
+
+                            <thead class="thead-light">
+                                <tr>
+                                    <th class="d-xl-none" style="width:40px"></th>
+                                    <th style="width:165px" title="Task Code">Task Code</th>
+                                    <th class="d-none d-md-table-cell">Title</th>
+                                    <th class="d-none d-md-table-cell">Start Date</th>
+                                    <th class="d-none d-md-table-cell">Due Date</th>
+                                    <th class="d-none d-xl-table-cell">Assignee</th>
+                                    <th class="d-none d-xl-table-cell">Priority</th>
+                                    <th class="d-none d-xxl-table-cell">Status</th>
+                                    <th style="width:120px">Action</th>
+                                </tr>
+                            </thead>
+
+                            <tbody>
+
+                                @if (PagedTasks.Any())
+                                {
+                                    foreach (var t in PagedTasks)
+                                    {
+                                        <tr>
+                                            <!-- PLUS ICON -->
+                                            <td class="d-xl-none text-center" style="padding: 0;padding-left: 15px;">
+                                                <a href="javascript:void(0);" class="TablePlus"
+                                                data-bs-toggle="modal"
+                                                data-bs-target="#rowDetailsModal"
+                                                @onclick="() => OpenRowDetails(t)">
+                                                    <i class="ti ti-plus"></i>
+                                                </a>
+                                            </td>
+                                            <td>
+                                                <div class="d-flex align-items-start flex-column gap-2">
+
+                                                    <span class="fw-medium ">
+                                                        <i class="ti ti-external-link me-2 PopupIcon"></i>
+                                                        <a @onclick="() => ViewTask(t)" class="link-View text-decoration-none link-View"
+                                                        data-bs-toggle="tooltip"
+                                                        data-bs-placement="top"
+                                                        title="@t.TaskCode details">
+                                                            @t.TaskCode
+                                                        </a>
+                                                    </span>
+                                                </div>
+                                            </td>
+
+                                            <td class="d-none d-md-table-cell">
+                                                <span class="fw-medium">
+                                                    <a @onclick="() => ViewTask(t)">
+                                                        @t.TaskName
+                                                    </a>
+                                                </span>
+                                            </td>
+
+
+                                            <td class="d-none d-md-table-cell">@t.StartDate.ToString("dd-MMM-yyyy")</td>
+                                            <td class="d-none d-md-table-cell">
+                                                @if (IsTaskOverdue(t))
+                                                {
+                                                    var days = (DateTime.Today - t.DueDate.Date).Days;
+                                                    <span class="text-danger ms-1">
+                                                        @t.DueDate.ToString("dd-MMM-yyyy")
+                                                            <span class="badge bg-danger-transparent ms-1">
+                                                                @days @(days == 1 ? "day" : "days") overdue
+                                                            </span>
+                                                    </span>
+                                                }
+                                                else
+                                                {
+                                                    @t.DueDate.ToString("dd-MMM-yyyy")
+                                                }
+                                            </td>
+
+                                            <td class="d-none d-xl-table-cell">@getAssigneeName(t.AssignedToId)</td>
+
+                                            <td class="d-none d-xl-table-cell">
+                                                <span class="badge @GetPriorityBadge(t.Priority)">
+                                                    @t.Priority
+                                                </span>
+                                            </td>
+
+                                            <td class="d-none d-xxl-table-cell">
+                                                <div class="d-flex align-items-center gap-2">
+                                                    <div class="ActiveDot @GetStatusColor(t)">
+                                                    </div>
+                                                    <span>@GetStatusName(t.StatusId)</span>
+                                                </div>
+                                            </td>
+
+                                            <td class="action-table-data">
+
+                                                <div class="edit-delete-action">
+
+                                                    <a class="me-2 edit-icon p-1" title="Edit Task"
+                                                    @onclick='() => EditTask(t)'>
+                                                        <i class="ti ti-edit"></i>
+                                                    </a>
+
+                                                        <a class="p-1 delete-icon" title="Delete Task" data-bs-toggle="modal" data-bs-target="#delete-modal" @onclick="() => ConfirmDelete(t)">
+                                                        <i class="ti ti-trash"></i>
+                                                    </a>
+
+                                                </div>
+
+                                            </td>
+
+                                        </tr>
+                                    }
+                                }
+                                else
+                                {
+                                    <tr>
+                                        <td colspan="@VisibleColumnCount" class="text-center py-4">
+                                            <div class="text-muted">
+                                                <i class="ti ti-database-off fs-32 d-block mb-2"></i>
+                                                No tasks found
+                                            </div>
+                                        </td>
+                                    </tr>
+
+                                }
+
+                            </tbody>
+
+                        </table>
+                    </div>
+
+                </div>
+                @if (PagedTasks.Any())
+                {
+                    <!-- Pagination -->
+                    <div class="d-flex justify-content-between align-items-center p-3">
+
+                        <div class="d-flex align-items-center fs-13">
+                            <span class="me-2">Rows Per Page</span>
+                            <select class="form-select form-select-sm w-auto"
+                            @onchange="OnPageSizeChange">
+                                <option value="5">5</option>
+                                <option value="10" selected>10</option>
+                                <option value="25">25</option>
+                            </select>
+                            <span class="ms-2">Entries</span>
+                        </div>
+
+                        <nav>
+                            <ul class="pagination pagination-sm mb-0">
+
+                                <!-- Prev -->
+                                <li class="page-item @(CurrentPage == 1 ? "disabled" : "")">
+                                    <a class="page-link" href="#"
+                                    @onclick="PreviousPage"
+                                    @onclick:preventDefault>
+                                        <i class="ti ti-chevron-left"></i>
+                                    </a>
+                                </li>
+
+                                <!-- Pages -->
+                                @foreach (var pageNumber in VisiblePages)
+                                {
+                                    <li class="page-item @(pageNumber == CurrentPage ? "active" : "")">
+                                        <button type="button"
+                                        class="page-link"
+                                        @onclick="() => GoToPage(pageNumber)">
+                                            @pageNumber
+                                        </button>
+                                    </li>
+                                }
+
+                                <!-- Next -->
+                                <li class="page-item @(CurrentPage == TotalPages ? "disabled" : "")">
+                                    <a class="page-link" href="#"
+                                    @onclick="NextPage"
+                                    @onclick:preventDefault>
+                                        <i class="ti ti-chevron-right"></i>
+                                    </a>
+                                </li>
+
+                            </ul>
+                        </nav>
+                    </div>
+                }
+
+            </div>
+        }
+        else if (CurrentView == "kanban")
+        {
+            <div class="kanban-board">
+
+                @foreach (var status in TaskStatuses)
+                {
+                    <div class="kanban-column">
+
+                        <div class="kanban-header d-flex justify-content-between align-items-center">
+
+                            <div>
+                                @status.Name
+                                <span class="badge @GetStatusColorByStatus(status)  ms-2">
+                                    @FilteredTasks.Count(x => x.StatusId == status.Id)
+                                </span>
+                            </div>
+
+                            <div class="dropdown">
+
+                                <i class="ti ti-dots-vertical cursor-pointer"
+                                   data-bs-toggle="dropdown"></i>
+
+                                <div class="dropdown-menu dropdown-menu-end">
+
+                                    <a class="dropdown-item" data-bs-toggle="modal"
+                                           data-bs-target="#createStatusModal"
+                                           @onclick="() => EditStatus(status)">
+                                        <i class="ti ti-edit me-2"></i>Edit
+                                    </a>
+
+                                    <a class="dropdown-item text-danger"
+                                           @onclick="() => DeleteStatus(status)">
+                                        <i class="ti ti-trash me-2"></i>Delete
+                                    </a>
+
+                                </div>
+
+                            </div>
+
+                        </div>
+
+                        <div class="kanban-body"
+                             data-statusid="@status.Id">
+
+                            @foreach (var task in FilteredTasks.Where(x => x.StatusId == status.Id))
+                            {
+                                <div class="kanban-card"
+                                     data-taskid="@task.Id"
+                                         @onclick="() => ViewTask(task)">
+                                        <div class="kanban-card-header d-flex justify-content-between align-items-start">
+
+                                            <div class="kanban-title">
+                                                @task.TaskCode
+                                            </div>
+
+                                            <!-- Delete Icon -->
+                                            <div clss="action-table-data">
+                                                <a class="p-1 delete-icon cursor-pointer"  style="border-radius:5px" title="Delete Task" data-bs-toggle="modal" data-bs-target="#delete-modal" @onclick="() => ConfirmDelete(task)"
+                                                       @onclick:stopPropagation="true">
+                                                    <i class="ti ti-trash"></i>
+                                                </a>
+                                            </div>
+
+
+                                        </div>
+
+                                    <div class="kanban-name">
+                                        @task.TaskName
+                                    </div>
+
+                                    <div class="kanban-meta">
+
+                                        <span class="badge @GetPriorityBadge(task.Priority)">
+                                            @task.Priority
+                                        </span>
+
+                                        <span class="kanban-date">
+                                            @task.DueDate.ToString("dd MMM")
+                                        </span>
+
+                                    </div>
+
+                                    <div class="kanban-user">
+                                        <i class="ti ti-user"></i>
+                                        @task.TaskOwnerName
+                                    </div>
+
+                                </div>
+                            }
+
+                        </div>
+
+                    </div>
+                }
+                @* @onclick="AddNewStatus" *@
+                <div class="kanban-column kanban-add-status">
+
+                    <div class="kanban-add-btn"
+                         data-bs-toggle="modal"
+                         data-bs-target="#createStatusModal">
+
+                        <i class="ti ti-plus me-1"></i>
+                        Add New
+
+                    </div>
+
+                </div>
+            </div>
+        }
+    </div>
+
+
+    <!-- delete modal -->
+    <div class="modal fade" id="delete-modal">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="page-wrapper-new p-0">
+                    <div class="p-5 px-3 text-center">
+                        <span class="rounded-circle d-inline-flex p-2 bg-danger-transparent mb-2"><i class="ti ti-trash fs-24 text-danger"></i></span>
+                        <h4 class="fs-20 text-gray-9 fw-bold mb-2 mt-1">Delete Task</h4>
+                        <p class="text-gray-6 mb-0 fs-16">
+                            @if (!canDelete)
+                            {
+                                <span class="text-danger">Cannot delete this Task. Task is assigned.</span>
+                            }
+                            else
+                            {
+                                <span>Are you sure you want to delete <strong title="@SelectedTask?.TaskCode">@SelectedTask?.TaskCode</strong>?</span>
+                            }
+                        </p>
+
+                        @if (canDelete)
+                        {
+                            <div class="alert alert-danger mt-3 text-start small">
+                                <i class="ti ti-alert-triangle me-2"></i>
+                                This action cannot be undone.
+                            </div>
+                        }
+                        <div class="modal-footer-btn mt-3 d-flex justify-content-center">
+                            <button type="button" class="btn me-2 btn-outline-secondary fs-13 fw-medium p-2 px-3 shadow-none" data-bs-dismiss="modal"><i class="ti ti-x me-1"></i>Cancel</button>
+                            @if (canDelete)
+                            {
+                                <button type="button" class="btn btn-danger fs-13 fw-medium p-2 px-4" @onclick="DeleteConfirmed" data-bs-dismiss="modal">
+                                    <i class="ti ti-trash me-1"></i>Yes, Delete
+                                </button>
+                            }
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+
+    <!-- Responsive Task Details Modal -->
+    <div class="modal fade list-Popup" id="rowDetailsModal" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+
+                <div class="modal-header">
+                    <h5 class="modal-title">
+                        <i class="ti ti-checklist me-2 text-primary"></i>
+                        Task Details
+                    </h5>
+
+                    <button type="button"
+                            class="btn-close"
+                            data-bs-dismiss="modal"
+                            style="padding:0; right:22px; position:absolute;transform:none">
+                    </button>
+                </div>
+
+                @if (SelectedTask != null)
+                {
+                    <div class="modal-body">
+
+                        <!-- Task Code -->
+                        <div class="mb-2 d-flex gap-3">
+                            <strong>Task Code:</strong>
+                            <div>@SelectedTask.TaskCode</div>
+                        </div>
+
+                        <!-- Title -->
+                        <div class="mb-2 d-flex gap-3">
+                            <strong>Title:</strong>
+                            <div class="text-truncate"
+                                 style="max-width:95%"
+                                 title="@SelectedTask.TaskName">
+                                @SelectedTask.TaskName
+                            </div>
+                        </div>
+
+                        <!-- Start Date -->
+                        <div class="mb-2 d-flex gap-3">
+                            <strong>Start Date:</strong>
+                            <div>@SelectedTask.StartDate.ToString("dd-MMM-yyyy")</div>
+                        </div>
+
+                        <!-- Due Date -->
+                        <div class="mb-2 d-flex gap-3">
+                            <strong>Due Date:</strong>
+                            <div>@SelectedTask.DueDate.ToString("dd-MMM-yyyy")</div>
+                        </div>
+
+                        <!-- Assignee -->
+                        <div class="mb-2 d-flex gap-3">
+                            <strong>Assignee:</strong>
+                            <div>@SelectedTask.TaskOwnerName</div>
+                        </div>
+
+                        <!-- Priority -->
+                        <div class="mb-2 d-flex gap-3">
+                            <strong>Priority:</strong>
+                            <span class="badge @GetPriorityBadge(SelectedTask.Priority)">
+                                @SelectedTask.Priority
+                            </span>
+                        </div>
+
+                        <!-- Status -->
+                        <div class="mb-2 d-flex gap-3">
+                            <strong>Status:</strong>
+                            <span class="badge @GetStatusBadge(GetStatusName(SelectedTask.StatusId))">
+                                @GetStatusName(SelectedTask.StatusId)
+                            </span>
+                        </div>
+
+                    </div>
+                }
+
+            </div>
+        </div>
+    </div>
+
+
+
+    <!-- CREATE STATUS MODAL -->
+    <div class="modal fade list-Popup"
+         id="createStatusModal"
+         tabindex="-1"
+         data-bs-backdrop="static">
+
+        <div class="modal-dialog modal-lg modal-dialog-centered">
+
+            <div class="modal-content">
+
+                <!-- HEADER -->
+                <div class="modal-header">
+
+                    <h5 class="modal-title">
+                        <i class="ti ti-layout-kanban me-2 text-primary"></i>
+                        @(IsStatusEdit ? "Edit Task Status" : "Create Task Status")
+                    </h5>
+
+                    <button type="button"
+                            class="btn-close"
+                            data-bs-dismiss="modal"
+                            @onclick="CloseStatusModel"
+                            style="padding:0; right:22px; position:absolute;transform:none">
+                    </button>
+
+                </div>
+
+                <div class="modal-body">
+
+                    <EditForm id="statusForm" Model="NewStatus"
+                              OnValidSubmit="CreateStatus">
+
+                        <DataAnnotationsValidator />
+
+                        <!-- STATUS IDENTITY -->
+                        <div class="mb-1">
+
+                            <div class="card-header py-2">
+                                <h6 class="mb-0 text-primary">
+                                    <i class="ti ti-tag me-2"></i>Status Identity
+                                </h6>
+                            </div>
+
+                            <div class="card-body py-2">
+
+                                <div class="row">
+                                    <div class="ms-4 row ps-0">
+
+                                        <div class="col-md-4 mb-2">
+
+                                            <small class="text-muted">Status Name <span class="text-danger ms-1">*</span></small>
+
+                                            <InputText class="form-control" maxlength="30"
+                                                       @bind-Value="NewStatus.Name"
+                                                       placeholder="Enter status name" />
+
+                                            <ValidationMessage For="@(() => NewStatus.Name)" />
+
+                                        </div>
+
+                                        <div class="col-md-4 mb-2">
+
+                                            <small class="text-muted">Color</small>
+
+                                            <InputText class="form-control"
+                                                       @bind-Value="NewStatus.Color"
+                                                       placeholder="bg-primary-transparent text-primary" />
+
+                                        </div>
+
+                                    </div>
+                                </div>
+
+                            </div>
+
+                        </div>
+
+
+                        <!-- WORKFLOW SETTINGS -->
+                        <div class="mb-1">
+
+                            <div class="card-header py-2">
+                                <h6 class="mb-0 text-primary">
+                                    <i class="ti ti-settings me-2"></i>Workflow Settings
+                                </h6>
+                            </div>
+
+                            <div class="card-body py-2">
+
+                                <div class="row">
+                                    <div class="ms-4 row ps-0">
+
+                                        <div class="col-md-4 mb-2">
+
+                                            <small class="text-muted">Sort Order</small>
+
+                                            <InputNumber class="form-control" min="0"
+                                                         disabled="@IsStatusEdit"
+                                                         @bind-Value="NewStatus.SortOrder" />
+
+                                        </div>
+
+
+                                        <div class="col-md-4 mb-2">
+
+                                            <small class="text-muted">Active</small>
+
+                                            <div class="form-check mt-2">
+
+                                                <InputCheckbox class="form-check-input"
+                                                               disabled="@IsStatusEdit" @bind-Value="NewStatus.IsActive" />
+
+                                                <label class="form-check-label">
+                                                    Enable Status
+                                                </label>
+
+                                            </div>
+
+                                        </div>
+
+                                    </div>
+                                </div>
+
+                            </div>
+
+                        </div>
+
+
+
+                    </EditForm>
+
+                </div>
+
+
+                <!-- FOOTER -->
+                <div class="modal-footer gap-2">
+
+                    <button type="button" @onclick="CloseStatusModel"
+                            class="btn btn-outline-secondary"
+                            data-bs-dismiss="modal">
+                        <i class="ti ti-x me-1"></i>
+                        Cancel
+
+                    </button>
+
+                    <button type="submit" form="statusForm"
+                            class="btn btn-primary">
+
+                        <i class="ti ti-device-floppy me-1"></i>
+                        @(IsStatusEdit ? "Update" : "Save")
+
+                    </button>
+
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>
+</div>
+
+
+
+<!-- Create/Edit Task form Offcanvas -->
+<div class="offcanvas offcanvas-end offcanvas-view"
+     tabindex="-1"
+     id="taskFormOffcanvas">
+
+    <!-- HEADER -->
+    <div class="offcanvas-header">
+
+        <div class="oc-avatar">
+            <i class="ti ti-checklist"></i>
+        </div>
+
+        <div class="oc-header-info">
+
+            <div class="oc-header-top">
+                <h5>@(IsEdit ? "Edit Task" : "Create Task")</h5>
+
+                <span class="badge bg-primary">
+                    @Tasks.TaskCode
+                </span>
+
+            </div>
+
+            <p class="oc-header-sub">
+                Manage task information
+            </p>
+
+        </div>
+
+        <button type="button"
+                class="btn-close"
+                data-bs-dismiss="offcanvas" @onclick="() => closeOffCanvas()">
+        </button>
+
+    </div>
+
+        
+    <!-- SCROLLABLE BODY -->
+    <div class="offcanvas-body">
+
+        <EditForm id="taskForm" EditContext="_editContext" OnValidSubmit="SaveTask">
+            <DataAnnotationsValidator />
+
+            <!-- Task Details -->
+            <div class="oc-card">
+
+                <div class="oc-card-header hdr-orange">
+                    <i class="ti ti-list-check"></i>
+                    <h6 class="oc-card-title">Task Details</h6>
+                </div>
+
+                <div class="oc-card-body">
+
+                    <div class="oc-grid" style="grid-template-columns:100%">
+
+                        <div class="oc-grid-item">
+                            <label class="oc-field-label">
+                                <i class="ti ti-user"></i>
+                                Task Owner
+                            </label>
+
+                            <InputText class="form-control"
+                                       @bind-Value="Tasks.TaskOwnerName" disabled />
+
+                            <ValidationMessage For="@(() => Tasks.TaskOwnerName)" />
+                        </div>
+
+
+                        <div class="oc-grid-item">
+
+                            <label class="oc-field-label">
+                                <i class="ti ti-writing"></i>
+                                Task Name <span class="text-danger ms-1">*</span>
+                            </label>
+
+                            <InputText class="form-control" placeholder="Enter task title..."
+                                       @bind-Value="Tasks.TaskName" />
+
+                            <ValidationMessage For="@(() => Tasks.TaskName)" />
+
+                        </div>
+
+
+                        <div class="oc-grid-item">
+
+                            <label class="oc-field-label">
+                                <i class="ti ti-file-text"></i>
+                                Description
+                            </label>
+                            <RichTextEditor @ref="_descriptionEditor"
+                                            @bind-Value="Tasks.Description"
+                                            MaxHeight="200" MinHeight="80"
+                                            placeholder="Additional notes..." />
+
+
+                        </div>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+
+            <!-- Dates -->
+            <div class="oc-card">
+
+                <div class="oc-card-header hdr-blue">
+                    <i class="ti ti-calendar"></i>
+                    <h6 class="oc-card-title">Schedule</h6>
+                </div>
+
+                <div class="oc-card-body">
+
+                    <div class="oc-grid" style="gap:10px">
+
+                        <div class="oc-grid-item">
+
+                            <label class="oc-field-label">
+                                <i class="ti ti-calendar-plus"></i>
+                                Start Date <span class="text-danger ms-1">*</span>
+                            </label>
+
+                            <InputDate class="form-control"
+                                       @bind-Value="Tasks.StartDate" />
+
+                        </div>
+
+
+                        <div class="oc-grid-item">
+
+                            <label class="oc-field-label">
+                                <i class="ti ti-calendar-event"></i>
+                                Due Date <span class="text-danger ms-1">*</span>
+                            </label>
+
+                                <InputDate class="form-control" min="@(Tasks.StartDate.ToString("yyyy-MM-dd"))"
+                                       @bind-Value="Tasks.DueDate" />
+
+                        </div>
+
+                        <div class="oc-grid-item">
+                            <label class="oc-field-label">
+                                <i class="ti ti-user"></i>
+                                Assigned To
+                            </label>
+
+                            <InputSelect class="form-select"
+                                         @bind-Value="Tasks.AssignedToId">
+
+                                <option value="">-- Select Assignee --</option>
+
+                                @foreach (var emp in Employees)
+                                {
+                                    <option value="@emp.Id">@emp.FirstName @emp.LastName</option>
+                                }
+
+                            </InputSelect>
+
+                            <ValidationMessage For="@(() => Tasks.AssignedToId)" />
+                        </div>
+
+
+                    </div>
+
+                </div>
+
+            </div>
+
+
+            <!-- Priority & Status -->
+            <div class="oc-card">
+
+                <div class="oc-card-header hdr-green">
+                    <i class="ti ti-flag"></i>
+                    <h6 class="oc-card-title">Priority & Status</h6>
+                </div>
+
+                <div class="oc-card-body">
+
+                    <div class="oc-grid" style="gap:10px">
+
+                        <div class="oc-grid-item">
+
+                            <label class="oc-field-label">
+                                <i class="ti ti-alert-triangle"></i>
+                                Priority <span class="text-danger ms-1">*</span>
+                            </label>
+
+                            <InputSelect class="form-select"
+                                         @bind-Value="Tasks.Priority">
+
+                                @foreach (var p in Enum.GetValues<TaskPriority>())
+                                {
+                                    <option value="@p">@p</option>
+                                }
+
+                            </InputSelect>
+
+                        </div>
+
+
+                        <div class="oc-grid-item">
+
+                            <label class="oc-field-label">
+                                <i class="ti ti-activity"></i>
+                                Status <span class="text-danger ms-1">*</span>
+                            </label>
+
+                            <InputSelect class="form-select"
+                                         @bind-Value="Tasks.StatusId">
+
+                                <option value="">Select Status</option>
+
+                                @foreach (var s in TaskStatuses)
+                                {
+                                    <option value="@s.Id">@s.Name</option>
+                                }
+
+                            </InputSelect>
+                            <ValidationMessage For="@(() => Tasks.StatusId)" />
+                        </div>
+
+                    </div>
+
+                </div>
+
+            </div>
+        </EditForm>
+        </div>
+
+
+        <!-- Footer -->
+        <div class="offcanvas-footer p-3 border-top d-flex justify-content-end gap-2">
+
+        <button type="button" form="taskForm"
+                    class="btn btn-outline-secondary"
+                data-bs-dismiss="offcanvas" @onclick="() => closeOffCanvas()">
+            <i class="ti ti-x me-1"></i>
+                Cancel
+
+            </button>
+
+        <button type="submit"
+                form="taskForm"
+                    class="btn btn-primary">
+
+                <i class="ti ti-device-floppy me-1"></i>
+                @(IsEdit ? "Update" : "Save")
+
+            </button>
+
+        </div>
+
+
+    
+</div>
+
+
+
+<!-- View Task Offcanvas -->
+<div class="offcanvas offcanvas-end offcanvas-view"
+     tabindex="-1"
+     id="viewTaskOffcanvas"
+     data-bs-backdrop="true"
+     data-bs-scroll="false">
+
+    @if (SelectedTask != null)
+    {
+        <!-- Header -->
+        <div class="offcanvas-header">
+
+            <div class="oc-avatar">
+                <i class="ti ti-checklist"></i>
+            </div>
+
+            <div class="oc-header-info">
+
+                <div class="oc-header-top">
+
+                    <h5>@SelectedTask.TaskName</h5>
+
+                </div>
+                <div style="display: flex;gap: 10px;">
+                    <p class="oc-header-sub">@SelectedTask.TaskCode</p>
+                    <span class="badge @GetStatusBadge(GetStatusName(SelectedTask.StatusId))">
+                        @GetStatusName(SelectedTask.StatusId)
+                    </span>
+                </div>
+
+
+            </div>
+
+            <button type="button"
+                    class="btn-close"
+                    data-bs-dismiss="offcanvas">
+            </button>
+
+        </div>
+
+
+        <!-- BODY -->
+        <div class="offcanvas-body">
+
+            <!-- SUMMARY -->
+            <div class="oc-summary-row">
+
+                <div class="oc-summary-card card-orange">
+                    <div class="oc-summary-value">
+                        @SelectedTask.Priority
+                    </div>
+                    <div class="oc-summary-label">Priority</div>
+                </div>
+
+                <div class="oc-summary-card card-blue">
+                    <div class="oc-summary-value">
+                        @SelectedTask.StartDate.ToString("dd MMM")
+                    </div>
+                    <div class="oc-summary-label">Start Date</div>
+                </div>
+
+                <div class="oc-summary-card card-green">
+                    <div class="oc-summary-value">
+                        @SelectedTask.DueDate.ToString("dd MMM")
+                    </div>
+                    <div class="oc-summary-label">Due Date</div>
+                </div>
+
+            </div>
+
+
+            <!-- TASK DETAILS -->
+            <div class="oc-card">
+
+                <div class="oc-card-header hdr-orange">
+                    <i class="ti ti-list-check"></i>
+                    <h6 class="oc-card-title">Task Details</h6>
+                </div>
+
+                <div class="oc-card-body">
+
+                    <div class="oc-grid">
+
+                        <div class="oc-grid-item">
+                            <div class="oc-field-label">
+                                <i class="ti ti-barcode"></i> Task Code
+                            </div>
+                            <div class="oc-field-value">
+                                @SelectedTask.TaskCode
+                            </div>
+                        </div>
+
+                        <div class="oc-grid-item">
+                            <div class="oc-field-label">
+                                <i class="ti ti-writing"></i> Task Name
+                            </div>
+                            <div class="oc-field-value">
+                                @SelectedTask.TaskName
+                            </div>
+                        </div>
+
+                        <div class="oc-grid-item">
+                            <div class="oc-field-label">
+                                <i class="ti ti-user"></i> Task Owner
+                            </div>
+                            <div class="oc-field-value">
+                                @SelectedTask.TaskOwnerName
+                            </div>
+                        </div>
+
+                        <div class="oc-grid-item">
+                            <div class="oc-field-label">
+                                <i class="ti ti-user-check"></i> Assigned To
+                            </div>
+                            <div class="oc-field-value">
+                                @(Employees.FirstOrDefault(x => x.Id == SelectedTask.AssignedToId)?.FirstName ?? "—")
+                            </div>
+                        </div>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+
+            <!-- DESCRIPTION -->
+            <div class="oc-card">
+
+                <div class="oc-card-header hdr-blue">
+                    <i class="ti ti-file-text"></i>
+                    <h6 class="oc-card-title">Description</h6>
+                </div>
+
+                <div class="oc-card-body">
+
+                    <div class="oc-field-value ql-editor">
+                        @if (!string.IsNullOrWhiteSpace(SelectedTask.Description))
+                        {
+                            @((MarkupString)SelectedTask.Description)
+                        }
+                        else
+                        {
+                            <span>—</span>
+                        }
+                    </div>
+
+                </div>
+
+            </div>
+
+
+            <!-- STATUS & PRIORITY -->
+            <div class="oc-card">
+
+                <div class="oc-card-header hdr-green">
+                    <i class="ti ti-activity"></i>
+                    <h6 class="oc-card-title">Status & Priority</h6>
+                </div>
+
+                <div class="oc-card-body">
+
+                    <div class="oc-list">
+
+                        <div class="oc-list-row">
+
+                            <span class="oc-list-label">
+                                <i class="ti ti-flag"></i> Priority
+                            </span>
+
+                            <span class="oc-list-value">
+
+                                <span class="badge @GetPriorityBadge(SelectedTask.Priority)">
+                                    @SelectedTask.Priority
+                                </span>
+
+                            </span>
+
+                        </div>
+
+                        <div class="oc-list-row">
+
+                            <span class="oc-list-label">
+                                <i class="ti ti-activity"></i> Status
+                            </span>
+
+                            <span class="oc-list-value">
+
+                                <span class="badge @GetStatusBadge(GetStatusName(SelectedTask.StatusId))">
+                                    @GetStatusName(SelectedTask.StatusId)
+                                </span>
+
+                            </span>
+
+                        </div>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+
+            <!-- AUDIT -->
+            <div class="oc-card">
+
+                <div class="oc-card-header hdr-purple">
+                    <i class="ti ti-clock-record"></i>
+                    <h6 class="oc-card-title">Audit Information</h6>
+                </div>
+
+                <div class="oc-card-body">
+
+                    <div class="oc-list">
+
+                        <div class="oc-list-row">
+                            <span class="oc-list-label">
+                                <i class="ti ti-calendar-plus"></i> Created
+                            </span>
+                            <span class="oc-list-value">
+                                @SelectedTask.CreatedAt.ToString("dd-MMM-yyyy")
+                            </span>
+                        </div>
+
+                        @if (SelectedTask.UpdatedAt.HasValue)
+                        {
+                            <div class="oc-list-row">
+                                <span class="oc-list-label">
+                                    <i class="ti ti-calendar-event"></i> Updated
+                                </span>
+                                <span class="oc-list-value">
+                                    @SelectedTask.UpdatedAt.Value.ToString("dd-MMM-yyyy")
+                                </span>
+                            </div>
+                        }
+
+                        @if (SelectedTask.CompletedAt.HasValue)
+                        {
+                            <div class="oc-list-row">
+                                <span class="oc-list-label">
+                                    <i class="ti ti-check"></i> Completed
+                                </span>
+                                <span class="oc-list-value">
+                                    @SelectedTask.CompletedAt.Value.ToString("dd-MMM-yyyy")
+                                </span>
+                            </div>
+                        }
+
+                    </div>
+
+                </div>
+
+            </div>
+
+        </div>
+    }
+</div>
+}

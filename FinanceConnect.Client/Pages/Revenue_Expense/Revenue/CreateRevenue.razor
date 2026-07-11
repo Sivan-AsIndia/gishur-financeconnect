@@ -1,0 +1,1236 @@
+@page "/revenues/create"
+@page "/revenues/{Id:guid}"
+
+@using FinanceConnect.Client.Services
+@using FinanceConnect.Client.ViewModels
+@using static FinanceConnect.Client.ViewModels.RevenueViewModel
+
+
+<script>
+    window.revenueScrollToId = function (id) {
+        var el = document.getElementById(id);
+        if (el) {
+            el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+    };
+</script>
+
+<style>
+    .form-select option:checked {
+        color: #fff;
+        background: var(--primary);
+    }
+    .form-select:focus {
+        border-color: var(--primary);
+        box-shadow: none;
+    }
+    .validation-message {
+        color: #dc3545;
+        font-size: 12px;
+    }
+    .readonly-field {
+        background-color: #f8f9fa;
+        border-color: #dee2e6;
+        cursor: not-allowed;
+    }
+    .amount-derived {
+        background: linear-gradient(135deg, #f0fdf4 0%, #e8f5e9 100%);
+        border: 1px solid #c8e6c9;
+        border-radius: 6px;
+        padding: 8px 12px;
+        font-weight: 600;
+        color: #2e7d32;
+    }
+</style>
+
+<div class="content Accordion-form">
+
+    <!-- PAGE HEADER -->
+    <div class="page-header">
+        <div class="add-item d-flex">
+            <div class="page-title">
+                <h4 class="fw-bold">@PageTitle</h4>
+                <h6>@PageSubTitle</h6>
+            </div>
+        </div>
+        <div class="page-btn mt-0">
+            <button type="button" class="btn btn-outline-secondary" @onclick="BackToList">
+                <i class="ti ti-arrow-left me-1"></i>Back
+            </button>
+        </div>
+    </div>
+
+    <EditForm EditContext="_editContext" OnSubmit="HandleSubmit">
+        <DataAnnotationsValidator />
+
+        <div class="add-product" style="background:#f4f7fb; padding:24px 14px;">
+            <div class="tl-accordion">
+
+                <!-- LEFT PANEL -->
+                <div class="tl-left-panel">
+
+                    <div class="tl-label @(ShowIdentity ? "active accent-orange" : "")"
+                         @onclick='async () => await ToggleAccordion("identity")'>
+                        <div class="tl-label-icon ico-orange"><i data-feather="tag"></i></div>
+                        <div class="tl-label-text">
+                            <div class="tl-label-title">Core Identity</div>
+                            <div class="tl-label-sub">Code, name &amp; status</div>
+                        </div>
+                        <span class="tl-label-chevron @(ShowIdentity ? "open" : "")">
+                            <i data-feather="chevron-right"></i>
+                        </span>
+                    </div>
+
+                    <div class="tl-label @(ShowCustomer ? "active accent-blue" : "")"
+                         @onclick='async () => await ToggleAccordion("customer")'>
+                        <div class="tl-label-icon ico-blue"><i data-feather="user"></i></div>
+                        <div class="tl-label-text">
+                            <div class="tl-label-title">Customer / Source</div>
+                            <div class="tl-label-sub">Source document &amp; context</div>
+                        </div>
+                        <span class="tl-label-chevron @(ShowCustomer ? "open" : "")">
+                            <i data-feather="chevron-right"></i>
+                        </span>
+                    </div>
+
+                    <div class="tl-label @(ShowClassification ? "active accent-teal" : "")"
+                         @onclick='async () => await ToggleAccordion("classification")'>
+                        <div class="tl-label-icon ico-teal"><i data-feather="layers"></i></div>
+                        <div class="tl-label-text">
+                            <div class="tl-label-title">Classification</div>
+                            <div class="tl-label-sub">Type, nature &amp; category</div>
+                        </div>
+                        <span class="tl-label-chevron @(ShowClassification ? "open" : "")">
+                            <i data-feather="chevron-right"></i>
+                        </span>
+                    </div>
+
+                    <div class="tl-label @(ShowAmounts ? "active accent-green" : "")"
+                         @onclick='async () => await ToggleAccordion("amounts")'>
+                        <div class="tl-label-icon ico-green"><i data-feather="dollar-sign"></i></div>
+                        <div class="tl-label-text">
+                            <div class="tl-label-title">Revenue Amounts</div>
+                            <div class="tl-label-sub">Gross, recognised &amp; deferred</div>
+                        </div>
+                        <span class="tl-label-chevron @(ShowAmounts ? "open" : "")">
+                            <i data-feather="chevron-right"></i>
+                        </span>
+                    </div>
+
+                    <div class="tl-label @(ShowRecognition ? "active accent-purple" : "")"
+                         @onclick='async () => await ToggleAccordion("recognition")'>
+                        <div class="tl-label-icon ico-purple"><i data-feather="check-circle"></i></div>
+                        <div class="tl-label-text">
+                            <div class="tl-label-title">Recognition Readiness</div>
+                            <div class="tl-label-sub">Method, schedule &amp; status</div>
+                        </div>
+                        <span class="tl-label-chevron @(ShowRecognition ? "open" : "")">
+                            <i data-feather="chevron-right"></i>
+                        </span>
+                    </div>
+
+                    <div class="tl-label @(ShowBilling ? "active accent-rose" : "")"
+                         @onclick='async () => await ToggleAccordion("billing")'>
+                        <div class="tl-label-icon ico-rose"><i data-feather="file-text"></i></div>
+                        <div class="tl-label-text">
+                            <div class="tl-label-title">Billing / Collection</div>
+                            <div class="tl-label-sub">Invoice &amp; payment references</div>
+                        </div>
+                        <span class="tl-label-chevron @(ShowBilling ? "open" : "")">
+                            <i data-feather="chevron-right"></i>
+                        </span>
+                    </div>
+
+                    <div class="tl-label @(ShowDimensions ? "active accent-blue" : "")"
+                         @onclick='async () => await ToggleAccordion("dimensions")'>
+                        <div class="tl-label-icon ico-blue"><i data-feather="grid"></i></div>
+                        <div class="tl-label-text">
+                            <div class="tl-label-title">Dimensions &amp; Ownership</div>
+                            <div class="tl-label-sub">Branch, dept &amp; cost centre</div>
+                        </div>
+                        <span class="tl-label-chevron @(ShowDimensions ? "open" : "")">
+                            <i data-feather="chevron-right"></i>
+                        </span>
+                    </div>
+
+                    <div class="tl-label @(ShowWorkflow ? "active accent-green" : "")"
+                         @onclick='async () => await ToggleAccordion("workflow")'>
+                        <div class="tl-label-icon ico-green"><i data-feather="shield"></i></div>
+                        <div class="tl-label-text">
+                            <div class="tl-label-title">Workflow &amp; Governance</div>
+                            <div class="tl-label-sub">Preparers, approvers &amp; lock</div>
+                        </div>
+                        <span class="tl-label-chevron @(ShowWorkflow ? "open" : "")">
+                            <i data-feather="chevron-right"></i>
+                        </span>
+                    </div>
+
+                    <div class="tl-label @(ShowNotes ? "active accent-orange" : "")"
+                         @onclick='async () => await ToggleAccordion("notes")'>
+                        <div class="tl-label-icon ico-orange"><i data-feather="file"></i></div>
+                        <div class="tl-label-text">
+                            <div class="tl-label-title">Notes &amp; Assumptions</div>
+                            <div class="tl-label-sub">Supporting evidence</div>
+                        </div>
+                        <span class="tl-label-chevron @(ShowNotes ? "open" : "")">
+                            <i data-feather="chevron-right"></i>
+                        </span>
+                    </div>
+
+                </div>
+
+                <!-- RIGHT TIMELINE AREA -->
+                <div class="tl-right-area">
+
+                    <!-- 01. Core Identity -->
+                    <div id="rv-card-identity" class="tl-card-row @(ShowIdentity ? "row-active" : "")">
+                        <div class="tl-dot-col">
+                            <div class="tl-dot" @onclick='async () => await ToggleAccordion("identity")'></div>
+                        </div>
+                        <div class="tl-card-col">
+                            <div class="tl-card @(ShowIdentity ? "card-active border-orange" : "")">
+                                <div class="tl-card-header" @onclick='async () => await ToggleAccordion("identity")'>
+                                    <div class="tl-card-header-title">
+                                        <span class="tl-card-step step-orange">01</span>Core Identity
+                                    </div>
+                                    <span class="tl-card-toggle @(ShowIdentity ? "toggle-open" : "")">
+                                        <i data-feather="chevron-down"></i>
+                                    </span>
+                                </div>
+                                <div class="tl-collapse @(ShowIdentity ? "tl-open" : "")">
+                                    <div class="tl-card-body">
+                                        <div class="tl-card-body-inner @(IdentityTouched ? "touched" : "")">
+                                            <div class="row">
+
+                                                <div class="col-sm-3 mb-3">
+                                                    <label class="form-label">
+                                                        Revenue Code <span class="text-danger">*</span>
+                                                    </label>
+                                                    <input class="@($"form-control text-uppercase {GetValidationClass(() => model.RevenueCode)}")"
+                                                           @bind="RevenueCodeInput"
+                                                           maxlength="30"
+                                                           disabled="@IsEdit"
+                                                           placeholder="e.g. REV-2026-0001"
+                                                           title="Unique revenue code per company"
+                                                           @oninput="TouchIdentity" />
+                                                    <ValidationMessage For="@(() => model.RevenueCode)" />
+                                                </div>
+
+                                                <div class="col-sm-6 mb-3">
+                                                    <label class="form-label">
+                                                        Revenue Name <span class="text-danger">*</span>
+                                                    </label>
+                                                    <input class="@($"form-control {GetValidationClass(() => model.RevenueName)}")"
+                                                           @bind="model.RevenueName"
+                                                           maxlength="200"
+                                                           placeholder="e.g. Annual Subscription – Customer A"
+                                                           title="Descriptive name for this revenue event"
+                                                           @oninput="TouchIdentity" />
+                                                    <ValidationMessage For="@(() => model.RevenueName)" />
+                                                </div>
+
+                                                <div class="col-sm-3 mb-3">
+                                                    <label class="form-label">
+                                                        Status <span class="text-danger">*</span>
+                                                    </label>
+                                                    <select class="@($"form-select {GetValidationClass(() => (object)model.Status)}")"
+                                                            @bind="model.Status"
+                                                            title="Current lifecycle status of this revenue record"
+                                                            @oninput="TouchIdentity">
+                                                        @foreach (var v in Enum.GetValues<RevenueStatus>())
+                                                        {
+                                                            <option value="@v">@v</option>
+                                                        }
+                                                    </select>
+                                                    <ValidationMessage For="@(() => (object)model.Status)" />
+                                                </div>
+
+                                                <div class="col-sm-12 mb-3">
+                                                    <label class="form-label">Description</label>
+                                                    <textarea class="form-control"
+                                                              rows="3"
+                                                              maxlength="1000"
+                                                              placeholder="Brief description of this revenue event"
+                                                              @bind="model.Description"
+                                                              @oninput="TouchIdentity"></textarea>
+                                                </div>
+
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 02. Customer / Source Context -->
+                    <div id="rv-card-customer" class="tl-card-row @(ShowCustomer ? "row-active" : "")">
+                        <div class="tl-dot-col">
+                            <div class="tl-dot" @onclick='async () => await ToggleAccordion("customer")'></div>
+                        </div>
+                        <div class="tl-card-col">
+                            <div class="tl-card @(ShowCustomer ? "card-active border-blue" : "")">
+                                <div class="tl-card-header" @onclick='async () => await ToggleAccordion("customer")'>
+                                    <div class="tl-card-header-title">
+                                        <span class="tl-card-step step-blue">02</span>Customer / Source Context
+                                    </div>
+                                    <span class="tl-card-toggle @(ShowCustomer ? "toggle-open" : "")">
+                                        <i data-feather="chevron-down"></i>
+                                    </span>
+                                </div>
+                                <div class="tl-collapse @(ShowCustomer ? "tl-open" : "")">
+                                    <div class="tl-card-body">
+                                        <div class="tl-card-body-inner @(CustomerTouched ? "touched" : "")">
+                                            <div class="row">
+
+                                                <div class="col-sm-5 mb-3">
+                                                    <label class="form-label">
+                                                        Customer <span class="text-danger">*</span>
+                                                    </label>
+                                                    <select class="@($"form-select {GetValidationClass(() => model.CustomerId)}")"
+                                                            @bind="model.CustomerId"
+                                                            @bind:after="OnCustomerChanged"
+                                                            title="Select the customer associated with this revenue"
+                                                            @oninput="TouchCustomer">
+                                                        <option value="@Guid.Empty">-- Select Customer --</option>
+                                                        @foreach (var c in Customers)
+                                                        {
+                                                            <option value="@c.Id">@c.CustomerCode – @c.CustomerName</option>
+                                                        }
+                                                    </select>
+                                                    <ValidationMessage For="@(() => model.CustomerId)" />
+                                                </div>
+
+                                                <div class="col-sm-3 mb-3">
+                                                    <label class="form-label">Customer Code (Snapshot)</label>
+                                                    <input class="form-control readonly-field"
+                                                           value="@model.CustomerCodeSnapshot"
+                                                           readonly
+                                                           title="Auto-populated from selected customer"
+                                                           placeholder="Auto-filled" />
+                                                </div>
+
+                                                <div class="col-sm-4 mb-3">
+                                                    <label class="form-label">Customer Name (Snapshot)</label>
+                                                    <input class="form-control readonly-field"
+                                                           value="@model.CustomerNameSnapshot"
+                                                           readonly
+                                                           title="Audit snapshot of customer name at time of creation"
+                                                           placeholder="Auto-filled" />
+                                                </div>
+
+                                                <div class="col-sm-4 mb-3">
+                                                    <label class="form-label">
+                                                        Source Document Type <span class="text-danger">*</span>
+                                                    </label>
+                                                    <select class="@($"form-select {GetValidationClass(() => (object)model.RevenueSourceDocType)}")"
+                                                            @bind="model.RevenueSourceDocType"
+                                                            title="Type of source document that triggered this revenue"
+                                                            @oninput="TouchCustomer">
+                                                        @foreach (var v in Enum.GetValues<RevenueSourceDocType>())
+                                                        {
+                                                            <option value="@v">@v</option>
+                                                        }
+                                                    </select>
+                                                    <ValidationMessage For="@(() => (object)model.RevenueSourceDocType)" />
+                                                </div>
+
+                                                <div class="col-sm-4 mb-3">
+                                                    <label class="form-label">Source Document Number</label>
+                                                    <input class="form-control"
+                                                           @bind="model.SourceDocumentNumber"
+                                                           maxlength="50"
+                                                           placeholder="e.g. INV-2026-0045 / SUB-2026-001"
+                                                           title="Reference number of the originating source document"
+                                                           @oninput="TouchCustomer" />
+                                                </div>
+
+                                                <div class="col-sm-4 mb-3">
+                                                    <label class="form-label">Milestone Reference</label>
+                                                    <input class="form-control"
+                                                           @bind="model.MilestoneReference"
+                                                           maxlength="100"
+                                                           placeholder="e.g. Phase 2 Delivery Complete"
+                                                           title="Applicable for milestone-based revenue"
+                                                           @oninput="TouchCustomer" />
+                                                </div>
+
+                                                <div class="col-sm-4 mb-3">
+                                                    <label class="form-label">Contract Reference</label>
+                                                    <input class="form-control"
+                                                           @bind="model.ContractReference"
+                                                           maxlength="50"
+                                                           placeholder="e.g. CONTRACT-2026-001"
+                                                           title="Contract or agreement reference linked to this revenue"
+                                                           @oninput="TouchCustomer" />
+                                                </div>
+
+                                                <div class="col-sm-4 mb-3">
+                                                    <label class="form-label">Subscription Reference</label>
+                                                    <input class="form-control"
+                                                           @bind="model.SubscriptionReference"
+                                                           maxlength="50"
+                                                           placeholder="e.g. SUB-2026-009"
+                                                           title="Subscription master reference for recurring revenue"
+                                                           @oninput="TouchCustomer" />
+                                                </div>
+
+                                                <div class="col-sm-4 mb-3">
+                                                    <label class="form-label">Project Reference</label>
+                                                    <input class="form-control"
+                                                           @bind="model.ProjectReference"
+                                                           maxlength="50"
+                                                           placeholder="e.g. PROJ-ALPHA-2026"
+                                                           title="Project reference for project-based revenue"
+                                                           @oninput="TouchCustomer" />
+                                                </div>
+
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 03. Revenue Classification -->
+                    <div id="rv-card-classification" class="tl-card-row @(ShowClassification ? "row-active" : "")">
+                        <div class="tl-dot-col">
+                            <div class="tl-dot" @onclick='async () => await ToggleAccordion("classification")'></div>
+                        </div>
+                        <div class="tl-card-col">
+                            <div class="tl-card @(ShowClassification ? "card-active border-teal" : "")">
+                                <div class="tl-card-header" @onclick='async () => await ToggleAccordion("classification")'>
+                                    <div class="tl-card-header-title">
+                                        <span class="tl-card-step step-teal">03</span>Revenue Classification
+                                    </div>
+                                    <span class="tl-card-toggle @(ShowClassification ? "toggle-open" : "")">
+                                        <i data-feather="chevron-down"></i>
+                                    </span>
+                                </div>
+                                <div class="tl-collapse @(ShowClassification ? "tl-open" : "")">
+                                    <div class="tl-card-body">
+                                        <div class="tl-card-body-inner @(ClassificationTouched ? "touched" : "")">
+                                            <div class="row">
+
+                                                <div class="col-sm-4 mb-3">
+                                                    <label class="form-label">
+                                                        Revenue Type <span class="text-danger">*</span>
+                                                    </label>
+                                                    <select class="@($"form-select {GetValidationClass(() => (object)model.RevenueType)}")"
+                                                            @bind="model.RevenueType"
+                                                            title="Classification of the revenue business event"
+                                                            @oninput="TouchClassification">
+                                                        @foreach (var v in Enum.GetValues<RevenueType>())
+                                                        {
+                                                            <option value="@v">@v</option>
+                                                        }
+                                                    </select>
+                                                    <ValidationMessage For="@(() => (object)model.RevenueType)" />
+                                                </div>
+
+                                                <div class="col-sm-4 mb-3">
+                                                    <label class="form-label">
+                                                        Revenue Category <span class="text-danger">*</span>
+                                                    </label>
+                                                    <select class="@($"form-select {GetValidationClass(() => model.RevenueCategoryCode)}")"
+                                                            @bind="model.RevenueCategoryCode"
+                                                            title="Business category for this revenue stream"
+                                                            @oninput="TouchClassification">
+                                                        <option value="">-- Select Category --</option>
+                                                        @foreach (var cat in RevenueCategoryOptions)
+                                                        {
+                                                            <option value="@cat">@cat</option>
+                                                        }
+                                                    </select>
+                                                    <ValidationMessage For="@(() => model.RevenueCategoryCode)" />
+                                                </div>
+
+                                                <div class="col-sm-4 mb-3">
+                                                    <label class="form-label">
+                                                        Revenue Nature <span class="text-danger">*</span>
+                                                    </label>
+                                                    <select class="@($"form-select {GetValidationClass(() => (object)model.RevenueNature)}")"
+                                                            @bind="model.RevenueNature"
+                                                            title="Determines when and how revenue is earned"
+                                                            @oninput="TouchClassification">
+                                                        @foreach (var v in Enum.GetValues<RevenueNature>())
+                                                        {
+                                                            <option value="@v">@v</option>
+                                                        }
+                                                    </select>
+                                                    <ValidationMessage For="@(() => (object)model.RevenueNature)" />
+                                                </div>
+
+                                                <div class="col-sm-4 mb-3">
+                                                    <label class="form-label">Revenue GL Account</label>
+                                                    <select class="form-select"
+                                                            @bind="model.GLAccountId"
+                                                            title="Recommended: GL account for revenue posting"
+                                                            @oninput="TouchClassification">
+                                                        <option value="">-- Select GL Account --</option>
+                                                        @foreach (var a in GLAccounts)
+                                                        {
+                                                            <option value="@a.Id">@a.AccountCode – @a.AccountName</option>
+                                                        }
+                                                    </select>
+                                                </div>
+
+                                                <div class="col-sm-4 mb-3">
+                                                    <label class="form-label">
+                                                        Revenue Event Date <span class="text-danger">*</span>
+                                                    </label>
+                                                    <input type="date"
+                                                           class="@($"form-control {GetValidationClass(() => model.BusinessEventDate)}")"
+                                                           @bind="model.BusinessEventDate"
+                                                           title="Date the revenue-generating business event occurred"
+                                                           @oninput="TouchClassification" />
+                                                    <ValidationMessage For="@(() => model.BusinessEventDate)" />
+                                                </div>
+
+                                                <div class="col-sm-2 mb-3">
+                                                    <label class="form-label">Period From</label>
+                                                    <input type="date"
+                                                           class="form-control"
+                                                           @bind="model.OperationalPeriodFrom"
+                                                           title="Start of service or coverage period"
+                                                           @oninput="TouchClassification" />
+                                                </div>
+
+                                                <div class="col-sm-2 mb-3">
+                                                    <label class="form-label">Period To</label>
+                                                    <input type="date"
+                                                           class="form-control"
+                                                           min="@(model.OperationalPeriodFrom?.ToString("yyyy-MM-dd"))"
+                                                           @bind="model.OperationalPeriodTo"
+                                                           title="End of service or coverage period"
+                                                           @oninput="TouchClassification" />
+                                                </div>
+
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 04. Revenue Amounts -->
+                    <div id="rv-card-amounts" class="tl-card-row @(ShowAmounts ? "row-active" : "")">
+                        <div class="tl-dot-col">
+                            <div class="tl-dot" @onclick='async () => await ToggleAccordion("amounts")'></div>
+                        </div>
+                        <div class="tl-card-col">
+                            <div class="tl-card @(ShowAmounts ? "card-active border-green" : "")">
+                                <div class="tl-card-header" @onclick='async () => await ToggleAccordion("amounts")'>
+                                    <div class="tl-card-header-title">
+                                        <span class="tl-card-step step-green">04</span>Revenue Amounts
+                                    </div>
+                                    <span class="tl-card-toggle @(ShowAmounts ? "toggle-open" : "")">
+                                        <i data-feather="chevron-down"></i>
+                                    </span>
+                                </div>
+                                <div class="tl-collapse @(ShowAmounts ? "tl-open" : "")">
+                                    <div class="tl-card-body">
+                                        <div class="tl-card-body-inner @(AmountsTouched ? "touched" : "")">
+                                            <div class="row">
+
+                                                <div class="col-sm-3 mb-3">
+                                                    <label class="form-label">
+                                                        Gross Revenue Amount <span class="text-danger">*</span>
+                                                    </label>
+                                                    <input type="number"
+                                                           class="@($"form-control {GetValidationClass(() => model.GrossRevenueAmount)}")"
+                                                           @bind="model.GrossRevenueAmount"
+                                                           min="0"
+                                                           step="0.01"
+                                                           placeholder="0.00"
+                                                           title="Total gross revenue amount (must be >= 0)"
+                                                           @oninput="TouchAmounts" />
+                                                    <ValidationMessage For="@(() => model.GrossRevenueAmount)" />
+                                                </div>
+
+                                                <div class="col-sm-3 mb-3">
+                                                    <label class="form-label">Net Revenue Base (Excl. Tax)</label>
+                                                    <input type="number"
+                                                           class="form-control"
+                                                           @bind="model.TaxExclusiveRevenueAmount"
+                                                           min="0"
+                                                           step="0.01"
+                                                           placeholder="0.00"
+                                                           title="Revenue amount excluding tax – for multi-tax environments"
+                                                           @oninput="TouchAmounts" />
+                                                </div>
+
+                                                <div class="col-sm-3 mb-3">
+                                                    <label class="form-label">Adjustment Amount</label>
+                                                    <input type="number"
+                                                           class="form-control"
+                                                           @bind="model.AdjustmentAmount"
+                                                           step="0.01"
+                                                           placeholder="0.00"
+                                                           title="Controlled revenue adjustment amount if policy permits"
+                                                           @oninput="TouchAmounts" />
+                                                </div>
+
+                                                <div class="col-sm-3 mb-3">
+                                                    <label class="form-label">
+                                                        Currency <span class="text-danger">*</span>
+                                                    </label>
+                                                    <select class="@($"form-select {GetValidationClass(() => model.CurrencyId)}")"
+                                                            @bind="model.CurrencyId"
+                                                            title="Transaction currency for this revenue"
+                                                            @oninput="TouchAmounts">
+                                                        <option value="@Guid.Empty">-- Select Currency --</option>
+                                                        @foreach (var c in Currencies)
+                                                        {
+                                                            <option value="@c.Id">@c.CurrencyCode – @c.CurrencyName</option>
+                                                        }
+                                                    </select>
+                                                    <ValidationMessage For="@(() => model.CurrencyId)" />
+                                                </div>
+
+                                                <div class="col-sm-3 mb-3">
+                                                    <label class="form-label">Exchange Rate</label>
+                                                    <select class="form-select"
+                                                            @bind="model.ExchangeRateId"
+                                                            title="Applicable exchange rate for multi-currency policy">
+                                                        <option value="">-- Select Rate (Optional) --</option>
+                                                        @foreach (var er in ExchangeRates)
+                                                        {
+                                                            <option value="@er.Id">@er.DisplayLabel</option>
+                                                        }
+                                                    </select>
+                                                </div>
+
+                                                <!-- Derived read-only fields -->
+                                                @if (IsEdit)
+                                                {
+                                                    <div class="col-sm-3 mb-3">
+                                                        <label class="form-label">Recognised To Date</label>
+                                                        <input class="form-control readonly-field"
+                                                               value="@model.RecognizedAmountToDate.ToString("N2")"
+                                                               readonly
+                                                               title="Cumulatively recognised amount – updated by recognition engine" />
+                                                    </div>
+
+                                                    <div class="col-sm-3 mb-3">
+                                                        <label class="form-label">Deferred Amount</label>
+                                                        <input class="form-control readonly-field"
+                                                               value="@model.DeferredAmountToDate.ToString("N2")"
+                                                               readonly
+                                                               title="Amount deferred as liability – updated by deferred revenue logic" />
+                                                    </div>
+
+                                                    <div class="col-sm-3 mb-3">
+                                                        <label class="form-label">Unrecognised Balance</label>
+                                                        <div class="amount-derived" title="Gross Amount minus Recognised Amount">
+                                                            @model.UnrecognizedAmount.ToString("N2")
+                                                        </div>
+                                                    </div>
+                                                }
+
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 05. Recognition Readiness -->
+                    <div id="rv-card-recognition" class="tl-card-row @(ShowRecognition ? "row-active" : "")">
+                        <div class="tl-dot-col">
+                            <div class="tl-dot" @onclick='async () => await ToggleAccordion("recognition")'></div>
+                        </div>
+                        <div class="tl-card-col">
+                            <div class="tl-card @(ShowRecognition ? "card-active border-purple" : "")">
+                                <div class="tl-card-header" @onclick='async () => await ToggleAccordion("recognition")'>
+                                    <div class="tl-card-header-title">
+                                        <span class="tl-card-step step-purple">05</span>Recognition Readiness
+                                    </div>
+                                    <span class="tl-card-toggle @(ShowRecognition ? "toggle-open" : "")">
+                                        <i data-feather="chevron-down"></i>
+                                    </span>
+                                </div>
+                                <div class="tl-collapse @(ShowRecognition ? "tl-open" : "")">
+                                    <div class="tl-card-body">
+                                        <div class="tl-card-body-inner @(RecognitionTouched ? "touched" : "")">
+                                            <div class="row">
+
+                                                <div class="col-sm-4 mb-3">
+                                                    <label class="form-label">
+                                                        Recognition Method <span class="text-danger">*</span>
+                                                    </label>
+                                                    <select class="@($"form-select {GetValidationClass(() => (object)model.RecognitionMethod)}")"
+                                                            @bind="model.RecognitionMethod"
+                                                            title="How and when revenue is recognised"
+                                                            @oninput="TouchRecognition">
+                                                        @foreach (var v in Enum.GetValues<RecognitionMethod>())
+                                                        {
+                                                            <option value="@v">@v</option>
+                                                        }
+                                                    </select>
+                                                    <ValidationMessage For="@(() => (object)model.RecognitionMethod)" />
+                                                </div>
+
+                                                <div class="col-sm-4 mb-3">
+                                                    <label class="form-label">
+                                                        Recognition Status <span class="text-danger">*</span>
+                                                    </label>
+                                                    <select class="@($"form-select {GetValidationClass(() => (object)model.RecognitionStatus)}")"
+                                                            @bind="model.RecognitionStatus"
+                                                            title="Current state of the recognition process"
+                                                            @oninput="TouchRecognition">
+                                                        @foreach (var v in Enum.GetValues<RecognitionStatus>())
+                                                        {
+                                                            <option value="@v">@v</option>
+                                                        }
+                                                    </select>
+                                                    <ValidationMessage For="@(() => (object)model.RecognitionStatus)" />
+                                                </div>
+
+                                                <div class="col-sm-4 mb-3">
+                                                    <label class="form-label">Recognition Frequency</label>
+                                                    <select class="form-select"
+                                                            @bind="model.RecognitionFrequency"
+                                                            title="Applicable for scheduled or recurring recognition"
+                                                            @oninput="TouchRecognition">
+                                                        <option value="">-- Not Applicable --</option>
+                                                        @foreach (var v in Enum.GetValues<RecognitionFrequency>())
+                                                        {
+                                                            <option value="@v">@v</option>
+                                                        }
+                                                    </select>
+                                                </div>
+
+                                                @if (model.RecognitionMethod == RecognitionMethod.Scheduled ||
+                                                     model.RecognitionMethod == RecognitionMethod.DeferredThenRelease)
+                                                {
+                                                    <div class="col-sm-3 mb-3">
+                                                        <label class="form-label">Recognition Start Date</label>
+                                                        <input type="date"
+                                                               class="form-control"
+                                                               @bind="model.RecognitionStartDate"
+                                                               title="Required for scheduled / deferred recognition"
+                                                               @oninput="TouchRecognition" />
+                                                    </div>
+
+                                                    <div class="col-sm-3 mb-3">
+                                                        <label class="form-label">Recognition End Date</label>
+                                                        <input type="date"
+                                                               class="form-control"
+                                                               min="@(model.RecognitionStartDate?.ToString("yyyy-MM-dd"))"
+                                                               @bind="model.RecognitionEndDate"
+                                                               title="End of recognition schedule period"
+                                                               @oninput="TouchRecognition" />
+                                                    </div>
+                                                }
+
+                                                <div class="col-sm-4 mb-3">
+                                                    <label class="form-label">Recognition Template Code</label>
+                                                    <input class="form-control"
+                                                           @bind="model.RevenueRecognitionTemplateCode"
+                                                           maxlength="50"
+                                                           placeholder="e.g. MONTHLY_12M_TEMPLATE"
+                                                           title="Enterprise recognition schedule template reference"
+                                                           @oninput="TouchRecognition" />
+                                                </div>
+
+                                                <div class="col-sm-4 mb-3">
+                                                    <label class="form-label">Deferred Revenue Reference</label>
+                                                    <input class="form-control @(model.IsDeferredRevenueRequired ? "" : "readonly-field")"
+                                                           @bind="model.DeferredRevenueReference"
+                                                           maxlength="50"
+                                                           placeholder="e.g. DEFREV-2026-001"
+                                                           title="Reference to the linked DeferredRevenue record (#88). Required if Deferred Revenue Required is enabled."
+                                                           readonly="@(!model.IsDeferredRevenueRequired)"
+                                                           @oninput="TouchRecognition" />
+                                                    @if (model.IsDeferredRevenueRequired && string.IsNullOrWhiteSpace(model.DeferredRevenueReference))
+                                                    {
+                                                        <div class="validation-message">Deferred Revenue reference should be provided when Deferred Revenue Required is enabled.</div>
+                                                    }
+                                                </div>
+
+                                                <div class="col-sm-4 mt-3">
+                                                    <div class="form-check form-switch">
+                                                        <input class="form-check-input"
+                                                               type="checkbox"
+                                                               id="IsRecognitionRequired"
+                                                               @bind="model.IsRecognitionRequired"
+                                                               @oninput="TouchRecognition" />
+                                                        <label class="form-check-label" for="IsRecognitionRequired"
+                                                               title="Indicates whether this revenue requires a formal recognition process">
+                                                            Recognition Required
+                                                        </label>
+                                                    </div>
+                                                </div>
+
+                                                <div class="col-sm-4 mt-3">
+                                                    <div class="form-check form-switch">
+                                                        <input class="form-check-input"
+                                                               type="checkbox"
+                                                               id="IsDeferredRevenueRequired"
+                                                               @bind="model.IsDeferredRevenueRequired"
+                                                               @oninput="TouchRecognition" />
+                                                        <label class="form-check-label" for="IsDeferredRevenueRequired"
+                                                               title="Set to true when revenue is billed/received before it is earned">
+                                                            Deferred Revenue Required
+                                                        </label>
+                                                    </div>
+                                                </div>
+
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 06. Billing / Collection -->
+                    <div id="rv-card-billing" class="tl-card-row @(ShowBilling ? "row-active" : "")">
+                        <div class="tl-dot-col">
+                            <div class="tl-dot" @onclick='async () => await ToggleAccordion("billing")'></div>
+                        </div>
+                        <div class="tl-card-col">
+                            <div class="tl-card @(ShowBilling ? "card-active border-rose" : "")">
+                                <div class="tl-card-header" @onclick='async () => await ToggleAccordion("billing")'>
+                                    <div class="tl-card-header-title">
+                                        <span class="tl-card-step step-rose">06</span>Billing / Collection References
+                                    </div>
+                                    <span class="tl-card-toggle @(ShowBilling ? "toggle-open" : "")">
+                                        <i data-feather="chevron-down"></i>
+                                    </span>
+                                </div>
+                                <div class="tl-collapse @(ShowBilling ? "tl-open" : "")">
+                                    <div class="tl-card-body">
+                                        <div class="tl-card-body-inner @(BillingTouched ? "touched" : "")">
+                                            <div class="row">
+
+                                                <div class="col-sm-3 mb-3">
+                                                    <label class="form-label">
+                                                        Billing Status <span class="text-danger">*</span>
+                                                    </label>
+                                                    <select class="@($"form-select {GetValidationClass(() => (object)model.BillingStatus)}")"
+                                                            @bind="model.BillingStatus"
+                                                            title="Current billing state of this revenue"
+                                                            @oninput="TouchBilling">
+                                                        @foreach (var v in Enum.GetValues<BillingStatus>())
+                                                        {
+                                                            <option value="@v">@v</option>
+                                                        }
+                                                    </select>
+                                                    <ValidationMessage For="@(() => (object)model.BillingStatus)" />
+                                                </div>
+
+                                                <div class="col-sm-3 mb-3">
+                                                    <label class="form-label">
+                                                        Collection Status <span class="text-danger">*</span>
+                                                    </label>
+                                                    <select class="@($"form-select {GetValidationClass(() => (object)model.CollectionStatus)}")"
+                                                            @bind="model.CollectionStatus"
+                                                            title="Current payment collection status"
+                                                            @oninput="TouchBilling">
+                                                        @foreach (var v in Enum.GetValues<CollectionStatus>())
+                                                        {
+                                                            <option value="@v">@v</option>
+                                                        }
+                                                    </select>
+                                                    <ValidationMessage For="@(() => (object)model.CollectionStatus)" />
+                                                </div>
+
+                                                <div class="col-sm-3 mb-3">
+                                                    <label class="form-label">Invoice No. (Snapshot)</label>
+                                                    <input class="form-control"
+                                                           @bind="model.InvoiceNumberSnapshot"
+                                                           maxlength="50"
+                                                           placeholder="e.g. INV-2026-0045"
+                                                           title="Reference to the linked customer invoice"
+                                                           @oninput="TouchBilling" />
+                                                </div>
+
+                                                <div class="col-sm-3 mb-3">
+                                                    <label class="form-label">Linked Invoice (FK Reference)</label>
+                                                    <input class="form-control"
+                                                           @bind="model.InvoiceReference"
+                                                           maxlength="50"
+                                                           placeholder="e.g. INV-REF-2026-0045"
+                                                           title="System FK reference to the linked AR CustomerInvoice record. Populated when invoice is formally linked."
+                                                           @oninput="TouchBilling" />
+                                                </div>
+
+                                                <div class="col-sm-3 mb-3">
+                                                    <label class="form-label">Billing Date</label>
+                                                    <input type="date"
+                                                           class="form-control"
+                                                           @bind="model.BillingDate"
+                                                           title="Date the customer was billed"
+                                                           @oninput="TouchBilling" />
+                                                </div>
+
+                                                <div class="col-sm-8 mb-3">
+                                                    <label class="form-label">Collection Reference</label>
+                                                    <input class="form-control"
+                                                           @bind="model.CollectionReferenceText"
+                                                           maxlength="200"
+                                                           placeholder="e.g. NEFT-CUST-20260401 / Receipt Ref / Advance Ref"
+                                                           title="Bank/payment receipt reference for collection tracking"
+                                                           @oninput="TouchBilling" />
+                                                </div>
+
+                                                <div class="col-sm-4 mt-3">
+                                                    <div class="form-check form-switch">
+                                                        <input class="form-check-input"
+                                                               type="checkbox"
+                                                               id="IsAdvanceReceipt"
+                                                               @bind="model.IsAdvanceReceipt"
+                                                               @oninput="TouchBilling" />
+                                                        <label class="form-check-label" for="IsAdvanceReceipt"
+                                                               title="Mark if payment was received before the revenue is earned">
+                                                            Advance Receipt
+                                                        </label>
+                                                    </div>
+                                                </div>
+
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 07. Dimensions & Ownership -->
+                    <div id="rv-card-dimensions" class="tl-card-row @(ShowDimensions ? "row-active" : "")">
+                        <div class="tl-dot-col">
+                            <div class="tl-dot" @onclick='async () => await ToggleAccordion("dimensions")'></div>
+                        </div>
+                        <div class="tl-card-col">
+                            <div class="tl-card @(ShowDimensions ? "card-active border-blue" : "")">
+                                <div class="tl-card-header" @onclick='async () => await ToggleAccordion("dimensions")'>
+                                    <div class="tl-card-header-title">
+                                        <span class="tl-card-step step-blue">07</span>Dimensions &amp; Ownership
+                                    </div>
+                                    <span class="tl-card-toggle @(ShowDimensions ? "toggle-open" : "")">
+                                        <i data-feather="chevron-down"></i>
+                                    </span>
+                                </div>
+                                <div class="tl-collapse @(ShowDimensions ? "tl-open" : "")">
+                                    <div class="tl-card-body">
+                                        <div class="tl-card-body-inner @(DimensionsTouched ? "touched" : "")">
+                                            <div class="row">
+
+                                                <div class="col-sm-4 mb-3">
+                                                    <label class="form-label">Branch</label>
+                                                    <select class="form-select"
+                                                            @bind="model.BranchId"
+                                                            title="Branch responsible for this revenue"
+                                                            @oninput="TouchDimensions">
+                                                        <option value="">-- Select Branch --</option>
+                                                        @foreach (var b in Branches)
+                                                        {
+                                                            <option value="@b.Id">@b.BranchCode – @b.BranchName</option>
+                                                        }
+                                                    </select>
+                                                </div>
+
+                                                <div class="col-sm-4 mb-3">
+                                                    <label class="form-label">Department</label>
+                                                    <input class="form-control"
+                                                           @bind="model.DepartmentId"
+                                                           disabled
+                                                           placeholder="—"
+                                                           title="Department dimension (linked via master)" />
+                                                </div>
+
+                                                <div class="col-sm-4 mb-3">
+                                                    <label class="form-label">Cost Centre</label>
+                                                    <input class="form-control"
+                                                           @bind="model.CostCenterId"
+                                                           disabled
+                                                           placeholder="—"
+                                                           title="Cost centre for revenue ownership reporting" />
+                                                </div>
+
+                                                <div class="col-sm-4 mb-3">
+                                                    <label class="form-label">Business Unit Code</label>
+                                                    <input class="form-control"
+                                                           @bind="model.BusinessUnitCode"
+                                                           maxlength="50"
+                                                           placeholder="e.g. BU-SAAS / BU-PROJ-IN"
+                                                           title="Business unit dimension tag for reporting"
+                                                           @oninput="TouchDimensions" />
+                                                </div>
+
+                                                <div class="col-sm-4 mb-3">
+                                                    <label class="form-label">Revenue Owner (User/Account Manager)</label>
+                                                    <input class="form-control"
+                                                           @bind="model.RevenueOwnerUserText"
+                                                           maxlength="100"
+                                                           placeholder="e.g. account.manager / john.doe"
+                                                           title="User or account manager responsible for this revenue — for revenue ownership reporting"
+                                                           @oninput="TouchDimensions" />
+                                                </div>
+
+                                                <div class="col-sm-12 mb-3">
+                                                    <label class="form-label">Dimension Scope (JSON)</label>
+                                                    <textarea class="form-control"
+                                                              rows="2"
+                                                              maxlength="2000"
+                                                              placeholder='e.g. {"region":"south","segment":"enterprise","vertical":"saas"}'
+                                                              @bind="model.DimensionScopeJson"
+                                                              title="Optional advanced dimension JSON for multi-dimension reporting scope"
+                                                              @oninput="TouchDimensions"></textarea>
+                                                </div>
+
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 08. Workflow & Governance -->
+                    <div id="rv-card-workflow" class="tl-card-row @(ShowWorkflow ? "row-active" : "")">
+                        <div class="tl-dot-col">
+                            <div class="tl-dot" @onclick='async () => await ToggleAccordion("workflow")'></div>
+                        </div>
+                        <div class="tl-card-col">
+                            <div class="tl-card @(ShowWorkflow ? "card-active border-green" : "")">
+                                <div class="tl-card-header" @onclick='async () => await ToggleAccordion("workflow")'>
+                                    <div class="tl-card-header-title">
+                                        <span class="tl-card-step step-green">08</span>Workflow &amp; Governance
+                                    </div>
+                                    <span class="tl-card-toggle @(ShowWorkflow ? "toggle-open" : "")">
+                                        <i data-feather="chevron-down"></i>
+                                    </span>
+                                </div>
+                                <div class="tl-collapse @(ShowWorkflow ? "tl-open" : "")">
+                                    <div class="tl-card-body">
+                                        <div class="tl-card-body-inner @(WorkflowTouched ? "touched" : "")">
+                                            <div class="row">
+
+                                                <div class="col-sm-4 mb-3">
+                                                    <label class="form-label">Prepared By <span class="text-danger">*</span></label>
+                                                    <input class="@($"form-control {GetValidationClass(() => model.PreparedByUserId)}")"
+                                                           @bind="model.PreparedByUserId"
+                                                           maxlength="100"
+                                                           placeholder="e.g. finance.admin"
+                                                           title="User who prepared this revenue record"
+                                                           @oninput="TouchWorkflow" />
+                                                    <ValidationMessage For="@(() => model.PreparedByUserId)" />
+                                                </div>
+
+                                                <div class="col-sm-4 mb-3">
+                                                    <label class="form-label">Reviewed By</label>
+                                                    <input class="form-control"
+                                                           @bind="model.ReviewedByUserId"
+                                                           maxlength="100"
+                                                           placeholder="e.g. revenue.manager"
+                                                           title="User who reviewed this revenue record"
+                                                           @oninput="TouchWorkflow" />
+                                                </div>
+
+                                                <div class="col-sm-4 mb-3">
+                                                    <label class="form-label">Approved By</label>
+                                                    <input class="form-control"
+                                                           @bind="model.ApprovedByUserId"
+                                                           maxlength="100"
+                                                           placeholder="e.g. cfo.approver"
+                                                           title="User who approved this revenue record"
+                                                           @oninput="TouchWorkflow" />
+                                                </div>
+
+                                                <div class="col-sm-4 mb-3">
+                                                    <label class="form-label">Prepared On</label>
+                                                    <input type="date"
+                                                           class="form-control"
+                                                           @bind="model.PreparedOn"
+                                                           title="Date this revenue record was prepared"
+                                                           @oninput="TouchWorkflow" />
+                                                </div>
+
+                                                <div class="col-sm-4 mb-3">
+                                                    <label class="form-label">Reviewed On</label>
+                                                    <input type="date"
+                                                           class="form-control"
+                                                           @bind="model.ReviewedOn"
+                                                           title="Date this revenue record was reviewed"
+                                                           @oninput="TouchWorkflow" />
+                                                </div>
+
+                                                <div class="col-sm-4 mb-3">
+                                                    <label class="form-label">Approved On</label>
+                                                    <input type="date"
+                                                           class="form-control"
+                                                           @bind="model.ApprovedOn"
+                                                           title="Date this revenue record was formally approved"
+                                                           @oninput="TouchWorkflow" />
+                                                </div>
+
+                                                @if (model.Status == RevenueStatus.Cancelled)
+                                                {
+                                                    <div class="col-sm-12 mb-3">
+                                                        <label class="form-label">
+                                                            Cancellation Reason <span class="text-danger">*</span>
+                                                        </label>
+                                                        <textarea class="form-control"
+                                                                  rows="2"
+                                                                  maxlength="500"
+                                                                  placeholder="State the reason for cancelling this revenue record"
+                                                                  @bind="model.CancellationReason"
+                                                                  @oninput="TouchWorkflow"></textarea>
+                                                    </div>
+                                                }
+
+                                                <div class="col-sm-4 mt-2">
+                                                    <div class="form-check form-switch">
+                                                        <input class="form-check-input"
+                                                               type="checkbox"
+                                                               id="IsLocked"
+                                                               @bind="model.IsLocked"
+                                                               @oninput="TouchWorkflow" />
+                                                        <label class="form-check-label" for="IsLocked"
+                                                               title="Locked records are protected from casual edits">
+                                                            Lock Record
+                                                        </label>
+                                                    </div>
+                                                </div>
+
+                                                @if (model.IsLocked)
+                                                {
+                                                    <div class="col-sm-4 mb-3">
+                                                        <label class="form-label">Locked On</label>
+                                                        <input class="form-control readonly-field"
+                                                               value="@(model.LockedOn?.ToString("dd MMM yyyy HH:mm") ?? "—")"
+                                                               readonly
+                                                               title="Timestamp when this record was locked — auto-set by the system" />
+                                                    </div>
+
+                                                    <div class="col-sm-4 mb-3">
+                                                        <label class="form-label">Locked By</label>
+                                                        <input class="form-control readonly-field"
+                                                               value="@(model.IsLocked ? "System / Finance Admin" : "—")"
+                                                               readonly
+                                                               title="User who locked this record — auto-set by the system" />
+                                                    </div>
+                                                }
+
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 09. Notes & Assumptions -->
+                    <div id="rv-card-notes" class="tl-card-row @(ShowNotes ? "row-active" : "")">
+                        <div class="tl-dot-col">
+                            <div class="tl-dot" @onclick='async () => await ToggleAccordion("notes")'></div>
+                        </div>
+                        <div class="tl-card-col">
+                            <div class="tl-card @(ShowNotes ? "card-active border-orange" : "")">
+                                <div class="tl-card-header" @onclick='async () => await ToggleAccordion("notes")'>
+                                    <div class="tl-card-header-title">
+                                        <span class="tl-card-step step-orange">09</span>Notes &amp; Assumptions
+                                    </div>
+                                    <span class="tl-card-toggle @(ShowNotes ? "toggle-open" : "")">
+                                        <i data-feather="chevron-down"></i>
+                                    </span>
+                                </div>
+                                <div class="tl-collapse @(ShowNotes ? "tl-open" : "")">
+                                    <div class="tl-card-body">
+                                        <div class="tl-card-body-inner @(NotesTouched ? "touched" : "")">
+                                            <div class="row">
+
+                                                <div class="col-sm-6 mb-3">
+                                                    <label class="form-label">Revenue Assumption Text</label>
+                                                    <textarea class="form-control"
+                                                              rows="4"
+                                                              maxlength="1500"
+                                                              placeholder="Document the business assumptions behind this revenue event (useful for milestone and manual revenue)"
+                                                              @bind="model.RevenueAssumptionText"
+                                                              @oninput="TouchNotes"></textarea>
+                                                </div>
+
+                                                <div class="col-sm-6 mb-3">
+                                                    <label class="form-label">Notes</label>
+                                                    <textarea class="form-control"
+                                                              rows="4"
+                                                              maxlength="1500"
+                                                              placeholder="Any additional notes, references or supporting observations"
+                                                              @bind="model.Notes"
+                                                              @oninput="TouchNotes"></textarea>
+                                                </div>
+
+                                                <div class="col-sm-3 mb-3">
+                                                    <label class="form-label">Attachment Count</label>
+                                                    <input type="number"
+                                                           class="form-control"
+                                                           @bind="model.AttachmentCount"
+                                                           min="0"
+                                                           step="1"
+                                                           placeholder="0"
+                                                           title="Number of supporting attachments (contract, milestone approval, delivery proof, customer confirmation, subscription order)"
+                                                           @oninput="TouchNotes" />
+                                                    <small class="text-muted">e.g. contract, milestone approval, delivery proof, subscription order</small>
+                                                </div>
+
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                </div><!-- end tl-right-area -->
+            </div>
+        </div>
+
+        <!-- ACTIONS -->
+        <div class="d-flex justify-content-end mb-4">
+            <button type="button" class="btn btn-outline-secondary me-2" @onclick="BackToList">
+                <i class="ti ti-x"></i> Cancel
+            </button>
+            <button type="submit" class="btn btn-primary">
+                <i class="ti ti-device-floppy"></i> @(IsEdit ? "Update" : "Save")
+            </button>
+        </div>
+
+    </EditForm>
+</div>
+
+<!-- Confirmation Modal -->
+<div class="modal fade" id="confirm-modal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="page-wrapper-new p-0">
+                <div class="p-5 px-3 text-center">
+                    <span class="rounded-circle d-inline-flex p-2
+                        @(ConfirmType == "danger" ? "bg-danger-transparent" : "bg-warning-transparent") mb-2">
+                        <i class="ti @(ConfirmType == "danger" ? "ti-alert-circle text-danger" : "ti-alert-circle text-warning") fs-24"></i>
+                    </span>
+                    <h4 class="fs-20 text-gray-9 fw-bold mb-2 mt-1">@ConfirmTitle</h4>
+                    <p class="text-gray-6 mb-0 fs-16">@ConfirmMessage</p>
+                    <div class="modal-footer-btn mt-3 d-flex justify-content-center" style="column-gap:20px">
+                        <button type="button" class="btn btn-secondary fs-13 fw-medium p-2 px-3 shadow-none"
+                                data-bs-dismiss="modal">
+                            <i class="ti ti-x me-1"></i>Cancel
+                        </button>
+                        @if (ConfirmAction != null)
+                        {
+                            <button type="button" class="btn btn-primary fs-13 fw-medium p-2 px-3"
+                                    @onclick="ConfirmYes">
+                                <i class="ti ti-check me-1"></i>Yes, Continue
+                            </button>
+                        }
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

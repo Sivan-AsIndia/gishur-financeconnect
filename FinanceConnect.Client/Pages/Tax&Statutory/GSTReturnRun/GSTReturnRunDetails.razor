@@ -1,0 +1,299 @@
+@page "/gst-return-runs/{Id:guid}/view"
+@namespace FinanceConnect.Client.Pages.Tax___Statutory.GSTReturnRun
+@using FinanceConnect.Client.ViewModels
+
+<PageTitle>GST Return Run Details - FinanceConnect</PageTitle>
+
+@if (!isInitialized)
+{
+    <div class="page-loading-overlay"><div class="whirly-loader"></div></div>
+}
+else if (R == null)
+{
+
+    <div class="content"><div class="alert alert-danger"><i class="ti ti-alert-circle me-2"></i>Return Run not found. <a href="/gst-return-runs" class="alert-link ms-2">Return to list</a></div></div>
+}
+else
+{
+    <div class="content mb-4">
+        <div class="fc-page-header">
+            <div class="fc-breadcrumb"><a href="/gst-return-runs" class="fc-breadcrumb-link"><i class="ti ti-layout-list"></i> GST Return Run</a><span class="fc-breadcrumb-sep"><i class="ti ti-chevron-right"></i></span><span class="fc-breadcrumb-current">Run Details</span></div>
+            <div class="d-flex gap-2 page-btn">
+                @if (R.ReturnRunStatus == "Draft" || R.ReturnRunStatus == "Reopened")
+                {
+                    <a href="/gst-return-runs/@R.Id" class="btn btn-primary"><i class="ti ti-edit me-1"></i>Edit</a>
+                }
+                <a @onclick="PrintPage" class="btn bg-primary text-white"><i class="bi bi-printer me-1"></i>Print</a>
+                <a href="/gst-return-runs" class="btn btn-outline-secondary"><i class="ti ti-arrow-left me-1"></i>Back</a>
+            </div>
+        </div>
+
+        <!-- HERO -->
+        <div class="fc-hero">
+            <div class="fc-hero-accent"></div>
+            <div class="fc-hero-body">
+                <div class="fc-hero-icon-wrap"><div class="fc-hero-icon"><i class="ti ti-file-text"></i></div></div>
+                <div class="fc-hero-info">
+                    <div class="fc-hero-title-row">
+                        <h2 class="fc-hero-title">@R.ReturnRunNumber</h2>
+                        <span class="fc-status-badge @GetStatusBadge(R.ReturnRunStatus)"><span class="fc-badge-dot"></span>@R.ReturnRunStatus</span>
+                        <span class="fc-method-chip" style="background:#e0f2fe;color:#0284c7;"><i class="ti ti-calendar me-1"></i>@R.ReturnPeriodKey</span>
+                        @if (R.IsLocked)
+                        {
+                            <span class="fc-status-badge" style="background:#fef3c7;color:#d97706;"><i class="ti ti-lock me-1"></i>Locked</span>
+                        }
+                        <span class="fc-status-badge @GetFilingBadge(R.FilingStatus)"><i class="ti ti-file-check me-1"></i>@R.FilingStatus</span>
+                        @if (R.TaxSettlementSummaryLinkedFlag)
+                        {
+                            <span class="fc-status-badge" style="background:#ecfdf5;color:#059669;"><i class="ti ti-link me-1"></i>Settlement Linked</span>
+                        }
+                    </div>
+                    <div class="fc-hero-meta">
+                        <span class="fc-meta-item"><i class="ti ti-building"></i>@R.CompanyName</span>
+                        <span class="fc-meta-item"><i class="ti ti-map-pin"></i>@(R.BranchName ?? "All Branches")</span>
+                        <span class="fc-meta-item"><i class="ti ti-calendar"></i>@R.PeriodStartDate.ToString("dd MMM") – @R.PeriodEndDate.ToString("dd MMM yyyy")</span>
+                        @if (R.GenerationDate.HasValue)
+                        {
+                            <span class="fc-meta-item"><i class="ti ti-clock"></i>Generated @R.GenerationDate.Value.ToString("dd MMM yyyy HH:mm")</span>
+                        }
+                        @if (!string.IsNullOrWhiteSpace(R.AccountingPeriodName))
+                        {
+                            <span class="fc-meta-item"><i class="ti ti-folder"></i>Period: @R.AccountingPeriodName</span>
+                        }
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Metrics -->
+        @if (R.ReturnRunStatus != "Draft" && R.ReturnRunStatus != "Cancelled")
+        {
+            <div class="row g-3 mb-3">
+                <div class="col-6 col-md-2"><div class="card p-3 text-center"><div class="fw-bold text-primary fs-4">@R.EligibleTransactionCount.ToString("N0")</div><small class="text-muted">Eligible</small></div></div>
+                <div class="col-6 col-md-2"><div class="card p-3 text-center"><div class="fw-bold text-success fs-4">@R.IncludedTransactionCount.ToString("N0")</div><small class="text-muted">Included</small></div></div>
+                <div class="col-6 col-md-2"><div class="card p-3 text-center"><div class="fw-bold text-warning fs-4">@R.ExcludedTransactionCount</div><small class="text-muted">Excluded</small></div></div>
+                <div class="col-6 col-md-2"><div class="card p-3 text-center"><div class="fw-bold fs-4">@R.IncludedLineCount.ToString("N0")</div><small class="text-muted">Lines</small></div></div>
+                <div class="col-6 col-md-2"><div class="card p-3 text-center"><div class="fw-bold text-warning fs-4">@R.WarningExceptionCount</div><small class="text-muted">Warnings</small></div></div>
+                <div class="col-6 col-md-2"><div class="card p-3 text-center"><div class="fw-bold text-danger fs-4">@R.BlockingExceptionCount</div><small class="text-muted">Blocking</small></div></div>
+            </div>
+        }
+
+        <div class="row g-3">
+            <div class="col-lg-8">
+                <!-- Return Summary -->
+                @if (R.OutwardTaxableValueTotal > 0)
+                {
+                    <div class="card mb-3">
+                        <div class="card-body p-3">
+                            <h6 class="fw-semibold mb-3 text-primary" style="font-size:14px;"><i class="ti ti-report-money me-2" style="color:var(--primary);"></i>Return Summary Totals</h6>
+                            <h6 class="text-muted small mt-2 mb-2">Outward</h6>
+                            <div class="row g-2">
+                                <div class="col-md-3"><small class="text-muted d-block">Taxable Value</small><span class="fw-bold">@R.OutwardTaxableValueTotal.ToString("N2")</span></div>
+                                <div class="col-md-3"><small class="text-muted d-block">CGST</small><span>@R.OutwardCGSTTotal.ToString("N2")</span></div>
+                                <div class="col-md-3"><small class="text-muted d-block">SGST</small><span>@R.OutwardSGSTTotal.ToString("N2")</span></div>
+                                <div class="col-md-3"><small class="text-muted d-block">IGST</small><span>@R.OutwardIGSTTotal.ToString("N2")</span></div>
+                                <div class="col-md-3"><small class="text-muted d-block">CESS</small><span>@R.OutwardCESSTotal.ToString("N2")</span></div>
+                                <div class="col-md-3"><small class="text-muted d-block">Exempt Value</small><span>@R.OutwardExemptValueTotal.ToString("N2")</span></div>
+                                <div class="col-md-3"><small class="text-muted d-block">Nil Rated</small><span>@R.OutwardNilRatedValueTotal.ToString("N2")</span></div>
+                                <div class="col-md-3"><small class="text-muted d-block">Non-GST</small><span>@R.OutwardNonGSTValueTotal.ToString("N2")</span></div>
+
+                            </div>
+
+                             
+                            <h6 class="text-muted small mt-3 mb-2">Inward / ITC</h6>
+                            <div class="row g-2">
+                                <div class="col-md-3"><small class="text-muted d-block">Eligible ITC</small><span class="text-success fw-bold">@R.InputEligibleITCTotal.ToString("N2")</span></div>
+                                <div class="col-md-3"><small class="text-muted d-block">Ineligible ITC</small><span>@R.InputIneligibleITCTotal.ToString("N2")</span></div>
+                                <div class="col-md-3"><small class="text-muted d-block">RCM Liability</small><span>@R.RCMLiabilityTotal.ToString("N2")</span></div>
+                                <div class="col-md-3"><small class="text-muted d-block">RCM ITC Claim</small><span>@R.RCMITCClaimTotal.ToString("N2")</span></div>
+                            </div>
+                            <hr />
+                            <div class="row g-2">
+                                <div class="col-md-4"><small class="text-muted d-block">Credit Note Adj</small><span>@R.CreditNoteAdjustmentTotal.ToString("N2")</span></div>
+                                <div class="col-md-4"><small class="text-muted d-block">Debit Note Adj</small><span>@R.DebitNoteAdjustmentTotal.ToString("N2")</span></div>
+                                <div class="col-md-4"><small class="text-muted d-block fw-bold">Net Tax Liability</small><span class="fw-bold text-danger fs-5">@R.NetTaxLiabilityTotal.ToString("N2")</span></div>
+                            </div>
+                        </div>
+                    </div>
+                }
+
+                <!-- Validation -->
+                <div class="card mb-3">
+                    <div class="card-body p-3">
+                        <h6 class="fw-semibold mb-3 text-primary" style="font-size:14px;"><i class="ti ti-shield-check me-2" style="color:var(--primary);"></i>Validation &amp; Reconciliation</h6>
+                        <div class="row g-2">
+                            <div class="col-md-4"><small class="text-muted d-block">Ledger Reconciliation</small><span class="badge @GetReconBadge(R.TaxLedgerReconciliationStatus)">@R.TaxLedgerReconciliationStatus</span></div>
+                            <div class="col-md-4"><small class="text-muted d-block">Settlement Reconciliation</small><span class="badge @GetReconBadge(R.SettlementReconciliationStatus)">@R.SettlementReconciliationStatus</span></div>
+                            @if (!string.IsNullOrWhiteSpace(R.IncludedHashSignature))
+                            {
+                                <div class="col-md-4"><small class="text-muted d-block">Hash Signature</small><span class="font-monospace small">@R.IncludedHashSignature</span></div>
+                            }
+                        </div>
+                        @if (!string.IsNullOrWhiteSpace(R.ExclusionReasonSummary))
+                        {
+                            <div class="mt-2"><small class="text-muted d-block">Exclusion Summary</small><p class="mb-0 small">@R.ExclusionReasonSummary</p></div>
+                        }
+                        @if (!string.IsNullOrWhiteSpace(R.ReviewerNotes))
+                        {
+                            <div class="mt-2"><small class="text-muted d-block">Reviewer Notes</small><p class="mb-0" style="font-style:italic;font-size:13px;border-left:3px solid var(--primary);padding-left:10px;">@R.ReviewerNotes</p></div>
+                        }
+                    </div>
+                </div>
+
+                <!-- Included Transactions -->
+                @if (R.IncludedTransactions.Any())
+                {
+                    <div class="card mb-3">
+                        <div class="card-body p-3">
+                            <h6 class="fw-semibold mb-3" style="font-size:14px;"><i class="ti ti-list-check me-2" style="color:var(--primary);"></i>Included Transactions (@R.IncludedTransactions.Count sample)</h6>
+                            <table class="table table-sm align-middle mb-0">
+                                <thead class="table-light"><tr><th>Tx Number</th><th>Inclusion</th><th>Exclusion Reason</th></tr></thead>
+                                <tbody>
+                                    @foreach (var t in R.IncludedTransactions)
+                                    {
+                                        <tr><td>@(t.TaxTransactionNumber ?? t.TaxTransactionId.ToString("N").Substring(0, 8))</td><td><span class="badge @(t.InclusionStatus == "Included" ? "bg-success-transparent" : "bg-warning-transparent text-dark")">@t.InclusionStatus</span></td><td>@(t.ExclusionReason ?? "—")</td></tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                }
+
+                <!-- Exceptions -->
+                @if (R.Exceptions.Any())
+                {
+                    <div class="card mb-3">
+                        <div class="card-body p-3">
+                            <h6 class="fw-semibold mb-3" style="font-size:14px;"><i class="ti ti-alert-triangle me-2 text-warning"></i>Exceptions (@R.Exceptions.Count)</h6>
+                            <table class="table table-sm align-middle mb-0">
+                                <thead class="table-light"><tr><th>Reference</th><th>Type</th><th>Severity</th><th>Message</th></tr></thead>
+                                <tbody>
+                                    @foreach (var ex in R.Exceptions)
+                                    {
+                                        <tr><td>@(ex.ReferenceNumber ?? "—")</td><td>@ex.ReferenceType</td><td><span class="badge @(ex.Severity == "Blocking" ? "bg-danger" : "bg-warning text-dark")">@ex.Severity</span></td><td>@ex.Message</td></tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                }
+
+                @if (!string.IsNullOrWhiteSpace(R.FilingNotes))
+                {
+                    <div class="card mb-3">
+                        <div class="card-body p-3">
+                            <h6 class="fw-semibold mb-3" style="font-size:14px;"><i class="ti ti-notes me-2" style="color:var(--primary);"></i>Filing Notes</h6>
+                            <p class="mb-0" style="font-style:italic;border-left:3px solid var(--primary);padding-left:10px;">@R.FilingNotes</p>
+                        </div>
+                    </div>
+                }
+            </div>
+
+            <!-- RIGHT PANEL -->
+            <div class="col-lg-4">
+                <div class="card mb-3">
+                    <div class="card-body p-3">
+                        <h6 class="fw-semibold mb-3 text-primary" style="font-size:14px;"><i class="ti ti-filter me-2" style="color:var(--primary);"></i>Scope &amp; Selection</h6>
+                        <div class="mb-2"><small class="text-muted d-block">Selection Mode</small><span>@R.SelectionMode</span></div>
+                        <div class="mb-2"><small class="text-muted d-block">Return Type</small><span>@R.ReturnType</span></div>
+                        <div class="d-flex flex-wrap gap-2 mt-2">
+                            @if (R.IncludeOutwardSupplies)
+                            {
+                                <span class="badge bg-success-transparent">Outward</span>
+                            }
+                            @if (R.IncludeInwardSupplies)
+                            {
+                                <span class="badge bg-info-transparent text-dark">Inward</span>
+                            }
+                            @if (R.IncludeRCMTransactions)
+                            {
+                                <span class="badge bg-warning-transparent text-dark">RCM</span>
+                            }
+                            @if (R.IncludeCreditDebitNotes)
+                            {
+                                <span class="badge bg-purple-transparent text-purple">CN/DN</span>
+                            }
+                            @if (R.IncludeExemptNilNonGST)
+                            {
+                                <span class="badge bg-secondary-transparent text-secondary">Exempt/Nil</span>
+                            }
+                            @if (R.IncludeOnlyPostedTransactions)
+                            {
+                                <span class="badge bg-primary-transparent">Posted Only</span>
+                            }
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card mb-3">
+                    <div class="card-body p-3">
+                        <h6 class="fw-semibold mb-3 text-primary" style="font-size:14px;"><i class="ti ti-file-export me-2" style="color:var(--primary);"></i>Filing / Export</h6>
+                        <div class="mb-2">
+                            <small class="text-muted d-block">Filing Status</small>
+                            <span class="badge @GetFilingBadge(R.FilingStatus)">@R.FilingStatus</span>
+                        </div>
+                        @if (R.FiledDate.HasValue)
+                        {
+                            <div class="mb-2"><small class="text-muted d-block">Filed Date</small><span>@R.FiledDate.Value.ToString("dd MMM yyyy")</span></div>
+                        }
+                        @if (!string.IsNullOrWhiteSpace(R.FiledBy))
+                        {
+                            <div class="mb-2"><small class="text-muted d-block">Filed By</small><span>@R.FiledBy</span></div>
+                        }
+                        @if (!string.IsNullOrWhiteSpace(R.GovernmentAcknowledgementNumber))
+                        {
+                            <div class="mb-2"><small class="text-muted d-block">Acknowledgement No</small><span class="font-monospace">@R.GovernmentAcknowledgementNumber</span></div>
+                        }
+                        @if (!string.IsNullOrWhiteSpace(R.GovernmentReferenceNumber))
+                        {
+                            <div class="mb-2"><small class="text-muted d-block">Govt Reference No</small><span class="font-monospace">@R.GovernmentReferenceNumber</span></div>
+                        }
+                        <div class="mb-2"><small class="text-muted d-block">Export Generated</small><span>@(R.IsExportGenerated ? "Yes" : "No")</span></div>
+                        @if (R.ExportGeneratedOn.HasValue)
+                        {
+                            <div class="mb-2"><small class="text-muted d-block">Export Generated On</small><span>@R.ExportGeneratedOn.Value.ToString("dd MMM yyyy HH:mm")</span></div>
+                        }
+                        @if (!string.IsNullOrWhiteSpace(R.ExportFormatSummary))
+                        {
+                            <div class="mb-2"><small class="text-muted d-block">Export Formats</small><span>@R.ExportFormatSummary</span></div>
+                        }
+                    </div>
+                </div>
+
+                <div class="card mb-3">
+                    <div class="card-body p-3">
+                        <h6 class="fw-semibold mb-3 text-primary" style="font-size:14px;"><i class="ti ti-lock me-2" style="color:var(--primary);"></i>Governance</h6>
+                        @if (R.ApprovedOn.HasValue)
+                        {
+                            <div class="mb-2"><small class="text-muted d-block">Approved</small><span>@R.ApprovedOn.Value.ToString("dd MMM yyyy") by @(R.ApprovedBy ?? "")</span></div>
+                        }
+                        @if (R.FinalizedOn.HasValue)
+                        {
+                            <div class="mb-2"><small class="text-muted d-block">Finalized</small><span>@R.FinalizedOn.Value.ToString("dd MMM yyyy") by @(R.FinalizedBy ?? "")</span></div>
+                        }
+                        <div class="mb-2"><small class="text-muted d-block">Locked</small><span>@(R.IsLocked ? "Yes" : "No") @(!string.IsNullOrWhiteSpace(R.LockReason) ? $"({R.LockReason})" : "")</span></div>
+                        @if (R.ReopenedOn.HasValue)
+                        {
+                            <div class="mb-2"><small class="text-muted d-block text-warning">Reopened</small><span class="text-warning">@R.ReopenedOn.Value.ToString("dd MMM yyyy") by @(R.ReopenedBy ?? "")</span></div>
+                        }
+                        @if (!string.IsNullOrWhiteSpace(R.ReopenReason))
+                        {
+                            <div class="mb-2"><small class="text-muted d-block text-warning">Reopen Reason</small><span class="text-warning">@R.ReopenReason</span></div>
+                        }
+                    </div>
+                </div>
+
+                <div class="card mb-3">
+                    <div class="card-body p-3">
+                        <h6 class="fw-semibold mb-3 text-primary" style="font-size:14px;"><i class="ti ti-history me-2" style="color:var(--primary);"></i>History</h6>
+                        <div class="mb-2"><small class="text-muted d-block">Created</small><span>@R.CreatedAt.ToString("dd MMM yyyy") by @(R.CreatedBy ?? "system")</span></div>
+                        @if (R.UpdatedAt.HasValue)
+                        {
+                            <div class="mb-2"><small class="text-muted d-block">Updated</small><span>@R.UpdatedAt.Value.ToString("dd MMM yyyy HH:mm") @(!string.IsNullOrWhiteSpace(R.UpdatedBy) ? $"by {R.UpdatedBy}" : "")</span></div>
+                        }
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+}

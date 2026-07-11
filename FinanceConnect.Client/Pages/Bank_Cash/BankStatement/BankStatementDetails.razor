@@ -1,0 +1,610 @@
+﻿@page "/bank-statements/{StatementId:guid}/view"
+
+@using FinanceConnect.Client.ViewModels
+@using FinanceConnect.Client.Services
+@inject BankStatementService StatementService
+@inject NavigationManager Nav
+@inject IJSRuntime JS
+
+
+<style>
+    @@media(max-width:900px){
+        .view-screen .profile-center .top-row{
+            justify-content:center
+        }
+    }
+</style>
+
+<div class="content view-screen py-3 vb-root">
+    @if (SelectedStatement != null)
+    {
+        <!-- ================= HEADER ================= -->
+        <div class="vb-header-card mb-4">
+            <div class="vb-cover">
+                <div class="vb-cover-orb vb-orb-1"></div>
+                <div class="vb-cover-orb vb-orb-2"></div>
+                <div class="vb-cover-orb vb-orb-3"></div>
+            </div>
+
+            <div class="vb-header-body">
+                <div class="vb-avatar">
+                    @SelectedStatement.StatementNumber?.Substring(0, Math.Min(2, SelectedStatement.StatementNumber?.Length ?? 0)).ToUpper()
+
+                </div>
+
+                <div class="vb-header-meta">
+                    <div>
+                        <p class="vb-bill-number">
+                            @SelectedStatement.StatementNumber
+                        </p>
+
+                        <p class="vb-bill-sub">
+                            @SelectedStatement.CompanyName ·
+                            @SelectedStatement.BranchName ·
+                            @SelectedStatement.BankAccountName
+                        </p>
+
+                        <div class="vb-badges">
+                            <span class="badge @GetStatusBadge(SelectedStatement.StatementStatus)">
+                                @SelectedStatement.StatementStatus
+                            </span>
+
+                            @if (SelectedStatement.BalanceCheckStatus == BalanceCheckStatusType.Matched)
+                            {
+                                <span class="badge bg-success">✓ Matched</span>
+                            }
+                            else
+                            {
+                                <span class="badge bg-danger">⚠ Not Matched</span>
+                            }
+                        </div>
+                    </div>
+
+                    <div class="vb-header-actions printHideButtons">
+                        <button class="btn btn-primary" @onclick="PrintPage">
+                            <i class="bi bi-printer"></i>  Print
+                        </button>
+                        <button class="btn btn-outline-secondary" @onclick="GoBack">
+                            <i class="ti ti-arrow-left me-1"></i> Back
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ================= SUMMARY ================= -->
+        <div class="vb-summary-grid mb-4">
+
+            <div class="vb-tile">
+                <div class="vb-tile-label">Total Credits</div>
+                <div class="vb-tile-value text-success">
+                    @SelectedStatement.TotalCreditsAmount.ToString("N2")
+                </div>
+            </div>
+
+            <div class="vb-tile">
+                <div class="vb-tile-label">Total Debits</div>
+                <div class="vb-tile-value text-danger">
+                    @SelectedStatement.TotalDebitsAmount.ToString("N2")
+                </div>
+            </div>
+
+            <div class="vb-tile">
+                <div class="vb-tile-label">Net Movement</div>
+                <div class="vb-tile-value">
+                    @SelectedStatement.NetMovementAmount.ToString("N2")
+                </div>
+            </div>
+
+            <div class="vb-tile-wide">
+                <div class="vb-tile-label">Balance Difference</div>
+                <div class="vb-tile-value @(SelectedStatement.BalanceCheckStatus == BalanceCheckStatusType.Matched ? "text-success" : "text-danger")"
+                     style="font-size:22px;font-weight:600;">
+                    @SelectedStatement.BalanceDifferenceAmount?.ToString("N2")
+                </div>
+            </div>
+
+        </div>
+
+        <!-- ================= MAIN LAYOUT ================= -->
+        <div class="vb-two-col">
+
+            <!-- ===== LEFT SIDEBAR ===== -->
+            <aside class="vb-sidebar">
+
+                <!-- Statement Info -->
+                <div class="vb-card" style="height: 100%;">
+                    <div class="vb-card-header">
+                        <h6><i class="ti ti-id"></i> Statement Identity</h6>
+                    </div>
+                    <div class="vb-card-body">
+
+                        <div class="vb-row">
+                            <span class="vb-label">From Date</span>
+                            <span class="vb-val">
+                                @SelectedStatement.StatementFromDate.ToString("dd MMM yyyy")
+                            </span>
+                        </div>
+
+                        <div class="vb-row">
+                            <span class="vb-label">To Date</span>
+                            <span class="vb-val">
+                                @SelectedStatement.StatementToDate.ToString("dd MMM yyyy")
+                            </span>
+                        </div>
+
+                        <div class="vb-row">
+                            <span class="vb-label">Import Source</span>
+                            <span class="vb-val">@SelectedStatement.ImportSource</span>
+                        </div>
+
+                        <div class="vb-row">
+                            <span class="vb-label">Profile</span>
+                            <span class="vb-val">
+                                @SelectedStatement.StatementProfile
+                                (@SelectedStatement.ProfileVersion)
+                            </span>
+                        </div>
+
+                    </div>
+                </div>
+
+             
+            </aside>
+
+            <!-- ===== RIGHT CONTENT ===== -->
+            <div class="vb-main">
+                <!-- Audit Info -->
+                <div class="vb-card">
+                    <div class="vb-card-header">
+                        <h6><i class="ti ti-history"></i> Audit Info</h6>
+                    </div>
+                    <div class="vb-card-body">
+
+                        <div class="vb-row">
+                            <span class="vb-label">Uploaded At</span>
+                            <span class="vb-val">
+                                @SelectedStatement.FileUploadedAt.ToString("dd MMM yyyy HH:mm")
+                            </span>
+                        </div>
+
+                        <div class="vb-row">
+                            <span class="vb-label">Uploaded By</span>
+                            <span class="vb-val">@SelectedStatement.FileUploadedBy</span>
+                        </div>
+
+                    </div>
+                </div>
+
+                <!-- File Evidence -->
+                <div class="vb-card">
+                    <div class="vb-card-header">
+                        <h6><i class="ti ti-paperclip"></i> File Evidence</h6>
+                    </div>
+                    <div class="vb-card-body">
+
+                        <div class="vb-row">
+                            <span class="vb-label">File Name</span>
+                            <span class="vb-val">@SelectedStatement.FileNameOriginal</span>
+                        </div>
+
+                        <div class="vb-row">
+                            <span class="vb-label">File Type</span>
+                            <span class="vb-val">@SelectedStatement.FileType</span>
+                        </div>
+
+                        <div class="vb-row">
+                            <span class="vb-label">File Size</span>
+                            <span class="vb-val">
+                                @SelectedStatement.FileSizeBytes bytes
+                            </span>
+                        </div>
+
+                    </div>
+                </div>
+
+            </div>
+
+        </div>
+
+        <!-- ================= STATEMENT LINES TABLE ================= -->
+        <div class="vb-card mt-4 List-view">
+            <div class="vb-card-header">
+                <h6><i class="ti ti-list"></i> Statement Lines</h6>
+            </div>
+
+            <div class="vb-card-body p-0">
+                <div class="card-body p-0">
+                    <table class="table align-middle w-100 table-fixed">
+                        <thead class="thead-light">
+                            <tr>
+                                <th class="d-xl-none" style="width:40px"></th>
+                                <th style="width:80px">Line</th>
+                                <th>Txn Date</th>
+                                <th class="d-none d-md-table-cell">Value Date</th>
+                                <th class="text-end d-none d-lg-table-cell">Debit</th>
+                                <th class="text-end d-none d-lg-table-cell">Credit</th>
+                                <th class="text-end d-none d-lg-table-cell">Dr/Cr</th>
+                                <th class="d-none d-xl-table-cell">Reference</th>
+                                <th class="d-none d-xxl-table-cell">Narration</th>
+                                <th class="d-none d-xl-table-cell text-end">Run Bal</th>
+                                <th>Status</th>
+                                <th class="d-none d-xl-table-cell">Matched Txn</th>
+                            </tr>
+                        </thead>
+
+                        <tbody>
+                            @if (PagedStatements.Any())
+                            {
+                                @foreach (var line in PagedStatements)
+                                {
+
+                                    <tr>
+                                        <!-- PLUS ICON -->
+                                        <td class="d-xl-none text-center" style="padding: 0;padding-left: 15px;">
+                                            <a href="javascript:void(0);" class="TablePlus"
+                                               data-bs-toggle="modal"
+                                               data-bs-target="#rowDetailsModal"
+                                               @onclick="() => SelectLine(line)">
+                                                <i class="ti ti-plus"></i>
+                                            </a>
+                                        </td>
+                                        <td>
+                                            <a href="javascript:void(0);"
+                                               class="fw-medium link-View"
+                                               data-bs-toggle="modal"
+                                               data-bs-target="#lineDetailsModal"
+                                               @onclick="() => SelectLine(line)">
+                                                @line.LineNumber
+                                            </a>
+                                        </td>
+
+                                        <td class="d-none d-md-table-cell">@line.TransactionDate.ToString("dd MMM yyyy")</td>
+
+                                        <td>
+                                            @(line.ValueDate?.ToString("dd MMM yyyy") ?? "-")
+                                        </td>
+
+                                        <td class="text-end d-none d-lg-table-cell">
+                                            @(line.DebitAmount > 0)
+                                        </td>
+
+                                        <td class="text-end d-none d-lg-table-cell">
+                                            @(line.CreditAmount > 0)
+                                        </td>
+
+                                        <td class="text-end d-none d-lg-table-cell">
+                                            <span class="badge @(line.Direction == StatementLineDirectionType.Debit
+                                                                                                                                ? "bg-soft-danger text-danger"
+                                                                                                                                : "bg-soft-success text-success")">
+                                                @line.Direction
+                                            </span>
+                                        </td>
+
+                                        <td class="d-none d-xl-table-cell">
+                                            @line.ReferenceText
+                                        </td>
+
+                                        <td class="d-none d-xxl-table-cell text-truncate"
+                                            style="max-width:250px">
+                                            @line.NarrationRaw
+                                        </td>
+
+                                        <td class="d-none d-xl-table-cell text-end">
+                                            @(line.RunningBalance?.ToString("N2") ?? "-")
+                                        </td>
+
+                                        <td>
+                                            <span class="badge @GetReconBadge(line.ReconciliationStatus)">
+                                                @line.ReconciliationStatus
+                                            </span>
+                                        </td>
+
+                                        <td class="d-none d-xl-table-cell">
+                                            @(line.MatchedBankTransactionId?.ToString()?.Substring(0, 8) ?? "—")
+                                        </td>
+                                    </tr>
+                                }
+                            }
+                            else
+                            {
+                                <tr>
+                                    <td colspan="9" class="text-center py-4">
+                                        <div class="text-muted">
+                                            <i class="ti ti-database-off fs-32 d-block mb-2"></i>
+                                            No Bank Statements found
+                                        </div>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                    @if (PagedStatements.Any())
+                    {
+                        <!-- PAGINATION -->
+                        <div class="d-flex justify-content-between align-items-center p-3">
+
+                            <div class="d-flex align-items-center">
+                                <span class="me-2">Row Per Page</span>
+                                <select class="form-select form-select-sm w-auto"
+                                        @onchange="OnPageSizeChange">
+                                    <option value="5">5</option>
+                                    <option value="10" selected>10</option>
+                                    <option value="25">25</option>
+                                </select>
+                                <span class="ms-2">Entries</span>
+                            </div>
+
+                            <nav>
+                                <ul class="pagination pagination-sm mb-0">
+
+                                    <li class="page-item @(CurrentPage == 1 ? "disabled" : "")">
+                                        <a class="page-link" href="#"
+                                           @onclick="PreviousPage"
+                                           @onclick:preventDefault>
+                                            <i class="ti ti-chevron-left"></i>
+                                        </a>
+                                    </li>
+
+                                    @foreach (var p in VisiblePages)
+                                    {
+                                        <li class="page-item @(p == CurrentPage ? "active" : "")">
+                                            <button class="page-link"
+                                                    @onclick="() => GoToPage(p)">
+                                                @p
+                                            </button>
+                                        </li>
+                                    }
+
+                                    <li class="page-item @(CurrentPage == TotalPages ? "disabled" : "")">
+                                        <a class="page-link" href="#"
+                                           @onclick="NextPage"
+                                           @onclick:preventDefault>
+                                            <i class="ti ti-chevron-right"></i>
+                                        </a>
+                                    </li>
+
+                                </ul>
+                            </nav>
+                        </div>
+                    }
+
+                </div>
+            </div>
+        </div>
+    }
+    else
+    {
+        <div class="text-center py-5">
+            <i class="ti ti-alert-circle fs-1 text-muted"></i>
+            <p class="text-muted mt-2">Bank statement not found</p>
+            <button class="btn btn-secondary" @onclick="GoBack">
+                <i class="ti ti-arrow-left me-1"></i> Back to List
+            </button>
+        </div>
+    }
+
+</div>
+
+<div class="modal fade list-Popup"
+     id="lineDetailsModal"
+     tabindex="-1">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content">
+
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    Bank Statement Line Details
+                </h5>
+                <button type="button"
+                        class="btn-close"
+                        data-bs-dismiss="modal"></button>
+            </div>
+
+            @if (SelectedLine != null)
+            {
+                <div class="modal-body">
+
+                    <div class="row g-3">
+
+                        <!-- CORE -->
+                        <div class="col-md-6">
+                            <strong>Line No:</strong> @SelectedLine.LineNumber
+                        </div>
+
+                        <div class="col-md-6">
+                            <strong>Direction:</strong>
+                            <span class="badge @GetDirectionBadge(SelectedLine.Direction)">
+                                @SelectedLine.Direction
+                            </span>
+                        </div>
+
+                        <div class="col-md-6">
+                            <strong>Transaction Date:</strong>
+                            @SelectedLine.TransactionDate.ToString("dd MMM yyyy")
+                        </div>
+
+                        <div class="col-md-6">
+                            <strong>Value Date:</strong>
+                            @(SelectedLine.ValueDate?.ToString("dd MMM yyyy") ?? "-")
+                        </div>
+
+                        <!-- AMOUNTS -->
+                        <div class="col-md-6">
+                            <strong>Debit:</strong>
+                            @SelectedLine.DebitAmount.ToString("N2")
+                        </div>
+
+                        <div class="col-md-6">
+                            <strong>Credit:</strong>
+                            @SelectedLine.CreditAmount.ToString("N2")
+                        </div>
+
+                        <div class="col-md-6">
+                            <strong>Running Balance:</strong>
+                            @(SelectedLine.RunningBalance?.ToString("N2") ?? "-")
+                        </div>
+
+                        <!-- REFERENCES -->
+                        <div class="col-md-12">
+                            <strong>Bank Txn ID:</strong>
+                            @(SelectedLine.BankProvidedTransactionId ?? "-")
+                        </div>
+
+                        <div class="col-md-12">
+                            <strong>Reference:</strong>
+                            @(SelectedLine.ReferenceText ?? "-")
+                        </div>
+
+                        <div class="col-md-12">
+                            <strong>Narration (Raw):</strong>
+                            <div class="text-muted">
+                                @(SelectedLine.NarrationRaw ?? "-")
+                            </div>
+                        </div>
+
+                        <div class="col-md-12">
+                            <strong>Narration (Normalized):</strong>
+                            <div class="text-muted">
+                                @(SelectedLine.NarrationNormalized ?? "-")
+                            </div>
+                        </div>
+
+                        <!-- PARSE -->
+                        <div class="col-md-6">
+                            <strong>Parse Status:</strong>
+                            <span class="badge bg-info">
+                                @SelectedLine.ParseStatus
+                            </span>
+                        </div>
+
+                        <div class="col-md-6">
+                            <strong>Warning:</strong>
+                            @(string.IsNullOrWhiteSpace(SelectedLine.ParseWarningMessage)
+                                                    ? "None"
+                                                    : SelectedLine.ParseWarningMessage)
+                        </div>
+
+                        <!-- MATCH -->
+                        <div class="col-md-6">
+                            <strong>Reconciliation Status:</strong>
+                            <span class="badge @GetReconBadge(SelectedLine.ReconciliationStatus)">
+                                @SelectedLine.ReconciliationStatus
+                            </span>
+                        </div>
+
+                        <div class="col-md-6">
+                            <strong>Matched Txn:</strong>
+                            @(SelectedLine.MatchedBankTransactionId?.ToString() ?? "—")
+                        </div>
+
+                        <div class="col-md-12">
+                            <strong>Line Hash:</strong>
+                            <code class="small">
+                                @SelectedLine.LineHashSHA256
+                            </code>
+                        </div>
+                    </div>
+
+                </div>
+            }
+        </div>
+    </div>
+</div>
+
+<div class="modal fade list-Popup"
+     id="rowDetailsModal"
+     tabindex="-1">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content">
+
+            <!-- HEADER -->
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    Bank Statement Details
+                </h5>
+                <button type="button"
+                        class="btn-close"
+                        data-bs-dismiss="modal"
+                        style="padding:0; right:22px; position:absolute; transform:none">
+                </button>
+            </div>
+
+            @if (SelectedLine != null)
+            {
+                <div class="modal-body">
+
+                    <!-- ================= CORE INFO ================= -->
+                    <div class="mb-2 d-flex gap-3 d-md-none">
+                        <strong>Txn Date:</strong>
+                        <div>@SelectedLine.TransactionDate.ToString("dd MMM yyyy")</div>
+                    </div>
+
+                    <div class="mb-2 d-flex gap-3 d-md-none">
+                        <strong>Value Date:</strong>
+                        <div> @(SelectedLine.ValueDate?.ToString("dd MMM yyyy") ?? "-")</div>
+                    </div>
+
+                    <!-- ================= TOTALS ================= -->
+                    <div class="mb-2 d-flex gap-3">
+                        <strong>Credits:</strong>
+                        <div class="text-success fw-medium">
+                            ₹@(SelectedLine.CreditAmount > 0)
+                        </div>
+                    </div>
+
+                    <div class="mb-2 d-flex gap-3">
+                        <strong>Debits:</strong>
+                        <div class="text-danger fw-medium">
+                            ₹@(SelectedLine.DebitAmount > 0)
+                        </div>
+                    </div>
+
+                    <div class="mb-2 d-flex gap-3">
+                        <strong>DR/CR</strong>
+                        <span class="badge @(SelectedLine.Direction == StatementLineDirectionType.Debit
+                                                                                                                                    ? "bg-soft-danger text-danger"
+                                                                                                                                    : "bg-soft-success text-success")">
+                            @SelectedLine.Direction
+                        </span>
+                    </div>
+
+                    <!-- ================= BALANCE CHECK ================= -->
+                    <div class="mb-2 gap-3">
+                        <strong>Reference:</strong>
+                        <div>
+                            @SelectedLine.ReferenceText
+                        </div>
+                    </div>
+
+                    <!-- ================= PROFILE ================= -->
+                    <div class="mb-2 d-flex gap-3">
+                        <strong>Narration:</strong>
+                        <div>
+                            @SelectedLine.NarrationRaw
+                        </div>
+                    </div>
+
+                    <!-- ================= FILE EVIDENCE ================= -->
+                    <hr />
+
+                    <div class="mb-2 d-flex gap-3">
+                        <strong>Running Balance:</strong>
+                        <div>
+                            @(SelectedLine.RunningBalance?.ToString("N2") ?? "-")
+                        </div>
+                    </div>
+
+                    <div class="mb-2 gap-3">
+                        <strong>Status:</strong>
+                        <span class="badge @GetReconBadge(SelectedLine.ReconciliationStatus)">
+                            @SelectedLine.ReconciliationStatus
+                        </span>
+                    </div>
+
+
+                </div>
+            }
+        </div>
+    </div>
+</div>

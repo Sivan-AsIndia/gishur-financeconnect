@@ -1,0 +1,542 @@
+@page "/opening-balances/{BalanceId:guid}/view"
+@using FinanceConnect.Client.ViewModels
+@using FinanceConnect.Client.Services
+@inject MasterDataService MasterDataService
+@inject NavigationManager Nav
+@inject IJSRuntime JS
+@inject AuthService AuthService
+@inject ToastService ToastService
+
+<PageTitle>Opening Balance Details - FinanceConnect</PageTitle>
+
+@if (!isInitialized)
+{
+    <div class="page-loading-overlay">
+        <div class="whirly-loader"></div>
+    </div>
+}
+else if (SelectedItem == null)
+{
+    <div class="vb-root">
+        <div class="content">
+            <div class="alert alert-danger">
+                <i class="ti ti-alert-circle me-2"></i>
+                Opening balance not found.
+                <a href="/opening-balances" class="alert-link ms-2">Return to list</a>
+            </div>
+        </div>
+    </div>
+}
+else
+{
+    <div class="vb-root">
+        <div class="content">
+            <div>
+            <!-- PROFILE HEADER CARD -->
+            <div class="vb-header-card">
+                <div class="vb-cover">
+                    <div class="vb-cover-orb vb-orb-1"></div>
+                    <div class="vb-cover-orb vb-orb-2"></div>
+                    <div class="vb-cover-orb vb-orb-3"></div>
+                </div>
+                <div class="vb-header-body">
+                    <div class="vb-avatar">
+                        @SelectedItem.OpeningBalanceNumber?.Substring(0, Math.Min(2, SelectedItem.OpeningBalanceNumber?.Length ?? 0)).ToUpper()
+                    </div>
+                    <div class="vb-header-meta">
+                        <div>
+                            <p class="vb-bill-number">@SelectedItem.OpeningBalanceNumber</p>
+                            <p class="vb-bill-sub">@SelectedItem.CompanyName &nbsp;·&nbsp; @SelectedItem.BranchName &nbsp;·&nbsp; @(SelectedItem.FiscalYearName ?? "-")</p>
+                            <div class="vb-badges">
+                                <span class="badge @GetStatusBadgeClass(SelectedItem.Status)">@SelectedItem.Status</span>
+                                @if (SelectedItem.IsBalanced)
+                                {
+                                    <span class="badge bg-success-transparent text-success"><i class="ti ti-checks me-1"></i>Balanced</span>
+                                }
+                                else
+                                {
+                                    <span class="badge bg-danger-transparent text-danger"><i class="ti ti-alert-triangle me-1"></i>Unbalanced</span>
+                                }
+                            </div>
+                        </div>
+                        <div class="vb-header-actions">
+                            <a href="/opening-balances" class="btn btn-outline-secondary">
+                                <i class="ti ti-arrow-left me-1"></i> Back
+                            </a>
+                            @if (SelectedItem.Status == "Draft")
+                            {
+                                <a href="/create-opening-balance/@SelectedItem.Id" class="btn btn-primary">
+                                    <i class="ti ti-pencil me-1"></i> Edit
+                                </a>
+                            }
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Balance Summary Tiles -->
+            <div class="vb-card" style="background: transparent;border: none;box-shadow: none;">
+                <div class="vb-summary-grid mb-4 mt-2">
+                    <div class="vb-tile">
+                        <div class="vb-tile-label">Total Debit</div>
+                        <div class="vb-tile-value primary">₹ @SelectedItem.TotalDebit.ToString("N2")</div>
+                    </div>
+                    <div class="vb-tile">
+                        <div class="vb-tile-label">Total Credit</div>
+                        <div class="vb-tile-value success">₹ @SelectedItem.TotalCredit.ToString("N2")</div>
+                    </div>
+                    <div class="vb-tile-wide">
+                        <div class="vb-tile-label">Difference</div>
+                        <div class="vb-tile-value @(SelectedItem.IsBalanced ? "success" : "danger")" style="font-size:26px;">
+                            ₹ @SelectedItem.Difference.ToString("N2")
+                            @(SelectedItem.IsBalanced ? "✓" : "!")
+                        </div>
+                    </div>
+                    <div class="vb-tile">
+                        <div class="vb-tile-label">Total Lines</div>
+                        <div class="vb-tile-value">@SelectedItem.Lines.Count</div>
+                    </div>
+                    <div class="vb-tile">
+                        <div class="vb-tile-label">Entry Mode</div>
+                        <div class="vb-tile-value" style="font-size:14px;">@EntryModes.GetDisplayName(SelectedItem.EntryMode)</div>
+                    </div>
+                    <div class="vb-tile">
+                        <div class="vb-tile-label">Currency Mode</div>
+                        <div class="vb-tile-value" style="font-size:14px;">@CurrencyModes.GetDisplayName(SelectedItem.CurrencyMode ?? "SingleCurrencyOnly")</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="vb-two-col mb-4">
+                <!-- SIDEBAR -->
+                <aside class="vb-sidebar">
+                    <div class="vb-card">
+                        <div class="vb-card-header"><h6><i class="ti ti-file-invoice"></i> Opening Balance Identity</h6></div>
+                        <div class="vb-card-body">
+                            <div class="vb-row"><span class="vb-label">OB Number</span><span class="vb-val">@SelectedItem.OpeningBalanceNumber</span></div>
+                            <div class="vb-row"><span class="vb-label">Fiscal Year</span><span class="vb-val">@(SelectedItem.FiscalYearName ?? "-")</span></div>
+                            <div class="vb-row"><span class="vb-label">Opening Date</span><span class="vb-val">@SelectedItem.OpeningDate.ToString("dd MMM yyyy")</span></div>
+                            <div class="vb-row"><span class="vb-label">Opening Period</span><span class="vb-val">@(SelectedItem.OpeningAccountingPeriodName ?? "-")</span></div>
+                            <div class="vb-row"><span class="vb-label">Status</span><span class="vb-val"><span class="badge @GetStatusBadgeClass(SelectedItem.Status)">@SelectedItem.Status</span></span></div>
+                        </div>
+                    </div>
+
+                    <div class="vb-card">
+                        <div class="vb-card-header"><h6><i class="ti ti-building"></i> Organization</h6></div>
+                        <div class="vb-card-body">
+                            <div class="vb-row"><span class="vb-label">Company</span><span class="vb-val">@SelectedItem.CompanyName</span></div>
+                            <div class="vb-row"><span class="vb-label">Branch</span><span class="vb-val">@SelectedItem.BranchName</span></div>
+                            <div class="vb-row"><span class="vb-label">Ledger</span><span class="vb-val">@SelectedItem.LedgerName</span></div>
+                        </div>
+                    </div>
+
+                    <div class="vb-card">
+                        <div class="vb-card-header"><h6><i class="ti ti-settings"></i> Configuration</h6></div>
+                        <div class="vb-card-body">
+                            <div class="vb-row"><span class="vb-label">Entry Mode</span><span class="vb-val">@EntryModes.GetDisplayName(SelectedItem.EntryMode)</span></div>
+                            <div class="vb-row"><span class="vb-label">Currency Mode</span><span class="vb-val">@CurrencyModes.GetDisplayName(SelectedItem.CurrencyMode ?? "SingleCurrencyOnly")</span></div>
+                            <div class="vb-row">
+                                <span class="vb-label">Balance Sheet Only</span>
+                                <span class="vb-val">
+                                    @if (SelectedItem.RestrictToBalanceSheetAccounts)
+                                    {
+                                        <span class="badge bg-success-transparent text-success"><i class="ti ti-checks me-1"></i>Yes</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="badge bg-secondary-transparent text-secondary"><i class="ti ti-x me-1"></i>No</span>
+                                    }
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="vb-card">
+                        <div class="vb-card-header"><h6><i class="ti ti-history"></i> History</h6></div>
+                        <div class="vb-card-body">
+                            <div class="vb-row"><span class="vb-label">Created</span><span class="vb-val">@SelectedItem.CreatedAt.ToString("dd MMM yyyy HH:mm")</span></div>
+                            @if (!string.IsNullOrWhiteSpace(SelectedItem.CreatedBy))
+                            {
+                                <div class="vb-row"><span class="vb-label">Created By</span><span class="vb-val">@SelectedItem.CreatedBy</span></div>
+                            }
+                            @if (!string.IsNullOrWhiteSpace(SelectedItem.ApprovedBy))
+                            {
+                                <div class="vb-row"><span class="vb-label">Approved By</span><span class="vb-val">@SelectedItem.ApprovedBy</span></div>
+                            }
+                            @if (SelectedItem.ApprovedAt.HasValue)
+                            {
+                                <div class="vb-row"><span class="vb-label">Approved At</span><span class="vb-val">@SelectedItem.ApprovedAt?.ToString("dd MMM yyyy HH:mm")</span></div>
+                            }
+                            @if (!string.IsNullOrWhiteSpace(SelectedItem.PostedBy))
+                            {
+                                <div class="vb-row"><span class="vb-label">Posted By</span><span class="vb-val">@SelectedItem.PostedBy</span></div>
+                            }
+                            @if (SelectedItem.PostedAt.HasValue)
+                            {
+                                <div class="vb-row"><span class="vb-label">Posted At</span><span class="vb-val">@SelectedItem.PostedAt?.ToString("dd MMM yyyy HH:mm")</span></div>
+                            }
+                            @if (!string.IsNullOrWhiteSpace(SelectedItem.PostingReference))
+                            {
+                                <div class="vb-row"><span class="vb-label">Posting Reference</span><span class="vb-val fw-medium">@SelectedItem.PostingReference</span></div>
+                            }
+                        </div>
+                    </div>
+                </aside>
+
+                <!-- MAIN CONTENT -->
+                <div class="vb-main">
+                    <div class="vb-card">
+                        <div class="vb-card-header"><h6><i class="ti ti-id"></i> Header Information</h6></div>
+                        <div class="vb-card-body">
+                            <div style="display:grid; grid-template-columns:1fr 1fr; gap:0 32px;">
+                                <div class="vb-row"><span class="vb-label">OB Number</span><span class="vb-val fw-medium">@SelectedItem.OpeningBalanceNumber</span></div>
+                                <div class="vb-row"><span class="vb-label">Fiscal Year</span><span class="vb-val">@(SelectedItem.FiscalYearName ?? "-")</span></div>
+                                <div class="vb-row"><span class="vb-label">Company</span><span class="vb-val">@SelectedItem.CompanyName</span></div>
+                                <div class="vb-row"><span class="vb-label">Branch</span><span class="vb-val">@SelectedItem.BranchName</span></div>
+                                <div class="vb-row"><span class="vb-label">Ledger</span><span class="vb-val">@SelectedItem.LedgerName</span></div>
+                                <div class="vb-row"><span class="vb-label">Opening Date</span><span class="vb-val">@SelectedItem.OpeningDate.ToString("dd MMM yyyy")</span></div>
+                                <div class="vb-row"><span class="vb-label">Opening Period</span><span class="vb-val">@(SelectedItem.OpeningAccountingPeriodName ?? "-")</span></div>
+                                <div class="vb-row"><span class="vb-label">Status</span><span class="vb-val"><span class="badge @GetStatusBadgeClass(SelectedItem.Status)">@SelectedItem.Status</span></span></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    @if (!string.IsNullOrWhiteSpace(SelectedItem.Notes))
+                    {
+                        <div class="vb-card">
+                            <div class="vb-card-header"><h6><i class="ti ti-notes"></i> Notes</h6></div>
+                            <div class="vb-card-body">
+                                <p style="margin:0; font-size:13.5px; color:var(--gray-600); line-height:1.7; font-style:italic; border-left: 3px solid color-mix(in srgb, var(--primary) 70%, white); padding-left:14px;">
+                                    @SelectedItem.Notes
+                                </p>
+                            </div>
+                        </div>
+                    }
+
+                    <div class="vb-card">
+                        <div class="vb-card-header"><h6><i class="ti ti-list-details"></i> Opening Balance Lines &nbsp;<span class="badge badge-blue">@SelectedItem.Lines.Count items</span></h6></div>
+                        <div style="overflow-x:auto;">
+                            <table class="vb-table">
+                                <thead class="bg-light">
+                                    <tr>
+                                        <th style="width:40px;">#</th>
+                                        <th>Account</th>
+                                        <th>Description</th>
+                                        <th class="text-end">Debit</th>
+                                        <th class="text-end">Credit</th>
+                                        @if (SelectedItem.CurrencyMode == CurrencyModes.MultiCurrencyAllowed)
+                                        {
+                                            <th>Currency</th>
+                                            <th class="text-end">Txn Amount</th>
+                                            <th class="text-end">Ex. Rate</th>
+                                        }
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @for (int i = 0; i < SelectedItem.Lines.Count; i++)
+                                    {
+                                        var line = SelectedItem.Lines[i];
+                                        <tr>
+                                            <td>@(i + 1)</td>
+                                            <td>
+                                                <div>@line.AccountCode - @line.AccountName</div>
+                                            </td>
+                                            <td>@(line.LineDescription ?? "-")</td>
+                                            <td class="text-end">
+                                                @if (line.DebitAmountBase > 0)
+                                                {
+                                                    <span class="text-success fw-medium">@line.DebitAmountBase.ToString("N2")</span>
+                                                }
+                                                else
+                                                {
+                                                    <span class="text-muted">@line.DebitAmountBase.ToString("N2")</span>
+                                                }
+                                            </td>
+                                            <td class="text-end">
+                                                @if (line.CreditAmountBase > 0)
+                                                {
+                                                    <span class="text-info fw-medium">@line.CreditAmountBase.ToString("N2")</span>
+                                                }
+                                                else
+                                                {
+                                                    <span class="text-muted">@line.CreditAmountBase.ToString("N2")</span>
+                                                }
+                                            </td>
+                                            @if (SelectedItem.CurrencyMode == CurrencyModes.MultiCurrencyAllowed)
+                                            {
+                                                <td>@(line.TransactionCurrencyCode ?? "-")</td>
+                                                <td class="text-end">@(line.TransactionAmount?.ToString("N2") ?? "-")</td>
+                                                <td class="text-end">@(line.ExchangeRateUsed?.ToString("N6") ?? "-")</td>
+                                            }
+                                        </tr>
+                                    }
+                                    @if (!SelectedItem.Lines.Any())
+                                    {
+                                        <tr>
+                                            <td colspan="@(SelectedItem.CurrencyMode == CurrencyModes.MultiCurrencyAllowed ? 8 : 5)" class="text-center text-muted py-3">No lines found</td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    @if (SelectedItem.CanEdit || SelectedItem.CanSubmit || SelectedItem.CanApprove || SelectedItem.CanPost)
+                    {
+                        <div class="vb-card">
+                            <div class="vb-card-header"><h6><i class="ti ti-settings"></i> Actions</h6></div>
+                            <div class="vb-card-body">
+                                <div class="d-flex flex-wrap gap-2">
+                                    @if (SelectedItem.CanEdit)
+                                    {
+                                        <a href="/create-opening-balance/@SelectedItem.Id" class="btn btn-primary btn-sm"><i class="ti ti-pencil me-1"></i> Edit</a>
+                                    }
+                                    @if (SelectedItem.CanSubmit)
+                                    {
+                                        <button type="button" class="btn btn-success btn-sm" data-bs-toggle="modal" data-bs-target="#submitModal"><i class="ti ti-send me-1"></i> Submit</button>
+                                    }
+                                    @if (SelectedItem.CanApprove)
+                                    {
+                                        <button type="button" class="btn btn-success btn-sm" data-bs-toggle="modal" data-bs-target="#approveModal"><i class="ti ti-check me-1"></i> Approve</button>
+                                    }
+                                    @if (SelectedItem.CanPost)
+                                    {
+                                        <button type="button" class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#postModal"><i class="ti ti-checkbox me-1"></i> Post to GL</button>
+                                    }
+                                </div>
+                            </div>
+                        </div>
+                    }
+
+                    <!-- Workflow History -->
+                    @if (SelectedItem.Status != "Draft")
+                    {
+                        <div class="vb-card">
+                            <div class="vb-card-header"><h6><i class="ti ti-git-branch"></i> Workflow History</h6></div>
+                            <div class="vb-card-body">
+                                <div class="vb-timeline">
+                                    @if (SelectedItem.Status == "Submitted" || SelectedItem.Status == "Approved" || SelectedItem.Status == "Posted")
+                                    {
+                                        <div class="vb-tl-item">
+                                            <div class="vb-tl-dot"><i class="ti ti-send"></i></div>
+                                            <div class="vb-tl-content"><div class="vb-tl-title">Submitted</div><div class="vb-tl-meta">Status indicates submission completed</div></div>
+                                        </div>
+                                    }
+                                    @if (SelectedItem.Status == "Approved" || SelectedItem.Status == "Posted")
+                                    {
+                                        <div class="vb-tl-item">
+                                            <div class="vb-tl-dot" style="background: color-mix(in srgb, var(--primary) 12%, white);border-color:#16a34a;color:#16a34a;"><i class="ti ti-check"></i></div>
+                                            <div class="vb-tl-content">
+                                                <div class="vb-tl-title">Approved</div>
+                                                <div class="vb-tl-meta">
+                                                    @if (SelectedItem.ApprovedAt.HasValue)
+                                                    {
+                                                        @SelectedItem.ApprovedAt.Value.ToString("dd MMM yyyy HH:mm")
+                                                    }
+                                                    @if (!string.IsNullOrWhiteSpace(SelectedItem.ApprovedBy))
+                                                    {
+                                                        <span> by @SelectedItem.ApprovedBy</span>
+                                                    }
+                                                </div>
+                                            </div>
+                                        </div>
+                                    }
+                                    @if (SelectedItem.PostedAt.HasValue)
+                                    {
+                                        <div class="vb-tl-item">
+                                            <div class="vb-tl-dot" style="background: color-mix(in srgb, var(--primary) 12%, white);border-color:var(--orange);color:var(--orange-d);"><i class="ti ti-book"></i></div>
+                                            <div class="vb-tl-content">
+                                                <div class="vb-tl-title">Posted</div>
+                                                <div class="vb-tl-meta">
+                                                    @SelectedItem.PostedAt.Value.ToString("dd MMM yyyy HH:mm")
+                                                    @if (!string.IsNullOrWhiteSpace(SelectedItem.PostedBy))
+                                                    {
+                                                        <span> by @SelectedItem.PostedBy</span>
+                                                    }
+                                                </div>
+                                                @if (!string.IsNullOrWhiteSpace(SelectedItem.PostingReference))
+                                                {
+                                                    <div style="font-size:12px;margin-top:2px;" class="text-muted">Ref: @SelectedItem.PostingReference</div>
+                                                }
+                                            </div>
+                                        </div>
+                                    }
+                                    @if (SelectedItem.Status == "Cancelled")
+                                    {
+                                        <div class="vb-tl-item">
+                                            <div class="vb-tl-dot" style="background: color-mix(in srgb, var(--primary) 12%, white);border-color:#dc2626;color:#dc2626;"><i class="ti ti-x"></i></div>
+                                            <div class="vb-tl-content"><div class="vb-tl-title">Cancelled</div><div class="vb-tl-meta">Opening balance has been cancelled</div></div>
+                                        </div>
+                                    }
+                                </div>
+                            </div>
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+        </div>
+    </div>
+
+    <!-- SUBMIT MODAL -->
+    <div class="modal fade" id="submitModal" data-bs-backdrop="static" data-bs-keyboard="false">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="page-wrapper-new p-0">
+                    <div class="p-5 px-3 text-center">
+                        @if (SelectedItem?.IsBalanced ?? false)
+                        {
+                            <span class="rounded-circle d-inline-flex p-2 bg-success-transparent mb-2">
+                                <i class="ti ti-send fs-24 text-success"></i>
+                            </span>
+                            <h4 class="fs-20 text-gray-9 fw-bold mb-2 mt-1">Submit Opening Balance</h4>
+                            <p class="text-gray-6 mb-0 fs-16">
+                                Do you want to submit <strong>@SelectedItem?.OpeningBalanceNumber</strong> for approval?
+                            </p>
+                        }
+                        else
+                        {
+                            <span class="rounded-circle d-inline-flex p-2 bg-danger-transparent mb-2">
+                                <i class="ti ti-alert-triangle fs-24 text-danger"></i>
+                            </span>
+                            <h4 class="fs-20 text-gray-9 fw-bold mb-2 mt-1">Cannot Submit</h4>
+                            <p class="text-gray-6 mb-0 fs-16 text-danger">Debit and Credit must balance!</p>
+                        }
+                        <div class="modal-footer-btn mt-4 d-flex justify-content-center gap-3">
+                            <button type="button" class="btn btn-secondary fs-13 fw-medium p-2 px-4" data-bs-dismiss="modal"><i class="ti ti-x me-1"></i>Cancel</button>
+                            @if (SelectedItem?.IsBalanced ?? false)
+                            {
+                                <button type="button" class="btn btn-success fs-13 fw-medium p-2 px-4" data-bs-dismiss="modal" @onclick="SubmitConfirmed"><i class="ti ti-send me-1"></i>Yes, Submit</button>
+                            }
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- APPROVE MODAL -->
+    <div class="modal fade" id="approveModal" data-bs-backdrop="static" data-bs-keyboard="false">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="page-wrapper-new p-0">
+                    <div class="p-5 px-3 text-center">
+                        <span class="rounded-circle d-inline-flex p-2 bg-success-transparent mb-2">
+                            <i class="ti ti-check fs-24 text-success"></i>
+                        </span>
+                        <h4 class="fs-20 text-gray-9 fw-bold mb-2 mt-1">Approve Opening Balance</h4>
+                        <p class="text-gray-6 mb-0 fs-16">
+                            Do you want to approve <strong>@SelectedItem?.OpeningBalanceNumber</strong>?
+                        </p>
+                        <div class="modal-footer-btn mt-4 d-flex justify-content-center gap-3">
+                            <button type="button" class="btn btn-secondary fs-13 fw-medium p-2 px-4" data-bs-dismiss="modal"><i class="ti ti-x me-1"></i>Cancel</button>
+                            <button type="button" class="btn btn-success fs-13 fw-medium p-2 px-4" data-bs-dismiss="modal" @onclick="ApproveConfirmed"><i class="ti ti-check me-1"></i>Yes, Approve</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- POST MODAL -->
+    <div class="modal fade" id="postModal" data-bs-backdrop="static" data-bs-keyboard="false">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="page-wrapper-new p-0">
+                    <div class="p-5 px-3 text-center">
+                        <span class="rounded-circle d-inline-flex p-2 bg-primary-transparent mb-2">
+                            <i class="ti ti-checkbox fs-24 text-primary"></i>
+                        </span>
+                        <h4 class="fs-20 text-gray-9 fw-bold mb-2 mt-1">Post Opening Balance</h4>
+                        <p class="text-gray-6 mb-0 fs-16">
+                            Do you want to post <strong>@SelectedItem?.OpeningBalanceNumber</strong> to General Ledger?
+                        </p>
+                        <div class="alert alert-warning mt-3 text-start small"><i class="ti ti-alert-triangle me-2"></i>Once posted, this action cannot be undone.</div>
+                        <div class="modal-footer-btn mt-4 d-flex justify-content-center gap-3">
+                            <button type="button" class="btn btn-secondary fs-13 fw-medium p-2 px-4" data-bs-dismiss="modal"><i class="ti ti-x me-1"></i>Cancel</button>
+                            <button type="button" class="btn btn-primary fs-13 fw-medium p-2 px-4" data-bs-dismiss="modal" @onclick="PostConfirmed"><i class="ti ti-checkbox me-1"></i>Yes, Post</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    [Parameter]
+    public Guid BalanceId { get; set; }
+
+    private bool isInitialized = false;
+    private OpeningBalanceModel? SelectedItem;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await AuthService.InitializeAsync();
+        if (!AuthService.IsAuthenticated)
+        {
+            Nav.NavigateTo("/Login");
+            return;
+        }
+
+        var items = MasterDataService.GetAllOpeningBalances();
+        SelectedItem = items.FirstOrDefault(i => i.Id == BalanceId);
+        isInitialized = true;
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            await JS.InvokeVoidAsync("feather.replace");
+        }
+    }
+
+    private void GoBack()
+    {
+        Nav.NavigateTo("/opening-balances");
+    }
+
+    private void SubmitConfirmed()
+    {
+        if (SelectedItem != null && SelectedItem.IsBalanced)
+        {
+            MasterDataService.SubmitOpeningBalance(SelectedItem.Id);
+            SelectedItem = MasterDataService.GetAllOpeningBalances().FirstOrDefault(i => i.Id == BalanceId);
+            ToastService.ShowSuccess("Submitted for approval", "Submitted");
+            StateHasChanged();
+        }
+    }
+
+    private void ApproveConfirmed()
+    {
+        if (SelectedItem != null)
+        {
+            MasterDataService.ApproveOpeningBalance(SelectedItem.Id);
+            SelectedItem = MasterDataService.GetAllOpeningBalances().FirstOrDefault(i => i.Id == BalanceId);
+            ToastService.ShowSuccess("Opening Balance approved", "Approved");
+            StateHasChanged();
+        }
+    }
+
+    private void PostConfirmed()
+    {
+        if (SelectedItem != null)
+        {
+            MasterDataService.PostOpeningBalance(SelectedItem.Id);
+            SelectedItem = MasterDataService.GetAllOpeningBalances().FirstOrDefault(i => i.Id == BalanceId);
+            ToastService.ShowSuccess("Posted to General Ledger", "Posted");
+            StateHasChanged();
+        }
+    }
+
+    private string GetStatusBadgeClass(string status) => status switch
+    {
+        "Posted" => "bg-success-transparent text-success",
+        "Approved" => "bg-info-transparent text-info",
+        "Submitted" => "bg-warning-transparent text-warning",
+        "Draft" => "bg-secondary-transparent text-secondary",
+        "Cancelled" => "bg-danger-transparent text-danger",
+        _ => "bg-secondary-transparent text-secondary"
+    };
+}

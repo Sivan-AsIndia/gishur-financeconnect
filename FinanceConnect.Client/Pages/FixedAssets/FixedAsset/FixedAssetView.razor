@@ -1,0 +1,387 @@
+@page "/fixed-assets/{Id:guid}/view"
+@inject IJSRuntime JS
+@using static FinanceConnect.Client.ViewModels.FixedAssetViewModel
+@inject FinanceConnect.Client.Services.FixedAssetService fixedAssetService
+@inject NavigationManager NavigationManager
+
+@if (!isInitialized)
+{
+    <div class="page-loading-overlay">
+        <div class="whirly-loader"></div>
+    </div>
+}
+else if (Asset == null)
+{
+    <div class="content">
+        <div class="alert alert-danger">
+            <i class="ti ti-alert-circle me-2"></i>
+            Fixed Asset not found.
+            <a href="/fixed-assets" class="alert-link ms-2">Return to list</a>
+        </div>
+    </div>
+}
+else
+{
+    <div class="content">
+
+        <!-- PAGE TITLE ROW -->
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <div>
+                <h4 class="fw-bold mb-1">Fixed Asset Details</h4>
+                <p class="text-muted mb-0 small">Asset information and lifecycle status</p>
+            </div>
+            <div class="d-flex gap-2 page-btn align-items-center">
+                @if (Asset.AssetStatus == AssetStatus.Draft)
+                {
+                    <a href="/fixed-assets/edit/@Asset.FixedAssetId"
+                       class="btn btn-primary">
+                        <i class="ti ti-edit me-1"></i> Edit
+                    </a>
+                }   
+                <a @onclick="PrintPage" class="btn bg-primary text-white" href="javascript:void(0);">
+                    <i class="ti ti-printer me-1"></i> Print
+                </a>
+                <a class="btn btn-outline-secondary" href="/fixed-assets">
+                    <i class="ti ti-arrow-left me-1"></i> Back
+                </a>
+            </div>
+        </div>
+
+        <div class="card">
+
+            <!-- TOP HEADER CARD -->
+            <div class="header-card">
+                <div class="header-inner">
+                    <div class="header-left1">
+                        <div class="company-logo">
+                            <span class="logo-initials">
+                                @Asset.AssetCode?.Substring(0, Math.Min(2, Asset.AssetCode?.Length ?? 0)).ToUpper()
+                            </span>
+                        </div>
+                        <div class="header-meta">
+                            <h2 class="company-title">@Asset.AssetCode – @Asset.AssetName</h2>
+                            <div class="company-subtitle">
+                                @if (!string.IsNullOrWhiteSpace(Asset.CategoryName))
+                                {
+                                    <span>@Asset.CategoryName</span>
+                                    <span class="dot">·</span>
+                                }
+                                @if (!string.IsNullOrWhiteSpace(Asset.AssetType))
+                                {
+                                    <span>@Asset.AssetType</span>
+                                    <span class="dot">·</span>
+                                }
+                                @if (!string.IsNullOrWhiteSpace(Asset.BranchName))
+                                {
+                                    <span>@Asset.BranchName</span>
+                                }
+                            </div>
+                            <div class="header-tags">
+                                <span class="tag tag-default"
+                                      style="border:1px solid #0081ff;background:#e9f3ff;color:#1420ff;">
+                                    @(Asset.IsDepreciable ? "Depreciable" : "Non-Depreciable")
+                                </span>
+                                @if (!string.IsNullOrWhiteSpace(Asset.Location))
+                                {
+                                    <span class="tag tag-default"
+                                          style="border:1px solid #c6b500;background:#f7ffdf;color:#b4ac00;">
+                                        <i class="ti ti-map-pin me-1" style="font-size:11px;"></i>@Asset.Location
+                                    </span>
+                                }
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="header-right">
+                        @{
+                            var statusLabel = GetStatusLabel(Asset.AssetStatus);
+                            var statusCss = Asset.AssetStatus switch
+                            {
+                                AssetStatus.Active => "status-active",
+                                AssetStatus.Draft => "status-draft",
+                                AssetStatus.Inactive => "status-inactive",
+                                AssetStatus.Disposed => "status-inactive",
+                                _ => "status-inactive"
+                            };
+                        }
+                        <span class="status-badge @statusCss">● @statusLabel.ToUpper()</span>
+                        <div class="created-info">
+                            Created @Asset.CreatedAt.ToString("dd MMM yyyy")
+                        </div>
+                      
+                    </div>
+                </div>
+            </div>
+
+            <!-- SCROLLABLE BODY -->
+            <div class="details-body">
+
+                <!-- CORE IDENTITY -->
+                <div class="section-block">
+                    <div class="section-header">
+                        <span class="section-icon"
+                              style="background:#fe6dde36;padding:2px 6px 0 6px;border-radius:5px;border:1px solid #ff79f2;color:#eb0091;">
+                            <i class="ti ti-id"></i>
+                        </span>
+                        <span class="section-title">CORE IDENTITY</span>
+                        <div class="line"></div>
+                    </div>
+                    <div class="section-content">
+                        <div class="fields-grid fields-grid-3">
+                            <div class="field-item">
+                                <div class="field-label">ASSET CODE</div>
+                                <div class="field-value fw">@(Asset.AssetCode ?? "-")</div>
+                            </div>
+                            <div class="field-item">
+                                <div class="field-label">ASSET NAME</div>
+                                <div class="field-value fw">@(Asset.AssetName ?? "-")</div>
+                            </div>
+                            <div class="field-item">
+                                <div class="field-label">CATEGORY</div>
+                                <div class="field-value">@(Asset.CategoryName ?? "-")</div>
+                            </div>
+                            <div class="field-item">
+                                <div class="field-label">ASSET TYPE</div>
+                                <div class="field-value">@(Asset.AssetType ?? "-")</div>
+                            </div>
+                            <div class="field-item">
+                                <div class="field-label">STATUS</div>
+                                <div class="field-value">
+                                    <span class="badge @GetStatusBadgeClass(Asset.AssetStatus)">
+                                        @GetStatusLabel(Asset.AssetStatus)
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- IDENTITY & TAGGING -->
+                <div class="section-block">
+                    <div class="section-header">
+                        <span class="section-icon"
+                              style="background:#dae4ff6e;padding:2px 6px 0 6px;border-radius:5px;border:1px solid #3741ff;color:#0037ff;">
+                            <i class="ti ti-barcode"></i>
+                        </span>
+                        <span class="section-title">IDENTITY &amp; TAGGING</span>
+                        <div class="line"></div>
+                    </div>
+                    <div class="section-content">
+                        <div class="fields-grid fields-grid-3">
+                            <div class="field-item">
+                                <div class="field-label">ASSET TAG / BARCODE</div>
+                                <div class="field-value fw">@(string.IsNullOrEmpty(Asset.AssetTag) ? "-" : Asset.AssetTag)</div>
+                            </div>
+                            <div class="field-item">
+                                <div class="field-label">SERIAL NUMBER</div>
+                                <div class="field-value">@(string.IsNullOrEmpty(Asset.SerialNumber) ? "-" : Asset.SerialNumber)</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- OWNERSHIP & ASSIGNMENT -->
+                <div class="section-block">
+                    <div class="section-header">
+                        <span class="section-icon"
+                              style="background:#daffde61;padding:3px 6px 2px 6px;border-radius:5px;border:1px solid #12e141;color:#00ce3f;">
+                            <i class="ti ti-building"></i>
+                        </span>
+                        <span class="section-title">OWNERSHIP &amp; ASSIGNMENT</span>
+                        <div class="line"></div>
+                    </div>
+                    <div class="section-content">
+                        <div class="fields-grid fields-grid-3">
+                            <div class="field-item">
+                                <div class="field-label">BRANCH</div>
+                                <div class="field-value fw">@(string.IsNullOrEmpty(Asset.BranchName) ? "-" : Asset.BranchName)</div>
+                            </div>
+                            <div class="field-item">
+                                <div class="field-label">LOCATION</div>
+                                <div class="field-value">@(string.IsNullOrEmpty(Asset.Location) ? "-" : Asset.Location)</div>
+                            </div>
+                            <div class="field-item">
+                                <div class="field-label">CUSTODIAN</div>
+                                <div class="field-value">@(string.IsNullOrEmpty(Asset.Custodian) ? "-" : Asset.Custodian)</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- CAPITALIZATION & COST -->
+                <div class="section-block">
+                    <div class="section-header">
+                        <span class="section-icon"
+                              style="background:#6debfe2b;padding:2px 6px 0 6px;border-radius:5px;border:1px solid #00a785;color:#008f9c;">
+                            <i class="ti ti-cash"></i>
+                        </span>
+                        <span class="section-title">CAPITALIZATION &amp; COST</span>
+                        <div class="line"></div>
+                    </div>
+                    <div class="section-content">
+                        <div class="fields-grid fields-grid-3">
+                            <div class="field-item">
+                                <div class="field-label">PURCHASE DATE</div>
+                                <div class="field-value fw">
+                                    @(Asset.PurchaseDate.HasValue? Asset.PurchaseDate.Value.ToString("dd MMM yyyy") : "-")
+                                </div>
+                            </div>
+                            <div class="field-item">
+                                <div class="field-label">PURCHASE COST</div>
+                                <div class="field-value fw">@Asset.PurchaseCost.ToString("N2")</div>
+                            </div>
+                            <div class="field-item">
+                                <div class="field-label">SALVAGE VALUE</div>
+                                <div class="field-value">
+                                    @(Asset.SalvageValue.HasValue? Asset.SalvageValue.Value.ToString("N2") : "-")
+                                </div>
+                            </div>
+                            <div class="field-item">
+                                <div class="field-label">NET BOOK VALUE</div>
+                                <div class="field-value">
+                                    @(Asset.NetBookValue.HasValue? Asset.NetBookValue.Value.ToString("N2") : "-")
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- DEPRECIATION SETUP -->
+                <div class="section-block">
+                    <div class="section-header">
+                        <span class="section-icon"
+                              style="background:#ff708d30;padding:2px 6px 0 6px;border-radius:5px;border:1px solid #ff2173;color:#ff1b2d;">
+                            <i class="ti ti-chart-line"></i>
+                        </span>
+                        <span class="section-title">DEPRECIATION SETUP</span>
+                        <div class="line"></div>
+                    </div>
+                    <div class="section-content">
+                        <div class="fields-grid fields-grid-3">
+                            <div class="field-item">
+                                <div class="field-label">DEPRECIABLE</div>
+                                <div class="field-value">
+                                    @if (Asset.IsDepreciable)
+                                    {
+                                        <span class="pill pill-yes">✓ Yes</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="pill pill-no">✕ No</span>
+                                    }
+                                </div>
+                            </div>
+                            <div class="field-item">
+                                <div class="field-label">USEFUL LIFE</div>
+                                <div class="field-value fw">
+                                    @(Asset.UsefulLifeMonths.HasValue ? $"{Asset.UsefulLifeMonths} Months" : "-")
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- NOTES (conditional) -->
+                @if (!string.IsNullOrWhiteSpace(Asset.Notes))
+                {
+                    <div class="section-block">
+                        <div class="section-header">
+                            <span class="section-icon"
+                                  style="background:#f8c5051f;padding:2px 6px 0 6px;border-radius:5px;border:1px solid #a7b500;color:#c0a700;">
+                                <i class="ti ti-notes"></i>
+                            </span>
+                            <span class="section-title">NOTES</span>
+                            <div class="line"></div>
+                        </div>
+                        <div class="section-content">
+
+                               <div class="fields-grid">
+                                <div class="field-item">
+                                    <div class="field-label">Notes</div>
+                                    <div class="field-value fw">
+                                        @Asset.Notes
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                }
+
+                <!-- LIFECYCLE (Disposed only) -->
+                @if (Asset.AssetStatus == AssetStatus.Disposed)
+                {
+                    <div class="section-block">
+                        <div class="section-header">
+                            <span class="section-icon"
+                                  style="background:#ff708d30;padding:2px 6px 0 6px;border-radius:5px;border:1px solid #ff2173;color:#ff1b2d;">
+                                <i class="ti ti-archive"></i>
+                            </span>
+                            <span class="section-title">LIFECYCLE</span>
+                            <div class="line"></div>
+                        </div>
+                        <div class="section-content">
+                            <div class="fields-grid fields-grid-3">
+                                <div class="field-item">
+                                    <div class="field-label">DISPOSED ON</div>
+                                    <div class="field-value fw">
+                                        @(Asset.DisposedOn.HasValue? Asset.DisposedOn.Value.ToString("dd MMM yyyy") : "-")
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                }
+
+                <!-- RECORD INFO -->
+                <div class="section-block">
+                    <div class="section-header">
+                        <span class="section-icon"
+                              style="background:#f8c5051f;padding:2px 6px 0 6px;border-radius:5px;border:1px solid #a7b500;color:#c0a700;">
+                            <i class="ti ti-history"></i>
+                        </span>
+                        <span class="section-title">RECORD INFO</span>
+                        <div class="line"></div>
+                    </div>
+                    <div class="section-content">
+                        <div class="fields-grid fields-grid-3">
+                            <div class="field-item">
+                                <div class="field-label">STATUS</div>
+                                <div class="field-value">
+                                    @{
+                                        var recStatusCss = Asset.AssetStatus switch
+                                        {
+                                            AssetStatus.Active => "pill pill-yes",
+                                            AssetStatus.Draft => "pill pill-draft",
+                                            _ => "pill pill-no"
+                                        };
+                                    }
+                                    <span class="@recStatusCss">● @GetStatusLabel(Asset.AssetStatus).ToUpper()</span>
+                                </div>
+                            </div>
+                            <div class="field-item">
+                                <div class="field-label">ASSET CODE</div>
+                                <div class="field-value">@(Asset.AssetCode ?? "-")</div>
+                            </div>
+                            <div class="field-item">
+                                <div class="field-label">CREATED AT</div>
+                                <div class="field-value">@(Asset.PurchaseDate?.ToString("dd MMM yyyy") ?? "—")</div>
+                            </div>
+                            <div class="field-item">
+                                <div class="field-label">UPDATED AT</div>
+                                <div class="field-value">
+                                    @(Asset.UpdatedAt.HasValue? Asset.UpdatedAt.Value.ToString("dd MMM yyyy") : "-")
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+            <!-- END details-body -->
+
+        </div>
+        <!-- END card -->
+
+    </div>
+    <!-- END content -->
+}

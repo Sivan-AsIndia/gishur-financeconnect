@@ -1,0 +1,287 @@
+﻿@page "/fiscalyears/periods/create/{FiscalYearId:guid}"
+@page "/fiscalyears/periods/{Id:guid}"
+
+@using FinanceConnect.Client.ViewModels
+@inject AccountingPeriodService Service
+@inject FiscalYearService FiscalYearService
+@inject NavigationManager Nav
+@inject ToastService ToastService
+
+<div class="content flat-form">
+
+    <!-- ================= Page Header ================= -->
+    <div class="page-header">
+        <div class="page-title">
+            <h4 class="fw-bold">
+                @(IsEdit ? "Edit Accounting Period" : "Create Accounting Period")
+            </h4>
+            <h6>Accounting period setup and control</h6>
+        </div>
+
+        <div class="page-btn mt-0">
+            <a class="btn btn-outline-secondary" @onclick="GoBack">
+                <i class="ti ti-arrow-left"></i> Back
+            </a>
+        </div>
+    </div>
+
+    <EditForm EditContext="_editContext" OnValidSubmit="Save">
+        <DataAnnotationsValidator />
+
+        <div class="mt-4">
+            <div class="card">
+
+                <!-- ================= CARD HEADER ================= -->
+                <div class="card-header text-white" style="border-bottom:1px solid #80808036;">
+                    <h5 style="display: flex;align-items: center;gap:5px;">
+                        <i class="ti ti-calendar me-2"></i>
+                        Accounting Period
+                        <div>
+                            <span class="badge
+                                    @(period.Status == AccountingPeriodStatus.Open ? "bg-success" :
+                                        period.Status == AccountingPeriodStatus.Draft ? "bg-warning text-dark" :
+                                        period.Status == AccountingPeriodStatus.SoftClosed ? "bg-info" :
+                                        "bg-danger")">
+                                @period.Status
+                            </span>
+                        </div>
+                    </h5>
+                </div>
+
+                <div class="card-body mt-3">
+
+                    <!-- ================= PERIOD IDENTITY ================= -->
+                    <h6 class="text-primary mb-3 mt-3">
+                        <i class="ti ti-id me-2"></i> Period Identity
+                    </h6>
+
+                    <div class="row g-3">
+
+                        <div class="col-md-3">
+                            <label class="form-label">
+                                Period Code <span class="text-danger">*</span>
+                            </label>
+                            <input class="@($"form-control text-uppercase {GetValidationClass(() => period.PeriodCode)}")"
+                                   @bind="AccPeriodCodeInput" placeholder="e.g., APR-2025" maxlength="15"
+                                   disabled="@IsCodeLocked" />
+                            <ValidationMessage For="@(() => period.PeriodCode)" />
+                        </div>
+
+                        <div class="col-md-3">
+                            <label class="form-label">
+                                Period Name <span class="text-danger">*</span>
+                            </label>
+                            <input class="@($"form-control {GetValidationClass(() => period.PeriodName)}")"
+                                   @bind="period.PeriodName" @bind:after="OnNameChange" placeholder="e.g., Apr 2025"
+                                   disabled="@IsLocked" />
+                            <ValidationMessage For="@(() => period.PeriodName)" />
+                        </div>
+
+                        <div class="col-md-3">
+                            <label class="form-label">Fiscal Year</label>
+                            <input class="form-control"
+                                   value="@fy?.FiscalYearName"
+                                   readonly />
+                        </div>
+
+                        <div class="col-md-3">
+                            <label class="form-label">Company</label>
+                            <input class="form-control"
+                                   value="@fy?.CompanyName"
+                                   readonly />
+                        </div>
+
+                        <div class="col-md-3">
+                            <label class="form-label">Period Number <span class="text-danger">*</span></label>
+                            <input type="number"
+                                   class="@($"form-control {GetValidationClass(() => period.PeriodNumber)}")"
+                                   @bind="period.PeriodNumber" min="0"
+                                   disabled="@IsLocked" />
+                            <ValidationMessage For="@(() => period.PeriodNumber)" />
+                        </div>
+
+                        <div class="col-md-3">
+                            <label class="form-label">Period Type <span class="text-danger">*</span></label>
+                            <select class="@($"form-select {GetValidationClass(() => period.PeriodName)}")"
+                                    @bind="period.PeriodType"
+                                    disabled="@IsLocked">
+                                <option value="Normal">Normal</option>
+                                <option value="Adjustment">Adjustment</option>
+                            </select>
+                            <ValidationMessage For="@(() => period.PeriodName)" />
+                        </div>
+
+
+
+                    </div>
+
+
+                    <!-- ================= DATE RANGE ================= -->
+                    <h6 class="text-primary mb-3 mt-4">
+                        <i class="ti ti-calendar-event me-2"></i> Date Range
+                    </h6>
+
+                    <div class="row g-3">
+
+                        <div class="col-md-3">
+                            <label class="form-label">
+                                Start Date <span class="text-danger">*</span>
+                            </label>
+                            <input type="date"
+                                   class="@($"form-control {GetValidationClass(() => period.StartDate)}")"
+                                   @bind="period.StartDate" min="@(fy?.StartDate?.ToString("yyyy-MM-dd"))"
+                                   disabled="@IsLocked" />
+                            <ValidationMessage For="@(() => period.StartDate)" />
+                        </div>
+
+                        <div class="col-md-3">
+                            <label class="form-label">
+                                End Date <span class="text-danger">*</span>
+                            </label>
+                            <input type="date"
+                                   class="@($"form-control {GetValidationClass(() => period.EndDate)}")"
+                                   @bind="period.EndDate" min="@(period.StartDate?.ToString("yyyy-MM-dd"))"
+                                   disabled="@IsLocked" />
+                            <ValidationMessage For="@(() => period.EndDate)" />
+                        </div>
+
+                    </div>
+
+
+                    <!-- ================= MODULE LOCKS ================= -->
+                    <h6 class="text-primary mb-3 mt-4">
+                        <i class="ti ti-lock me-2"></i> Module Locks
+                    </h6>
+
+                    <div class="row g-3">
+
+                        <div class="col-md-3 form-check form-switch">
+                            <input class="form-check-input"
+                                   type="checkbox"
+                                   @bind="period.IsARLocked"
+                                   disabled="@IsLockReadOnly" />
+                            <label class="form-check-label">Accounts Receivable</label>
+                        </div>
+
+                        <div class="col-md-3 form-check form-switch">
+                            <input class="form-check-input"
+                                   type="checkbox"
+                                   @bind="period.IsAPLocked"
+                                   disabled="@IsLockReadOnly" />
+                            <label class="form-check-label">Accounts Payable</label>
+                        </div>
+
+                        <div class="col-md-3 form-check form-switch">
+                            <input class="form-check-input"
+                                   type="checkbox"
+                                   @bind="period.IsBankLocked"
+                                   disabled="@IsLockReadOnly" />
+                            <label class="form-check-label">Bank / Cash</label>
+                        </div>
+
+                        <div class="col-md-3 form-check form-switch">
+                            <input class="form-check-input"
+                                   type="checkbox"
+                                   @bind="period.IsGLLocked"
+                                   disabled="@IsLockReadOnly" />
+                            <label class="form-check-label">General Ledger</label>
+                        </div>
+
+                        @if (period.Status != AccountingPeriodStatus.Draft)
+                        {
+                            <div class="col-md-12">
+                                <label class="form-label">Lock / Close Reason</label>
+                                <textarea class="form-control"
+                                          rows="2"
+                                          maxlength="300"
+                                          @bind="period.LockReason"
+                                          disabled="@IsLocked"></textarea>
+                            </div>
+                        }
+
+                    </div>
+
+
+                    <!-- ================= POSTING CONTROLS ================= -->
+                    <h6 class="text-primary mb-3 mt-4">
+                        <i class="ti ti-adjustments me-2"></i> Posting & Adjustment Controls
+                    </h6>
+
+                    <div class="row g-3">
+
+                        <div class="col-md-3 form-check form-switch">
+                            <input type="checkbox" class="form-check-input"
+                                   @bind="period.AllowBackdatedPosting" disabled />
+                            <label class="form-label">Allow Backdated Posting</label>
+                        </div>
+
+                        <div class="col-md-3 form-check form-switch">
+                            <input type="checkbox" class="form-check-input"
+                                   @bind="period.AllowFuturePosting" disabled />
+                            <label class="form-label">Allow Future Posting</label>
+                        </div>
+
+                        <div class="col-md-3 form-check form-switch">
+                            <input class="form-check-input"
+                                   type="checkbox"
+                                   @bind="period.AllowAdjustmentJournalsInSoftClose"
+                                   disabled="@IsLocked" />
+                            <label class="form-check-label">
+                                Allow Adjustment Journals in Soft Close
+                            </label>
+                        </div>
+
+
+                        <div class="col-md-3 form-check form-switch">
+                            <input class="form-check-input"
+                                   type="checkbox"
+                                   @bind="period.RequireCloseChecklist"
+                                   disabled="@IsLocked" />
+                            <label class="form-check-label">
+                                Require Checklist Before Close
+                            </label>
+                        </div>
+
+                    </div>
+
+                </div>
+            </div>
+
+            <!-- ================= ACTIONS ================= -->
+            <div class="d-flex justify-content-end mb-4">
+
+                <button class="btn btn-outline-secondary me-2"
+                        type="button"
+                        @onclick="GoBack">
+                    <i class="ti ti-x"></i> Cancel
+                </button>
+
+                @if (period.Status == AccountingPeriodStatus.Draft)
+                {
+                    <button class="btn btn-primary" type="submit">
+                        <i class="ti ti-device-floppy"></i> Save
+                    </button>
+                }
+                @* else if (period.Status == AccountingPeriodStatus.Open)
+                {
+                    <button class="btn btn-warning"
+                            type="button"
+                            @onclick="SoftClosePeriod">
+                        Soft Close
+                    </button>
+                }
+                else if (period.Status == AccountingPeriodStatus.SoftClosed)
+                {
+                    <button class="btn btn-danger"
+                            type="button"
+                            @onclick="ClosePeriod">
+                        Close Period
+                    </button>
+                } *@
+
+            </div>
+
+        </div>
+    </EditForm>
+
+</div>

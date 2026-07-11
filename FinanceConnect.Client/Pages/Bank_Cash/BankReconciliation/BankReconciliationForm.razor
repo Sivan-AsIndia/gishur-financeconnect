@@ -1,0 +1,346 @@
+﻿@page "/bank-reconciliations/create"
+@* @page "/bank-reconciliation/{ReconId:guid}" *@
+
+@using FinanceConnect.Client.ViewModels
+@using FinanceConnect.Client.Services
+@inject BankReconciliationService ReconService
+@inject BankAccountService BankAccountService
+@inject BranchService BranchService
+@inject BankStatementService StatementService
+@inject NavigationManager Nav
+@inject ToastService Toast
+
+<style>
+    .form-select option:checked {
+        color: #fff;
+        background: var(--primary);
+    }
+
+    .form-select:focus {
+        border-color: var(--primary);
+        box-shadow: none;
+    }
+
+    .validation-message {
+        color: #dc3545;
+        font-size: 12px;
+    }
+
+    .badge-sys {
+        background: #e0f2fe;
+        color: #0284c7;
+    }
+</style>
+
+<div class="content flat-form">
+
+    <!-- ================= PAGE HEADER ================= -->
+    <div class="page-header">
+        <div class="page-title">
+            <h4 class="fw-bold">
+                @(IsEdit ? "Edit Bank Reconciliation Run" : "Create Bank Reconciliation Run")
+            </h4>
+            <h6>Controlled bank vs book matching and audit evidence</h6>
+        </div>
+
+        <div class="page-btn mt-0">
+            <a class="btn btn-outline-secondary" @onclick="Cancel">
+                <i class="ti ti-arrow-left"></i> Back
+            </a>
+        </div>
+    </div>
+
+    <EditForm EditContext="_editContext" OnSubmit="SaveDraft">
+        <DataAnnotationsValidator />
+
+        <div class="mt-4">
+            <div class="card">
+
+                @* <!-- HEADER -->
+                <div class="card-header text-white" style="border-bottom:1px solid #80808036;">
+                    <h5>
+                        <i class="ti ti-receipt me-2"></i>
+                        Reconciliation Setup
+                    </h5>
+                </div> *@
+
+                <div class="card-body">
+
+                    <!-- ================= CORE CONTEXT ================= -->
+                    <h6 class="text-primary mb-3 mt-3">
+                        <i class="ti ti-id me-2"></i> Core Context
+                    </h6>
+
+                    <div class="row g-3">
+
+                        <div class="col-md-4">
+                            <label class="form-label">Reconciliation No</label>
+                            <input class="form-control"
+                                   value="@Recon.ReconciliationNumber"
+                                   readonly />
+                        </div>
+
+                        <div class="col-md-4">
+                            <label class="form-label">
+                                Bank Account <span class="text-danger">*</span>
+                            </label>
+                            <select class="@($"form-select {GetValidationClass(() => Recon.BankAccountId)}")"
+                                         value="@SelectedBankAccount" @onchange="OnBankAccountChanged" disabled="@IsReadOnly">
+                                <option value="">--Select Bank Account--</option>
+                                @foreach (var acc in BankAccounts)
+                                {
+                                    <option value="@acc.Id">
+                                        @acc.BankAccountName (@acc.BankAccountCode)
+                                    </option>
+                                }
+                            </select>
+                            @if (ShowFieldError("BankAccountId"))
+                            {
+                                <small class="text-danger">Bank Account is required</small>
+                            }
+                        </div>
+
+                        <div class="col-md-4">
+                            <label class="form-label">Branch</label>
+                            <select class="form-select"
+                                    @bind="Recon.BranchId"
+                                    disabled="@IsReadOnly">
+                                <option value="">--Select Branch--</option>
+                                @foreach (var b in Branches)
+                                {
+                                    <option value="@b.Id">@b.BranchCode - @b.BranchName</option>
+                                }
+                            </select>
+                        </div>
+
+                        <div class="col-md-4">
+                            <label class="form-label">
+                                Run Type <span class="text-danger">*</span>
+                            </label>
+                            <select class="@($"form-select {(ShowFieldError("RunType") ? "is-invalid" : "")}")"
+                                    @bind="Recon.RunType"
+                                    disabled="@IsReadOnly">
+                                <option value="">--Select Run Type--</option>
+                                @foreach (var t in Enum.GetValues<RunType>())
+                                {
+                                    <option value="@t">@t</option>
+                                }
+                            </select>
+                            @if (ShowFieldError("RunType"))
+                            {
+                                <small class="text-danger">Run Type is required</small>
+                            }
+                        </div>
+
+                    </div>
+
+                    <!-- ================= SCOPE ================= -->
+                    <h6 class="text-primary mb-3 mt-4">
+                        <i class="ti ti-calendar me-2"></i> Reconciliation Scope
+                    </h6>
+
+                    <div class="row g-3">
+
+                        <div class="col-md-4">
+                            <label class="form-label">
+                                Scope Type <span class="text-danger">*</span>
+                            </label>
+                            <select class="@($"form-select {(ShowFieldError("ScopeType") ? "is-invalid" : "")}")"
+                                    @bind="Recon.ScopeType"
+                                    disabled="@IsReadOnly">
+                                <option value="">--Select Scope Type--</option>
+                                @foreach (var t in Enum.GetValues<ScopeType>())
+                                {
+                                    <option value="@t">@t</option>
+                                }
+                            </select>
+                            @if (ShowFieldError("ScopeType"))
+                            {
+                                <small class="text-danger">Scope Type is required</small>
+                            }
+                        </div>
+
+                        @if (Recon.ScopeType == ScopeType.AsOfDate)
+                        {
+
+                            <div class="col-md-4">
+                                <label class="form-label">
+                                    As Of Date <span class="text-danger">*</span>
+                                </label>
+                                <input type="date"
+                                       class="@($"form-control {(ShowFieldError("AsOfDate") ? "is-invalid" : "")}")"
+                                       @bind="Recon.AsOfDate"
+                                       disabled="@IsReadOnly" />
+                                @if (ShowFieldError("AsOfDate"))
+                                {
+                                    <small class="text-danger">As Of Date is required</small>
+                                }
+                            </div>
+                        }
+                        else
+                        {
+                            <div class="col-md-4">
+                                <label class="form-label">
+                                    From Date <span class="text-danger">*</span>
+                                </label>
+                                <input type="date"
+                                       class="@($"form-control {(ShowFieldError("FromDate") ? "is-invalid" : "")}")"
+                                       @bind="Recon.FromDate"
+                                       disabled="@IsReadOnly" />
+                                @if (ShowFieldError("FromDate"))
+                                {
+                                    <small class="text-danger">From Date is required</small>
+                                }
+                                @if (ShowFieldError("FromToDateRange"))
+                                {
+                                    <small class="text-danger">From Date cannot be later than To Date</small>
+                                }
+                            </div>
+
+                            <div class="col-md-4">
+                                <label class="form-label">
+                                    To Date <span class="text-danger">*</span>
+                                </label>
+                                <input type="date"
+                                       class="@($"form-control {(ShowFieldError("ToDate") ? "is-invalid" : "")}")"
+                                       @bind="Recon.ToDate" min="@(Recon.FromDate?.ToString("yyyy-MM-dd"))"
+                                       disabled="@IsReadOnly" />
+                                @if (ShowFieldError("ToDate"))
+                                {
+                                    <small class="text-danger">To Date is required</small>
+                                }
+                            </div>
+                        }
+
+                    </div>
+
+                    <!-- ================= STATEMENT SOURCE ================= -->
+                    <h6 class="text-primary mb-3 mt-4">
+                        <i class="ti ti-paperclip me-2"></i> Statement Source
+                    </h6>
+
+                    <div class="row g-3">
+
+                        <div class="col-md-4">
+                            <label class="form-label">
+                                Selection Mode <span class="text-danger">*</span>
+                            </label>
+                            <select class="@($"form-select {(ShowFieldError("StatementSelectionMode") ? "is-invalid" : "")}")"
+                                    @bind="Recon.StatementSelectionMode"
+                                    disabled="@IsReadOnly">
+                                <option value="">--Select Selection Mode--</option>
+                                @foreach (var t in Enum.GetValues<StatementSelectionModeType>())
+                                {
+                                    <option value="@t">@t</option>
+                                }
+                            </select>
+                            @if (ShowFieldError("StatementSelectionMode"))
+                            {
+                                <small class="text-danger">Selection Mode is required</small>
+                            }
+                        </div>
+
+                        @if (Recon.StatementSelectionMode == StatementSelectionModeType.ByStatementFile)
+                        {
+                            <div class="col-md-8">
+                                <label class="form-label">
+                                    Primary Statement <span class="text-danger">*</span>
+                                </label>
+                                <select class="form-select"
+                                        @bind="Recon.PrimaryBankStatementId"
+                                        disabled="@IsReadOnly">
+                                    <option value="">--Select Statement--</option>
+                                    @foreach (var s in Statements)
+                                    {
+                                        <option value="@s.BankStatementId">
+                                            @s.StatementNumber (@s.StatementFromDate.ToShortDateString())
+                                        </option>
+                                    }
+                                </select>
+                                @if (ShowFieldError("PrimaryBankStatementId"))
+                                {
+                                    <small class="text-danger">Primary Statement is required</small>
+                                }
+                            </div>
+                        }
+
+                    </div>
+
+                    <!-- ================= MATCHING POLICY ================= -->
+                    <h6 class="text-primary mb-3 mt-4">
+                        <i class="ti ti-adjustments me-2"></i> Matching Policy Snapshot
+                    </h6>
+
+                    <div class="row g-3">
+
+                        <div class="col-md-3">
+                            <div class="form-check form-switch">
+                                <input class="form-check-input"
+                                       type="checkbox" id="AutoMatchEnabled"
+                                       @bind=" Recon.AutoMatchEnabled">
+                                <label class="form-check-label" for="AutoMatchEnabled">
+                                    Auto Match
+                                </label>
+                            </div>
+                        </div>
+
+                        <div class="col-md-3">
+                            <label class="form-label">Date Window (Days)</label>
+                            <input type="number"
+                                   class="form-control"
+                                   min="0"
+                                   @bind="Recon.DateWindowDays" />
+                        </div>
+
+                        <div class="col-md-3">
+                            <label class="form-label">Amount Tolerance</label>
+                            <input type="number"
+                                   class="form-control"
+                                   step="0.01"
+                                   min="0"
+                                   @bind="Recon.AmountTolerance" />
+                        </div>
+
+                        <div class="col-md-3">
+                            <label class="form-label">Reference Match</label>
+                            <div class="mt-1">
+                                <div class="form-check">
+                                    <input class="form-check-input" id="UTR" type="checkbox" @bind="MatchUTR" />
+                                    <label class="form-check-label" for="UTR">UTR</label>
+                                </div>
+                                <div class="form-check">
+                                    <input class="form-check-input" id="Cheque" type="checkbox" @bind="MatchCheque" />
+                                    <label class="form-check-label" for="Cheque">Cheque</label>
+                                </div>
+                                <div class="form-check">
+                                    <input class="form-check-input" id="Narration" type="checkbox" @bind="MatchNarration" />
+                                    <label class="form-check-label" for="Narration">Narration</label>
+                                </div>
+                            </div>
+                        </div>
+
+                    </div>
+
+                </div>
+            </div>
+
+            <!-- ================= ACTIONS ================= -->
+            <div class="d-flex justify-content-end mb-4 mt-3">
+
+                <button class="btn btn-outline-secondary me-2"
+                        type="button"
+                        @onclick="Cancel">
+                    <i class="ti ti-x"></i> Cancel
+                </button>
+
+                <button class="btn btn-primary"
+                        type="submit">
+                    <i class="ti ti-device-floppy"></i> Save
+                </button>
+
+            </div>
+
+        </div>
+    </EditForm>
+
+</div>

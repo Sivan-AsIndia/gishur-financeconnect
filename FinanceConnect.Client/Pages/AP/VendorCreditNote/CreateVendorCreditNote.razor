@@ -1,0 +1,852 @@
+﻿@page "/vendor-credit-notes/create"
+@page "/vendor-credit-notes/{Id:guid}"
+
+@using FinanceConnect.Client.ViewModels
+
+<style>
+    .form-select option:checked {
+        color: #fff;
+        background: var(--primary);
+    }
+
+    .form-select:focus {
+        border-color: var(--primary);
+        box-shadow: none;
+    }
+
+    .validation-message {
+        color: #dc3545;
+        font-size: 11px;
+        margin-top: 2px;
+    }
+
+    /* ===== RESPONSIVE CREDIT NOTE LINES GRID ===== */
+    .credit-note-line-item {
+        background: #fff;
+        border: 1px solid #e9ecef;
+        border-radius: 10px;
+        margin-bottom: 12px;
+        padding: 16px;
+        transition: all 0.2s ease;
+    }
+
+    .credit-note-line-item:hover {
+            border-color: var(--primary);
+        box-shadow: 0 4px 12px rgba(254, 159, 67, 0.1);
+    }
+
+    .line-item-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 16px;
+        padding-bottom: 12px;
+        border-bottom: 1px solid #e9ecef;
+    }
+
+    .line-item-number {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+    }
+
+    .line-number-badge {
+        background: linear-gradient(135deg, var(--primary) 0%, var(--primary) 100%);
+        color: #fff;
+        font-weight: 700;
+        font-size: 12px;
+        padding: 4px 10px;
+        border-radius: 20px;
+        min-width: 36px;
+        text-align: center;
+    }
+
+    .line-item-total {
+        text-align: right;
+    }
+
+    .line-item-total-label {
+        font-size: 10px;
+        text-transform: uppercase;
+        color: #6c757d;
+        font-weight: 600;
+        letter-spacing: 0.5px;
+    }
+
+    .line-item-total-value {
+        font-size: 18px;
+        font-weight: 700;
+        color: #212529;
+    }
+
+    .line-fields-grid {
+        display: grid;
+        grid-template-columns: repeat(12, 1fr);
+        gap: 12px;
+        align-items: start;
+    }
+
+    .line-field {
+        display: flex;
+        flex-direction: column;
+    }
+
+    .line-field-label {
+        font-size: 11px;
+        text-transform: uppercase;
+        color: #6c757d;
+        font-weight: 600;
+        margin-bottom: 4px;
+        letter-spacing: 0.3px;
+    }
+
+    .line-field input,
+    .line-field select {
+        width: 100%;
+        padding: 8px 10px;
+        font-size: 13px;
+        border-radius: 6px;
+        border: 1px solid #ced4da;
+        background-color: #fff;
+        transition: all 0.2s ease;
+    }
+
+    .line-field input:focus,
+    .line-field select:focus {
+            border-color: var(--primary);
+        outline: none;
+        box-shadow: 0 0 0 2px rgba(254, 159, 67, 0.15);
+    }
+
+    .line-field select {
+        appearance: none;
+        background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3e%3cpath fill='none' stroke='%23343a40' stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M2 5l6 6 6-6'/%3e%3c/svg%3e");
+        background-repeat: no-repeat;
+        background-position: right 8px center;
+        background-size: 12px;
+        padding-right: 30px;
+    }
+
+    .line-field input.text-end {
+        text-align: right;
+    }
+
+    .col-type { grid-column: span 2; }
+    .col-desc { grid-column: span 4; }
+    .col-qty { grid-column: span 1; }
+    .col-price { grid-column: span 1; }
+    .col-disc { grid-column: span 1; }
+    .col-tax { grid-column: span 1; }
+    .col-account { grid-column: span 2; }
+
+    .line-item-actions {
+        display: flex;
+        justify-content: flex-end;
+        gap: 8px;
+        margin-top: 12px;
+        padding-top: 12px;
+        border-top: 1px solid #e9ecef;
+    }
+
+    .action-btn {
+        padding: 6px 12px;
+        border-radius: 6px;
+        font-size: 13px;
+        transition: all 0.2s ease;
+    }
+
+    .action-btn:hover {
+        transform: translateY(-1px);
+    }
+
+    /* .is-invalid {
+        border-color: #dc3545 !important;
+        background-color: #fff5f5 !important;
+    } */
+
+    .is-invalid:focus {
+        border-color: #dc3545 !important;
+        box-shadow: 0 0 0 2px rgba(220, 53, 69, 0.2) !important;
+    }
+
+    .field-validation-error {
+        color: #dc3545;
+        font-size: 10px;
+        margin-top: 2px;
+    }
+
+    .empty-lines-state {
+        text-align: center;
+        padding: 40px 20px;
+        color: #6c757d;
+    }
+
+    .empty-lines-state i {
+        font-size: 48px;
+        margin-bottom: 12px;
+        opacity: 0.5;
+    }
+
+    .totals-summary {
+        background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+        border-radius: 12px;
+        padding: 20px;
+    }
+
+    .totals-grid {
+        display: grid;
+        grid-template-columns: repeat(6, 1fr);
+        gap: 16px;
+    }
+
+    .total-item {
+        text-align: center;
+        padding: 12px;
+        background: #fff;
+        border-radius: 8px;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+    }
+
+    .total-item-label {
+        font-size: 11px;
+        text-transform: uppercase;
+        color: #6c757d;
+        font-weight: 600;
+        margin-bottom: 4px;
+    }
+
+    .total-item-value {
+        font-size: 18px;
+        font-weight: 700;
+        color: #212529;
+    }
+
+    .total-item-value.grand-total {
+        color: #dc3545;
+        font-size: 22px;
+    }
+
+    .currency-badge {
+        background: var(--primary);
+        color: #fff;
+        padding: 4px 10px;
+        border-radius: 20px;
+        font-size: 12px;
+        font-weight: 600;
+    }
+
+    .section-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 16px;
+    }
+
+    .section-title {
+        font-size: 16px;
+        font-weight: 700;
+        color: #dc3545;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+
+    .section-title i {
+        font-size: 18px;
+    }
+
+    .validation-highlight {
+        animation: highlightPulse 0.5s ease-in-out 2;
+    }
+
+    @@keyframes highlightPulse {
+        0%, 100% {
+            box-shadow: 0 0 0 2px rgba(220, 53, 69, 0.2);
+        }
+        50% {
+            box-shadow: 0 0 0 4px rgba(220, 53, 69, 0.4);
+        }
+    }
+
+    @@media (min-width: 1400px) {
+        .line-fields-grid { grid-template-columns: repeat(12, 1fr); }
+        .col-type { grid-column: span 2; }
+        .col-desc { grid-column: span 3; }
+        .col-qty { grid-column: span 1; }
+        .col-price { grid-column: span 1; }
+        .col-disc { grid-column: span 1; }
+        .col-tax { grid-column: span 1; }
+        .col-account { grid-column: span 3; }
+        .totals-grid { grid-template-columns: repeat(6, 1fr); }
+    }
+
+    @@media (min-width: 768px) and (max-width: 991px) {
+        .line-fields-grid { grid-template-columns: repeat(4, 1fr); gap: 10px; }
+        .col-type { grid-column: span 2; }
+        .col-desc { grid-column: span 2; }
+        .col-qty { grid-column: span 1; }
+        .col-price { grid-column: span 1; }
+        .col-disc { grid-column: span 1; }
+        .col-tax { grid-column: span 1; }
+        .col-account { grid-column: span 4; }
+        .totals-grid { grid-template-columns: repeat(3, 1fr); }
+    }
+
+    @@media (max-width: 575px) {
+        .line-fields-grid { grid-template-columns: 1fr 1fr; gap: 10px; }
+        /* .col-type { grid-column: span 1; } */
+        .col-desc { grid-column: span 2; }
+        .col-qty { grid-column: span 1; }
+        .col-price { grid-column: span 1; }
+        .col-disc { grid-column: span 1; }
+        .col-tax { grid-column: span 1; }
+        .col-account { grid-column: span 2; }
+        .totals-grid { grid-template-columns: 1fr 1fr; }
+    }
+</style>
+
+<script suppress-error="BL9992">
+    window.scrollToFirstValidationError = function () {
+        var invalidElement = document.querySelector('.is-invalid');
+        if (invalidElement) {
+            var elementRect = invalidElement.getBoundingClientRect();
+            var absoluteElementTop = elementRect.top + window.pageYOffset;
+            var offset = 150;
+            
+            window.scrollTo({
+                top: absoluteElementTop - offset,
+                behavior: 'smooth'
+            });
+            
+            invalidElement.classList.add('validation-highlight');
+            
+            setTimeout(function() {
+                if (invalidElement.tagName === 'INPUT' || invalidElement.tagName === 'SELECT' || invalidElement.tagName === 'TEXTAREA') {
+                    invalidElement.focus();
+                }
+                setTimeout(function() {
+                    invalidElement.classList.remove('validation-highlight');
+                }, 1000);
+            }, 300);
+            
+            return true;
+        }
+        return false;
+    };
+</script>
+
+@if (!isInitialized)
+{
+    <div class="page-loading-overlay">
+        <div class="whirly-loader"></div>
+    </div>
+}
+else
+{
+    <div class="content flat-form">
+        <!-- Page Header -->
+        <div class="page-header">
+            <div class="page-title">
+                <div style="display: ruby;">
+                    <h4 class="fw-bold">
+                        @(IsEdit ? "Edit Vendor Credit Note" : "Create Vendor Credit Note")
+                    </h4>
+                    @if (IsEdit)
+                    {
+                        <span class="badge @GetStatusBadge(CreditNote.CreditNoteStatus)">
+                            @CreditNote.CreditNoteStatus
+                        </span>
+                    }
+                </div>
+                <h6>AP Credit Reduction Document</h6>
+            </div>
+
+            <div class="page-btn mt-0">
+                <a href="/vendor-credit-notes" class="btn btn-outline-secondary">
+                    <i class="ti ti-arrow-left me-1"></i>  Back
+                </a>
+            </div>
+        </div>
+
+        <EditForm Model="CreditNote" OnSubmit="HandleSubmit" @attributes="@(new Dictionary<string, object> { { "novalidate", true } })">
+            <DataAnnotationsValidator />
+
+            <div class="container-fluid p-0">
+                <!-- Header Card -->
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <h5 class="card-title mb-0 text-primary">
+                            <i class="ti ti-file-minus me-2"></i>Credit Note Details
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row g-3">
+                            <!-- Credit Note Number -->
+                            <div class="col-md-3 col-sm-6">
+                                <label class="form-label">Credit Note No <span class="text-danger">*</span></label>
+                                <input type="text" class="form-control @GetHeaderValidationClass("CreditNoteNumber")"
+                                       @bind="CreditNote.CreditNoteNumber" readonly
+                                       placeholder="Auto-generated" title="Credit note number (auto-generated)" />
+                                @if (HasHeaderError("CreditNoteNumber"))
+                                {
+                                    <div class="validation-message">@GetHeaderError("CreditNoteNumber")</div>
+                                }
+                            </div>
+
+                            <!-- Vendor Credit Note Date -->
+                            <div class="col-md-3 col-sm-6">
+                                <label class="form-label">Vendor CN Date <span class="text-danger">*</span></label>
+                                <input type="date" class="form-control @GetHeaderValidationClass("VendorCreditNoteDate")"
+                                       @bind="CreditNote.VendorCreditNoteDate" disabled="@IsReadOnly"
+                                       title="Date on the vendor's credit note" />
+                                @if (HasHeaderError("VendorCreditNoteDate"))
+                                {
+                                    <div class="validation-message">@GetHeaderError("VendorCreditNoteDate")</div>
+                                }
+                            </div>
+
+                            <!-- Branch -->
+                            <div class="col-md-3 col-sm-6">
+                                <label class="form-label">Branch <span class="text-danger">*</span></label>
+                                <select class="form-select @GetHeaderValidationClass("BranchId")"
+                                        value="@CreditNote.BranchId"
+                                        @onchange="OnBranchChanged" disabled="@IsReadOnly"
+                                        title="Select the branch for this credit note">
+                                    <option value="@Guid.Empty">--Select Branch--</option>
+                                    @foreach (var b in Branches)
+                                    {
+                                        <option value="@b.Id">@b.BranchCode - @b.BranchName</option>
+                                    }
+                                </select>
+                                @if (HasHeaderError("BranchId"))
+                                {
+                                    <div class="validation-message">@GetHeaderError("BranchId")</div>
+                                }
+                            </div>
+
+                            <!-- Vendor -->
+                            <div class="col-md-3 col-sm-6">
+                                <label class="form-label">Vendor <span class="text-danger">*</span></label>
+                                     <SearchDropdown TItem="VendorViewModel"
+                                            Items="Vendors"
+                                            TextSelector="@(v => v.VendorCode + " - " + v.VendorName)"
+                                            ValueSelector="@(v => v.Id)"
+                                            @bind-Value="CreditNote.VendorId"
+                                            @bind-Value:after="OnVendorChanged"
+                                            Class="@GetHeaderValidationClass("VendorId")"
+                                            Placeholder="-- Select Customer --"
+                                            Disabled="@IsReadOnly" />
+                                @if (HasHeaderError("VendorId"))
+                                {
+                                    <div class="validation-message">@GetHeaderError("VendorId")</div>
+                                }
+                            </div>
+
+                            <!-- Vendor Credit Note Reference Number -->
+                            <div class="col-md-3 col-sm-6">
+                                <label class="form-label">Vendor CN Ref No <span class="text-danger">*</span></label>
+                                <input type="text" class="form-control @GetHeaderValidationClass("VendorCreditNoteReferenceNumber")"
+                                       @bind="CreditNote.VendorCreditNoteReferenceNumber" disabled="@IsReadOnly"
+                                       placeholder="e.g., VCN-2024-001"
+                                       title="Vendor's credit note reference number (unique per vendor)" />
+                                @if (HasHeaderError("VendorCreditNoteReferenceNumber"))
+                                {
+                                    <div class="validation-message">@GetHeaderError("VendorCreditNoteReferenceNumber")</div>
+                                }
+                            </div>
+
+                            <!-- Credit Note Type -->
+                            <div class="col-md-3 col-sm-6">
+                                <label class="form-label">Credit Type <span class="text-danger">*</span></label>
+                                <select class="form-select @GetHeaderValidationClass("CreditNoteType")"
+                                        value="@CreditNote.CreditNoteType"
+                                        @onchange="OnCreditTypeChanged" disabled="@IsReadOnly"
+                                        title="Select the type/reason for this credit note">
+                                    <option value="">--Select Credit Type--</option>
+                                    @foreach (var t in VendorCreditNoteTypes.All)
+                                    {
+                                        <option value="@t">@VendorCreditNoteTypes.GetDisplayName(t)</option>
+                                    }
+                                </select>
+                                @if (HasHeaderError("CreditNoteType"))
+                                {
+                                    <div class="validation-message">@GetHeaderError("CreditNoteType")</div>
+                                }
+                            </div>
+
+                            <!-- Against Bill Toggle -->
+                            <div class="col-md-3 col-sm-6">
+                                <label class="form-label">Against Bill?</label>
+                                <div class="form-check form-switch mt-2">
+                                    <input class="form-check-input" type="checkbox" id="againstBill"
+                                           checked="@CreditNote.IsAgainstBill"
+                                           @onchange="OnAgainstBillChanged" disabled="@IsReadOnly"
+                                           title="Enable if this credit note is linked to a specific vendor bill" />
+                                    <label class="form-check-label" for="againstBill">
+                                        @(CreditNote.IsAgainstBill ? "Yes - Linked to Bill" : "No - Standalone")
+                                    </label>
+                                </div>
+                            </div>
+
+                            <!-- Reference Bill -->
+                            @if (CreditNote.IsAgainstBill)
+                            {
+                                <div class="col-md-3 col-sm-6">
+                                    <label class="form-label">Reference Bill</label>
+                                    <select class="form-select @GetHeaderValidationClass("PrimaryVendorBillId")"
+                                            value="@CreditNote.PrimaryVendorBillId"
+                                            @onchange="OnBillChanged" disabled="@IsReadOnly"
+                                            title="Select the vendor bill to credit against">
+                                        <option value="">--Select Reference Bill--</option>
+                                        @foreach (var bill in PostedBills)
+                                        {
+                                            <option value="@bill.Id">@bill.BillNumber - @bill.GrandTotalAmount.ToString("N2")</option>
+                                        }
+                                    </select>
+                                    @if (HasHeaderError("PrimaryVendorBillId"))
+                                    {
+                                        <div class="validation-message">@GetHeaderError("PrimaryVendorBillId")</div>
+                                    }
+                                </div>
+                            }
+
+                            <!-- Currency (Read-only) -->
+                            <div class="col-md-3 col-sm-6">
+                                <label class="form-label">Currency <span class="text-danger">*</span></label>
+                                <input type="text" class="form-control" value="@CreditNote.CurrencyCode" readonly
+                                       title="Currency (from vendor defaults)" />
+                            </div>
+
+                            <!-- Exchange Rate -->
+                            <div class="col-md-3 col-sm-6">
+                                <label class="form-label">Exchange Rate</label>
+                                <input type="number" step="0.000001" class="form-control text-end"
+                                       @bind="CreditNote.ExchangeRate"
+                                       disabled="@(IsReadOnly || CreditNote.CurrencyCode == "INR")"
+                                       title="Exchange rate (required if currency is not base currency)" />
+                            </div>
+
+                            <!-- Credit Entry Date -->
+                            <div class="col-md-3 col-sm-6">
+                                <label class="form-label">Entry Date <span class="text-danger">*</span></label>
+                                <input type="date" class="form-control @GetHeaderValidationClass("CreditEntryDate")"
+                                       @bind="CreditNote.CreditEntryDate" disabled="@IsReadOnly"
+                                       title="Date the credit note is recorded in your system" />
+                                @if (HasHeaderError("CreditEntryDate"))
+                                {
+                                    <div class="validation-message">@GetHeaderError("CreditEntryDate")</div>
+                                }
+                            </div>
+
+                            <!-- Posting Date -->
+                            <div class="col-md-3 col-sm-6">
+                                <label class="form-label">Posting Date</label>
+                                <input type="date" class="form-control"
+                                       @bind="CreditNote.PostingDate" disabled="@IsReadOnly"
+                                       title="Date for GL posting (must be in open period)" />
+                            </div>
+
+                            <!-- Vendor GSTIN -->
+                            <div class="col-md-3 col-sm-6">
+                                <label class="form-label">Vendor GSTIN</label>
+                                <input type="text" class="form-control" readonly
+                                       value="@CreditNote.VendorGSTINSnapshot"
+                                       title="Vendor's GST Identification Number (read-only)" />
+                            </div>
+
+                            <!-- Place of Supply -->
+                            <div class="col-md-3 col-sm-6">
+                                <label class="form-label">Place of Supply</label>
+                                <select class="form-select" @bind="CreditNote.PlaceOfSupplyStateId" disabled="@IsReadOnly"
+                                        title="State/UT for GST supply type determination">
+                                    <option value="">--Select Place of Supply--</option>
+                                    @foreach (var state in States)
+                                    {
+                                        <option value="@state.Id">@state.StateProvinceCode - @state.StateProvinceName</option>
+                                    }
+                                </select>
+                            </div>
+
+                            <!-- GST Applicable Toggle -->
+                            <div class="col-md-3 col-sm-6">
+                                <label class="form-label">GST Applicable?</label>
+                                <div class="form-check form-switch mt-2">
+                                    <input class="form-check-input" type="checkbox" id="gstApplicable"
+                                           checked="@CreditNote.IsGSTApplicable"
+                                           @onchange="e => CreditNote.IsGSTApplicable = (bool)(e.Value ?? false)"
+                                           disabled="@IsReadOnly"
+                                           title="Enable if this credit note affects GST" />
+                                    <label class="form-check-label" for="gstApplicable">
+                                        @(CreditNote.IsGSTApplicable ? "Yes" : "No")
+                                    </label>
+                                </div>
+                            </div>
+
+                            <!-- Reverse Charge Toggle -->
+                            <div class="col-md-3 col-sm-6">
+                                <label class="form-label">Reverse Charge?</label>
+                                <div class="form-check form-switch mt-2">
+                                    <input class="form-check-input" type="checkbox" id="reverseCharge"
+                                           checked="@CreditNote.IsReverseChargeApplicable"
+                                           @onchange="e => CreditNote.IsReverseChargeApplicable = (bool)(e.Value ?? false)"
+                                           disabled="@IsReadOnly"
+                                           title="Enable if reverse charge mechanism applies" />
+                                    <label class="form-check-label" for="reverseCharge">
+                                        @(CreditNote.IsReverseChargeApplicable ? "Yes" : "No")
+                                    </label>
+                                </div>
+                            </div>
+
+                            <!-- Narration -->
+                            <div class="col-12">
+                                <label class="form-label">Narration / Notes</label>
+                                @if (IsReadOnly)
+                                {
+                                    <div class="form-control bg-light" style="min-height:60px">@((MarkupString)(CreditNote.CreditNoteNarration ?? ""))</div>
+                                }
+                                else
+                                {
+                                    <RichTextEditor @ref="narrationEditor" Value="@CreditNote.CreditNoteNarration" Placeholder="Enter notes or description for this credit note" MinHeight="60" MaxHeight="150" />
+                                }
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Lines Section -->
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <div class="section-header">
+                            <span class="section-title text-primary">
+                                <i class="ti ti-list"></i> Credit Note Lines
+                            </span>
+                            @if (!IsReadOnly)
+                            {
+                                <button type="button" class="btn btn-sm btn-danger add-line-btn" @onclick="AddLine">
+                                    <i class="ti ti-plus me-1"></i> Add Line
+                                </button>
+                            }
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <div class="credit-note-lines-container">
+                            @for (int i = 0; i < CreditNote.Lines.Count; i++)
+                            {
+                                var lineIndex = i;
+                                var line = CreditNote.Lines[lineIndex];
+                                <div class="credit-note-line-item">
+                                    <div class="line-item-header">
+                                        <div class="line-item-number">
+                                            <span class="line-number-badge">@line.LineNumber</span>
+                                            <span class="text-muted small">@VendorCreditNoteLineTypes.GetDisplayName(line.LineType)</span>
+                                        </div>
+                                        <div class="line-item-total">
+                                            <div class="line-item-total-label">Line Total</div>
+                                            <div class="line-item-total-value">@line.LineTotalAmount.ToString("N2")</div>
+                                        </div>
+                                    </div>
+
+                                    <div class="line-fields-grid">
+                                        <!-- Line Type -->
+                                        <div class="line-field col-type">
+                                            <label class="line-field-label">Type <span class="text-danger">*</span></label>
+                                            <select class="@GetValidationClass(lineIndex, "LineType")"
+                                                    value="@line.LineType"
+                                                    @onchange="e => OnLineTypeChanged(line, e)"
+                                                    disabled="@IsReadOnly">
+                                                <option value="">--Select Type--</option>
+                                                @foreach (var lt in VendorCreditNoteLineTypes.All)
+                                                {
+                                                    <option value="@lt">@VendorCreditNoteLineTypes.GetDisplayName(lt)</option>
+                                                }
+                                            </select>
+                                        </div>
+
+                                        <!-- Description -->
+                                        <div class="line-field col-desc">
+                                            <label class="line-field-label">Description <span class="text-danger">*</span></label>
+                                            <input type="text"
+                                                   class="form-control @GetValidationClass(lineIndex, "Description")"
+                                                   value="@line.Description"
+                                                   @onchange="e => OnDescriptionChanged(line, e)"
+                                                   placeholder="Enter description..."
+                                                   disabled="@IsReadOnly" />
+                                            @if (HasValidationError(lineIndex, "Description"))
+                                            {
+                                                <span class="field-validation-error">@GetValidationError(lineIndex, "Description")</span>
+                                            }
+                                        </div>
+
+                                        <!-- Quantity -->
+                                        <div class="line-field col-qty">
+                                            <label class="line-field-label">Qty <span class="text-danger">*</span></label>
+                                            <input type="number" min="0"
+                                                   class="text-end @GetValidationClass(lineIndex, "Quantity")"
+                                                   value="@line.Quantity"
+                                                   disabled="@IsReadOnly"
+                                                   @onchange="e => OnQuantityChanged(line, e)" />
+                                            @if (HasValidationError(lineIndex, "Quantity"))
+                                            {
+                                                <span class="field-validation-error">@GetValidationError(lineIndex, "Quantity")</span>
+                                            }
+                                        </div>
+
+                                        <!-- Unit Price -->
+                                        <div class="line-field col-price">
+                                            <label class="line-field-label">Price</label>
+                                            <input type="number" min="0"
+                                                   class="text-end @GetValidationClass(lineIndex, "UnitPrice")"
+                                                   value="@line.UnitPrice"
+                                                   disabled="@IsReadOnly"
+                                                   @onchange="e => OnUnitPriceChanged(line, e)" />
+                                            @if (HasValidationError(lineIndex, "UnitPrice"))
+                                            {
+                                                <span class="field-validation-error">@GetValidationError(lineIndex, "UnitPrice")</span>
+                                            }
+                                        </div>
+
+                                        <!-- Discount % -->
+                                        <div class="line-field col-disc">
+                                            <label class="line-field-label">Disc %</label>
+                                            <input type="number" min="0"
+                                                   class="text-end @GetValidationClass(lineIndex, "DiscountPercent")"
+                                                   value="@line.DiscountPercent"
+                                                   disabled="@IsReadOnly"
+                                                   @onchange="e => OnDiscountChanged(line, e)" />
+                                        </div>
+
+                                        <!-- Tax % -->
+                                        <div class="line-field col-tax">
+                                            <label class="line-field-label">Tax %</label>
+                                            <input type="number" min="0"
+                                                   class="text-end @GetValidationClass(lineIndex, "TaxRatePercent")"
+                                                   value="@line.TaxRatePercent"
+                                                   disabled="@IsReadOnly"
+                                                   @onchange="e => OnTaxRateChanged(line, e)" />
+                                        </div>
+
+                                        <!-- Reversal Account -->
+                                        <div class="line-field col-account">
+                                            <label class="line-field-label">Reversal Account <span class="text-danger">*</span></label>
+                                            <select class="form-control @GetValidationClass(lineIndex, "ReversalAccountId")"
+                                                    value="@line.ReversalAccountId"
+                                                    @onchange="e => OnReversalAccountChanged(line, e)"
+                                                    disabled="@IsReadOnly">
+                                                <option value="">--Select Reversal Account--</option>
+                                                @foreach (var a in ReversalAccounts)
+                                                {
+                                                    <option value="@a.Id">@a.AccountCode - @a.AccountName</option>
+                                                }
+                                            </select>
+                                            @if (HasValidationError(lineIndex, "ReversalAccountId"))
+                                            {
+                                                <span class="field-validation-error">@GetValidationError(lineIndex, "ReversalAccountId")</span>
+                                            }
+                                        </div>
+                                    </div>
+
+                                    @if (!IsReadOnly)
+                                    {
+                                        <div class="line-item-actions">
+                                            <button type="button" class="btn btn-sm btn-outline-secondary action-btn"
+                                                    @onclick="() => DuplicateLine(line)">
+                                                <i class="ti ti-copy me-1"></i> Duplicate
+                                            </button>
+                                            <button type="button" class="btn btn-sm btn-outline-danger action-btn"
+                                                    @onclick="() => DeleteLine(line)">
+                                                <i class="ti ti-trash me-1"></i> Delete
+                                            </button>
+                                        </div>
+                                    }
+                                </div>
+                            }
+
+                            @if (!CreditNote.Lines.Any())
+                            {
+                                <div class="empty-lines-state">
+                                    <i class="ti ti-file-off d-block"></i>
+                                    <div class="fw-semibold mb-1">No credit note lines</div>
+                                    <small>Click "Add Line" to add items or expenses to reverse</small>
+                                </div>
+                            }
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Totals Summary -->
+                <div class="card mt-4">
+                    <div class="card-body">
+                        <div class="totals-summary">
+                            <div class="totals-grid">
+                                <div class="total-item">
+                                    <div class="total-item-label">Subtotal</div>
+                                    <div class="total-item-value">@CreditNote.SubTotalCreditAmount.ToString("N2")</div>
+                                </div>
+                                <div class="total-item">
+                                    <div class="total-item-label">Tax</div>
+                                    <div class="total-item-value">@CreditNote.TaxCreditAmount.ToString("N2")</div>
+                                </div>
+                                <div class="total-item">
+                                    <div class="total-item-label">Round Off</div>
+                                    <div class="total-item-value">@CreditNote.RoundOffAmount.ToString("N2")</div>
+                                </div>
+                                <div class="total-item">
+                                    <div class="total-item-label">Credit Total</div>
+                                    <div class="total-item-value grand-total">@CreditNote.TotalCreditAmount.ToString("N2")</div>
+                                </div>
+                                <div class="total-item">
+                                    <div class="total-item-label">Applied</div>
+                                    <div class="total-item-value">@CreditNote.AppliedAmount.ToString("N2")</div>
+                                </div>
+                                <div class="total-item">
+                                    <div class="total-item-label">Open Credit</div>
+                                    <div class="total-item-value text-info">@CreditNote.RemainingOpenCreditAmount.ToString("N2")</div>
+                                </div>
+                                <div class="total-item">
+                                    <div class="total-item-label">Settlement</div>
+                                    <div>
+                                        <span class="badge @GetSettlementBadge(CreditNote.CreditSettlementStatus)">
+                                            @CreditSettlementStatuses.GetDisplayName(CreditNote.CreditSettlementStatus)
+                                        </span>
+                                    </div>
+                                </div>
+                                <div class="total-item">
+                                    <div class="total-item-label">Currency</div>
+                                    <div><span class="currency-badge">@CreditNote.CurrencyCode</span></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Action Buttons -->
+                <div class="d-flex flex-wrap justify-content-end gap-2 mt-4 mb-4">
+                    <button type="button" class="btn btn-outline-secondary" @onclick="Cancel">
+                        <i class="ti ti-x me-1"></i>   Cancel
+                    </button>
+
+                    @if (!IsReadOnly)
+                    {
+                        <button type="submit" class="btn btn-primary">
+                            <i class="ti ti-device-floppy me-1"></i>    @(IsEdit ? "Update" : "Save")
+                        </button>
+
+                        @if (CreditNote.CreditNoteStatus == VendorCreditNoteStatuses.Draft)
+                        {
+                            <button type="button" class="btn btn-success" @onclick="SubmitForApproval">
+                                <i class="ti ti-send me-1"></i> Submit
+                            </button>
+                        }
+                    }
+
+                    @if (CreditNote.CreditNoteStatus == VendorCreditNoteStatuses.Approved && IsEdit)
+                    {
+                        <button type="button" class="btn btn-success" @onclick="PostCreditNote">
+                            <i class="ti ti-check me-1"></i> Post
+                        </button>
+                    }
+                </div>
+            </div>
+        </EditForm>
+    </div>
+}

@@ -1,0 +1,421 @@
+﻿@page "/tax-rate-versions/{Id:guid}/view"
+@using static FinanceConnect.Client.ViewModels.TaxRateVersionViewModel
+@inject FinanceConnect.Client.Services.TaxRateVersionService rateVersionService
+@inject NavigationManager navigation
+
+@if (!isInitialized)
+{
+    <div class="page-loading-overlay"><div class="whirly-loader"></div></div>
+}
+else if (Version == null)
+{
+    <div class="content py-4">
+        <div class="alert alert-danger">
+            <i class="ti ti-alert-circle me-2"></i> Rate Version not found.
+            <a href="/tax-rate-versions" class="alert-link ms-2">Return to list</a>
+        </div>
+    </div>
+}
+else
+{
+    <style>
+        .rate-pill          { display:inline-flex;align-items:center;gap:4px;padding:3px 10px;font-size:12px;font-weight:600; }
+        .rate-pill.active   { background:#d1e7dd;color:#0a3622; }
+        .rate-pill.draft    { background:#fff3cd;color:#664d03; }
+        .rate-pill.retired  { background:#e2e3e5;color:#41464b; }
+        .rate-pill.approved { background:#cfe2ff;color:#084298; }
+        .rate-pill.submitted  { background:#cff4fc;color:#055160; }
+        .rate-pill.superseded { background:#f8d7da;color:#842029; }
+        .rate-pill.cancelled  { background:#e2e3e5;color:#41464b; }
+        .big-rate { font-size:2.4rem;font-weight:800;line-height:1; }
+    </style>
+
+    <div class="content py-4 view-screen">
+
+        <!-- PAGE TITLE ROW -->
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <div>
+                <h4 class="fw-bold mb-1">Rate Version Details</h4>
+                <p class="text-muted mb-0 small">Effective-dated rate configuration and audit evidence</p>
+            </div>
+            <div class="d-flex gap-2 page-btn">
+                @if (Version.Status == VersionStatus.Draft && !Version.IsLockedForChanges)
+                {
+                    <a href="/tax-rate-versions/edit/@Version.TaxRateVersionId" class="btn btn-primary">
+                        <i class="ti ti-edit me-1"></i> Edit
+                    </a>
+                }
+                <a @onclick="PrintPage" class="btn btn-primary"><i class="bi bi-printer"></i> Print</a>
+
+                <a href="/tax-rate-versions" class="btn btn-outline-secondary">
+                    <i class="ti ti-arrow-left me-1"></i> Back
+                </a>
+            </div>
+        </div>
+
+        <div class="row g-4">
+
+            <!-- ═══ HEADER PANEL ═══ -->
+            <div class="col-lg-12">
+                <div class="profile-list-card">
+                    <div class="profile-left">
+                        <div class="avatar letter-avatar" style="font-size:13px;font-weight:800;">
+                            @Version.VersionNumber
+                        </div>
+                    </div>
+                    <div class="profile-center">
+                        <div class="top-row">
+                            <h5>@Version.TaxCodeSnapshot &nbsp;·&nbsp; Version @Version.VersionNumber</h5>
+                            @if (Version.IsLockedForChanges)
+                            {
+                                <span class="badge bg-warning-transparent ms-2">
+                                    <i class="ti ti-lock me-1"></i>Locked
+                                </span>
+                            }
+                        </div>
+                        <div class="sub-text">
+                            <span class="d-flex gap-1 mt-1">
+                                <i class="ti ti-tag"></i>
+                                @Version.TaxCodeNameSnapshot &nbsp;·&nbsp; @Version.TaxTypeSnapshot
+                            </span>
+                            <span class="d-flex gap-1 mt-1">
+                                <i class="ti ti-calendar"></i>
+                                @Version.EffectiveFrom.ToString("dd MMM yyyy")
+                                <i class="ti ti-arrow-right" style="font-size:11px;margin-top:2px;"></i>
+                                @if (Version.EffectiveTo.HasValue)
+                                {
+                                    <span>@Version.EffectiveTo.Value.ToString("dd MMM yyyy")</span>
+                                }
+                                else
+                                {
+                                    <span class="badge bg-warning-transparent" style="font-size:10px;">Open-ended</span>
+                                }
+                            </span>
+                        </div>
+                        <div class="mt-2">
+                            <span class="badge rate-pill @GetStatusPillClass(Version.Status)">
+                                @GetStatusLabel(Version.Status)
+                            </span>
+                        </div>
+                    </div>
+                    <!-- Rate Hero -->
+                    <div class="ms-auto pe-3 text-end d-none d-md-block">
+                        @if (Version.Type == RateType.Percentage && Version.RatePercent.HasValue)
+                        {
+                            <div class="big-rate text-primary">@Version.RatePercent.Value.ToString("G")%</div>
+                            <small class="text-muted">of @Version.Basis</small>
+                        }
+                        else if (Version.Type == RateType.FixedAmount && Version.FixedAmount.HasValue)
+                        {
+                            <div class="big-rate text-primary">₹@Version.FixedAmount.Value.ToString("N2")</div>
+                            <small class="text-muted">Fixed Amount</small>
+                        }
+                    </div>
+                </div>
+            </div>
+
+            <!-- ═══ LEFT PANEL (col-8) ═══ -->
+            <div class="col-lg-8">
+                <div class="profile-card">
+
+                    <!-- Effective Dates -->
+                    <div class="card mb-0">
+                        <div class="card-header py-2">
+                            <i class="ti ti-calendar-event me-2"></i> Effective Date Range
+                        </div>
+                        <div class="card-body py-2">
+                            <div class="row">
+                                <div class="col-md-4 mb-2">
+                                    <small class="text-muted">Effective From</small>
+                                    <div class="fw-medium">@Version.EffectiveFrom.ToString("dd MMM yyyy")</div>
+                                </div>
+                                <div class="col-md-4 mb-2">
+                                    <small class="text-muted">Effective To</small>
+                                    <div class="fw-medium">
+                                        @if (Version.EffectiveTo.HasValue)
+                                        {
+                                            @Version.EffectiveTo.Value.ToString("dd MMM yyyy")
+                                        }
+                                        else
+                                        {
+                                            <span class="badge bg-warning-transparent">Open-ended</span>
+                                        }
+                                    </div>
+                                </div>
+                                <div class="col-md-4 mb-2">
+                                    <small class="text-muted">Duration</small>
+                                    <div>
+                                        @{
+                                            var endDate = Version.EffectiveTo ?? DateTime.Today;
+                                            var days    = (endDate - Version.EffectiveFrom).Days;
+                                        }
+                                        @if (Version.EffectiveTo.HasValue)
+                                        {
+                                            <span>@days days</span>
+                                        }
+                                        else
+                                        {
+                                            <span>@days+ days (ongoing)</span>
+                                        }
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Rate Definition -->
+                    <div class="card mt-3 mb-0">
+                        <div class="card-header py-2">
+                            <i class="ti ti-percentage me-2"></i> Rate Definition
+                        </div>
+                        <div class="card-body py-2">
+                            <div class="row">
+                                <div class="col-md-4 mb-2">
+                                    <small class="text-muted">Rate Type</small>
+                                    <div>@Version.Type</div>
+                                </div>
+                                @if (Version.Type == RateType.Percentage)
+                                {
+                                    <div class="col-md-4 mb-2">
+                                        <small class="text-muted">Rate Percent</small>
+                                        <div class="fw-bold text-primary" style="font-size:1.3rem;">
+                                            @Version.RatePercent.GetValueOrDefault().ToString("G")%
+                                        </div>
+                                    </div>
+                                }
+                                @if (Version.Type == RateType.FixedAmount)
+                                {
+                                    <div class="col-md-4 mb-2">
+                                        <small class="text-muted">Fixed Amount</small>
+                                        <div class="fw-bold text-primary" style="font-size:1.3rem;">
+                                            ₹@Version.FixedAmount.GetValueOrDefault().ToString("N2")
+                                        </div>
+                                    </div>
+                                }
+                                <div class="col-md-4 mb-2">
+                                    <small class="text-muted">Rate Basis</small>
+                                    <div>@Version.Basis</div>
+                                </div>
+                                @if (Version.MinimumTaxAmount.HasValue)
+                                {
+                                    <div class="col-md-4 mb-2">
+                                        <small class="text-muted">Min Tax Amount</small>
+                                        <div>₹@Version.MinimumTaxAmount.Value.ToString("N2")</div>
+                                    </div>
+                                }
+                                @if (Version.MaximumTaxAmount.HasValue)
+                                {
+                                    <div class="col-md-4 mb-2">
+                                        <small class="text-muted">Max Tax Amount</small>
+                                        <div>₹@Version.MaximumTaxAmount.Value.ToString("N2")</div>
+                                    </div>
+                                }
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Special Rules -->
+                    @* ── FIX: ITCEligibilityOverride → ITCRateOverride to avoid CS0104 ── *@
+                    @if (Version.PanRequiredForStandardRate || Version.IsReverseChargeRate ||
+                         Version.ITCOverride != ITCRateOverride.InheritFromTaxCode ||
+                         Version.HasThreshold)
+                    {
+                        <div class="card mt-3 mb-0">
+                            <div class="card-header py-2">
+                                <i class="ti ti-settings me-2"></i> Special Rules
+                            </div>
+                            <div class="card-body py-2">
+                                <div class="row">
+                                    @if (Version.HasThreshold)
+                                    {
+                                        <div class="col-md-6 mb-2">
+                                            <small class="text-muted">Threshold Amount</small>
+                                            <div>₹@Version.ThresholdAmount.GetValueOrDefault().ToString("N0")</div>
+                                            <small class="text-muted">Tax applies only above threshold</small>
+                                        </div>
+                                    }
+                                    @if (Version.PanRequiredForStandardRate)
+                                    {
+                                        <div class="col-md-6 mb-2">
+                                            <small class="text-muted">PAN Required for Standard Rate</small>
+                                            <div><span class="badge bg-warning-transparent">Yes</span></div>
+                                        </div>
+                                        @if (Version.AlternateRatePercentIfPanMissing.HasValue)
+                                        {
+                                            <div class="col-md-6 mb-2">
+                                                <small class="text-muted">Alternate Rate (No PAN)</small>
+                                                <div class="fw-bold text-danger">
+                                                    @Version.AlternateRatePercentIfPanMissing.Value.ToString("G")%
+                                                </div>
+                                            </div>
+                                        }
+                                    }
+                                    @if (Version.IsReverseChargeRate)
+                                    {
+                                        <div class="col-md-6 mb-2">
+                                            <small class="text-muted">Reverse Charge Rate</small>
+                                            <div><span class="badge bg-info-transparent">Yes</span></div>
+                                        </div>
+                                    }
+                                    @* ── FIX: ITCEligibilityOverride → ITCRateOverride ── *@
+                                    @if (Version.ITCOverride != ITCRateOverride.InheritFromTaxCode)
+                                    {
+                                        <div class="col-md-6 mb-2">
+                                            <small class="text-muted">ITC Eligibility Override</small>
+                                            <div>@Version.ITCOverride</div>
+                                        </div>
+                                    }
+                                </div>
+                            </div>
+                        </div>
+                    }
+
+                    <!-- Legal / Evidence -->
+                    <div class="card mt-3 mb-0">
+                        <div class="card-header py-2">
+                            <i class="ti ti-file-certificate me-2"></i> Legal / Evidence
+                        </div>
+                        <div class="card-body py-2">
+                            <div class="row">
+                                <div class="col-md-6 mb-2">
+                                    <small class="text-muted">Rate Source</small>
+                                    <div>
+                                        <span class="badge @GetSourceBadgeClass(Version.SourceType)">
+                                            @GetSourceLabel(Version.SourceType)
+                                        </span>
+                                    </div>
+                                </div>
+                                @if (!string.IsNullOrWhiteSpace(Version.LegalReferenceNumber))
+                                {
+                                    <div class="col-md-6 mb-2">
+                                        <small class="text-muted">Legal Reference No</small>
+                                        <div class="fw-medium">@Version.LegalReferenceNumber</div>
+                                    </div>
+                                }
+                                @if (Version.LegalReferenceDate.HasValue)
+                                {
+                                    <div class="col-md-6 mb-2">
+                                        <small class="text-muted">Legal Reference Date</small>
+                                        <div>@Version.LegalReferenceDate.Value.ToString("dd MMM yyyy")</div>
+                                    </div>
+                                }
+                                @if (!string.IsNullOrWhiteSpace(Version.Notes))
+                                {
+                                    <div class="col-md-12 mb-2">
+                                        <small class="text-muted">Notes</small>
+                                        <div class="text-secondary fst-italic" style="font-size:13px;">@Version.Notes</div>
+                                    </div>
+                                }
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+
+            <!-- ═══ RIGHT PANEL (col-4) ═══ -->
+            <div class="col-lg-4">
+                <div class="profile-card">
+
+                    <!-- Status & Governance -->
+                    <div class="card mb-0">
+                        <div class="card-header py-2">
+                            <i class="ti ti-shield-check me-2"></i> Status &amp; Governance
+                        </div>
+                        <div class="card-body py-2">
+                            <div class="mb-2">
+                                <small class="text-muted">Version Status</small>
+                                <div class="mt-1">
+                                    <span class="badge rate-pill @GetStatusPillClass(Version.Status)">
+                                        @GetStatusLabel(Version.Status)
+                                    </span>
+                                </div>
+                            </div>
+                            <div class="mb-2">
+                                <small class="text-muted">Version Number</small>
+                                <div class="fw-bold">@Version.VersionNumber</div>
+                            </div>
+                            <div class="mb-2">
+                                <small class="text-muted">Locked</small>
+                                <div>
+                                    @if (Version.IsLockedForChanges)
+                                    {
+                                        <span class="badge bg-warning-transparent">
+                                            <i class="ti ti-lock me-1"></i>Locked
+                                        </span>
+                                    }
+                                    else
+                                    {
+                                        <span class="badge bg-secondary-transparent text-secondary">Unlocked</span>
+                                    }
+                                </div>
+                            </div>
+                            @if (!string.IsNullOrWhiteSpace(Version.LockReason))
+                            {
+                                <div class="mb-2">
+                                    <small class="text-muted">Lock Reason</small>
+                                    <div class="text-warning fst-italic" style="font-size:12px;">@Version.LockReason</div>
+                                </div>
+                            }
+                            @if (Version.ApprovedOn.HasValue)
+                            {
+                                <div class="mb-2">
+                                    <small class="text-muted">Approved On</small>
+                                    <div>@Version.ApprovedOn.Value.ToString("dd MMM yyyy")</div>
+                                </div>
+                            }
+                            @if (Version.ActivatedOn.HasValue)
+                            {
+                                <div class="mb-2">
+                                    <small class="text-muted">Activated On</small>
+                                    <div>@Version.ActivatedOn.Value.ToString("dd MMM yyyy")</div>
+                                </div>
+                            }
+                        </div>
+                    </div>
+
+                    <!-- Timeline -->
+                    <div class="card mt-3 mb-0">
+                        <div class="card-header py-2">
+                            <i class="ti ti-timeline me-2"></i> Activity Timeline
+                        </div>
+                        <div class="card-body py-2">
+                            <ul class="list-unstyled mb-0">
+                                @foreach (var entry in Timeline)
+                                {
+                                    <li class="d-flex align-items-start mb-2 gap-2">
+                                        <span class="rounded-circle @entry.DotClass"
+                                              style="width:10px;height:10px;min-width:10px;margin-top:5px;"></span>
+                                        <div>
+                                            <div class="fw-medium" style="font-size:13px;">@entry.Label</div>
+                                            <div class="text-muted" style="font-size:12px;">@entry.Note</div>
+                                        </div>
+                                    </li>
+                                }
+                            </ul>
+                        </div>
+                    </div>
+
+                    <!-- Audit -->
+                    <div class="card mt-3 mb-0">
+                        <div class="card-header py-2">
+                            <i class="ti ti-clock me-2"></i> Audit
+                        </div>
+                        <div class="card-body py-2">
+                            <div class="mb-2">
+                                <small class="text-muted">Created At</small>
+                                <div>@Version.CreatedAt.ToString("dd MMM yyyy")</div>
+                            </div>
+                            <div class="mb-2">
+                                <small class="text-muted">Updated At</small>
+                                <div>@(Version.UpdatedAt.HasValue ? Version.UpdatedAt.Value.ToString("dd MMM yyyy") : "—")</div>
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+
+        </div>
+    </div>
+}

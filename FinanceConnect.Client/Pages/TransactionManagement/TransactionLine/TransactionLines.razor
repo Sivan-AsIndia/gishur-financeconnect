@@ -1,0 +1,523 @@
+﻿@page "/financial-transactions/{TransactionId:guid}/lines"
+
+@using FinanceConnect.Client.ViewModels
+@using FinanceConnect.Client.Services
+@inject TransactionLineService LineService
+@inject FinancialTransactionService TxService
+@inject ToastService ToastService
+@inject NavigationManager Nav
+
+<style>
+
+    .form-select option:checked {
+        color: #fff;
+        background: var(--primary);
+    }
+
+    .form-select:focus {
+        border-color: var(--primary);
+        box-shadow: none;
+    }
+
+    .journal-grid input {
+        /* border-radius: 1px; */
+        box-shadow: none;
+    }
+
+    .journal-grid input:focus {
+            border-bottom: 2px solid var(--primary);
+    }
+
+    .journal-grid tr:hover {
+        background: #fffaf3;
+    }
+
+    .mobile-card:hover {
+        border-color: var(--primary);
+        box-shadow: 0 4px 12px rgba(254, 159, 67, 0.1);
+    }
+
+    .line-field input,
+    .line-field select {
+        width: 100%;
+        padding: 8px 10px;
+        font-size: 13px;
+        border-radius: 6px;
+        border: 1px solid #ced4da;
+        background-color: #fff;
+        transition: all 0.2s ease;
+    }
+
+        .line-field input:focus,
+        .line-field select:focus {
+            border-color: var(--primary);
+            outline: none;
+            box-shadow: 0 0 0 2px rgba(254, 159, 67, 0.15);
+        }
+
+    .text-end {
+        text-align: right;
+    }
+
+    .badge-sys {
+        background: #e0f2fe;
+        color: #0284c7;
+    }
+
+    /* Empty State */
+    .empty-lines-state {
+        padding: 40px 20px;
+        text-align: center;
+        color: #6c757d;
+        background: #f8f9fa;
+        border-radius: 10px;
+        border: 2px dashed #dee2e6;
+    }
+
+        .empty-lines-state i {
+            font-size: 48px;
+            margin-bottom: 12px;
+            color: #dee2e6;
+        }
+
+    /* =========================
+       TOTALS SUMMARY UI
+       ========================= */
+
+    .totals-summary {
+        background: #fff;
+        border-radius: 12px;
+    }
+
+    /* Grid Layout */
+    .totals-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+        gap: 16px;
+    }
+
+    /* Individual Total Box */
+    .total-item {
+        background: #f9fafb;
+        border: 1px solid #e5e7eb;
+        border-radius: 10px;
+        padding: 12px 14px;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        transition: all 0.2s ease;
+    }
+
+        .total-item:hover {
+            background: #fffaf3;
+            border-color: var(--primary);
+        }
+
+    /* Label */
+    .total-item-label {
+        font-size: 12px;
+        color: #64748b;
+        margin-bottom: 4px;
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+    }
+
+    /* Value */
+    .total-item-value {
+        font-size: 18px;
+        font-weight: 600;
+        color: #0f172a;
+    }
+
+        /* Grand / Highlighted Value */
+        .total-item-value.grand-total {
+            font-size: 20px;
+            font-weight: 700;
+            color: #16a34a;
+        }
+
+        /* Discount Value */
+        .total-item-value.discount {
+            color: #dc2626;
+        }
+
+    /* Currency Badge */
+    .currency-badge {
+        display: inline-block;
+        padding: 4px 10px;
+        font-size: 12px;
+        font-weight: 600;
+        border-radius: 20px;
+        background: #ecfdf5;
+        color: #16a34a;
+        border: 1px solid #bbf7d0;
+    }
+
+    /* Action Button Area */
+    .totals-summary .btn {
+        min-width: 140px;
+    }
+
+
+
+
+    .invoice-line-card {
+        border: 2px solid var(--primary);
+        border-radius: 12px;
+        padding: 16px;
+        margin-bottom: 16px;
+        background: #fff;
+    }
+
+    .line-badge {
+        background: var(--primary);
+        color: #fff;
+        padding: 6px 12px;
+        border-radius: 20px;
+        font-weight: 600;
+        font-size: 13px;
+    }
+</style>
+
+@if (!isInitialized)
+{
+    <div class="page-loading-overlay">
+        <div class="whirly-loader"></div>
+    </div>
+}
+else
+{
+    <div class="content">
+
+        <!-- PAGE HEADER -->
+        <div class="page-header">
+            <div class="page-title">
+                <div style="display: ruby;">
+                    <h4 class="fw-bold">
+                        Transaction Lines
+                    </h4>
+                    <span class="badge @GetStatusBadge(Tx.Status)">
+                        @Tx.Status
+                    </span>
+                </div>
+                <span class="badge bg-secondary">@Tx.DocumentNo</span>
+            </div>
+
+            <div class="page-btn mt-0">
+                <a href="/financial-transactions" class="btn btn-outline-secondary">
+                    <i class="ti ti-arrow-left"></i> Back
+                </a>
+            </div>
+        </div>
+
+        <!-- HEADER INFO -->
+        <div class="card">
+            <div class="card-body">
+                <div class="row">
+
+                    <div class="col-md-3 mb-3">
+                        <label class="form-label">Company</label>
+                        <input class="form-control" value="@GetCompanyName(Tx.CompanyId)" readonly />
+                    </div>
+
+                    <div class="col-md-3 mb-3">
+                        <label class="form-label">Branch</label>
+                        <input class="form-control" value="@GetBranchName(Tx.BranchId.Value)" readonly />
+                    </div>
+
+                    <div class="col-md-3 mb-3">
+                        <label class="form-label">Transaction Date</label>
+                        <input class="form-control"
+                               value="@Tx.TransactionDate?.ToString("dd MMM yyyy")"
+                               readonly />
+                    </div>
+
+                    <div class="col-md-3 mb-3">
+                        <label class="form-label">Amount</label>
+                        <input class="form-control"
+                               value="@Tx.TransactionAmount.ToString("N2")"
+                               readonly />
+                    </div>
+
+                </div>
+            </div>
+        </div>
+        @if (_editContext != null)
+        {
+            <EditForm EditContext="_editContext" OnSubmit="HandleSubmit">
+                <DataAnnotationsValidator />
+
+                <div class="card mt-4">
+                    <div class="card-body">
+
+                        <!-- HEADER -->
+                        <div class="d-flex justify-content-between align-items-center border-bottom pb-2 mb-3">
+                            <h6 class="fw-semibold text-primary mb-0">
+                                <i class="ti ti-list me-1"></i> Transaction  Lines
+                            </h6>
+
+                            @if (!IsReadOnly)
+                            {
+                                <button class="btn btn-sm btn-primary" @onclick="AddLine">
+                                    <i class="ti ti-plus me-1"></i> Add Line
+                                </button>
+                            }
+                        </div>
+
+                        @if (!UiLines.Any())
+                        {
+                            <div class="text-center py-4 text-muted">
+                                No lines added
+                            </div>
+                        }
+                        else
+                        {
+                            @foreach (var line in UiLines)
+                            {
+                                <div class="invoice-line-card">
+
+                                    <!-- HEADER -->
+                                    <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+
+                                        <div class="d-flex align-items-center gap-2">
+                                            <span class="line-badge">#@line.LineNumber</span>
+
+                                            <span class="badge @(line.IsSystemGenerated ? "bg-warning-subtle text-warning" : "bg-success-subtle text-success")">
+                                                @(line.IsSystemGenerated ? "SYS" : "USR")
+                                            </span>
+                                        </div>
+
+                                        <div class="text-md-end">
+                                            <div class="text-muted">LINE TOTAL</div>
+                                            <div class="fw-bold">₹ @line.LineAmount.ToString("0.00")</div>
+                                        </div>
+
+                                    </div>
+
+                                    <!-- ROW 1 : CLASSIFICATION -->
+                                    <div class="row g-3">
+
+                                        <div class="col-12 col-md-4 col-lg-3">
+                                            <label class="form-label">Type <span class="text-danger ms-1">*</span></label>
+                                            <select class="form-select" @bind="line.LineType" disabled="@IsReadOnly">
+                                                <option value="">-- Select --</option>
+                                                @foreach (var t in Enum.GetValues<TransactionLineType>())
+                                                {
+                                                    <option value="@t">@t</option>
+                                                }
+                                            </select>
+                                            <ValidationMessage For="@(() => line.LineType)" />
+                                        </div>
+
+                                        <div class="col-12 col-md-4 col-lg-3">
+                                            <label class="form-label">Posting Category <span class="text-danger ms-1">*</span></label>
+                                            <select class="form-select" @bind="line.PostingCategory" disabled="@IsReadOnly">
+                                                <option value="">-- Select --</option>
+                                                @foreach (var t in Enum.GetValues<PostingCategories>())
+                                                {
+                                                    <option value="@t">@t</option>
+                                                }
+                                            </select>
+                                            <ValidationMessage For="@(() => line.PostingCategory)" />
+                                        </div>
+
+                                        <div class="col-12 col-md-4 col-lg-6">
+                                            <label class="form-label">Description</label>
+                                            <input class="form-control" @bind="line.LineNarration" disabled="@IsReadOnly" />
+                                        </div>
+
+                                    </div>
+
+                                    <!-- ROW 2 : AMOUNT -->
+                                    <div class="row g-3 mt-1 align-items-end">
+
+                                        <div class="col-6 col-md-3 col-lg-2">
+                                            <label class="form-label">Qty</label>
+                                            <input class="form-control text-end"
+                                                   type="number"
+                                                   @bind="line.Quantity"
+                                                   disabled="@IsReadOnly"
+                                                   @bind:after="() => OnQtyRateChanged(line)" />
+                                        </div>
+
+                                        <div class="col-6 col-md-3 col-lg-2">
+                                            <label class="form-label">Unit Rate <span class="text-danger ms-1">*</span></label>
+                                            <input class="form-control text-end"
+                                                   type="number"
+                                                   @bind="line.UnitRate"
+                                                   disabled="@IsReadOnly"
+                                                   @bind:after="() => OnQtyRateChanged(line)" />
+                                            <ValidationMessage For="@(() => line.UnitRate)" />
+                                        </div>
+
+                                        <div class="col-6 col-md-3 col-lg-2">
+                                            <label class="form-label">Amount</label>
+                                            <input class="form-control text-end"
+                                                   type="number"
+                                                   value="@line.LineAmount"
+                                                   readonly disabled="@IsReadOnly" />
+                                        </div>
+
+                                        <div class="col-6 col-md-3 col-lg-3">
+                                            <label class="form-check form-switch mt-4">
+                                                <input class="form-check-input"
+                                                       type="checkbox"
+                                                       @bind="line.IsTaxLine" />
+                                                <span class="form-check-label ms-2">Tax Line</span>
+                                            </label>
+                                        </div>
+
+                                        <div class="col-6 col-md-3 col-lg-3">
+                                            <div class="form-check form-switch">
+                                                <label class="form-check form-switch">
+                                                    <input class="form-check-input"
+                                                           type="checkbox"
+                                                           @bind="line.IsAdjustment" />
+                                                    <span class="form-check-label">Adjustment</span>
+                                                </label>
+                                            </div>
+                                        </div>
+
+                                    </div>
+
+                                    <!-- ROW 3 : TAX (conditional) -->
+                                    @if (line.IsTaxLine)
+                                    {
+                                        <div class="row g-3 mt-1">
+
+                                            <div class="col-12 col-md-6 col-lg-3">
+                                                <label class="form-label">Tax Code <span class="text-danger ms-1">*</span></label>
+                                                <select class="form-select" @bind="line.TaxCodeId" disabled="@IsReadOnly">
+                                                    <option value="">-- Select --</option>
+                                                    @foreach (var t in Enum.GetValues<TaxCode>())
+                                                    {
+                                                        <option value="@t">@t</option>
+                                                    }
+                                                </select>
+                                                <ValidationMessage For="@(() => line.TaxCodeId)" />
+                                            </div>
+
+                                            <div class="col-12 col-md-6 col-lg-3">
+                                                <label class="form-label">Tax Component <span class="text-danger ms-1">*</span></label>
+                                                <select class="form-select" @bind="line.TaxComponentType" disabled="@IsReadOnly">
+                                                    <option value="">-- Select --</option>
+                                                    @foreach (var t in Enum.GetValues<TaxComponentType>())
+                                                    {
+                                                        <option value="@t">@t</option>
+                                                    }
+                                                </select>
+                                                <ValidationMessage For="@(() => line.TaxComponentType)" />
+                                            </div>
+
+                                        </div>
+                                    }
+
+                                    <!-- FOOTER -->
+                                    <div class="d-flex justify-content-between align-items-center mt-3 flex-wrap gap-2">
+
+
+
+                                        @if (!IsReadOnly && !line.IsSystemGenerated)
+                                        {
+                                            <button class="btn btn-outline-danger btn-sm" @onclick="() => Delete(line)">
+                                                <i class="ti ti-trash"></i> Delete
+                                            </button>
+                                        }
+
+                                    </div>
+
+                                </div>
+
+                            }
+                        }
+                    </div>
+                </div>
+
+           
+        <!-- Totals Summary -->
+        <div class="card mt-4">
+            <div class="card-body">
+
+                <div class="totals-summary">
+
+                    <div class="totals-grid">
+
+                        <!-- Total Lines -->
+                        <div class="total-item">
+                            <div class="total-item-label">Total Lines</div>
+                            <div class="total-item-value">@UiLines.Count</div>
+                        </div>
+
+                        <!-- Header Amount -->
+                        <div class="total-item">
+                            <div class="total-item-label">Header Amount</div>
+                            <div class="total-item-value">
+                                @Tx.TransactionAmount.ToString("N2")
+                            </div>
+                        </div>
+
+                        <!-- Lines Total -->
+                        <div class="total-item">
+                            <div class="total-item-label">Lines Total</div>
+                            <div class="total-item-value">
+                                @TotalAmount.ToString("N2")
+                            </div>
+                        </div>
+
+                        <!-- Difference / Balance -->
+                        <div class="total-item">
+                            <div class="total-item-label">Status</div>
+                            <div>
+                                @if (TotalAmount == Tx.TransactionAmount)
+                                {
+                                    <span class="badge bg-success-transparent text-success">
+                                        <i class="ti ti-check me-1"></i> Balanced
+                                    </span>
+                                }
+                                else
+                                {
+                                    <span class="badge bg-danger-transparent text-danger">
+                                        <i class="ti ti-alert-circle me-1"></i>
+                                        Difference:
+                                        @(Tx.TransactionAmount - TotalAmount)
+                                    </span>
+                                }
+                            </div>
+                        </div>
+
+                        <!-- Currency -->
+                        <div class="total-item">
+                            <div class="total-item-label">Currency</div>
+                            <div>
+                                <span class="currency-badge">@GetCurrencyName(Tx.CurrencyId)</span>
+                            </div>
+                        </div>
+
+                    </div>
+
+                </div>
+
+            </div>
+        </div>
+
+        <div class="d-flex flex-wrap justify-content-end gap-2 mt-4 mb-4">
+            @if (Tx.Status == "Draft")
+            {
+                <div class="d-flex justify-content-end mt-3 gap-2">
+                            <button type="button" class="btn btn-outline-secondary" @onclick="Cancel">
+                        <i class="ti ti-x"></i> Cancel
+                    </button>
+
+                    <button class="btn btn-primary" type="submit">
+                        <i class="ti ti-device-floppy"></i> Save
+                    </button>
+                </div>
+            }
+        </div>
+            </EditForm>
+         }
+
+    </div>
+}
+
+

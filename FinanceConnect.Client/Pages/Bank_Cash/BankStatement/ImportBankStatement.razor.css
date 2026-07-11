@@ -1,0 +1,16 @@
+﻿
+.form-select option:checked {
+    color: #fff;
+    background: #FE9F43;
+}
+
+.form-select:focus {
+    border-color: #FE9F43;
+    box-shadow: none;
+}
+
+.validation-message {
+    color: #dc3545;
+    font-size: 12px;
+}
+

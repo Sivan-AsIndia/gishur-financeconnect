@@ -1,0 +1,201 @@
+@page "/forecasts/{Id:guid}/view"
+@using FinanceConnect.Client.ViewModels
+@using static FinanceConnect.Client.ViewModels.ForecastViewModel
+
+@if (!isInitialized)
+{
+    <div class="page-loading-overlay">
+        <div class="whirly-loader"></div>
+    </div>
+}
+else if (Item == null)
+{
+    <div class="vb-root">
+        <div class="content">
+            <div class="alert alert-danger"><i class="ti ti-alert-circle me-2"></i>Forecast not found. <a href="/forecasts" class="alert-link ms-2">Return to list</a></div>
+        </div>
+    </div>
+}
+else
+{
+    <div class="vb-root">
+        <div class="content">
+
+            <!-- ═══ HEADER ═══ -->
+            <div class="vb-header-card">
+                <div class="vb-cover"><div class="vb-cover-orb vb-orb-1"></div><div class="vb-cover-orb vb-orb-2"></div><div class="vb-cover-orb vb-orb-3"></div></div>
+                <div class="vb-header-body">
+                    <div class="vb-avatar">@Item.ForecastCode?.Substring(0, Math.Min(2, Item.ForecastCode?.Length ?? 0)).ToUpper()</div>
+                    <div class="vb-header-meta">
+                        <div>
+                            <p class="vb-bill-number">@Item.ForecastCode – @Item.ForecastName</p>
+                            <p class="vb-bill-sub">@Item.ForecastType · @Item.ForecastNature · @Item.ForecastLevel</p>
+                            <div class="vb-badges">
+                                <span class="badge @GetStatusBadge(Item.ForecastStatus)">@Item.ForecastStatus</span>
+                                <span class="badge bg-info-transparent">@Item.ScenarioType</span>
+                                @if (Item.IsLocked) { <span class="badge badge-red">🔒 Locked</span> }
+                            </div>
+                        </div>
+                        <div class="vb-header-actions">
+                            @if (!Item.IsLocked) { <a href="/forecasts/edit/@Item.ForecastId" class="btn btn-primary"><i class="ti ti-pencil me-1"></i> Edit</a> }
+                            <a href="/forecasts" class="btn btn-outline-secondary"><i class="ti ti-arrow-left me-1"></i> Back</a>
+
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ═══ SUMMARY TILES ═══ -->
+            <div class="vb-summary-grid mb-4 mt-2" style="background:transparent;border:none;box-shadow:none;">
+                <div class="vb-tile"><div class="vb-tile-label">Budget Baseline</div><div class="vb-tile-value primary">@Item.BudgetBaselineAmount.ToString("N2")</div></div>
+                <div class="vb-tile"><div class="vb-tile-label">Actual To Date</div><div class="vb-tile-value">@Item.ActualToDateAmount.ToString("N2")</div></div>
+                <div class="vb-tile"><div class="vb-tile-label">Forecast Remaining</div><div class="vb-tile-value">@Item.ForecastRemainingAmount.ToString("N2")</div></div>
+                <div class="vb-tile"><div class="vb-tile-label">Full Period Forecast</div><div class="vb-tile-value primary">@Item.ForecastFullPeriodAmount.ToString("N2")</div></div>
+                <div class="vb-tile"><div class="vb-tile-label">Variance vs Budget</div><div class="vb-tile-value @(Item.VarianceVsBudgetAmount > 0 ? "text-danger" : "text-success")">@Item.VarianceVsBudgetAmount.ToString("N2")</div></div>
+                <div class="vb-tile"><div class="vb-tile-label">Variance %</div><div class="vb-tile-value">@Item.VarianceVsBudgetPercent.ToString("N2")%</div></div>
+            </div>
+
+            <!-- ═══ TWO-COLUMN BODY ═══ -->
+            <div class="ac-layout mb-5">
+
+                <!-- ══ LEFT SIDEBAR ══ -->
+                <div class="ac-left">
+
+                    <!-- Forecast Classification -->
+                    <div class="vb-card">
+                        <div class="vb-card-header"><h6><i class="ti ti-category me-1"></i> Forecast Classification</h6></div>
+                        <div class="vb-card-body">
+                            <div class="vb-row"><span class="vb-label">Forecast Type</span><span class="vb-val">@Item.ForecastType</span></div>
+                            <div class="vb-row"><span class="vb-label">Scenario</span><span class="vb-val">@Item.ScenarioType</span></div>
+                            <div class="vb-row"><span class="vb-label">Scope Level</span><span class="vb-val">@Item.ForecastLevel</span></div>
+                            <div class="vb-row"><span class="vb-label">Nature</span><span class="vb-val">@Item.ForecastNature</span></div>
+                        </div>
+                    </div>
+
+                    <!-- Horizon & Period -->
+                    <div class="vb-card">
+                        <div class="vb-card-header"><h6><i class="ti ti-calendar me-1"></i> Horizon & Period</h6></div>
+                        <div class="vb-card-body">
+                            <div class="vb-row"><span class="vb-label">Start Date</span><span class="vb-val">@Item.FromDate?.ToString("dd MMM yyyy")</span></div>
+                            <div class="vb-row"><span class="vb-label">End Date</span><span class="vb-val">@Item.ToDate?.ToString("dd MMM yyyy")</span></div>
+                            <div class="vb-row"><span class="vb-label">Time Mode</span><span class="vb-val">@Item.ForecastTimeMode</span></div>
+                            <div class="vb-row"><span class="vb-label">Actual As-Of Date</span><span class="vb-val">@(Item.ActualAsOfDate?.ToString("dd MMM yyyy") ?? "–")</span></div>
+                        </div>
+                    </div>
+
+                    <!-- Status -->
+                    <div class="vb-card">
+                        <div class="vb-card-header"><h6><i class="ti ti-toggle-right me-1"></i> Status & Lifecycle</h6></div>
+                        <div class="vb-card-body">
+                            <div class="vb-row">
+                                <span class="vb-label">Forecast Status</span>
+                                <span class="vb-val"><span class="badge @GetStatusBadge(Item.ForecastStatus)">@Item.ForecastStatus</span></span>
+                            </div>
+                            <div class="vb-row">
+                                <span class="vb-label">Locked</span>
+                                <span class="vb-val">@(Item.IsLocked ? "🔒 Yes" : "Unlocked")</span>
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+                <!-- ══ END LEFT SIDEBAR ══ -->
+
+                <!-- ══ RIGHT MAIN ══ -->
+                <div class="ac-right">
+
+                    <!-- Baseline & Methodology -->
+                    <div class="vb-card">
+                        <div class="vb-card-header"><h6><i class="ti ti-chart-line me-1"></i> Baseline & Methodology</h6></div>
+                        <div class="vb-card-body">
+                            <div class="ac-2col">
+                                <div class="vb-row"><span class="vb-label">Baseline Type</span><span class="vb-val">@Item.BaselineReferenceType</span></div>
+                                <div class="vb-row"><span class="vb-label">Forecast Method</span><span class="vb-val">@Item.ForecastMethod</span></div>
+                                <div class="vb-row"><span class="vb-label">Confidence Level</span><span class="vb-val">@(Item.ConfidenceLevel?.ToString() ?? "–")</span></div>
+                                <div class="vb-row"><span class="vb-label">Allocated Values</span><span class="vb-val">@BoolBadge(Item.UseAllocatedValues)</span></div>
+                                <div class="vb-row"><span class="vb-label">Committed Amounts</span><span class="vb-val">@BoolBadge(Item.UseCommittedAmounts)</span></div>
+                                <div class="vb-row"><span class="vb-label">Include Tax</span><span class="vb-val">@BoolBadge(Item.IncludeTaxInForecast)</span></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Expected Deviation -->
+                    @if (Item.ExpectedOverrunAmount > 0 || Item.ExpectedUnderrunAmount > 0)
+                    {
+                        <div class="vb-card">
+                            <div class="vb-card-header"><h6><i class="ti ti-alert-triangle me-1"></i> Expected Deviation</h6></div>
+                            <div class="vb-card-body">
+                                <div class="ac-2col">
+                                    <div class="vb-row"><span class="vb-label">Expected Overrun</span><span class="vb-val text-danger">@Item.ExpectedOverrunAmount.ToString("N2")</span></div>
+                                    <div class="vb-row"><span class="vb-label">Expected Underrun</span><span class="vb-val text-success">@Item.ExpectedUnderrunAmount.ToString("N2")</span></div>
+                                    <div class="vb-row"><span class="vb-label">Total Lines</span><span class="vb-val">@Item.TotalForecastLineCount</span></div>
+                                    <div class="vb-row"><span class="vb-label">Risk Lines</span><span class="vb-val">@Item.SignificantForecastRiskLineCount</span></div>
+                                </div>
+                            </div>
+                        </div>
+                    }
+
+                    <!-- Assumptions & Notes -->
+                    @if (!string.IsNullOrWhiteSpace(Item.ForecastAssumptionSummary) || !string.IsNullOrWhiteSpace(Item.KeyRiskSummary) || !string.IsNullOrWhiteSpace(Item.KeyOpportunitySummary) || !string.IsNullOrWhiteSpace(Item.Notes) || !string.IsNullOrWhiteSpace(Item.Description))
+                    {
+                        <div class="vb-card">
+                            <div class="vb-card-header"><h6><i class="ti ti-notes me-1"></i> Assumptions & Notes</h6></div>
+                            <div class="vb-card-body">
+                                @if (!string.IsNullOrWhiteSpace(Item.Description))
+                                {
+                                    <div class="vb-row" style="flex-direction:column;gap:4px;"><span class="vb-label">Description</span><span class="vb-val" style="font-style:italic;color:var(--gray-600);">@Item.Description</span></div>
+                                }
+                                @if (!string.IsNullOrWhiteSpace(Item.ForecastAssumptionSummary))
+                                {
+                                    <div class="vb-row" style="flex-direction:column;gap:4px;"><span class="vb-label">Assumptions</span><span class="vb-val" style="font-style:italic;color:var(--gray-600);">@Item.ForecastAssumptionSummary</span></div>
+                                }
+                                @if (!string.IsNullOrWhiteSpace(Item.KeyRiskSummary))
+                                {
+                                    <div class="vb-row" style="flex-direction:column;gap:4px;"><span class="vb-label">Key Risks</span><span class="vb-val" style="font-style:italic;color:var(--gray-600);">@Item.KeyRiskSummary</span></div>
+                                }
+                                @if (!string.IsNullOrWhiteSpace(Item.KeyOpportunitySummary))
+                                {
+                                    <div class="vb-row" style="flex-direction:column;gap:4px;"><span class="vb-label">Key Opportunities</span><span class="vb-val" style="font-style:italic;color:var(--gray-600);">@Item.KeyOpportunitySummary</span></div>
+                                }
+                                @if (!string.IsNullOrWhiteSpace(Item.Notes))
+                                {
+                                    <div class="vb-row" style="flex-direction:column;gap:4px;"><span class="vb-label">Notes</span><span class="vb-val" style="font-style:italic;color:var(--gray-600);">@Item.Notes</span></div>
+                                }
+                            </div>
+                        </div>
+                    }
+
+                    <!-- Audit Trail -->
+                    <div class="vb-card">
+                        <div class="vb-card-header"><h6><i class="ti ti-history me-1"></i> Audit Trail</h6></div>
+                        <div class="vb-card-body">
+                            <div class="ac-2col">
+                                <div class="vb-row"><span class="vb-label">Generated On</span><span class="vb-val">@(Item.GeneratedOn?.ToString("dd MMM yyyy HH:mm") ?? "–")</span></div>
+                                <div class="vb-row"><span class="vb-label">Reviewed On</span><span class="vb-val">@(Item.ReviewedOn?.ToString("dd MMM yyyy HH:mm") ?? "–")</span></div>
+                                <div class="vb-row"><span class="vb-label">Approved On</span><span class="vb-val">@(Item.ApprovedOn?.ToString("dd MMM yyyy HH:mm") ?? "–")</span></div>
+                                <div class="vb-row"><span class="vb-label">Locked On</span><span class="vb-val">@(Item.LockedOn?.ToString("dd MMM yyyy HH:mm") ?? "–")</span></div>
+                                <div class="vb-row"><span class="vb-label">Created At</span><span class="vb-val">@Item.CreatedAt.ToString("dd MMM yyyy HH:mm")</span></div>
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+                <!-- ══ END RIGHT MAIN ══ -->
+
+            </div>
+
+        </div>
+    </div>
+}
+
+<style>
+    .ac-layout { display: grid; grid-template-columns: 300px 1fr; gap: 16px; align-items: start; }
+    .ac-left, .ac-right { display: flex; flex-direction: column; gap: 16px; }
+
+    .ac-2col {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(359px, 1fr));
+        gap: 0 32px;
+    }
+    @@media (max-width: 900px) { .ac-layout { grid-template-columns: 1fr; } .ac-2col { grid-template-columns: 1fr; } }
+</style>

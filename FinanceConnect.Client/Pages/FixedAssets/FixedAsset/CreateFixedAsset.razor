@@ -1,0 +1,527 @@
+﻿@page "/fixed-assets/create"
+@page "/fixed-assets/edit/{Id:guid}"
+@using FA = FinanceConnect.Client.ViewModels.FixedAssetViewModel
+@using FinanceConnect.Client.ViewModels
+@inject BranchService BranchService
+
+<style>
+    .form-select option:checked {
+        color: white;
+        background-color: var(--primary);
+    }
+
+    .validation-message {
+        color: #dc3545;
+        font-size: 12px;
+    }
+
+    .category-hint {
+        background: #f0f7ff;
+        border-left: 3px solid var(--primary);
+        border-radius: 4px;
+        padding: 8px 12px;
+        font-size: 12px;
+        color: #555;
+        margin-top: 6px;
+    }
+
+        .category-hint i {
+            color: var(--primary);
+            margin-right: 4px;
+        }
+</style>
+
+@if (!isInitialized)
+{
+    <div class="page-loading-overlay">
+        <div class="whirly-loader"></div>
+    </div>
+}
+else
+{
+    <div class="content form-wizard">
+        <div class="page-header">
+            <div class="add-item d-flex">
+                <div class="page-title">
+                    <h4 class="fw-bold">@PageTitle</h4>
+                    <h6>@PageSubTitle</h6>
+                </div>
+            </div>
+
+            <div class="d-flex page-btn mt-0 gap-2">
+                @if (IsEdit)
+                {
+                    <button type="button" class="btn btn-primary" @onclick="Save">
+                        <i class="ti ti-device-floppy"></i> Update
+                    </button>
+                }
+                <a href="/fixed-assets" class="btn btn-outline-secondary">
+                    <i class="ti ti-arrow-left"></i> Back
+                </a>
+            </div>
+        </div>
+
+        <div class="wizard-overlay d-flex mb-4">
+            <EditForm EditContext="editContext" OnSubmit="Save" style="width:100%;">
+
+                <div class="wizard-overlay">
+                    <div class="wizard-modal">
+
+                        <!-- LEFT STEPPER -->
+                        <div class="wizard-steps" style="max-width: 100%;">
+                            <div class="timeline-line"></div>
+                            <div class="timeline-indicator @(IsCurrentStepValid() ? "success" : "error")"
+                                 style="top:@IndicatorToppx"></div>
+
+                            @for (int i = 1; i <= Steps.Count; i++)
+                            {
+                                <div class="wizard-step @StepClass(i)">
+                                    <div class="dot">
+                                        @if (i < CurrentStep)
+                                        {
+                                            <i class="ti ti-check" style="color:white;font-size:22px;"></i>
+                                        }
+                                        else
+                                        {
+                                            <i class="@Steps[i - 1].Icon"></i>
+                                        }
+                                    </div>
+                                    <div class="label">
+                                        <b>@Steps[i - 1].Title</b>
+                                    </div>
+                                </div>
+                            }
+                        </div>
+
+                        <!-- RIGHT CONTENT -->
+                        <div class="wizard-content">
+                            <h2 style="font-size:17px;margin-bottom:10px;">
+                                @Steps[CurrentStep - 1].Title
+                            </h2>
+
+                            @* ── Step 1: Core Identity ── *@
+                            @if (CurrentStep == 1)
+                            {
+                                <div class="accordion-body border-top pt-3 p-0">
+                                    <div class="row">
+
+                                        <div class="col-md-6 mb-3">
+                                            <label class="form-label">Asset Code</label>
+                                            @* ✅ FIX: disabled — value already set in OnInitializedAsync *@
+                                            <InputText class="form-control text-uppercase"
+                                                       @bind-Value="Asset.AssetCode"
+                                                       placeholder="Auto-generated"
+                                                       maxlength="50"
+                                                       disabled />
+                                            <small class="text-muted">Auto-generated (e.g. FA-000001)</small>
+                                        </div>
+
+                                        <div class="col-md-6 mb-3">
+                                            <label class="form-label">Asset Name <span class="text-danger ms-1">*</span></label>
+                                            <InputText class="@($"form-control {(ShowFieldError(1, "AssetName") ? "is-invalid" : "")}")"
+                                                       @bind-Value="Asset.AssetName"
+                                                       @oninput="e => Asset.AssetName = e.Value?.ToString() ?? string.Empty"
+                                                       placeholder="e.g., Dell Laptop i7"
+                                                       maxlength="150" />
+                                            @if (ShowFieldError(1, "AssetName"))
+                                            {
+                                                <div class="text-danger small mt-1">Asset Name is required</div>
+                                            }
+                                        </div>
+
+                                        <div class="col-md-6 mb-3">
+                                            <label class="form-label">
+                                                Asset Category <span class="text-danger ms-1">*</span>
+                                            </label>
+                                            <select class="@($"form-select {(ShowFieldError(1, "AssetCategoryId") ? "is-invalid" : "")}")"
+                                                    value="@Asset.AssetCategoryId"
+                                                    @onchange="OnCategoryChanged">
+                                                <option value="@Guid.Empty">-- Select Category --</option>
+                                                @foreach (var cat in CategoryList)
+                                                {
+                                                    <option value="@cat.Value">@cat.Text</option>
+                                                }
+                                            </select>
+                                            @if (ShowFieldError(1, "AssetCategoryId"))
+                                            {
+                                                <div class="text-danger small mt-1">Asset Category is required</div>
+                                            }
+                                           
+                                        </div>
+
+                                        <div class="col-md-6 mb-3">
+                                            <label class="form-label">Status <span class="text-danger ms-1">*</span></label>
+                                            <InputSelect class="form-select" @bind-Value="Asset.Status"
+                                                         disabled="@(IsEdit && Asset.Status == FA.AssetStatus.Disposed)">
+                                                <option value="@FA.AssetStatus.Draft">Draft</option>
+                                                <option value="@FA.AssetStatus.Active">Active</option>
+                                                <option value="@FA.AssetStatus.Inactive">Inactive</option>
+                                                @if (IsEdit)
+                                                {
+                                                    <option value="@FA.AssetStatus.Disposed">Disposed</option>
+                                                }
+                                            </InputSelect>
+                                        </div>
+
+                                    </div>
+                                </div>
+                            }
+
+                            @* ── Step 2: Identity & Tagging ── *@
+                            @if (CurrentStep == 2)
+                            {
+                                <div class="accordion-body border-top pt-3 p-0">
+                                    <div class="row">
+
+                                        <div class="col-md-6 mb-3">
+                                            <label class="form-label">
+                                                Asset Tag / Barcode
+                                                @if (IsAssetTagRequired)
+                                                {
+                                                    <span class="text-danger ms-1">*</span>
+                                                }
+                                            </label>
+                                            <InputText class="@($"form-control {(ShowFieldError(2, "AssetTag") ? "is-invalid" : "")}")"
+                                                       @bind-Value="Asset.AssetTag"
+                                                       @oninput="e => Asset.AssetTag = e.Value?.ToString()?.ToUpper() ?? string.Empty"
+                                                       placeholder="e.g., TAG-001"
+                                                       maxlength="100" />
+                                            @if (ShowFieldError(2, "AssetTag"))
+                                            {
+                                                <div class="text-danger small mt-1">Asset Tag is required for this category</div>
+                                            }
+                                            else
+                                            {
+                                                <small class="text-muted">Must be unique per company</small>
+                                            }
+                                        </div>
+
+                                        <div class="col-md-6 mb-3">
+                                            <label class="form-label">
+                                                Serial Number
+                                                @if (IsSerialNumberRequired)
+                                                {
+                                                    <span class="text-danger ms-1">*</span>
+                                                    <small class="text-muted ms-1">(Required by category)</small>
+                                                }
+                                            </label>
+                                            <InputText class="@($"form-control {(ShowFieldError(2, "SerialNumber") ? "is-invalid" : "")}")"
+                                                       @bind-Value="Asset.SerialNumber"
+                                                       @oninput="e => Asset.SerialNumber = e.Value?.ToString()?.ToUpper() ?? string.Empty"
+                                                       placeholder="e.g., SN-DELL-001"
+                                                       maxlength="100" />
+                                            @if (ShowFieldError(2, "SerialNumber"))
+                                            {
+                                                <div class="text-danger small mt-1">Serial Number is required for this category</div>
+                                            }
+                                        </div>
+
+                                        <div class="col-md-6 mb-3">
+                                            <label class="form-label">
+                                                Location
+                                                @if (IsLocationRequired)
+                                                {
+                                                    <span class="text-danger ms-1">*</span>
+                                                    <small class="text-muted ms-1">(Required by category)</small>
+                                                }
+                                            </label>
+                                            <InputText class="form-control"
+                                                       @bind-Value="Asset.Location"
+                                                       placeholder="e.g., Floor 2 - IT Room"
+                                                       maxlength="150" />
+                                        </div>
+
+                                        <div class="col-md-6 mb-3">
+                                            <label class="form-label">
+                                                Custodian
+                                                @if (IsCustodianRequired)
+                                                {
+                                                    <span class="text-danger ms-1">*</span>
+                                                    <small class="text-muted ms-1">(Required by category)</small>
+                                                }
+                                            </label>
+                                            <InputText class="form-control"
+                                                       @bind-Value="Asset.Custodian"
+                                                       placeholder="e.g., Ramesh Kumar"
+                                                       maxlength="150" />
+                                        </div>
+
+                                    </div>
+                                </div>
+                            }
+
+                            @* ── Step 3: Ownership & Assignment ── *@
+                            @if (CurrentStep == 3)
+                            {
+                                <div class="accordion-body border-top pt-3 p-0">
+                                    <div class="row">
+
+                                        <div class="col-md-6 mb-3">
+                                            <label class="form-label">Branch</label>
+                                            <InputSelect class="form-select" @bind-Value="Asset.BranchId">
+                                                <option value="">-- Select Branch --</option>
+                                                @foreach (var branch in BranchesList)
+                                                {
+                                                    <option value="@branch.Id">@branch.BranchName</option>
+                                                }
+                                            </InputSelect>
+                                        </div>
+
+                                        <div class="col-md-6 mb-3">
+                                            <label class="form-label">Vendor</label>
+                                            <InputSelect class="form-select" @bind-Value="Asset.VendorId">
+                                                <option value="">-- Select Vendor --</option>
+                                                @foreach (var vendor in AllVendors)
+                                                {
+                                                    <option value="@vendor.Id">@vendor.VendorName</option>
+                                                }
+                                            </InputSelect>
+                                        </div>
+
+                                    </div>
+                                </div>
+                            }
+
+                            @* ── Step 4: Capitalization & Cost ── *@
+                            @if (CurrentStep == 4)
+                            {
+                                <div class="accordion-body border-top pt-3 p-0">
+                                    <div class="row">
+
+                                        <div class="col-md-6 mb-3">
+                                            <label class="form-label">Purchase Date <span class="text-danger ms-1">*</span></label>
+                                            @* ✅ FIX: PurchaseDate — DateTime.Today initialize பண்ணியதால் correct date வரும் *@
+                                            <InputDate class="@($"form-control {(ShowFieldError(4, "PurchaseDate") ? "is-invalid" : "")}")"
+                                                       @bind-Value="Asset.PurchaseDate"
+                                                       max="@DateTime.Today.ToString("yyyy-MM-dd")"
+                                                       disabled="@(IsEdit && Asset.Status != FA.AssetStatus.Draft)" />
+                                            @if (ShowFieldError(4, "PurchaseDate"))
+                                            {
+                                                <div class="text-danger small mt-1">Purchase Date is required</div>
+                                            }
+                                        </div>
+
+                                        <div class="col-md-6 mb-3">
+                                            <label class="form-label">Purchase Cost <span class="text-danger ms-1">*</span></label>
+                                            <input type="number"
+                                                   class="@($"form-control {(ShowFieldError(4, "PurchaseCost") ? "is-invalid" : "")}")"
+                                                   value="@Asset.PurchaseCost"
+                                                   @onchange="OnPurchaseCostChanged"
+                                                   placeholder="e.g., 75000.00"
+                                                   min="0" step="0.01"
+                                                   disabled="@(IsEdit && Asset.Status != FA.AssetStatus.Draft)" />
+                                            @if (ShowFieldError(4, "PurchaseCost"))
+                                            {
+                                                if (Asset.PurchaseCost <= 0)
+                                                {
+                                                    <div class="text-danger small mt-1">Purchase Cost must be greater than zero</div>
+                                                }
+                                                else if (SelectedCategory != null &&
+                                                Asset.PurchaseCost < SelectedCategory.CapitalizationThresholdAmount)
+                                                {
+                                                    <div class="text-danger small mt-1">
+                                                        Purchase Cost must be ≥ @SelectedCategory.CapitalizationThresholdAmount
+                                                        to capitalize this asset
+                                                    </div>
+                                                }
+                                            }
+                                            @if (IsEdit && Asset.Status != FA.AssetStatus.Draft)
+                                            {
+                                                <small class="text-warning">
+                                                    <i class="ti ti-lock me-1"></i>Locked after activation
+                                                </small>
+                                            }
+                                        </div>
+
+                                        <div class="col-md-6 mb-3">
+                                            <label class="form-label">
+                                                Salvage Value
+                                                @if (SelectedCategory?.ResidualValuePercent.HasValue == true)
+                                                {
+                                                    <small class="text-muted ms-1">(Auto: @SelectedCategory.ResidualValuePercent% of cost)</small>
+                                                }
+                                            </label>
+                                            <InputNumber class="form-control"
+                                                         @bind-Value="Asset.SalvageValue"
+                                                         placeholder="e.g., 5000.00" />
+                                            <small class="text-muted">Residual value at end of useful life</small>
+                                        </div>
+
+                                        @* Capitalization threshold alert *@
+                                        @if (SelectedCategory != null && Asset.PurchaseCost > 0)
+                                        {
+                                            @if (Asset.PurchaseCost < SelectedCategory.CapitalizationThresholdAmount)
+                                            {
+                                                <div class="col-md-12 mb-3">
+                                                    <div class="alert alert-warning py-2 mb-0">
+                                                        <i class="ti ti-alert-triangle me-1"></i>
+                                                        Purchase cost (<strong>@Asset.PurchaseCost.ToString("N2")</strong>)
+                                                        is below the capitalization threshold of
+                                                        <strong>@SelectedCategory.CapitalizationThresholdAmount.ToString("N2")</strong>
+                                                        set for <em>@SelectedCategory.CategoryName</em>.
+                                                        This asset may need to be expensed instead.
+                                                    </div>
+                                                </div>
+                                            }
+                                            else
+                                            {
+                                                <div class="col-md-12 mb-3">
+                                                    <div class="alert alert-success py-2 mb-0">
+                                                        <i class="ti ti-circle-check me-1"></i>
+                                                        Cost meets the capitalization threshold of
+                                                        <strong>@SelectedCategory.CapitalizationThresholdAmount.ToString("N2")</strong>.
+                                                        This asset qualifies for capitalization.
+                                                    </div>
+                                                </div>
+                                            }
+                                        }
+
+                                    </div>
+                                </div>
+                            }
+
+                            @* ── Step 5: Depreciation & Notes ── *@
+                            @if (CurrentStep == 5)
+                            {
+                                <div class="accordion-body border-top pt-3 p-0">
+                                    <div class="row">
+
+                                        <div class="col-md-6 mb-3">
+                                            <div class="form-check mt-4">
+                                                <InputCheckbox class="form-check-input"
+                                                               @bind-Value="Asset.IsDepreciable"
+                                                               id="isDepreciable"
+                                                               style="width:auto;" />
+                                                <label class="form-check-label" for="isDepreciable">Is Depreciable</label>
+                                            </div>
+                                            @if (SelectedCategory != null)
+                                            {
+                                                <small class="text-muted">
+                                                    Category default: @(SelectedCategory.IsDepreciable ? "Yes" : "No")
+                                                </small>
+                                            }
+                                        </div>
+
+                                        @if (Asset.IsDepreciable)
+                                        {
+                                            <div class="col-md-6 mb-3">
+                                                <label class="form-label">
+                                                    Useful Life (Months) <span class="text-danger ms-1">*</span>
+                                                </label>
+                                                <InputNumber class="@($"form-control {(ShowFieldError(5, "UsefulLifeMonths") ? "is-invalid" : "")}")"
+                                                             @bind-Value="Asset.UsefulLifeMonths"
+                                                             placeholder="e.g., 60" />
+                                                @if (ShowFieldError(5, "UsefulLifeMonths"))
+                                                {
+                                                    <div class="text-danger small mt-1">Useful Life must be greater than 0</div>
+                                                }
+                                                @if (SelectedCategory?.UsefulLifeMonths.HasValue == true)
+                                                {
+                                                    <small class="text-muted">
+                                                        Category default: @SelectedCategory.UsefulLifeMonths months
+                                                    </small>
+                                                }
+                                            </div>
+                                        }
+
+                                        <div class="col-md-12 mb-3">
+                                            <label class="form-label">Notes</label>
+                                            <InputTextArea class="form-control"
+                                                           @bind-Value="Asset.Notes"
+                                                           placeholder="Additional notes..."
+                                                           rows="4"
+                                                           maxlength="500" />
+                                        </div>
+
+                                    </div>
+                                </div>
+                            }
+
+                            <!-- WIZARD FOOTER -->
+                            <div class="d-flex gap-2 wizard-footer mb-4" style="justify-content:end;">
+                                @if (CurrentStep != 1)
+                                {
+                                    <button type="button" class="btn btn-outline-secondary" @onclick="Back">
+                                        <i class="ti ti-chevron-left"></i> Previous
+                                    </button>
+                                }
+                                @if (CurrentStep < Steps.Count)
+                                {
+                                    <button type="button" class="btn btn-primary" @onclick="Next">
+                                        Next <i class="ti ti-chevron-right"></i>
+                                    </button>
+                                }
+                                else
+                                {
+                                    <button type="button" class="btn btn-primary" @onclick="Save">
+                                        <i class="ti ti-device-floppy"></i> @(IsEdit ? "Update" : "Save")
+                                    </button>
+                                }
+                            </div>
+
+                        </div>
+
+                        <!-- LIVE SUMMARY SIDEBAR -->
+                        <aside class="summary p-3 rounded d-none d-xl-flex"
+                               style="height:auto;background:white;border:none;display:flex;padding-left:32px !important;padding-top:42px !important;">
+                            <div class="timeline-line1"></div>
+                            <div class="timeline-indicator1"></div>
+                            <div style="padding-left:15px;width:262px;">
+                                <h3 class="text-primary mb-3" style="font-size:17px;">Live Summary</h3>
+
+                                <div class="row">
+                                    @if (CurrentStep == 1)
+                                    {
+                                        <div class="col-md-12 mb-4"><span>Asset Code: </span><b>@(string.IsNullOrEmpty(Asset.AssetCode) ? "Auto" : Asset.AssetCode)</b></div>
+                                        <div class="col-md-12 mb-4"><span>Asset Name: </span><b>@Asset.AssetName</b></div>
+                                        <div class="col-md-12 mb-4">
+                                            <span>Category: </span>
+                                            <b>@(SelectedCategory != null ? $"{SelectedCategory.CategoryCode} – {SelectedCategory.CategoryName}" : "—")</b>
+                                        </div>
+                                        <div class="col-md-12 mb-4"><span>Status: </span><b>@Asset.Status</b></div>
+                                    }
+                                    @if (CurrentStep == 2)
+                                    {
+                                        <div class="col-md-12 mb-4"><span>Asset Tag: </span><b>@(string.IsNullOrEmpty(Asset.AssetTag) ? "—" : Asset.AssetTag)</b></div>
+                                        <div class="col-md-12 mb-4"><span>Serial No: </span><b>@(string.IsNullOrEmpty(Asset.SerialNumber) ? "—" : Asset.SerialNumber)</b></div>
+                                        <div class="col-md-12 mb-4"><span>Location: </span><b>@(string.IsNullOrEmpty(Asset.Location) ? "—" : Asset.Location)</b></div>
+                                        <div class="col-md-12 mb-4"><span>Custodian: </span><b>@(string.IsNullOrEmpty(Asset.Custodian) ? "—" : Asset.Custodian)</b></div>
+                                    }
+                                    @if (CurrentStep == 3)
+                                    {
+                                        <div class="col-md-12 mb-4"><span>Branch: </span><b>@GetSelectedBranchName()</b></div>
+                                        <div class="col-md-12 mb-4"><span>Vendor: </span><b>@GetSelectedVendorName()</b></div>
+                                    }
+                                    @if (CurrentStep == 4)
+                                    {
+                                        <div class="col-md-12 mb-4"><span>Purchase Date: </span><b>@Asset.PurchaseDate.ToString("dd MMM yyyy")</b></div>
+                                        <div class="col-md-12 mb-4"><span>Purchase Cost: </span><b>@Asset.PurchaseCost.ToString("N2")</b></div>
+                                        <div class="col-md-12 mb-4"><span>Salvage Value: </span><b>@(Asset.SalvageValue.HasValue? Asset.SalvageValue.Value.ToString("N2") : "—")</b></div>
+                                        @if (SelectedCategory != null)
+                                        {
+                                            <div class="col-md-12 mb-4">
+                                                <span>Threshold: </span>
+                                                <b>@SelectedCategory.CapitalizationThresholdAmount.ToString("N2")</b>
+                                            </div>
+                                        }
+                                    }
+                                    @if (CurrentStep == 5)
+                                    {
+                                        <div class="col-md-12 mb-4"><span>Depreciable: </span><b>@(Asset.IsDepreciable ? "Yes" : "No")</b></div>
+                                        @if (Asset.IsDepreciable)
+                                        {
+                                            <div class="col-md-12 mb-4"><span>Useful Life: </span><b>@(Asset.UsefulLifeMonths.HasValue ? $"{Asset.UsefulLifeMonths} months" : "—")</b></div>
+                                        }
+                                        <div class="col-md-12 mb-4"><span>Notes: </span><b>@(string.IsNullOrEmpty(Asset.Notes) ? "—" : Asset.Notes)</b></div>
+                                    }
+                                </div>
+                            </div>
+                        </aside>
+
+                    </div>
+                </div>
+
+            </EditForm>
+        </div>
+    </div>
+}

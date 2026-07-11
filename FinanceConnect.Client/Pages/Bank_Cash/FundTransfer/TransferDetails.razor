@@ -1,0 +1,264 @@
+@page "/fund-transfers/{Id:guid}/view"
+
+
+@inject FundTransferService FundTransferService
+@inject NavigationManager Nav
+@inject IJSRuntime JS
+
+<div class="content view-screen py-3">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <div>
+            <h4 class="fw-bold mb-1">Fund Transfer Details</h4>
+            <p class="text-muted mb-0 small">View fund transfers and transaction status</p>
+        </div>
+
+    <div class="d-flex gap-2 printHideButtons">
+            <button class="btn btn-primary" @onclick="PrintPage">
+                <i class="ti ti-printer me-1"></i> Print
+            </button>
+            <a class="btn btn-outline-secondary" @onclick="GoBack">
+                <i class="ti ti-arrow-left me-1"></i> Back
+            </a>
+    </div>
+    </div>
+    <div class="row g-3">
+
+        <!-- TOP PANEL : GROUP HEADER -->
+        <div class="col-lg-12">
+            <div class="profile-list-card">
+
+                <!-- LEFT -->
+                <div class="profile-left">
+                    <div class="avatar letter-avatar">
+                        @SelectedTransfer?.FundTransferNumber?.Substring(0, Math.Min(2, SelectedTransfer.FundTransferNumber.Length)).ToUpper()
+                    </div>
+                </div>
+
+                <!-- CENTER -->
+                <div class="profile-center">
+                    <div class="top-row">
+                        <h5>@SelectedTransfer.FundTransferNumber</h5>
+
+                    </div>
+
+                    <div class="sub-text">
+                        <span style="display: flex; gap: 4px; margin-top: 7px;">
+                            <i class="ti ti-building-bank"></i>
+                            @SelectedTransfer.Company
+                        </span>
+                        <span style="display: flex; gap: 4px; margin-top: 7px;">
+                            <i class="ti ti-building-store"></i>
+ @SelectedTransfer.Branch
+                        </span>
+                    </div>
+                </div>
+
+                <!-- RIGHT -->
+                @* <div class="profile-right">
+                    <button class="btn btn-secondary btn-sm" @onclick="GoBack">
+                        <i class="ti ti-arrow-left"></i> Back
+                    </button>
+                </div> *@
+
+            </div>
+        </div>
+
+        <!-- LEFT PANEL : GROUP DETAILS -->
+        <div class="col-lg-8">
+            <div class="profile-card" style=" height: 100% !important;">
+                @* <h5 class="mb-3">
+                    <i class="ti ti-folder me-2" style="color: #fe9f43;"></i>Fund Details
+                </h5> *@
+
+                <!-- Group Identity -->
+                <div class="card mb-3" style="height: 100% !important;">
+                    <div class="card-header py-2">
+                        <i class="ti ti-id me-2"></i> Transfer Details
+                    </div>
+                    <div class="card-body py-2">
+                        <div class="row">
+                            <div class="col-md-5">
+                                <small class="text-muted">Source Bank Account</small>
+                                <div class="fw-medium">@SelectedTransfer.SourceBankAccount</div>
+                            </div>
+                            <div class="col-md-3">
+                                <small class="text-muted">Destination Bank Account</small>
+                                <div>@SelectedTransfer.DestinationBankAccount</div>
+                            </div>
+                            <div class="col-md-3">
+                                <small class="text-muted">Transfer Date</small>
+                                <div>@SelectedTransfer.TransferDate.ToString("dd-mm-yyyy")</div>
+                            </div>
+                            <div class="col-md-5">
+                                <small class="text-muted">Source Value Date</small>
+                                <div>@SelectedTransfer.SourceValueDate.ToString("dd-mm-yyyy")</div>
+                            </div>
+                            <div class="col-md-3">
+                                <small class="text-muted">Destination Value Date</small>
+                                <div>@SelectedTransfer.DestinationValueDate.ToString("dd-mm-yyyy")</div>
+                            </div>
+                            <div class="col-md-3">
+                                <small class="text-muted">Amount</small>
+                                <div>@SelectedTransfer.Amount</div>
+                            </div>
+                            <div class="col-md-5">
+                                <small class="text-muted">Currency</small>
+                                <div>@SelectedTransfer.Currency</div>
+                            </div>
+                            <div class="col-md-3">
+                                <small class="text-muted">Reason</small>
+                                <div>@(SelectedTransfer.ReasonCode??"-")</div>
+                            </div>
+                            <div class="col-md-3">
+                                <small class="text-muted">Narration</small>
+                                <div>@((MarkupString)(SelectedTransfer.Narration ?? string.Empty))</div>
+                            </div>
+                        </div>
+                       
+                    </div>
+                </div>
+
+            </div>
+        </div>
+        <!-- LEFT PANEL : GROUP DETAILS -->
+        <div class="col-lg-4">
+            <div class="profile-card" style="    height: 100% !important;">
+                <!-- Group Identity -->
+                <div class="card mb-3" style="    height: 100% !important;">
+                    <div class="card-header py-2">
+                        <i class="ti ti-id me-2"></i> Method & Reference
+                    </div>
+                    <div class="card-body py-2">
+                        <div class="row">
+                            <div class="col-md-12">
+                                <small class="text-muted">Transfer Method</small>
+                                <div class="fw-medium">@SelectedTransfer.TransferMethod</div>
+                            </div>
+                            <div class="col-md-12">
+                                <small class="text-muted">UTR Number</small>
+                                <div>@(SelectedTransfer.UTRNumber??"-")</div>
+                            </div>
+                            <div class="col-md-12">
+                                <small class="text-muted">Initiation Reference</small>
+                                <div>@(SelectedTransfer.InitiationReference??"-")</div>
+                            </div>
+                            <div class="col-md-12">
+                                <small class="text-muted">Channel</small>
+                                <div>@(SelectedTransfer.Channel?.ToString()??"-")</div>
+                            </div>
+                            <div class="col-md-12">
+                                <small class="text-muted">Beneficiary Narration</small>
+                                <div>@(SelectedTransfer.BeneficiaryNarration??"-")</div>
+                            </div>
+                        </div>
+
+                    </div>
+                </div>
+
+            </div>
+        </div>
+        <div class="col-lg-8">
+            <div class="profile-card">
+                <!-- Group Identity -->
+                <div class="card mb-3">
+                    <div class="card-header py-2">
+                        <i class="ti ti-id me-2"></i> Approval Workflow
+                    </div>
+                    <div class="card-body py-2">
+                        <div class="row">
+                            <div class="col-md-5">
+                                <small class="text-muted">Requested By</small>
+                                <div class="fw-medium">@SelectedTransfer.RequestedBy</div>
+                            </div>
+                            <div class="col-md-5">
+                                <small class="text-muted">Submitted On</small>
+                                <div>@SelectedTransfer.SubmittedOn</div>
+                            </div>
+                            <div class="col-md-5">
+                                <small class="text-muted">Approved By</small>
+                                <div>@SelectedTransfer.ApprovedBy</div>
+                            </div>
+                            <div class="col-md-5">
+                                <small class="text-muted">Approved On</small>
+                                <div>@SelectedTransfer.ApprovedOn</div>
+                            </div>
+                            <div class="col-md-5">
+                                <small class="text-muted">Approval Notes</small>
+                                <div>
+                                    @if (string.IsNullOrWhiteSpace(SelectedTransfer.ApprovalNotes))
+                                    {
+                                        @("-")
+                                    }
+                                    else
+                                    {
+                                        @((MarkupString)SelectedTransfer.ApprovalNotes)
+                                    }
+                                </div>
+                            </div>
+                            <div class="col-md-5">
+                                <small class="text-muted">Failure Reason</small>
+                                <div>
+                                    @if (string.IsNullOrWhiteSpace(SelectedTransfer.FailureReason))
+                                    {
+                                        @("-")
+                                    }
+                                    else
+                                    {
+                                        @((MarkupString)SelectedTransfer.FailureReason)
+                                    }
+                                </div>
+                            </div>
+                        </div>
+
+                    </div>
+                </div>
+
+            </div>
+        </div>
+
+        <div class="col-lg-4">
+            <div class="profile-card" style=" height: 100% !important;">
+                <!-- Group Identity -->
+                <div class="card mb-3" style="height: 100% !important;">
+                    <div class="card-header py-2">
+                        <i class="ti ti-id me-2"></i> Charges
+                    </div>
+                    <div class="card-body py-2">
+                        <div class="row">
+                            <div class="col-md-12">
+                                <small class="text-muted">Charge Handling Mode</small>
+                                <div class="fw-medium">@SelectedTransfer.ChargeHandlingMode</div>
+                            </div>
+                            <div class="col-md-12">
+                                <small class="text-muted">Expected Charge Amount</small>
+                                <div>@SelectedTransfer.ExpectedChargeAmount</div>
+                            </div>
+                            <div class="col-md-12">
+                                <small class="text-muted">Charge Bearer</small>
+                                <div>@SelectedTransfer.ChargeBearerType</div>
+                            </div>
+                            <div class="col-md-12">
+                                <small class="text-muted">Charge Narration</small>
+                                <div>
+                                    @if (string.IsNullOrWhiteSpace(SelectedTransfer.ChargeNarration))
+                                    {
+                                        @("-")
+                                    }
+                                    else
+                                    {
+                                        @((MarkupString)SelectedTransfer.ChargeNarration)
+                                    }
+                                </div>
+                            </div>
+                        </div>
+
+                    </div>
+                </div>
+
+            </div>
+        </div>
+
+    </div>
+</div>
+
+

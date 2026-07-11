@@ -1,0 +1,703 @@
+@page "/tax-category-mapping/{Id:guid}/view"
+@using static FinanceConnect.Client.ViewModels.TaxCategoryMappingViewModel
+
+<style>
+    .modal .btn-close::before{
+        background:white
+    }
+
+    /* Common badge style */
+    .fc-status-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        
+        font-size: 12px;
+        font-weight: 600;
+    }
+
+    /* Dot style */
+    .fc-badge-dot {
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        background: currentColor;
+    }
+
+    /* 🟢 Active — Green */
+    .fc-status-active {
+        background-color: #e6f7ee;
+        color: #16a34a;
+    }
+
+    /* 🟡 Inactive — Yellow */
+    .fc-status-pending {
+        background-color: #fff7e6;
+        color: #d97706;
+    }
+
+    /* 🔴 Archived — Red */
+    .fc-status-cancelled {
+        background-color: #ffeaea;
+        color: #dc2626;
+    }
+
+    /* ⚪ Draft — Grey */
+    .fc-status-draft {
+        background-color: #f3f4f6;
+        color: #6b7280;
+    }
+</style>
+
+<PageTitle>Tax Mapping Details - FinanceConnect</PageTitle>
+
+@if (!isInitialized)
+{
+    <div class="fc-loading-overlay">
+        <div class="fc-spinner">
+            <div class="fc-spinner-ring"></div>
+            <span class="fc-spinner-label">Loading mapping...</span>
+        </div>
+    </div>
+}
+else if (Entry == null)
+{
+    <div class="content fc-empty-state">
+        <div class="fc-empty-icon"><i class="ti ti-file-off"></i></div>
+        <h4>Mapping Not Found</h4>
+        <p>The requested tax category mapping could not be located.</p>
+        <a href="/tax-category-mapping" class="fc-btn fc-btn-secondary">
+            <i class="ti ti-arrow-left"></i> Back to Mappings
+        </a>
+    </div>
+}
+else
+{
+    <div class="content mb-4">
+
+        <!-- BREADCRUMB + HEADER -->
+        <div class="fc-page-header">
+            <div class="fc-breadcrumb">
+                <a href="/tax-category-mapping" class="fc-breadcrumb-link">
+                    <i class="ti ti-layout-list"></i> Tax Category Mapping
+                </a>
+                <span class="fc-breadcrumb-sep"><i class="ti ti-chevron-right"></i></span>
+                <span class="fc-breadcrumb-current">Mapping Details</span>
+            </div>
+            <div class="d-flex gap-2 page-btn">
+                @if (!Entry.IsLockedForChanges)
+                {
+                    <a href="/tax-category-mapping/@Entry.TaxCategoryMappingId/edit" class="btn btn-primary">
+                        <i class="ti ti-edit"></i> Edit
+                    </a>
+                }
+                <a @onclick="PrintPage" class="btn btn-primary"><i class="bi bi-printer"></i> Print</a>
+
+                <a href="/tax-category-mapping" class="btn btn-outline-secondary">
+                    <i class="ti ti-arrow-left"></i> Back
+                </a>
+            </div>
+        </div>
+
+        <!-- HERO BANNER -->
+        <div class="fc-hero">
+            <div class="fc-hero-accent"></div>
+            <div class="fc-hero-body">
+                <div class="fc-hero-icon-wrap">
+                    <div class="fc-hero-icon">
+                        <i class="ti ti-file-invoice"></i>
+                    </div>
+                </div>
+                <div class="fc-hero-info">
+                    <div class="fc-hero-title-row">
+                        <h2 class="fc-hero-title">@Entry.MappingCode</h2>
+                        @if (Entry.IsLockedForChanges)
+                        {
+                            <span class="badge bg-warning-transparent ms-2" style="font-size:11px;">
+                                <i class="ti ti-lock me-1"></i>Locked
+                            </span>
+                        }
+                    </div>
+                    <div class="fc-hero-meta">
+                        <span class="fc-meta-item">
+                            <i class="ti ti-tag"></i>
+                            @Entry.MappingName
+                        </span>
+                        <span class="fc-meta-divider"></span>
+                        <span class="fc-meta-item">
+                            <i class="ti ti-calendar"></i>
+                            @Entry.EffectiveFrom.ToString("dd MMM yyyy")
+                            @if (Entry.EffectiveTo.HasValue)
+                            {
+                                <span class="ms-1">– @Entry.EffectiveTo.Value.ToString("dd MMM yyyy")</span>
+                            }
+                            else
+                            {
+
+                                <span class="ms-1 badge bg-warning-transparent" style="font-size:10px;">Open-ended</span>
+                            }
+                        </span>
+                        <span class="fc-meta-divider"></span>
+                        <span class="fc-meta-item">
+                            <i class="ti ti-sort-ascending-numbers"></i>
+                            Priority: <strong>@Entry.Priority</strong>
+                        </span>
+                    </div>
+                    <div class="mt-2 d-flex gap-2 flex-wrap">
+                        <span class="badge fc-status-badge @GetStatusBadgeClass(Entry.MappingStatus)">
+                            <span class="fc-badge-dot"></span>
+                            @TaxMappingHelper.GetStatusLabel(Entry.MappingStatus)
+                        </span>
+                        <span class="badge @TaxMappingHelper.GetScopeClass(Entry.TaxTypeScope)">@Entry.TaxTypeScope</span>
+                        @if (Entry.SupplyType.HasValue)
+                        {
+                            <span class="badge bg-info-transparent">@Entry.SupplyType</span>
+                        }
+                        @if (Entry.IsExemptOrNilOrNonGST != ExemptType.None)
+                        {
+                            <span class="badge bg-warning-transparent text-dark">@Entry.IsExemptOrNilOrNonGST</span>
+                        }
+                    </div>
+                </div>
+                <!-- Hero Right: Line Count -->
+                <div class="fc-hero-amount">
+                    <div class="fc-amount-label">Tax Lines</div>
+                    <div class="fc-amount-value" style="font-size:2.4rem;">@Entry.LineCount</div>
+                    <div class="fc-amount-sub">@TaxMappingHelper.GetContextLabel(Entry.TransactionContext)</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- MAIN GRID -->
+        <div class="fc-grid">
+
+            <!-- LEFT COLUMN -->
+            <div class="fc-col-main">
+
+                <!-- CORE INFORMATION -->
+                <div class="fc-card">
+                    <div class="fc-card-header">
+                        <span class="fc-card-header-icon fc-icon-blue text-primary bg-primary-transparent"><i class="ti ti-id"></i></span>
+                        <h3 class="text-primary">Core Identity</h3>
+                    </div>
+                    <div class="fc-card-body">
+                        <div class="row g-4">
+                            <div class="col-md-3">
+                                <div class="fc-field">
+                                    <label>Mapping Code</label>
+                                    <div class="fc-field-value fc-mono fw-bold">@Entry.MappingCode</div>
+                                </div>
+                            </div>
+                            <div class="col-md-5">
+                                <div class="fc-field">
+                                    <label>Mapping Name</label>
+                                    <div class="fc-field-value">@Entry.MappingName</div>
+                                </div>
+                            </div>
+                            @* <div class="col-md-2">
+                                <div class="fc-field">
+                                    <label>Status</label>
+                                    <div class="fc-field-value">
+                                        <span class="badge fc-status-badge @GetStatusBadgeClass(Entry.MappingStatus)">
+                                            <span class="fc-badge-dot"></span>
+                                            @TaxMappingHelper.GetStatusLabel(Entry.MappingStatus)
+                                        </span>
+                                    </div>
+                                </div>
+                            </div> *@
+                            <div class="col-md-2">
+                                <div class="fc-field">
+                                    <label>Priority</label>
+                                    <div class="fc-field-value fw-bold text-primary" style="font-size:20px;">@Entry.Priority</div>
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="fc-field">
+                                    <label>Tax Type Scope</label>
+                                    <div class="fc-field-value align-items-start justify-content-start">
+                                        <span class="badge @TaxMappingHelper.GetScopeClass(Entry.TaxTypeScope)">@Entry.TaxTypeScope</span>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-5">
+                                <div class="fc-field">
+                                    <label>Transaction Context</label>
+                                    <div class="fc-field-value">@TaxMappingHelper.GetContextLabel(Entry.TransactionContext)</div>
+                                </div>
+                            </div>
+                            <div class="col-md-2">
+                                <div class="fc-field">
+                                    <label>Locked</label>
+                                    <div class="fc-field-value">
+                                        @if (Entry.IsLockedForChanges)
+                                        {
+                                            <span class="badge bg-warning-transparent">
+                                                <i class="ti ti-lock me-1"></i>Locked
+                                            </span>
+                                        }
+                                        else
+                                        {
+                                            <span class="text-muted">No</span>
+                                        }
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- CONDITIONS -->
+                <div class="fc-card">
+                    <div class="fc-card-header">
+                        <span class="fc-card-header-icon fc-icon-blue text-primary bg-primary-transparent"><i class="ti ti-filter"></i></span>
+                        <h3 class="text-primary">Conditions — IF Rules</h3>
+                    </div>
+                    <div class="fc-card-body">
+                        <!-- Condition chips -->
+                        <div class="d-flex flex-wrap gap-2 mb-3">
+                            @if (Entry.SupplyType.HasValue)
+                            {
+                                <span class="fc-tag fc-tag-blue">
+                                    <i class="ti ti-map-pin me-1"></i> @Entry.SupplyType
+                                </span>
+                            }
+                            @if (Entry.IsExemptOrNilOrNonGST != ExemptType.None)
+                            {
+                                <span class="fc-tag fc-tag-warning">
+                                    <i class="ti ti-circle-off me-1"></i> @Entry.IsExemptOrNilOrNonGST
+                                </span>
+                            }
+                            @if (!Entry.SupplyType.HasValue && Entry.IsExemptOrNilOrNonGST == ExemptType.None)
+                            {
+                                <span class="fc-tag fc-tag-neutral">
+                                    <i class="ti ti-world me-1"></i> All transactions matching context
+                                </span>
+                            }
+                        </div>
+                        <div class="fc-field-grid">
+                            <div class="fc-field">
+                                <label>Supply Type</label>
+                                <div class="fc-field-value">@(Entry.SupplyType?.ToString() ?? "Any")</div>
+                            </div>
+                            <div class="fc-field">
+                                <label>Exempt / Nil / Non-GST</label>
+                                <div class="fc-field-value">
+                                    @if (Entry.IsExemptOrNilOrNonGST != ExemptType.None)
+                                    {
+                                        <span class="badge bg-warning-transparent text-dark">@Entry.IsExemptOrNilOrNonGST</span>
+                                    }
+                                    else
+                                    {
+
+                                        <span class="text-muted">None (Taxable)</span>
+                                    }
+                                </div>
+                            </div>
+                            <div class="fc-field">
+                                <label>Place of Supply Rule</label>
+                                <div class="fc-field-value">UseShipToState</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- TAX LINES -->
+                <div class="fc-card">
+                    <div class="fc-card-header">
+                        <span class="fc-card-header-icon fc-icon-blue text-primary bg-primary-transparent"><i class="ti ti-list-details"></i></span>
+                        <h3 clas="text-primary">Applied Tax Set — THEN Rules</h3>
+                        <span class="fc-pill">@Entry.LineCount line(s)</span>
+                    </div>
+                    @if (Entry.LineCount == 0)
+                    {
+                        <div class="fc-card-body">
+                            <div class="fc-advance-notice">
+                                <div class="fc-advance-icon"><i class="ti ti-circle-off"></i></div>
+                                <div>
+                                    <div class="fc-advance-title">
+                                        @if (Entry.IsExemptOrNilOrNonGST != ExemptType.None)
+                                        {
+                                            <span>@Entry.IsExemptOrNilOrNonGST Mapping — No Tax Lines</span>
+                                        }
+                                        else
+                                        {
+
+                                            <span>No Tax Lines Configured</span>
+                                        }
+                                    </div>
+                                    <div class="fc-advance-sub">
+                                        @if (Entry.IsExemptOrNilOrNonGST != ExemptType.None)
+                                        {
+                                            <span>Intentionally empty — exempt / nil / non-GST supply.</span>
+                                        }
+                                        else
+                                        {
+
+                                            <span>Open Edit to add tax code lines to this mapping.</span>
+                                        }
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="fc-card-body fc-no-padding">
+                            <div class="fc-table-wrap">
+                                <table class="fc-table">
+                                    <thead class="bg-light">
+                                        <tr>
+                                            <th>#</th>
+                                            <th>Tax Code</th>
+                                            <th>Component</th>
+                                            <th>Direction</th>
+                                            <th>Apply Mode</th>
+                                            <th>Rate Source</th>
+                                            <th>ITC Override</th>
+                                            <th>RCM</th>
+                                            <th class="text-center">Active</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        @foreach (var line in Lines.OrderBy(l => l.LineNumber))
+                                        {
+                                            <tr style="@(!line.IsLineActive ? "opacity:.5;" : "")">
+                                                <td><span class="badge bg-secondary-transparent text-secondary fw-bold">@line.LineNumber</span></td>
+                                                <td>
+                                                    <div class="fc-mono fc-bold">@line.TaxCodeCode</div>
+                                                    @if (!string.IsNullOrEmpty(line.TaxCodeName))
+                                                    {
+                                                        <div class="small text-muted">@line.TaxCodeName</div>
+                                                    }
+                                                </td>
+                                                <td>
+                                                    @if (!string.IsNullOrEmpty(line.TaxCodeComponent))
+                                                    {
+                                                        <span class="badge bg-primary-transparent">@line.TaxCodeComponent</span>
+                                                    }
+                                                    else
+                                                    {
+
+                                                        <span class="text-muted">—</span>
+                                                    }
+                                                </td>
+                                                <td>
+                                                    @if (!string.IsNullOrEmpty(line.TaxCodeDirection))
+                                                    {
+                                                        <span class="badge bg-info-transparent">@line.TaxCodeDirection</span>
+                                                    }
+                                                    else
+                                                    {
+
+                                                        <span class="text-muted">—</span>
+                                                    }
+                                                </td>
+                                                <td>
+                                                    <span class="fc-tag fc-tag-neutral">@line.ApplyMode</span>
+                                                </td>
+                                                <td style="font-size:12px;">
+                                                    @if (line.RateResolutionMode == "FixedOverrideRate")
+                                                    {
+                                                        <span class="fc-tag fc-tag-warning">
+                                                            Fixed @(line.OverrideRatePercent?.ToString("G") ?? "—")%
+                                                        </span>
+                                                    }
+                                                    else
+                                                    {
+                                                        <span class="text-muted" style="font-size:11px;">From Rate Version</span>
+                                                    }
+                                                </td>
+                                                <td style="font-size:12px;">@line.ITCEligibilityOverride</td>
+                                                <td style="font-size:12px;">
+                                                    @if (line.RCMBehavior != "Normal")
+                                                    {
+                                                        <span class="fc-tag fc-tag-blue" style="font-size:10px;">
+                                                            @line.RCMBehavior.Replace("RCM_", "")
+                                                        </span>
+                                                    }
+                                                    else
+                                                    {
+
+                                                        <span class="text-muted">Normal</span>
+                                                    }
+                                                </td>
+                                                <td class="text-center">
+                                                    @if (line.IsLineActive)
+                                                    {
+                                                        <i class="ti ti-circle-check text-success"></i>
+                                                    }
+                                                    else
+                                                    {
+
+                                                        <i class="ti ti-circle-x text-secondary"></i>
+                                                    }
+                                                </td>
+                                            </tr>
+                                        }
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    }
+                </div>
+
+                <!-- EFFECTIVE PERIOD -->
+                <div class="fc-card">
+                    <div class="fc-card-header">
+                        <span class="fc-card-header-icon fc-icon-blue text-primary bg-primary-transparent"><i class="ti ti-calendar-event"></i></span>
+                        <h3 class="text-primary">Effective Period &amp; Audit</h3>
+                    </div>
+                    <div class="fc-card-body">
+                        <div class="fc-field-grid">
+                            <div class="fc-field">
+                                <label>Effective From</label>
+                                <div class="fc-field-value fw-medium">@Entry.EffectiveFrom.ToString("dd MMM yyyy")</div>
+                            </div>
+                            <div class="fc-field">
+                                <label>Effective To</label>
+                                <div class="fc-field-value">
+                                    @(Entry.EffectiveTo.HasValue
+                                        ? Entry.EffectiveTo.Value.ToString("dd MMM yyyy")
+                                        : "Open-ended")
+                                </div>
+                            </div>
+                            <div class="fc-field">
+                                <label>Created At</label>
+                                <div class="fc-field-value">@Entry.CreatedAt.ToString("dd MMM yyyy")</div>
+                            </div>
+                            <div class="fc-field">
+                                <label>Updated At</label>
+                                <div class="fc-field-value">
+                                    @(Entry.UpdatedAt.HasValue? Entry.UpdatedAt.Value.ToString("dd MMM yyyy") : "—")
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- RIGHT COLUMN -->
+            <div class="fc-col-side">
+
+                <!-- QUICK ACTIONS -->
+                <div class="fc-card">
+                    <div class="fc-card-header">
+                        <span class="fc-card-header-icon fc-icon-blue text-primary bg-primary-transparent"><i class="ti ti-bolt"></i></span>
+                        <h3 class="text-primary">Quick Actions</h3>
+                    </div>
+                    <div class="fc-card-body d-flex flex-wrap gap-2">
+                        @if (!Entry.IsLockedForChanges)
+                        {
+                            <a href="/tax-category-mapping/@Entry.TaxCategoryMappingId/edit"
+                                   class="btn btn-outline-primary btn-sm">
+                                <i class="ti ti-edit me-1"></i> Edit Mapping
+                            </a>
+                        }
+                        @if (Entry.MappingStatus == MappingStatus.Active)
+                        {
+                            <button class="btn btn-outline-warning btn-sm" @onclick="OnInactivate">
+                                <i class="ti ti-player-pause me-1"></i> Inactivate
+                            </button>
+                        }
+                        @if (Entry.MappingStatus == MappingStatus.Inactive)
+                        {
+                            <button class="btn btn-outline-success btn-sm" @onclick="OnActivate">
+                                <i class="ti ti-player-play me-1"></i> Activate
+                            </button>
+                        }
+                        @if (Entry.MappingStatus != MappingStatus.Archived)
+                        {
+                            <button class="btn btn-outline-secondary btn-sm" @onclick="OnArchive">
+                                <i class="ti ti-archive me-1"></i> Archive
+                            </button>
+                        }
+                        @if (!Entry.IsLockedForChanges)
+                        {
+                            <button class="btn btn-outline-danger btn-sm"
+                                    @onclick="() => { showLockModal = true; showLockError = false; }">
+                                <i class="ti ti-lock me-1"></i> Lock Mapping
+                            </button>
+                        }
+                        else
+                        {
+                            <button class="btn btn-outline-secondary btn-sm" @onclick="OnUnlock">
+                                <i class="ti ti-lock-open me-1"></i> Unlock Mapping
+                            </button>
+                        }
+                    </div>
+                </div>
+
+                <!-- RULE SUMMARY -->
+                <div class="fc-card fc-amount-card">
+                    <div class="fc-card-header">
+                        <span class="fc-card-header-icon fc-icon-blue text-primary bg-primary-transparent"><i class="ti ti-list-check"></i></span>
+                        <h3 class="text-primary">Rule Summary</h3>
+                    </div>
+                    <div class="fc-card-body fc-no-padding">
+                        <div class="fc-amount-list">
+                            <div class="fc-amount-row">
+                                <span class="fc-amount-row-label">Scope</span>
+                                <span class="fc-amount-row-value">
+                                    <span class="badge @TaxMappingHelper.GetScopeClass(Entry.TaxTypeScope)">@Entry.TaxTypeScope</span>
+                                </span>
+                            </div>
+                            <div class="fc-amount-row">
+                                <span class="fc-amount-row-label">Context</span>
+                                <span class="fc-amount-row-value" style="font-size:11px;">
+                                    @TaxMappingHelper.GetContextLabel(Entry.TransactionContext)
+                                </span>
+                            </div>
+                            <div class="fc-amount-row">
+                                <span class="fc-amount-row-label">Supply Type</span>
+                                <span class="fc-amount-row-value">@(Entry.SupplyType?.ToString() ?? "Any")</span>
+                            </div>
+                            <div class="fc-amount-row">
+                                <span class="fc-amount-row-label">Exempt / Nil</span>
+                                <span class="fc-amount-row-value">@Entry.IsExemptOrNilOrNonGST</span>
+                            </div>
+                            <div class="fc-amount-row">
+                                <span class="fc-amount-row-label">Priority</span>
+                                <span class="fc-amount-row-value fw-bold text-primary">@Entry.Priority</span>
+                            </div>
+                            <div class="fc-amount-row fc-amount-net">
+                                <span class="fc-amount-row-label">Tax Lines</span>
+                                <span class="fc-amount-row-value fc-amount-net-value">@Entry.LineCount</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- HISTORY TIMELINE -->
+                <div class="fc-card">
+                    <div class="fc-card-header">
+                        <span class="fc-card-header-icon fc-icon-blue text-primary bg-primary-transparent"><i class="ti ti-history"></i></span>
+                        <h3 class="text-primary">History</h3>
+                    </div>
+                    <div class="fc-card-body fc-no-padding">
+                        <div class="fc-timeline">
+                            <div class="fc-timeline-item fc-tl-created">
+                                <div class="fc-tl-dot"></div>
+                                <div class="fc-tl-content">
+                                    <div class="fc-tl-label">Created</div>
+                                    <div class="fc-tl-time">@Entry.CreatedAt.ToString("dd MMM yyyy")</div>
+                                </div>
+                            </div>
+                            @if (Entry.UpdatedAt.HasValue)
+                            {
+                                <div class="fc-timeline-item fc-tl-updated">
+                                    <div class="fc-tl-dot"></div>
+                                    <div class="fc-tl-content">
+                                        <div class="fc-tl-label">Last Updated</div>
+                                        <div class="fc-tl-time">@Entry.UpdatedAt.Value.ToString("dd MMM yyyy")</div>
+                                    </div>
+                                </div>
+                            }
+                            <div class="fc-timeline-item @(Entry.MappingStatus == MappingStatus.Active ? "fc-tl-posted" : "fc-tl-updated")">
+                                <div class="fc-tl-dot"></div>
+                                <div class="fc-tl-content">
+                                    <div class="fc-tl-label">
+                                        Status: @TaxMappingHelper.GetStatusLabel(Entry.MappingStatus)
+                                    </div>
+                                    <div class="fc-tl-time">
+                                        @(Entry.MappingStatus == MappingStatus.Active
+                                            ? "Active — selected by tax engine at posting"
+                                            : Entry.MappingStatus == MappingStatus.Inactive
+                                                ? "Inactive — not applied at posting"
+                                                : "Archived — historical record only")
+                                    </div>
+                                </div>
+                            </div>
+                            @if (Entry.IsLockedForChanges)
+                            {
+                                <div class="fc-timeline-item fc-tl-reversed">
+                                    <div class="fc-tl-dot"></div>
+                                    <div class="fc-tl-content">
+                                        <div class="fc-tl-label">Locked</div>
+                                        <div class="fc-tl-time fc-danger-text">No further edits permitted</div>
+                                    </div>
+                                </div>
+                            }
+                            @if (Entry.EffectiveTo.HasValue && Entry.EffectiveTo.Value < DateTime.Today)
+                            {
+                                <div class="fc-timeline-item fc-tl-cancelled">
+                                    <div class="fc-tl-dot"></div>
+                                    <div class="fc-tl-content">
+                                        <div class="fc-tl-label">Expired</div>
+                                        <div class="fc-tl-time fc-warning-text">
+                                            Expired on @Entry.EffectiveTo.Value.ToString("dd MMM yyyy")
+                                        </div>
+                                    </div>
+                                </div>
+                            }
+                        </div>
+                    </div>
+                </div>
+
+                <!-- CONFLICT NOTE -->
+                @if (Entry.MappingStatus == MappingStatus.Active)
+                {
+                    <div class="fc-card" style="border-color:#bfdbfe;">
+                        <div class="fc-card-body" style="background:#eff6ff;">
+                            <div class="d-flex gap-2 align-items-start">
+                                <i class="ti ti-shield-check text-primary mt-1"></i>
+                                <div style="font-size:11px;color:#1e40af;">
+                                    <div class="fw-bold mb-1">Conflict Prevention Active</div>
+                                    No two active mappings with same conditions and priority can coexist.
+                                    System uses priority to deterministically select one mapping per context.
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                }
+
+            </div>
+        </div>
+    </div>
+}
+
+<!-- ═══ Lock Modal ═════════════════════════════════════════════════ -->
+@if (showLockModal)
+{
+    <div class="modal fade show d-block" style="background:rgba(0,0,0,.4);" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered modal-sm">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title text-danger">
+                        <i class="ti ti-lock me-2"></i>Lock Mapping
+                    </h5>
+                    <button class="btn-close" style="    height: 8px;
+                        width: 8px;
+                        position: relative;
+                        transform: none;
+                        right: 3px;
+                        top: 0;"
+                            @onclick="() => { showLockModal = false; showLockError = false; lockReason = string.Empty; }">
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <p class="text-muted small mb-3">
+                        Locking prevents any further edits. Only a Controller / CFO can unlock.
+                    </p>
+                    <label class="form-label">Lock Reason <span class="text-danger">*</span></label>
+                    <textarea class="form-control @(showLockError ? "is-invalid" : "")"
+                              rows="3" @bind="lockReason"
+                              placeholder="Reason for locking this mapping..."></textarea>
+                    @if (showLockError)
+                    {
+                        <div class="invalid-feedback d-block">Lock reason is required.</div>
+                    }
+                </div>
+                <div class="modal-footer gap-2">
+                    <button class="btn btn-outline-secondary"
+                            @onclick="() => { showLockModal = false; showLockError = false; lockReason = string.Empty; }">
+                       <i class="ti ti-x"></i> Cancel
+                    </button>
+                    <button class="btn btn-danger" @onclick="OnLock">
+                        <i class="ti ti-lock me-1"></i> Confirm Lock
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+}

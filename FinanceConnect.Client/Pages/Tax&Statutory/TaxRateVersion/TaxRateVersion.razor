@@ -1,0 +1,513 @@
+﻿@page "/tax-rate-versions"
+@inject IJSRuntime JS
+@using static FinanceConnect.Client.ViewModels.TaxRateVersionViewModel
+
+<style>
+    @@media(max-width:635px) {
+        .responsivefilter { flex-wrap: wrap; }
+    }
+    .rate-timeline-bar {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        font-size: 12px;
+    }
+    .rate-pill {
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        /* padding: 3px 10px; */
+        border-radius: 20px;
+        font-size: 12px;
+        font-weight: 600;
+    }
+    .rate-pill.active   { background:  #009853; }
+    .rate-pill.draft    { background:  #ffc3109c; }
+    .rate-pill.retired  { background: #0051a2;}
+    .rate-pill.approved { background: #084298;}
+    .rate-pill.submitted{ background: #0ccaef;}
+    .rate-pill.superseded{ background: #842029;}
+    .rate-pill.cancelled{ background: #e53939;}
+    .version-badge {
+        background: #f0f0f0;
+        border-radius: 4px;
+        padding: 2px 8px;
+        font-size: 11px;
+        font-weight: 700;
+        color: #555;
+        letter-spacing: 0.5px;
+    }
+    .open-ended-badge {
+        font-size: 10px;
+        background: #fff3cd;
+        color: #664d03;
+    }
+</style>
+
+<div class="content List-view">
+
+    <div class="page-header">
+        <div class="add-item d-flex">
+            <div class="page-title">
+                <h4 class="fw-bold">Tax Rate Versions</h4>
+                <h6>Effective-dated rate history across all Tax Codes</h6>
+            </div>
+        </div>
+        <ul class="table-top-head me-2">
+            <li>
+                <a href="javascript:void(0);" title="Refresh" @onclick="OnRefreshAsync">
+                    <i class="ti ti-refresh"></i>
+                </a>
+            </li>
+        </ul>
+        <div class="page-btn">
+            <a href="/tax-rate-versions/create" class="btn btn-primary">
+                <i class="ti ti-circle-plus me-1"></i> Create
+            </a>
+        </div>
+    </div>
+
+    <div class="card">
+
+        <div class="card-header d-flex align-items-center justify-content-between flex-wrap row-gap-3">
+            <div class="search-set">
+                <div class="search-input">
+                    <span class="btn-searchset"><i class="ti ti-search fs-14"></i></span>
+                    <input type="search" class="form-control form-control-sm"
+                           placeholder="Search tax code, reference..."
+                           @bind="searchText" @oninput="OnSearch" />
+                </div>
+            </div>
+            <div style="display:flex; gap:15px;" class="responsivefilter">
+                <select class="form-select form-select-sm" style="min-width:160px"
+                        @bind="SelectedStatus" @bind:event="oninput" @onchange="OnFilterChanged">
+                    <option value="">All Status</option>
+                    <option value="1">Draft</option>
+                    <option value="2">Submitted</option>
+                    <option value="3">Approved</option>
+                    <option value="4">Active</option>
+                    <option value="5">Retired</option>
+                    <option value="6">Superseded</option>
+                    <option value="7">Cancelled</option>
+                </select>
+                <select class="form-select form-select-sm" style="min-width:160px"
+                        @bind="SelectedTaxType" @bind:event="oninput" @onchange="OnFilterChanged">
+                    <option value="">All Tax Types</option>
+                    <option value="GST">GST</option>
+                    <option value="TDS">TDS</option>
+                    <option value="TCS">TCS</option>
+                </select>
+            </div>
+        </div>
+
+        <div class="card-body p-0">
+            <table class="table align-middle w-100 table-fixed">
+                <thead class="thead-light">
+                    <tr>
+                        <th class="d-xxl-none" style="width:40px"></th>
+                        <th>Tax Code</th>
+                        <th style="width: 100px;">Version</th>
+                        <th class="d-none d-md-table-cell">Rate</th>
+                        <th class="d-none d-xl-table-cell">Effective Period</th>
+                        <th class="d-none d-xxl-table-cell">Source</th>
+                        <th class="d-none d-xl-table-cell">Status</th>
+                        <th>Action</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @if (PagedVersions.Any())
+                    {
+                        @foreach (var v in PagedVersions)
+                        {
+                            <tr>
+                                <td class="d-xxl-none text-center" style="padding:0;padding-left:15px;">
+                                    <a href="javascript:void(0);" class="TablePlus"
+                                       data-bs-toggle="modal" data-bs-target="#rowDetailsModal"
+                                       @onclick="() => OpenRowDetails(v)">
+                                        <i class="ti ti-plus"></i>
+                                    </a>
+                                </td>
+
+                                <td>
+                                    <span class="fw-medium">
+                                        <i class="ti ti-external-link me-2 PopupIcon"></i>
+                                        <a href="/tax-rate-versions/@v.TaxRateVersionId/view"  title="@v.TaxCodeSnapshot Details"
+                                           class="link-View text-decoration-none" data-bs-toggle="tooltip" data-bs-placement="top"> 
+                                            @v.TaxCodeSnapshot
+                                        </a>
+                                    </span>
+                                    <br />
+                                    <small class="text-muted">@v.TaxTypeSnapshot</small>
+                                    @if (v.IsLockedForChanges)
+                                    {
+                                        <i class="ti ti-lock ms-1 text-warning" title="Locked" style="font-size:11px;"></i>
+                                    }
+                                </td>
+
+                                <td>
+                                    <span class="version-badge">@v.VersionNumber</span>
+                                </td>
+
+                                <td class="d-none d-md-table-cell">
+                                    @if (v.Type == RateType.Percentage && v.RatePercent.HasValue)
+                                    {
+                                        <span class="fw-bold">@v.RatePercent.Value.ToString("G")%</span>
+                                    }
+                                    else if (v.Type == RateType.FixedAmount && v.FixedAmount.HasValue)
+                                    {
+                                        <span class="fw-bold">₹@v.FixedAmount.Value.ToString("N2")</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="text-muted">@v.Type</span>
+                                    }
+                                    @if (v.PanRequiredForStandardRate && v.AlternateRatePercentIfPanMissing.HasValue)
+                                    {
+                                        <br />
+                                        <small class="text-danger">No PAN: @v.AlternateRatePercentIfPanMissing.Value.ToString("G")%</small>
+                                    }
+                                </td>
+
+                                <td class="d-none d-xl-table-cell">
+                                    <div class="rate-timeline-bar">
+                                        <span>@v.EffectiveFrom.ToString("dd MMM yyyy")</span>
+                                        <i class="ti ti-arrow-right text-muted" style="font-size:10px;"></i>
+                                        @if (v.EffectiveTo.HasValue)
+                                        {
+                                            <span>@v.EffectiveTo.Value.ToString("dd MMM yyyy")</span>
+                                        }
+                                        else
+                                        {
+                                            <span class="badge open-ended-badge">Open</span>
+                                        }
+                                    </div>
+                                </td>
+
+                                <td class="d-none d-xxl-table-cell">
+                                    <span class="badge @GetSourceBadgeClass(v.SourceType)">
+                                        @GetSourceLabel(v.SourceType)
+                                    </span>
+                                    @if (!string.IsNullOrWhiteSpace(v.LegalReferenceNumber))
+                                    {
+                                        <br />
+                                        <small class="text-muted">@v.LegalReferenceNumber</small>
+                                    }
+                                </td>
+
+                                <td class="d-none d-xl-table-cell">
+                                
+                                         <div class="d-flex align-items-center gap-2">
+                                                <div class="ActiveDot rate-pill @GetStatusPillClass(v.Status)"></div>
+                                                <span>@v.Status</span>
+                                            </div>
+
+                                </td>
+
+                                <!-- ACTION COLUMN -->
+                                <td class="action-table-data">
+                                    <div class="edit-delete-action">
+
+                                        <!-- Edit: Draft only, unlocked -->
+                                        @if (v.Status == VersionStatus.Draft && !v.IsLockedForChanges)
+                                        {
+                                            <a class="me-2 p-1 edit-icon"
+                                               href="/tax-rate-versions/edit/@v.TaxRateVersionId" title="Edit">
+                                                <i data-feather="edit"></i>
+                                            </a>
+                                        }
+
+                                        <!-- Submit: Draft -->
+                                        @if (v.Status == VersionStatus.Draft)
+                                        {
+                                            <a class="me-2 p-1 action-icon icon-submit"
+                                               title="Submit" data-bs-toggle="tooltip" data-bs-placement="top"
+                                               href="javascript:void(0);"
+                                               @onclick="() => OnSubmit(v.TaxRateVersionId)">
+                                                <i class="ti ti-send"></i>
+                                            </a>
+                                        }
+
+                                        <!-- Approve: Submitted -->
+                                        @if (v.Status == VersionStatus.Submitted)
+                                        {
+                                            <a class="me-2 p-1 action-icon icon-approve"
+                                               title="Approve" data-bs-toggle="tooltip" data-bs-placement="top"
+                                               href="javascript:void(0);"
+                                               @onclick="() => OnApprove(v.TaxRateVersionId)">
+                                                <i class="ti ti-circle-check"></i>
+                                            </a>
+                                            <a class="me-2 p-1 action-icon icon-reject"
+                                               title="Reject" data-bs-toggle="tooltip"    data-bs-placement="top"
+                                               href="javascript:void(0);"
+                                               @onclick="() => OpenRejectModal(v)">
+                                                <i class="ti ti-circle-x"></i>
+                                            </a>
+                                        }
+
+                                        <!-- Activate: Approved -->
+                                        @if (v.Status == VersionStatus.Approved)
+                                        {
+                                            <a class="me-2 p-1 action-icon icon-post"
+                                               title="Activate" data-bs-toggle="tooltip"    data-bs-placement="top"
+                                               href="javascript:void(0);"
+                                               @onclick="() => OnActivate(v.TaxRateVersionId)">
+                                                <i class="ti ti-player-play"></i>
+                                            </a>
+                                        }
+
+                                        <!-- Retire: Active -->
+                                        @if (v.Status == VersionStatus.Active)
+                                        {
+                                            <a class="me-2 p-1 action-icon icon-reverse"
+                                               title="Retire" data-bs-toggle="tooltip"    data-bs-placement="top"
+                                               href="javascript:void(0);"
+                                               @onclick="() => OnRetire(v.TaxRateVersionId)">
+                                                <i class="ti ti-archive"></i>
+                                            </a>
+                                        }
+
+                                        <!-- Cancel: Draft / Submitted -->
+                                        @if (v.Status == VersionStatus.Draft || v.Status == VersionStatus.Submitted)
+                                        {
+                                            <a class="me-2 p-1 action-icon icon-cancel"
+                                               title="Cancel" data-bs-toggle="tooltip"    data-bs-placement="top"
+                                               href="javascript:void(0);"
+                                               @onclick="() => OnCancel(v.TaxRateVersionId)">
+                                                <i class="ti ti-ban"></i>
+                                            </a>
+                                        }
+
+                                        <!-- Lock: Active, not locked -->
+                                        @if (!v.IsLockedForChanges && v.Status == VersionStatus.Active)
+                                        {
+                                            <a class="me-2 p-1 action-icon icon-submit"
+                                               title="Lock" data-bs-toggle="tooltip"    data-bs-placement="top"
+                                               href="javascript:void(0);"
+                                               @onclick="() => OpenLockModal(v)">
+                                                <i class="ti ti-lock"></i>
+                                            </a>
+                                        }
+
+                                        <!-- Unlock: locked -->
+                                        @if (v.IsLockedForChanges)
+                                        {
+                                            <a class="me-2 p-1 action-icon icon-receive"
+                                               title="Unlock" data-bs-toggle="tooltip"   data-bs-placement="top"
+                                               href="javascript:void(0);"
+                                               @onclick="() => OnUnlock(v.TaxRateVersionId)">
+                                                <i class="ti ti-lock-open"></i>
+                                            </a>
+                                        }
+
+                                        <!-- Delete: Draft/Cancelled only -->
+                                        <a class="me-2 p-1 delete-icon action-icon"
+                                           title="Delete" data-bs-toggle="modal"
+                                           data-bs-target="#delete-modal"
+                                           href="javascript:void(0);"
+                                           @onclick="() => DeletePopupOpen(v)">
+                                            <i class="ti ti-trash"></i>
+                                        </a>
+
+                                    </div>
+                                </td>
+                            </tr>
+                        }
+                    }
+                    else
+                    {
+                        <tr>
+                            <td colspan="8" class="text-center py-4 text-muted">No rate versions found</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+
+        @if (FilteredVersions.Count > 0)
+        {
+            <div class="d-flex align-items-center justify-content-between p-3">
+                <div class="d-flex align-items-center fs-13">
+                    <span class="me-2">Rows per page</span>
+                    <select class="form-select form-select-sm" style="width:80px" @onchange="OnPageSizeChange">
+                        <option value="5" selected="@(PageSize == 5)">5</option>
+                        <option value="10" selected="@(PageSize == 10)">10</option>
+                        <option value="25" selected="@(PageSize == 25)">25</option>
+                    </select>
+                    <span class="ms-2">Entries</span>
+                </div>
+                <nav>
+                    <ul class="pagination pagination-sm mb-0">
+                        <li class="page-item @(CurrentPage == 1 ? "disabled" : "")">
+                            <a class="page-link" href="javascript:void(0);" @onclick="PreviousPage">
+                                <i class="ti ti-chevron-left"></i>
+                            </a>
+                        </li>
+                        @for (int i = StartPage; i <= EndPage; i++)
+                        {
+                            var p = i;
+                            <li class="page-item @(CurrentPage == p ? "active" : "")">
+                                <a class="page-link" href="javascript:void(0);" @onclick="() => GoToPage(p)">@p</a>
+                            </li>
+                        }
+                        <li class="page-item @(CurrentPage == TotalPages ? "disabled" : "")">
+                            <a class="page-link" href="javascript:void(0);" @onclick="NextPage">
+                                <i class="ti ti-chevron-right"></i>
+                            </a>
+                        </li>
+                    </ul>
+                </nav>
+            </div>
+        }
+
+    </div>
+
+    <!-- ═══ Row Details Modal ═══ -->
+    <div class="modal fade list-Popup" id="rowDetailsModal" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Rate Version Details</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"
+                            style="padding:0;right:22px;position:absolute;transform:none"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-2 d-flex gap-3"><strong>Tax Code:</strong><div>@SelectedVersion?.TaxCodeSnapshot – @SelectedVersion?.TaxCodeNameSnapshot</div></div>
+                    <div class="mb-2 d-flex gap-3"><strong>Version:</strong><div>V@SelectedVersion?.VersionNumber</div></div>
+                    <div class="mb-2 d-flex gap-3"><strong>Rate:</strong>
+                        <div>
+                            @if (SelectedVersion?.Type == RateType.Percentage) { <span>@SelectedVersion?.RatePercent%</span> }
+                            else { <span>₹@SelectedVersion?.FixedAmount</span> }
+                        </div>
+                    </div>
+                    <div class="mb-2 d-flex gap-3"><strong>Effective:</strong>
+                        <div>@SelectedVersion?.EffectiveFrom.ToString("dd MMM yyyy") → @(SelectedVersion?.EffectiveTo.HasValue == true ? SelectedVersion.EffectiveTo.Value.ToString("dd MMM yyyy") : "Open")</div>
+                    </div>
+                    <div class="mb-2 d-flex gap-3"><strong>Status:</strong>
+                        @if (SelectedVersion != null)
+                        {
+                            <span class="rate-pill @GetStatusPillClass(SelectedVersion.Status)">@GetStatusLabel(SelectedVersion.Status)</span>
+                        }
+                    </div>
+                    <div class="mb-2 d-flex gap-3"><strong>Source:</strong><div>@GetSourceLabel(SelectedVersion?.SourceType)</div></div>
+                    @if (!string.IsNullOrWhiteSpace(SelectedVersion?.LegalReferenceNumber))
+                    {
+                        <div class="mb-2 d-flex gap-3"><strong>Ref No:</strong><div>@SelectedVersion.LegalReferenceNumber</div></div>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ═══ Delete Modal ═══ -->
+    <div class="modal fade" id="delete-modal" data-bs-backdrop="static" data-bs-keyboard="false">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="page-wrapper-new p-0">
+                    <div class="p-5 px-3 text-center">
+                        <span class="rounded-circle d-inline-flex p-2 bg-danger-transparent mb-2">
+                            <i class="ti ti-trash fs-24 text-danger"></i>
+                        </span>
+                        <h4 class="fs-20 fw-bold mb-2 mt-1">Delete Rate Version</h4>
+                        <p class="text-gray-6 mb-0 fs-16">
+                            @if (SelectedVersion?.Status == VersionStatus.Draft || SelectedVersion?.Status == VersionStatus.Cancelled)
+                            {
+                                <span>Delete <strong>@SelectedVersion?.TaxCodeSnapshot V@SelectedVersion?.VersionNumber</strong>?</span>
+                            }
+                            else
+                            {
+                                <span class="text-danger">Only Draft or Cancelled versions can be deleted.</span>
+                            }
+                        </p>
+                        <div class="modal-footer-btn mt-4 d-flex justify-content-center gap-3">
+                            <button type="button" class="btn btn-outline-secondary fs-13 fw-medium p-2 px-4" data-bs-dismiss="modal">
+                                <i class="ti ti-x me-1"></i>Cancel
+                            </button>
+                            @if (SelectedVersion?.Status == VersionStatus.Draft || SelectedVersion?.Status == VersionStatus.Cancelled)
+                            {
+                                <button type="button" class="btn btn-danger fs-13 fw-medium p-2 px-4"
+                                        @onclick="() => ConfirmDelete(SelectedVersion!.TaxRateVersionId)"
+                                        data-bs-dismiss="modal">
+                                    <i class="ti ti-trash me-1"></i>Yes, Delete
+                                </button>
+                            }
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ═══ Reject Modal ═══ -->
+    @if (showRejectModal)
+    {
+        <div class="modal fade show d-block" style="background:rgba(0,0,0,.45);" tabindex="-1">
+            <div class="modal-dialog modal-dialog-centered">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title text-danger"><i class="ti ti-circle-x me-2"></i>Reject Rate Version</h5>
+                        <button type="button" class="btn-close"
+                                @onclick="() => { showRejectModal = false; rejectReason = string.Empty; }" style="position: relative;
+    width: 8px;
+    height: 8px;
+    right: 26px;"></button>
+                    </div>
+                    <div class="modal-body">
+                        <p class="text-muted small mb-2">Rejecting <strong>@actionVersion?.TaxCodeSnapshot V@actionVersion?.VersionNumber</strong></p>
+                        <label class="form-label">Rejection Reason <span class="text-danger">*</span></label>
+                        <textarea class="form-control @(showRejectError ? "is-invalid" : "")"
+                                  rows="3" @bind="rejectReason"
+                                  placeholder="Enter reason for rejection..."></textarea>
+                        @if (showRejectError) { <div class="text-danger small mt-1">Rejection reason is required.</div> }
+                    </div>
+                    <div class="modal-footer gap-3">
+                        <button class="btn btn-outline-secondary"
+                                @onclick="() => { showRejectModal = false; rejectReason = string.Empty; }"><i class="ti ti-x"></i> Cancel</button>
+                        <button class="btn btn-danger" @onclick="ConfirmReject">
+                            <i class="ti ti-circle-x me-1"></i>Confirm Reject
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
+
+    <!-- ═══ Lock Modal ═══ -->
+    @if (showLockModal)
+    {
+        <div class="modal fade show d-block" style="background:rgba(0,0,0,.45);" tabindex="-1">
+            <div class="modal-dialog modal-dialog-centered">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title text-warning"><i class="ti ti-lock me-2"></i>Lock Rate Version</h5>
+                        <button type="button" class="btn-close" style="position: relative;
+    width: 8px;
+    height: 8px;
+    right: 26px;"
+                                @onclick="() => { showLockModal = false; lockReason = string.Empty; }"></button>
+                    </div>
+                    <div class="modal-body">
+                        <p class="text-muted small mb-2">Locking <strong>@actionVersion?.TaxCodeSnapshot V@actionVersion?.VersionNumber</strong></p>
+                        <div class="alert alert-warning py-2 mb-3" style="font-size:13px;">
+                            <i class="ti ti-alert-triangle me-1"></i>Once locked, this version cannot be edited.
+                        </div>
+                        <label class="form-label">Lock Reason <span class="text-danger">*</span></label>
+                        <textarea class="form-control @(showLockError ? "is-invalid" : "")"
+                                  rows="3" @bind="lockReason"
+                                  placeholder="e.g. Used in posted transactions"></textarea>
+                        @if (showLockError) { <div class="text-danger small mt-1">Lock reason is required.</div> }
+                    </div>
+                    <div class="modal-footer gap-3">
+                        <button class="btn btn-outline-secondary"
+                                @onclick="() => { showLockModal = false; lockReason = string.Empty; }"><i class="ti ti-x"></i> Cancel</button>
+                        <button class="btn btn-warning" @onclick="ConfirmLock">
+                            <i class="ti ti-lock me-1"></i>Confirm Lock
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
+
+    <style>.modal .btn-close::before { background: white }</style>
+
+</div>

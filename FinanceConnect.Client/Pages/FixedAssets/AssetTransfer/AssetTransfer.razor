@@ -1,0 +1,520 @@
+@page "/asset-transfers"
+@inject IJSRuntime JS
+@using static FinanceConnect.Client.ViewModels.AssetTransformViewModel
+
+<style>
+    @@media(max-width:635px) {
+        .responsivefilter {
+            flex-wrap: wrap;
+        }
+    }
+</style>
+
+<div class="content List-view">
+
+    <div class="page-header">
+        <div class="add-item d-flex">
+            <div class="page-title">
+                <h4 class="fw-bold">Asset Transfer List</h4>
+                <h6>Manage Asset Transfers</h6>
+            </div>
+        </div>
+        <ul class="table-top-head me-2">
+            <li>
+                <a href="javascript:void(0);" title="Refresh" @onclick="OnRefreshAsync">
+                    <i class="ti ti-refresh"></i>
+                </a>
+            </li>
+        </ul>
+        <div class="page-btn">
+            <a href="/asset-transfers/create" class="btn btn-primary">
+                <i class="ti ti-circle-plus me-1"></i> Create
+            </a>
+        </div>
+    </div>
+
+    <div class="card">
+
+        <div class="card-header d-flex align-items-center justify-content-between flex-wrap row-gap-3">
+            <div class="search-set">
+                <div class="search-input">
+                    <span class="btn-searchset"><i class="ti ti-search fs-14"></i></span>
+                    <input type="search" class="form-control form-control-sm"
+                           placeholder="Search transfer no, asset name..."
+                           @bind="searchText" @oninput="OnSearch" />
+                </div>
+            </div>
+            <div style="display:flex; gap:15px;" class="responsivefilter">
+                <select class="form-select form-select-sm" style="min-width:180px"
+                        @bind="SelectedStatus" @bind:event="oninput" @onchange="OnFilterChanged">
+                    <option value="">All Status</option>
+                    <option value="1">Draft</option>
+                    <option value="2">Submitted</option>
+                    <option value="3">Approved</option>
+                    <option value="4">Rejected</option>
+                    <option value="5">Cancelled</option>
+                    <option value="6">In Transit</option>
+                    <option value="7">Received</option>
+                    <option value="8">Posted</option>
+                    <option value="9">Reversed</option>
+                    <option value="10">Closed</option>
+                </select>
+                <select class="form-select form-select-sm" style="min-width:180px"
+                        @bind="SelectedType" @bind:event="oninput" @onchange="OnFilterChanged">
+                    <option value="">All Types</option>
+                    <option value="1">Custodian Change</option>
+                    <option value="2">Location Change</option>
+                    <option value="3">Branch Change</option>
+                    <option value="4">Full Reassignment</option>
+                </select>
+            </div>
+        </div>
+
+        <div class="card-body p-0">
+            <table class="table align-middle w-100 table-fixed">
+                <thead class="thead-light">
+                    <tr>
+                        <th class="d-xxl-none" style="width:40px"></th>
+                        @* <th>Transfer No</th> *@
+                        <th>Asset</th>
+                        <th class="d-none d-md-table-cell">Type</th>
+                        <th class="d-none d-xxl-table-cell">From</th>
+                        <th class="d-none d-xxl-table-cell">To</th>
+                        <th class="d-none d-xl-table-cell">Status</th>
+                        <th>Action</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @if (PagedTransfers.Any())
+                    {
+                        @foreach (var t in PagedTransfers)
+                        {
+                            <tr>
+                                <td class="d-xxl-none text-center" style="padding:0;padding-left:15px;">
+                                    <a href="javascript:void(0);" class="TablePlus"
+                                       data-bs-toggle="modal" data-bs-target="#rowDetailsModal"
+                                       @onclick="() => OpenRowDetails(t)">
+                                        <i class="ti ti-plus"></i>
+                                    </a>
+                                </td>
+
+                                @* <td>
+                                    <span class="fw-medium">
+                                        <i class="ti ti-external-link me-2 PopupIcon"></i>
+                                        <a href="/asset-transfers/@t.AssetTransferId/view"
+                                           class="link-View text-decoration-none"
+                                           data-bs-toggle="tooltip" data-bs-placement="top"
+                                           title="@t.TransferNumber details">
+                                            @t.AssetNameSnapshot
+                                        </a>
+                                    </span>
+                                </td> *@
+
+                                <td>
+                                    <div>
+                                        <span class="fw-medium">
+                                            <i class="ti ti-external-link me-2 PopupIcon"></i>
+                                            <a href="/asset-transfers/@t.AssetTransferId/view"
+                                               class="link-View text-decoration-none"
+                                               data-bs-toggle="tooltip" data-bs-placement="top"
+                                               title="@t.AssetNameSnapshot details">
+                                                @t.AssetNameSnapshot
+                                            </a>
+                                        </span>
+                                    </div>
+                                    <small class="text-muted">@t.AssetNumberSnapshot</small>
+                                </td>
+
+                                <td class="d-none d-md-table-cell">
+                                    <span class="badge @GetTypeBadgeClass(t.TransferType)">
+                                        @GetTypeLabel(t.TransferType)
+                                    </span>
+                                </td>
+
+                                <td class="d-none d-xxl-table-cell">
+                                    <div>@(t.FromCustodianName ?? t.FromBranchName)</div>
+                                    <small class="text-muted">@t.FromLocationName</small>
+                                </td>
+
+                                <td class="d-none d-xxl-table-cell">
+                                    <div>@(t.ToCustodianName ?? t.ToBranchName)</div>
+                                    <small class="text-muted">@t.ToLocationName</small>
+                                </td>
+
+                                <td class="d-none d-xl-table-cell">
+                                    <div class="d-flex align-items-center gap-2">
+                                        <div class="ActiveDot @GetStatusDotBadge(t.TransferStatus)"></div>
+                                        <span>@GetStatusLabel(t.TransferStatus)</span>
+                                    </div>
+                                </td>
+
+                                <!-- ✅ ACTION COLUMN — status-based buttons -->
+                                <td class="action-table-data">
+                                    <div class="edit-delete-action">
+
+                                        <!-- Edit (Draft only) -->
+                                        @if (t.TransferStatus == TransferStatus.Draft)
+                                        {
+                                            <a class="me-2 p-1 edit-icon"
+                                               href="/asset-transfers/edit/@t.AssetTransferId" title="Edit">
+                                                <i data-feather="edit"></i>
+                                            </a>
+                                        }
+
+                                        @* ✅ Draft → Submit icon *@
+                                        @if (t.TransferStatus == TransferStatus.Draft)
+                                        {
+                                            <a class="me-2 p-1 action-icon icon-submit"
+                                               href="javascript:void(0);"
+                                               title="Submit"
+                                               data-bs-toggle="tooltip"
+                                               @onclick="() => OnSubmit(t.AssetTransferId)">
+                                                <i class="ti ti-send"></i>
+                                            </a>
+                                            <a class="me-2 p-1 action-icon icon-cancel"
+                                               href="javascript:void(0);"
+                                               title="Cancel Transfer"
+                                               data-bs-toggle="tooltip"
+                                               @onclick="() => OnCancel(t.AssetTransferId)">
+                                                <i class="ti ti-ban"></i>
+                                            </a>
+                                        }
+
+                                        @* ✅ Submitted → Approve / Reject / Cancel icons *@
+                                        @if (t.TransferStatus == TransferStatus.Submitted)
+                                        {
+                                            <a class="me-2 p-1 action-icon icon-approve"
+                                               href="javascript:void(0);"
+                                               title="Approve"
+                                               data-bs-toggle="tooltip"
+                                               @onclick="() => OnApprove(t.AssetTransferId)">
+                                                <i class="ti ti-circle-check"></i>
+                                            </a>
+                                            <a class="me-2 p-1 action-icon icon-reject"
+                                               href="javascript:void(0);"
+                                               title="Reject"
+                                               data-bs-toggle="tooltip"
+                                               @onclick="() => OpenRejectModal(t)">
+                                                <i class="ti ti-circle-x"></i>
+                                            </a>
+                                            <a class="me-2 p-1 action-icon icon-cancel"
+                                               href="javascript:void(0);"
+                                               title="Cancel Transfer"
+                                               data-bs-toggle="tooltip"
+                                               @onclick="() => OnCancel(t.AssetTransferId)">
+                                                <i class="ti ti-ban"></i>
+                                            </a>
+                                        }
+
+                                        @* ✅ Approved → In Transit or Post icon *@
+                                        @if (t.TransferStatus == TransferStatus.Approved)
+                                        {
+                                            @if (t.HandoverRequired)
+                                            {
+                                                <a class="me-2 p-1 action-icon transit"
+                                                   href="javascript:void(0);"
+                                                   title="Mark In Transit"
+                                                   data-bs-toggle="tooltip"
+                                                   @onclick="() => OnMarkInTransit(t.AssetTransferId)">
+                                                    <i class="ti ti-truck"></i>
+                                                </a>
+                                            }
+                                            else
+                                            {
+                                                <a class="me-2 p-1 action-icon  icon-post"
+                                                   href="javascript:void(0);"
+                                                   title="Post Transfer"
+                                                   data-bs-toggle="tooltip"
+                                                   @onclick="() => OnPost(t.AssetTransferId)">
+                                                    <i class="ti ti-check-circle"></i>
+                                                </a>
+                                            }
+                                        }
+
+                                        @* ✅ In Transit → Confirm Receipt icon *@
+                                        @if (t.TransferStatus == TransferStatus.InTransit)
+                                        {
+                                            <a class="me-2 p-1 action-icon icon-receive"
+                                               href="javascript:void(0);"
+                                               title="Confirm Receipt"
+                                               data-bs-toggle="tooltip"
+                                               @onclick="() => OnConfirmReceipt(t.AssetTransferId)">
+                                                <i class="ti ti-package"></i>
+                                            </a>
+                                        }
+
+                                        @* ✅ Received → Post icon *@
+                                        @if (t.TransferStatus == TransferStatus.Received)
+                                        {
+                                            <a class="me-2 p-1 action-icon icon-submit"
+                                               href="javascript:void(0);"
+                                               title="Post Transfer"
+                                               data-bs-toggle="tooltip"
+                                               @onclick="() => OnPost(t.AssetTransferId)">
+                                                <i class="ti ti-send"></i>
+                                            </a>
+                                        }
+
+                                        @* ✅ Posted → Reverse icon *@
+                                        @if (t.TransferStatus == TransferStatus.Posted)
+                                        {
+                                            <a class="me-2 p-1 action-icon icon-reverse"
+                                               href="javascript:void(0);"
+                                               title="Reverse Transfer"
+                                               data-bs-toggle="tooltip"
+                                               @onclick="() => OpenReverseModal(t)">
+                                                <i class="ti ti-arrow-back-up"></i>
+                                            </a>
+                                        }
+
+                                        <!-- Delete -->
+                                        <a class="me-2 p-1 delete-icon action-icon"
+                                           href="javascript:void(0);"
+                                           title="Delete"
+                                           data-bs-toggle="modal"
+                                           data-bs-target="#delete-modal"
+                                           @onclick="() => DeletePopupOpen(t)">
+                                            <i class="ti ti-trash"></i>
+                                        </a>
+
+                                    </div>
+                                </td>
+
+                            </tr>
+                        }
+                    }
+                    else
+                    {
+                        <tr>
+                            <td colspan="9" class="text-center py-4 text-muted">No transfers found</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+
+        @if (FilteredTransfers.Count > 0)
+        {
+            <div class="d-flex align-items-center justify-content-between p-3">
+                <div class="d-flex align-items-center fs-13">
+                    <span class="me-2">Rows per page</span>
+                    <select class="form-select form-select-sm" style="width:80px" @onchange="OnPageSizeChange">
+                        <option value="5" selected="@(PageSize == 5)">5</option>
+                        <option value="10" selected="@(PageSize == 10)">10</option>
+                        <option value="25" selected="@(PageSize == 25)">25</option>
+                        <option value="50" selected="@(PageSize == 50)">50</option>
+                    </select>
+                    <span class="ms-2">Entries</span>
+                </div>
+                <nav>
+                    <ul class="pagination pagination-sm mb-0">
+                        <li class="page-item @(CurrentPage == 1 ? "disabled" : "")">
+                            <a class="page-link" href="javascript:void(0);" @onclick="PreviousPage">
+                                <i class="ti ti-chevron-left"></i>
+                            </a>
+                        </li>
+                        @for (int i = StartPage; i <= EndPage; i++)
+                        {
+                            var pageNum = i;
+                            <li class="page-item @(CurrentPage == pageNum ? "active" : "")">
+                                <a class="page-link" href="javascript:void(0);"
+                                   @onclick="() => GoToPage(pageNum)">@pageNum</a>
+                            </li>
+                        }
+                        <li class="page-item @(CurrentPage == TotalPages ? "disabled" : "")">
+                            <a class="page-link" href="javascript:void(0);" @onclick="NextPage">
+                                <i class="ti ti-chevron-right"></i>
+                            </a>
+                        </li>
+                    </ul>
+                </nav>
+            </div>
+        }
+
+    </div>
+
+    <!-- ═══ Responsive Row Details Modal ═══ -->
+    <div class="modal fade list-Popup" id="rowDetailsModal" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Transfer Details</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"
+                            style="padding:0; right:22px; position:absolute; transform:none"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-2 d-flex gap-3">
+                        <strong>Asset:</strong>
+                        <div>@SelectedTransfer?.AssetNameSnapshot (@SelectedTransfer?.AssetNumberSnapshot)</div>
+                    </div>
+                    <div class="mb-2 d-flex gap-3">
+                        <strong>Type:</strong>
+                        <div>@GetTypeLabel(SelectedTransfer?.TransferType)</div>
+                    </div>
+                    <div class="mb-2 d-flex gap-3">
+                        <strong>From:</strong>
+                        <div>@SelectedTransfer?.FromCustodianName — @SelectedTransfer?.FromLocationName</div>
+                    </div>
+                    <div class="mb-2 d-flex gap-3">
+                        <strong>To:</strong>
+                        <div>@SelectedTransfer?.ToCustodianName — @SelectedTransfer?.ToLocationName</div>
+                    </div>
+                    <div class="mb-2 d-flex gap-3">
+                        <strong>Effective Date:</strong>
+                        <div>@SelectedTransfer?.EffectiveTransferDate.ToString("dd MMM yyyy")</div>
+                    </div>
+                    <div class="mb-2 d-flex gap-3">
+                        <strong>Reason:</strong>
+                        <div>@(string.IsNullOrEmpty(SelectedTransfer?.TransferReason) ? "—" : SelectedTransfer.TransferReason)</div>
+                    </div>
+                    <div class="mb-2 d-flex gap-3">
+                        <strong>Status:</strong>
+                        @if (SelectedTransfer != null)
+                        {
+                            <span class="badge @GetStatusBadgeClass(SelectedTransfer.TransferStatus)">
+                                @GetStatusLabel(SelectedTransfer.TransferStatus)
+                            </span>
+                        }
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ═══ Delete Modal ═══ -->
+    <div class="modal fade" id="delete-modal" data-bs-backdrop="static" data-bs-keyboard="false">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="page-wrapper-new p-0">
+                    <div class="p-5 px-3 text-center">
+                        <span class="rounded-circle d-inline-flex p-2 bg-danger-transparent mb-2">
+                            <i class="ti ti-trash fs-24 text-danger"></i>
+                        </span>
+                        <h4 class="fs-20 text-gray-9 fw-bold mb-2 mt-1">Delete Transfer</h4>
+                        <p class="text-gray-6 mb-0 fs-16">
+                            @if (SelectedTransfer?.TransferStatus == TransferStatus.Draft)
+                            {
+                                <span>Are you sure you want to delete <strong>@SelectedTransfer?.TransferNumber</strong>?</span>
+                            }
+                            else
+                            {
+                                <span class="text-danger">Only Draft transfers can be deleted.</span>
+                            }
+                        </p>
+                        <div class="modal-footer-btn mt-4 d-flex justify-content-center gap-3">
+                            <button type="button" class="btn btn-outline-secondary fs-13 fw-medium p-2 px-4"
+                                    data-bs-dismiss="modal">
+                                <i class="ti ti-x me-1"></i>Cancel
+                            </button>
+                            @if (SelectedTransfer?.TransferStatus == TransferStatus.Draft)
+                            {
+                                <button type="button" class="btn btn-danger fs-13 fw-medium p-2 px-4"
+                                        @onclick="() => ConfirmDelete(SelectedTransfer!.AssetTransferId)"
+                                        data-bs-dismiss="modal">
+                                    <i class="ti ti-trash me-1"></i>Yes, Delete
+                                </button>
+                            }
+                            else
+                            {
+                                <button class="btn btn-secondary" disabled>Cannot Delete</button>
+                            }
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ═══ ✅ Reject Modal ═══ -->
+    @if (showRejectModal)
+    {
+        <div class="modal fade show d-block" style="background:rgba(0,0,0,.45);" tabindex="-1">
+            <div class="modal-dialog modal-dialog-centered">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title text-danger">
+                            <i class="ti ti-circle-x me-2"></i>Reject Transfer
+                        </h5>
+                        <button type="button" class="btn-close"
+                                @onclick="() => { showRejectModal = false; showRejectError = false; rejectReason = string.Empty; }"></button>
+                    </div>
+                    <div class="modal-body">
+                        <p class="text-muted small mb-2">
+                            Rejecting <strong>@actionTransfer?.TransferNumber</strong>
+                        </p>
+                        <label class="form-label">Rejection Reason <span class="text-danger">*</span></label>
+                        <textarea class="form-control @(showRejectError ? "is-invalid" : "")"
+                                  rows="3" @bind="rejectReason"
+                                  placeholder="Enter reason for rejection..."></textarea>
+                        @if (showRejectError)
+                        {
+                            <div class="text-danger small mt-1">Rejection reason is required.</div>
+                        }
+                    </div>
+                    <div class="modal-footer">
+                        <button class="btn btn-outline-secondary btn-sm"
+                                @onclick="() => { showRejectModal = false; showRejectError = false; rejectReason = string.Empty; }">
+                            Cancel
+                        </button>
+                        <button class="btn btn-danger btn-sm" @onclick="ConfirmReject">
+                            <i class="ti ti-circle-x me-1"></i>Confirm Reject
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
+    <style>
+        .modal .btn-close::before{
+            background:white
+        }
+    </style>
+    <!-- ═══ ✅ Reverse Modal ═══ -->
+    @if (showReverseModal)
+    {
+        <div class="modal fade show d-block" style="background:rgba(0,0,0,.45);" tabindex="-1">
+            <div class="modal-dialog modal-dialog-centered">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title text-warning">
+                            <i class="ti ti-arrow-back-up me-2"></i>Reverse Transfer
+                        </h5>
+                        <button type="button" class="btn-close" style="    position: relative;
+        width: 8px;
+        height: 8px;
+        right: 26px;
+        color: white;"
+                                @onclick="() => { showReverseModal = false; showReverseError = false; reversalReason = string.Empty; }"></button>
+                    </div>
+                    <div class="modal-body">
+                        <p class="text-muted small mb-2">
+                            Reversing <strong>@actionTransfer?.TransferNumber</strong>
+                        </p>
+                        <div class="alert alert-warning py-2 mb-3" style="font-size:13px;">
+                            <i class="ti ti-alert-triangle me-1"></i>
+                            This will reverse the transfer and restore original asset assignment.
+                        </div>
+                        <label class="form-label">Reversal Reason <span class="text-danger">*</span></label>
+                        <textarea class="form-control @(showReverseError ? "is-invalid" : "")"
+                                  rows="3" @bind="reversalReason"
+                                  placeholder="Enter reason for reversal..."></textarea>
+                        @if (showReverseError)
+                        {
+                            <div class="text-danger small mt-1">Reversal reason is required.</div>
+                        }
+                    </div>
+                    <div class="modal-footer gap-3">
+                        <button class="btn btn-outline-secondary"
+                                @onclick="() => { showReverseModal = false; showReverseError = false; reversalReason = string.Empty; }">
+                            Cancel
+                        </button>
+                        <button class="btn btn-warning" @onclick="ConfirmReverse">
+                            <i class="ti ti-arrow-back-up me-1"></i>Confirm Reverse
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
+
+</div>

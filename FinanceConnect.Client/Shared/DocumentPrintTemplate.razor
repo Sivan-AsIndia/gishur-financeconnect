@@ -1,0 +1,377 @@
+﻿<div class="dc-wrapper">
+
+    <!-- HEADER -->
+    <div class="dc-header">
+
+        <div class="dc-logo">
+            <img src=@LogoUrl alt="Gishur-finance" />
+        </div>
+
+        <div class="dc-title">DELIVERY CHALLAN</div>
+
+        <div class="dc-number">@DocumentNumber</div>
+
+    </div>
+
+
+    <!-- COMPANY + META -->
+
+    <div class="dc-top">
+
+        <div class="dc-company">
+
+            <strong>@Company.LegalName</strong>
+
+            <div>@Company.AddressLine1</div>
+            <div>@Company.CountryName,@Company.StateProvinceName,@Company.CityName</div>
+
+            <div>Phone: @Company.PrimaryPhone</div>
+            <div>Email: @Company.PrimaryEmail</div>
+            <div>GSTIN: @Company.GSTIN</div>
+
+        </div>
+
+
+        <div class="dc-meta">
+
+            <div>
+                <span>Date</span>
+                <span>@Date</span>
+            </div>
+
+            <div>
+                <span>@ExtraMeta1Label</span>
+                <span>@ExtraMeta1Value</span>
+            </div>
+
+            @* <div>
+                <span>Place of Supply</span>
+                <span>@ExtraMeta2Value</span>
+            </div> *@
+
+        </div>
+
+    </div>
+
+
+    <!-- BILL / SHIP -->
+
+    <div class="dc-address">
+
+        <div class="dc-bill">
+
+            <h5>Bill To</h5>
+
+            <strong>@Customer.CustomerName</strong>
+
+            <div>@Customer.PrimaryPhone</div>
+            <div>@Customer.BillingEmail</div>
+
+            <div>GSTIN: @Customer.GSTIN</div>
+
+        </div>
+
+
+        <div class="dc-ship">
+
+            <h5>Ship To</h5>
+
+            <div>@Customer.CustomerName</div>
+            <div>@Customer.BillingEmail</div>
+            <div>GSTIN: @Customer.GSTIN</div>
+        </div>
+
+    </div>
+
+
+    <!-- TABLE -->
+
+    <table class="dc-table">
+
+        <thead class="thead-light">
+            
+                <tr>
+                    @foreach (var col in Columns)
+                    {
+                    <th>@col</th>
+                    }
+                </tr>
+
+        </thead>
+
+        <tbody>
+
+            @foreach (var row in Rows)
+            {
+                <tr>
+                    @foreach (var cell in row)
+                    {
+                        <td>@cell</td>
+                    }
+                </tr>
+            }
+
+        </tbody>
+
+    </table>
+    <!-- AMOUNT SUMMARY -->
+
+    <div class="dc-summary">
+
+        <div>
+
+
+            <div class="dc-summary-row" style=" border-bottom: none;">
+                <span>Subtotal</span>
+                <span>@getCurrency(Company.BaseCurrencyId) @Challan.SubTotal.ToString("N2")</span>
+            </div>
+
+            <div class="dc-summary-row">
+                <span>Tax</span>
+                <span>@getCurrency(Company.BaseCurrencyId) @Challan.TaxAmount.ToString("N2")</span>
+            </div>
+
+            <div class="dc-summary-row">
+                <span>Total</span>
+                <span>@getCurrency(Company.BaseCurrencyId) @Challan.GrandTotal.ToString("N2")</span>
+            </div>
+
+        </div>
+
+    </div>
+
+    <!-- SIGNATURE -->
+
+    <div class="dc-signature">
+
+        <div class="dc-sign">
+
+            <div class="dc-line"></div>
+
+            <span>Provider Signature</span>
+
+        </div>
+
+        <div class="dc-sign">
+
+            <div class="dc-line"></div>
+
+            <span>Receiver Signature</span>
+
+        </div>
+
+    </div>
+
+</div>
+
+
+<style>
+    .dc-wrapper {
+        width: 900px;
+        margin: 40px;
+        background: white;
+        padding: 40px;
+        font-family: Segoe UI;
+        color: #2c3e50;
+    }
+
+    .dc-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 20px;
+    }
+
+    .dc-logo img {
+        width: 60px;
+    }
+
+    .dc-title {
+        font-size: 22px;
+        font-weight: 700;
+        letter-spacing: 1px;
+    }
+
+    .dc-number {
+        font-weight: 600;
+    }
+
+    /* COMPANY + META */
+
+    .dc-top {
+        display: flex;
+        justify-content: space-between;
+        margin-bottom: 20px;
+    }
+
+    .dc-company {
+        width: 60%;
+        font-size: 14px;
+    }
+
+    .dc-meta {
+        width: 30%;
+        font-size: 14px;
+    }
+
+        .dc-meta div {
+            display: flex;
+            justify-content: space-between;
+        }
+
+    /* ADDRESS */
+
+    .dc-address {
+        display: flex;
+        justify-content: space-between;
+        margin-bottom: 20px;
+    }
+
+        .dc-address h5 {
+            margin-bottom: 5px;
+        }
+
+    /* TABLE */
+
+    .dc-table {
+        width: 100%;
+        border-collapse: collapse;
+    }
+
+        .dc-table th {
+            background: #356a87;
+            color: white;
+            padding: 10px;
+        }
+
+        .dc-table td {
+            padding: 10px;
+            border-bottom: 1px solid #ddd;
+        }
+
+        .dc-table thead th {
+            background: #2f5f7c;
+            color: #ffffff;
+            font-weight: 600;
+            font-size: 12px;
+            letter-spacing: .6px;
+            text-transform: uppercase;
+            padding: 12px 10px;
+            border-bottom: 2px solid #244b63;
+        }
+
+    /* SIGNATURE */
+
+    .dc-signature {
+        display: flex;
+        justify-content: space-between;
+        margin-top: 80px;
+        padding-top: 30px;
+    }
+
+    .dc-sign {
+        text-align: center;
+    }
+
+    .dc-stamp {
+        width: 70px;
+        margin-bottom: 10px;
+    }
+
+    .dc-line {
+        width: 200px;
+        border-bottom: 1px solid #bbb;
+        margin-bottom: 5px;
+    }
+
+    .dc-table tbody tr:last-child td {
+        border-bottom: none;
+    }
+
+    .dc-table tbody td {
+        padding: 11px 10px;
+        border-bottom: 1px solid #e5e7eb;
+        font-size: 13.5px;
+    }
+
+    .dc-table tbody tr:nth-child(even) {
+        background: #f9fbfc;
+    }
+
+    .dc-table th,
+    .dc-table td {
+        padding: 10px;
+    }
+
+        .dc-table th:nth-child(1),
+        .dc-table td:nth-child(1), 
+        .dc-table th:nth-child(2), 
+        .dc-table td:nth-child(2), 
+        .dc-table th:nth-child(3), 
+        .dc-table td:nth-child(3) {
+            text-align: center;
+        }
+
+        .dc-table th:nth-child(4),
+        .dc-table td:nth-child(4),
+        .dc-table th:nth-child(5),
+        .dc-table td:nth-child(5) {
+            text-align: right;
+        }
+
+
+    @@media print {
+
+        .dc-table thead th {
+            background: #2f5f7c !important;
+            color: white !important;
+            -webkit-print-color-adjust: exact;
+        }
+    }
+
+
+
+    /* AMOUNT SUMMARY */
+
+    .dc-summary {
+        display: flex;
+        justify-content: flex-end;
+        margin-top: 30px;
+    }
+
+    .dc-summary-card {
+        width: 260px;
+        border: 1px solid #e5e5e5;
+        border-radius: 8px;
+        padding: 18px;
+        background: #fafafa;
+    }
+
+    .dc-summary-title {
+        font-size: 14px;
+        font-weight: 600;
+        color: #ff6b00;
+        margin-bottom: 15px;
+        letter-spacing: 1px;
+    }
+
+    .dc-summary-row {
+        display: flex;
+        justify-content: space-between;
+        padding: 8px 0;
+        border-bottom: 1px solid #eee;
+        font-size: 14px;
+    }
+
+        .dc-summary-row:last-child {
+            border-bottom: none;
+        }
+
+        .dc-summary-row.total {
+            font-size: 16px;
+            font-weight: 700;
+            color: #ff6b00;
+        }
+</style>
+
+

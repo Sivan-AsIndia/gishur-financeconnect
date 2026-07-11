@@ -1,0 +1,5 @@
+﻿.list-Popup .btn-close::before {
+    background-color: #fff;
+    block-size: 9px;
+    transform:none
+}

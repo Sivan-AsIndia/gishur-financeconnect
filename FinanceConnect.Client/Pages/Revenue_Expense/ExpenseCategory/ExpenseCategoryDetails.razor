@@ -1,0 +1,195 @@
+@page "/expense-categories/{Id:guid}/view"
+@using FinanceConnect.Client.ViewModels
+@using static FinanceConnect.Client.ViewModels.ExpenseCategoryViewModel
+
+@if (!isInitialized)
+{ <div class="page-loading-overlay"><div class="whirly-loader"></div></div> }
+else if (Cat == null)
+{ <div class="vb-root"><div class="content"><div class="alert alert-danger"><i class="ti ti-alert-circle me-2"></i>Expense Category not found.<a href="/expense-categories" class="alert-link ms-2">Return to list</a></div></div></div> }
+else
+{
+<div class="vb-root"><div class="content">
+    <!-- HEADER -->
+    <div class="vb-header-card">
+        <div class="vb-cover"><div class="vb-cover-orb vb-orb-1"></div><div class="vb-cover-orb vb-orb-2"></div><div class="vb-cover-orb vb-orb-3"></div></div>
+        <div class="vb-header-body">
+            <div class="vb-avatar">@Cat.CategoryCode?.Substring(0, Math.Min(2, Cat.CategoryCode?.Length ?? 0)).ToUpper()</div>
+            <div class="vb-header-meta">
+                <div>
+                    <p class="vb-bill-number">@Cat.CategoryCode – @Cat.CategoryName</p>
+                    <p class="vb-bill-sub">@Cat.CategoryType &nbsp;·&nbsp; @Cat.ReportingGroup &nbsp;·&nbsp; @Cat.UsageScope</p>
+                    <div class="vb-badges">
+                        <span class="badge @GetStatusBadge(Cat.CategoryStatus)">@Cat.CategoryStatus</span>
+                        @if (Cat.IsReimbursable) { <span class="badge badge-green">Reimbursable</span> }
+                        @if (Cat.IsLocked) { <span class="badge badge-red">🔒 Locked</span> }
+                    </div>
+                </div>
+                <div class="vb-header-actions">
+                    @if (!Cat.IsLocked) { <a href="/expense-categories/edit/@Cat.ExpenseCategoryId" class="btn btn-primary"><i class="ti ti-pencil me-1"></i> Edit</a> }
+                    <a href="/expense-categories" class="btn btn-outline-secondary"><i class="ti ti-arrow-left me-1"></i> Back</a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- SUMMARY TILES -->
+    <div class="vb-summary-grid mb-4 mt-2" style="background:transparent;border:none;box-shadow:none;">
+        <div class="vb-tile"><div class="vb-tile-label">Category Type</div><div class="vb-tile-value">@Cat.CategoryType</div></div>
+        <div class="vb-tile"><div class="vb-tile-label">Nature</div><div class="vb-tile-value">@Cat.CategoryNature</div></div>
+        <div class="vb-tile"><div class="vb-tile-label">Default Timing</div><div class="vb-tile-value primary">@Cat.DefaultTimingTreatment</div></div>
+        <div class="vb-tile"><div class="vb-tile-label">Budget Control</div><div class="vb-tile-value">@Cat.DefaultBudgetControlMode</div></div>
+        <div class="vb-tile"><div class="vb-tile-label">Usage Count</div><div class="vb-tile-value">@(Cat.UsageCount ?? 0)</div></div>
+        <div class="vb-tile"><div class="vb-tile-label">Attachments</div><div class="vb-tile-value">@Cat.AttachmentCount</div></div>
+    </div>
+
+    <!-- ROW 1: Basic Info + Classification -->
+    <div class="ec-grid-row mb-3">
+        <div class="vb-card">
+            <div class="vb-card-header"><h6><i class="ti ti-id me-1"></i> Basic Information</h6></div>
+            <div class="vb-card-body">
+                <div class="ec-2col">
+                    <div class="vb-row"><span class="vb-label">Category Code</span><span class="vb-val">@Cat.CategoryCode</span></div>
+                    <div class="vb-row"><span class="vb-label">Category Name</span><span class="vb-val">@Cat.CategoryName</span></div>
+                    <div class="vb-row"><span class="vb-label">Short Name</span><span class="vb-val">@(Cat.ShortName ?? "–")</span></div>
+                    <div class="vb-row"><span class="vb-label">Status</span><span class="vb-val"><span class="badge @GetStatusBadge(Cat.CategoryStatus)">@Cat.CategoryStatus</span></span></div>
+                </div>
+                @if (!string.IsNullOrWhiteSpace(Cat.Description))
+                { <div class="vb-row mt-2" style="flex-direction:column;gap:4px;"><span class="vb-label">Description</span><span class="vb-val" style="font-style:italic;color:var(--gray-600);">@Cat.Description</span></div> }
+            </div>
+        </div>
+        <div class="vb-card">
+            <div class="vb-card-header"><h6><i class="ti ti-category me-1"></i> Classification & Grouping</h6></div>
+            <div class="vb-card-body">
+                <div class="ec-2col">
+                    <div class="vb-row"><span class="vb-label">Category Type</span><span class="vb-val">@Cat.CategoryType</span></div>
+                    <div class="vb-row"><span class="vb-label">Reporting Group</span><span class="vb-val">@Cat.ReportingGroup</span></div>
+                    <div class="vb-row"><span class="vb-label">Nature</span><span class="vb-val">@Cat.CategoryNature</span></div>
+                    <div class="vb-row"><span class="vb-label">Usage Scope</span><span class="vb-val">@Cat.UsageScope</span></div>
+                    <div class="vb-row"><span class="vb-label">Parent Category</span><span class="vb-val">@(ParentCategoryName ?? "–")</span></div>
+                    <div class="vb-row"><span class="vb-label">Hierarchy Level</span><span class="vb-val">@(Cat.HierarchyLevel?.ToString() ?? "–")</span></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ROW 2: Accounting Defaults + Policy Controls -->
+    <div class="ec-grid-row mb-3">
+        <div class="vb-card">
+            <div class="vb-card-header"><h6><i class="ti ti-building-bank me-1"></i> Accounting Defaults</h6></div>
+            <div class="vb-card-body">
+                <div class="ec-2col">
+                    <div class="vb-row"><span class="vb-label">Default GL Account</span><span class="vb-val">@(Cat.DefaultGLAccountName ?? "–")</span></div>
+                    <div class="vb-row"><span class="vb-label">Alternate GL Account</span><span class="vb-val">@(Cat.AlternateGLAccountName ?? "–")</span></div>
+                    <div class="vb-row"><span class="vb-label">Accrual Liability GL</span><span class="vb-val">@(Cat.AccrualLiabilityGLName ?? "–")</span></div>
+                    <div class="vb-row"><span class="vb-label">Prepayment Asset GL</span><span class="vb-val">@(Cat.PrepaymentAssetGLName ?? "–")</span></div>
+                    <div class="vb-row"><span class="vb-label">Default Tax Code</span><span class="vb-val">@(Cat.TaxDefaultCodeName ?? "–")</span></div>
+                    <div class="vb-row"><span class="vb-label">Tax Applicable</span><span class="vb-val">@BoolText(Cat.IsTaxApplicable)</span></div>
+                    <div class="vb-row"><span class="vb-label">Currency Behavior</span><span class="vb-val">@Cat.DefaultCurrencyBehavior</span></div>
+                </div>
+            </div>
+        </div>
+        <div class="vb-card">
+            <div class="vb-card-header"><h6><i class="ti ti-shield-check me-1"></i> Policy Controls</h6></div>
+            <div class="vb-card-body">
+                <div class="ec-2col">
+                    <div class="vb-row"><span class="vb-label">Reimbursable</span><span class="vb-val">@BoolText(Cat.IsReimbursable)</span></div>
+                    <div class="vb-row"><span class="vb-label">Receipt Required</span><span class="vb-val">@BoolText(Cat.ReceiptRequiredFlag)</span></div>
+                    <div class="vb-row"><span class="vb-label">Receipt Threshold</span><span class="vb-val">@(Cat.ReceiptThresholdAmount.HasValue ? $"₹{Cat.ReceiptThresholdAmount:N2}" : "–")</span></div>
+                    <div class="vb-row"><span class="vb-label">Approval Required</span><span class="vb-val">@BoolText(Cat.ApprovalRequiredFlag)</span></div>
+                    <div class="vb-row"><span class="vb-label">Finance Review Req</span><span class="vb-val">@BoolText(Cat.FinanceReviewRequiredFlag)</span></div>
+                    <div class="vb-row"><span class="vb-label">Duplicate Check</span><span class="vb-val">@BoolText(Cat.DuplicateCheckRequiredFlag)</span></div>
+                    <div class="vb-row"><span class="vb-label">Block Direct Posting</span><span class="vb-val">@BoolText(Cat.BlockedForDirectPostingFlag)</span></div>
+                    <div class="vb-row"><span class="vb-label">Employee Claim</span><span class="vb-val">@BoolText(Cat.EmployeeClaimAllowedFlag)</span></div>
+                    <div class="vb-row"><span class="vb-label">Supplier Expense</span><span class="vb-val">@BoolText(Cat.SupplierExpenseAllowedFlag)</span></div>
+                    <div class="vb-row"><span class="vb-label">Cash Expense</span><span class="vb-val">@BoolText(Cat.CashExpenseAllowedFlag)</span></div>
+                    <div class="vb-row"><span class="vb-label">Company Card</span><span class="vb-val">@BoolText(Cat.CompanyCardAllowedFlag)</span></div>
+                    <div class="vb-row"><span class="vb-label">Draft Only Usage</span><span class="vb-val">@BoolText(Cat.CanBeUsedInDraftOnlyFlag)</span></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ROW 3: Budget & Timing + Workflow -->
+    <div class="ec-grid-row mb-3">
+        <div class="vb-card">
+            <div class="vb-card-header"><h6><i class="ti ti-clock me-1"></i> Budget & Timing Rules</h6></div>
+            <div class="vb-card-body">
+                <div class="ec-2col">
+                    <div class="vb-row"><span class="vb-label">Budget Control Applicable</span><span class="vb-val">@BoolText(Cat.BudgetControlApplicableFlag)</span></div>
+                    <div class="vb-row"><span class="vb-label">Budget Control Mode</span><span class="vb-val">@Cat.DefaultBudgetControlMode</span></div>
+                    <div class="vb-row"><span class="vb-label">Accrual Allowed</span><span class="vb-val">@BoolText(Cat.AccrualAllowedFlag)</span></div>
+                    <div class="vb-row"><span class="vb-label">Prepayment Allowed</span><span class="vb-val">@BoolText(Cat.PrepaymentAllowedFlag)</span></div>
+                    <div class="vb-row"><span class="vb-label">Immediate Expense</span><span class="vb-val">@BoolText(Cat.ImmediateExpenseAllowedFlag)</span></div>
+                    <div class="vb-row"><span class="vb-label">Default Timing</span><span class="vb-val">@Cat.DefaultTimingTreatment</span></div>
+                    <div class="vb-row"><span class="vb-label">Coverage Dates Req</span><span class="vb-val">@BoolText(Cat.CoverageDatesRequiredFlag)</span></div>
+                    <div class="vb-row"><span class="vb-label">Project Alloc Req</span><span class="vb-val">@BoolText(Cat.ProjectAllocationRequiredFlag)</span></div>
+                    <div class="vb-row"><span class="vb-label">Cost Center Mandatory</span><span class="vb-val">@BoolText(Cat.CostCenterMandatoryFlag)</span></div>
+                    <div class="vb-row"><span class="vb-label">Department Mandatory</span><span class="vb-val">@BoolText(Cat.DepartmentMandatoryFlag)</span></div>
+                    <div class="vb-row"><span class="vb-label">Branch Mandatory</span><span class="vb-val">@BoolText(Cat.BranchMandatoryFlag)</span></div>
+                </div>
+            </div>
+        </div>
+        <div class="vb-card">
+            <div class="vb-card-header"><h6><i class="ti ti-git-merge me-1"></i> Workflow & Governance</h6></div>
+            <div class="vb-card-body">
+                <div class="ec-2col">
+                    <div class="vb-row"><span class="vb-label">Effective From</span><span class="vb-val">@(Cat.EffectiveFrom?.ToString("dd MMM yyyy") ?? "–")</span></div>
+                    <div class="vb-row"><span class="vb-label">Effective To</span><span class="vb-val">@(Cat.EffectiveTo?.ToString("dd MMM yyyy") ?? "–")</span></div>
+                    <div class="vb-row"><span class="vb-label">Prepared By</span><span class="vb-val">@Cat.PreparedByUserId</span></div>
+                    <div class="vb-row"><span class="vb-label">Prepared On</span><span class="vb-val">@(Cat.PreparedOn?.ToString("dd MMM yyyy") ?? "–")</span></div>
+                    <div class="vb-row"><span class="vb-label">Reviewed By</span><span class="vb-val">@(Cat.ReviewedByUserId ?? "–")</span></div>
+                    <div class="vb-row"><span class="vb-label">Reviewed On</span><span class="vb-val">@(Cat.ReviewedOn?.ToString("dd MMM yyyy") ?? "–")</span></div>
+                    <div class="vb-row"><span class="vb-label">Approved By</span><span class="vb-val">@(Cat.ApprovedByUserId ?? "–")</span></div>
+                    <div class="vb-row"><span class="vb-label">Approved On</span><span class="vb-val">@(Cat.ApprovedOn?.ToString("dd MMM yyyy") ?? "–")</span></div>
+                    <div class="vb-row"><span class="vb-label">Locked</span><span class="vb-val">@BoolText(Cat.IsLocked)</span></div>
+                    <div class="vb-row"><span class="vb-label">Usage Count</span><span class="vb-val">@(Cat.UsageCount ?? 0)</span></div>
+                    <div class="vb-row"><span class="vb-label">Last Used On</span><span class="vb-val">@(Cat.LastUsedOn?.ToString("dd MMM yyyy HH:mm") ?? "–")</span></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ROW 4: Notes & Documentation -->
+    <div class="vb-card mb-5">
+        <div class="vb-card-header"><h6><i class="ti ti-notes me-1"></i> Notes & Documentation</h6></div>
+        <div class="vb-card-body">
+            <div class="ec-3col">
+                <div class="vb-row"><span class="vb-label">Policy Notes</span><span class="vb-val">@(Cat.PolicyNotes ?? "–")</span></div>
+                <div class="vb-row"><span class="vb-label">Internal Guideline Ref</span><span class="vb-val">@(Cat.InternalGuidelineReference ?? "–")</span></div>
+                <div class="vb-row"><span class="vb-label">Notes</span><span class="vb-val">@(Cat.Notes ?? "–")</span></div>
+                <div class="vb-row"><span class="vb-label">Attachment Count</span><span class="vb-val">@Cat.AttachmentCount</span></div>
+            </div>
+        </div>
+    </div>
+
+</div></div>
+}
+
+@code {
+    private static string BoolText(bool v) => v ? "Yes" : "No";
+}
+
+<style>
+    .ec-grid-row {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 16px;
+        align-items: start;
+    }
+    .ec-2col {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(355px, 1fr));
+        gap: 0 24px;
+    }
+    .ec-3col {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+        gap: 0 24px;
+    }
+    @@media (max-width: 992px) {
+        .ec-grid-row { grid-template-columns: 1fr; }
+    }
+    @@media (max-width: 768px) {
+        .ec-2col, .ec-3col { grid-template-columns: 1fr; }
+    }
+</style>

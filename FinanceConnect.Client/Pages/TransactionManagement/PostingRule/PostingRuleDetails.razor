@@ -1,0 +1,358 @@
+﻿@page "/posting-profiles/rules/{RuleId:guid}/view"
+
+@using FinanceConnect.Client.ViewModels
+@using FinanceConnect.Client.Services
+@inject PostingRuleService RuleService
+@inject MasterDataService MasterDataService
+@inject NavigationManager Nav
+@inject IJSRuntime JS
+
+@if (SelectedRule != null)
+{
+<div class="dn-wrapper">
+    <div class="content">
+
+        <!-- PAGE HEADER -->
+        <div class="pageHeader d-flex justify-content-between align-items-center mb-3">
+            <div>
+                <h3>Posting Rule Details</h3>
+                <p style="color: gray;">Rule matching, amount logic and account resolution overview.</p>
+            </div>
+
+            <div class="dn-hero-actions">
+                <button class="btn btn-outline-secondary" @onclick="GoBack">
+                    <i class="ti ti-arrow-left"></i> Back
+                </button>
+            </div>
+        </div>
+
+        <!-- HERO HEADER -->
+        <div class="dn-hero">
+            <div class="dn-hero-inner">
+
+                <div class="dn-icon-wrap">
+                    <i class="ti ti-filter"></i>
+                </div>
+
+                <div class="dn-hero-content">
+                    <h1 class="dn-number">@SelectedRule.RuleCode</h1>
+
+                    <div class="dn-meta-row">
+
+                        <span class="dn-meta-item">
+                            <i class="ti ti-filter"></i>
+                            Priority @SelectedRule.Priority
+                        </span>
+
+                        <span class="dn-meta-item">
+                            <i class="ti ti-lock"></i>
+                            Stop After Match:
+                            @(SelectedRule.StopProcessingAfterMatch ? "Yes" : "No")
+                        </span>
+
+                        <span class="dn-meta-item">
+                            <i class="ti ti-calendar"></i>
+                            Created @SelectedRule.CreatedAt.ToString("dd MMM yyyy")
+                        </span>
+
+                    </div>
+
+                    <div class="dn-badges">
+
+                        <span class="badge-dn @(SelectedRule.IsActive ? "badge-posted" : "badge-draft")">
+                            @(SelectedRule.IsActive ? "Active" : "Inactive")
+                        </span>
+
+                        @if (SelectedRule.IsSystemDefined)
+                        {
+                            <span class="badge-dn badge-cancelled">
+                                System Defined
+                            </span>
+                        }
+
+                    </div>
+                </div>
+
+            </div>
+        </div>
+
+        <!-- MAIN GRID -->
+        <div class="dn-grid">
+
+            <!-- ================= LEFT PANEL ================= -->
+            <div class="dn-left">
+
+                <!-- RULE IDENTITY -->
+                <div class="dn-card">
+                    <div class="dn-card-header">
+                        <span class="dn-card-title">
+                            <i class="ti ti-id"></i> Identity
+                        </span>
+                    </div>
+
+                    <div class="card-body">
+                        <div class="row g-0">
+
+                            <div class="col-md-4 field-item">
+                                <div class="field-label">Rule Code</div>
+                                <div class="field-value mono">@SelectedRule.RuleCode</div>
+                            </div>
+
+                            <div class="col-md-5 field-item">
+                                <div class="field-label">Rule Name</div>
+                                <div class="field-value">@SelectedRule.RuleName</div>
+                            </div>
+
+                            <div class="col-md-3 field-item">
+                                <div class="field-label">Priority</div>
+                                <div class="field-value">@SelectedRule.Priority</div>
+                            </div>
+
+                        </div>
+                    </div>
+                </div>
+
+                <!-- MATCH CONDITIONS -->
+                <div class="dn-card">
+                    <div class="dn-card-header">
+                        <span class="dn-card-title">
+                            <i class="ti ti-target"></i> Match Conditions
+                        </span>
+                    </div>
+
+                    <div class="card-body">
+                        <div class="field-grid field-grid-4">
+
+                            <div class="field-item">
+                                <div class="field-label">Posting Category</div>
+                                <div class="field-value">
+                                    @(SelectedRule.MatchPostingCategory?.ToString() ?? "-")
+                                </div>
+                            </div>
+
+                            <div class="field-item">
+                                <div class="field-label">Line Type</div>
+                                <div class="field-value">
+                                    @(SelectedRule.MatchLineType?.ToString() ?? "-")
+                                </div>
+                            </div>
+
+                            <div class="field-item">
+                                <div class="field-label">Source Module</div>
+                                <div class="field-value">
+                                    @(SelectedRule.MatchSourceModule?.ToString() ?? "-")
+                                </div>
+                            </div>
+
+                            <div class="field-item" style="border-right:none;">
+                                <div class="field-label">Tax Line</div>
+                                <div class="field-value">
+                                    @(SelectedRule.MatchIsTaxLine == null
+                                        ? "Any"
+                                        : SelectedRule.MatchIsTaxLine.Value ? "Yes" : "No")
+                                </div>
+                            </div>
+
+                        </div>
+                    </div>
+                </div>
+
+                <!-- AMOUNT POLICY -->
+                <div class="dn-card">
+                    <div class="dn-card-header">
+                        <span class="dn-card-title">
+                            <i class="ti ti-calculator"></i> Amount Policy
+                        </span>
+                    </div>
+
+                    <div class="card-body">
+                        <div class="field-grid field-grid-4">
+
+                            <div class="field-item">
+                                <div class="field-label">Amount Basis</div>
+                                <div class="field-value">@SelectedRule.AmountBasis</div>
+                            </div>
+
+                            <div class="field-item">
+                                <div class="field-label">Multiplier</div>
+                                <div class="field-value">@SelectedRule.AmountMultiplier</div>
+                            </div>
+
+                            <div class="field-item">
+                                <div class="field-label">Min Amount</div>
+                                <div class="field-value">
+                                    @(SelectedRule.MinimumAmount?.ToString() ?? "—")
+                                </div>
+                            </div>
+
+                            <div class="field-item" style="border-right:none;">
+                                <div class="field-label">Max Amount</div>
+                                <div class="field-value">
+                                    @(SelectedRule.MaximumAmount?.ToString() ?? "—")
+                                </div>
+                            </div>
+
+                        </div>
+                    </div>
+                </div>
+
+                <!-- ACCOUNT RESOLUTION -->
+                <div class="dn-card">
+                    <div class="dn-card-header">
+                        <span class="dn-card-title">
+                            <i class="ti ti-building-bank"></i> Account Resolution
+                        </span>
+                    </div>
+
+                    <div class="card-body">
+
+                        <div class="row g-0">
+
+                            <div class="col-md-6 field-item">
+                                <div class="field-label">Debit Resolution</div>
+                                <div class="field-value">
+                                    @SelectedRule.DebitAccountSourceType
+                                    @if (!string.IsNullOrWhiteSpace(SelectedRule.DebitAccountMappingKey))
+                                    {
+                                        <span class="text-muted">
+                                            (@SelectedRule.DebitAccountMappingKey)
+                                        </span>
+                                    }
+                                </div>
+                            </div>
+
+                            <div class="col-md-6 field-item" style="border-right:none;">
+                                <div class="field-label">Credit Resolution</div>
+                                <div class="field-value">
+                                    @SelectedRule.CreditAccountSourceType
+                                    @if (!string.IsNullOrWhiteSpace(SelectedRule.CreditAccountMappingKey))
+                                    {
+                                        <span class="text-muted">
+                                            (@SelectedRule.CreditAccountMappingKey)
+                                        </span>
+                                    }
+                                </div>
+                            </div>
+
+                        </div>
+
+                    </div>
+                </div>
+
+                <!-- OUTPUT & GOVERNANCE -->
+                <div class="dn-card">
+                    <div class="dn-card-header">
+                        <span class="dn-card-title">
+                            <i class="ti ti-shield-check"></i> Output & Governance
+                        </span>
+                    </div>
+
+                    <div class="card-body">
+
+                        <div class="row g-0">
+
+                            <div class="col-md-6 field-item">
+                                <div class="field-label">Output Narration</div>
+                                <div class="field-value">
+                                    @(string.IsNullOrWhiteSpace(SelectedRule.OutputNarrationTemplate)
+                                        ? "—"
+                                        : SelectedRule.OutputNarrationTemplate)
+                                </div>
+                            </div>
+
+                            <div class="col-md-3 field-item">
+                                <div class="field-label">Require Party Link</div>
+                                <div class="field-value">
+                                    @(SelectedRule.RequirePartyLink ? "Yes" : "No")
+                                </div>
+                            </div>
+
+                            <div class="col-md-3 field-item" style="border-right:none;">
+                                <div class="field-label">Dimension Policy</div>
+                                <div class="field-value">
+                                    @(string.IsNullOrWhiteSpace(SelectedRule.DimensionPolicyKey)
+                                        ? "—"
+                                        : SelectedRule.DimensionPolicyKey)
+                                </div>
+                            </div>
+
+                        </div>
+
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- ================= RIGHT PANEL ================= -->
+            <div class="dn-right">
+
+                <div class="dn-card">
+
+                    <div class="dn-card-header">
+                        <span class="dn-card-title">
+                            <i class="ti ti-database"></i> Status & Audit
+                        </span>
+                    </div>
+
+                    <div class="dn-card-body">
+
+                        <div class="info-row">
+                            <span class="info-key">Active</span>
+                            <span class="info-val">
+                                @(SelectedRule.IsActive ? "Yes" : "No")
+                            </span>
+                        </div>
+
+                        <div class="info-row">
+                            <span class="info-key">System Defined</span>
+                            <span class="info-val">
+                                @(SelectedRule.IsSystemDefined ? "System" : "User")
+                            </span>
+                        </div>
+
+                        <div class="info-row">
+                            <span class="info-key">Effective From</span>
+                            <span class="info-val">
+                                @(SelectedRule.EffectiveFrom?.ToString("dd MMM yyyy") ?? "—")
+                            </span>
+                        </div>
+
+                        <div class="info-row">
+                            <span class="info-key">Effective To</span>
+                            <span class="info-val">
+                                @(SelectedRule.EffectiveTo?.ToString("dd MMM yyyy") ?? "—")
+                            </span>
+                        </div>
+
+                        <div class="info-row">
+                            <span class="info-key">Created</span>
+                            <span class="info-val">
+                                @SelectedRule.CreatedAt.ToString("dd MMM yyyy")
+                            </span>
+                        </div>
+
+                        <div class="info-row">
+                            <span class="info-key">Updated</span>
+                            <span class="info-val">
+                                @(SelectedRule.UpdatedAt?.ToString("dd MMM yyyy") ?? "—")
+                            </span>
+                        </div>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>
+</div>
+}
+else
+{
+    <div class="page-loading-overlay">
+        <div class="whirly-loader"></div>
+    </div>
+}
+

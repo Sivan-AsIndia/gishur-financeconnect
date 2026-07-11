@@ -1,0 +1,636 @@
+﻿@page "/tcs-config/{Id:guid}/view"
+@using static FinanceConnect.Client.ViewModels.TCSConfigViewModel
+
+<PageTitle>TCS Config Details - FinanceConnect</PageTitle>
+<style>
+    .modal .btn-close::before{
+        background:white
+    }
+</style>
+@if (!isInitialized)
+{
+    <div class="page-loading-overlay">
+        <div class="whirly-loader"></div>
+    </div>
+}
+else if (Entry == null)
+{
+    <div class="vb-root">
+        <div class="content">
+            <div class="alert alert-danger">
+                <i class="ti ti-alert-circle me-2"></i>
+                TCS Config not found.
+                <a href="/tcs-config" class="alert-link ms-2">Return to list</a>
+            </div>
+        </div>
+    </div>
+}
+else
+{
+    <div class="vb-root">
+        <div class="content">
+
+            <div>
+
+                <!-- ═══ PROFILE HEADER CARD ═══ -->
+                <div class="vb-header-card">
+                    <div class="vb-cover">
+                        <div class="vb-cover-orb vb-orb-1"></div>
+                        <div class="vb-cover-orb vb-orb-2"></div>
+                        <div class="vb-cover-orb vb-orb-3"></div>
+                    </div>
+                    <div class="vb-header-body">
+                        <div class="vb-avatar">
+                            @Entry.SectionCode.Substring(0, Math.Min(3, Entry.SectionCode.Length)).ToUpper()
+                        </div>
+                        <div class="vb-header-meta">
+                            <div>
+                                <p class="vb-bill-number">@Entry.ConfigCode</p>
+                                <p class="vb-bill-sub">
+                                    @Entry.ConfigName &nbsp;·&nbsp;
+                                    Section <strong>@Entry.SectionCode</strong> &nbsp;·&nbsp;
+                                    @TCSConfigHelper.GetContextLabel(Entry.TransactionContext)
+                                </p>
+                                <div class="vb-badges">
+                                    <span class="badge @TCSConfigHelper.GetStatusClass(Entry.ConfigStatus)">
+                                        @TCSConfigHelper.GetStatusLabel(Entry.ConfigStatus)
+                                    </span>
+                                    @if (Entry.IsLockedForChanges)
+                                    {
+                                        <span class="badge badge-amber">🔒 Locked</span>
+                                    }
+                                    @if (Entry.IsExpired)
+                                    {
+                                        <span class="badge badge-red">⚠ Expired</span>
+                                    }
+                                    <span class="badge bg-primary-transparent">Priority @Entry.Priority</span>
+                                    @if (!string.IsNullOrEmpty(Entry.ReportingTag))
+                                    {
+                                        <span class="badge bg-purple-transparent text-purple">@Entry.ReportingTag</span>
+                                    }
+                                </div>
+                            </div>
+                            <div class="vb-header-actions">
+                                @if (!Entry.IsLockedForChanges)
+                                {
+                                    <a href="/tcs-config/@Entry.TCSConfigId/edit" class="btn btn-primary">
+                                        <i class="ti ti-edit me-1"></i> Edit
+                                    </a>
+                                }
+                                <a @onclick="PrintPage" class="btn btn-primary"><i class="bi bi-printer"></i> Print</a>
+
+                                <a href="/tcs-config" class="btn btn-outline-secondary">
+                                    <i class="ti ti-arrow-left me-1"></i> Back
+                                </a>
+
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- ═══ SUMMARY TILES ═══ -->
+                <div class="vb-card" style="background:transparent;border:none;box-shadow:none;">
+                    <div class="vb-summary-grid mb-4 mt-2">
+
+                        <div class="vb-tile">
+                            <div class="vb-tile-label">TCS Section</div>
+                            <div class="vb-tile-value">@Entry.SectionCode</div>
+                        </div>
+
+                        <div class="vb-tile">
+                            <div class="vb-tile-label">Collection Trigger</div>
+                            <div class="vb-tile-value" style="font-size:13px;">
+                                @TCSConfigHelper.GetTriggerLabel(Entry.CollectionTrigger)
+                            </div>
+                        </div>
+
+                        <div class="vb-tile">
+                            <div class="vb-tile-label">Threshold</div>
+                            <div class="vb-tile-value" style="font-size:13px;">
+                                @TCSConfigHelper.GetThresholdLabel(Entry.ThresholdMode)
+                            </div>
+                        </div>
+
+                        <div class="vb-tile-wide">
+                            <div class="vb-tile-label">
+                                @(Entry.FixedRatePercent.HasValue ? "Fixed TCS Rate" : "Rate Source")
+                            </div>
+                            @if (Entry.FixedRatePercent.HasValue)
+                            {
+                                <div class="vb-tile-value success" style="font-size:26px;">
+                                    @Entry.FixedRatePercent.Value.ToString("G")%
+                                </div>
+                            }
+                            else
+                            {
+                                <div class="vb-tile-value primary" style="font-size:13px;">From Rate Version</div>
+                            }
+                        </div>
+
+                        @if (Entry.ThresholdAmount.HasValue)
+                        {
+                            <div class="vb-tile">
+                                <div class="vb-tile-label">Threshold Amount</div>
+                                <div class="vb-tile-value">₹@Entry.ThresholdAmount.Value.ToString("N0")</div>
+                            </div>
+                        }
+
+                        @if (Entry.AlternateRatePercentIfPanMissing.HasValue)
+                        {
+                            <div class="vb-tile">
+                                <div class="vb-tile-label">Rate (No PAN)</div>
+                                <div class="vb-tile-value danger">
+                                    @Entry.AlternateRatePercentIfPanMissing.Value.ToString("G")%
+                                </div>
+                            </div>
+                        }
+
+                    <div class="vb-tile">
+                        <div class="vb-tile-label">Effective From</div>
+                        <div class="vb-tile-value primary" style="font-size:13px;">
+                            @Entry.EffectiveFrom.ToString("dd MMM yyyy")
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+
+            <!-- ═══ TWO COLUMN LAYOUT ═══ -->
+            <div class="vb-two-col mb-4">
+
+                <!-- ════════ SIDEBAR ════════ -->
+                <aside class="vb-sidebar">
+
+                    <!-- Config Identity -->
+                    <div class="vb-card">
+                        <div class="vb-card-header">
+                            <h6><i class="ti ti-id"></i> Config Identity</h6>
+                        </div>
+                        <div class="vb-card-body">
+                            <div class="vb-row">
+                                <span class="vb-label">Config Code</span>
+                                <span class="vb-val fw-bold">@Entry.ConfigCode</span>
+                            </div>
+                            <div class="vb-row">
+                                <span class="vb-label">Config Name</span>
+                                <span class="vb-val">@Entry.ConfigName</span>
+                            </div>
+                            <div class="vb-row">
+                                <span class="vb-label">TCS Section</span>
+                                <span class="vb-val">
+                                    <span class="badge badge-green">@Entry.SectionCode</span>
+                                </span>
+                            </div>
+                            <div class="vb-row">
+                                <span class="vb-label">Linked Tax Code</span>
+                                <span class="vb-val">@Entry.LinkedTaxCodeDisplay</span>
+                            </div>
+                            <div class="vb-row">
+                                <span class="vb-label">Status</span>
+                                <span class="vb-val">
+                                    <span class="badge @TCSConfigHelper.GetStatusClass(Entry.ConfigStatus)">
+                                        @TCSConfigHelper.GetStatusLabel(Entry.ConfigStatus)
+                                    </span>
+                                </span>
+                            </div>
+                            <div class="vb-row">
+                                <span class="vb-label">Priority</span>
+                                <span class="vb-val fw-bold text-primary">@Entry.Priority</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Effective Period -->
+                    <div class="vb-card">
+                        <div class="vb-card-header">
+                            <h6><i class="ti ti-calendar"></i> Effective Period</h6>
+                        </div>
+                        <div class="vb-card-body">
+                            <div class="vb-row">
+                                <span class="vb-label">Effective From</span>
+                                <span class="vb-val fw-medium">@Entry.EffectiveFrom.ToString("dd MMM yyyy")</span>
+                            </div>
+                            <div class="vb-row">
+                                <span class="vb-label">Effective To</span>
+                                <span class="vb-val @(Entry.IsExpired ? "text-danger" : "")">
+                                    @(Entry.EffectiveTo.HasValue
+                                                                        ? Entry.EffectiveTo.Value.ToString("dd MMM yyyy")
+                                                                        : "Open-ended")
+                                    </span>
+                                </div>
+                                @if (Entry.IsExpired)
+                                {
+                                    <div class="vb-row">
+                                        <span class="vb-label">Expiry</span>
+                                        <span class="vb-val">
+                                            <span class="badge badge-red">Expired</span>
+                                        </span>
+                                    </div>
+                                }
+                                <div class="vb-row">
+                                    <span class="vb-label">Locked</span>
+                                    <span class="vb-val">
+                                        @if (Entry.IsLockedForChanges)
+                                        {
+                                            <span class="badge badge-amber">🔒 Locked</span>
+                                        }
+                                        else
+                                        {
+                                            <span class="badge badge-gray">No</span>
+                                        }
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Accounting -->
+                        <div class="vb-card">
+                            <div class="vb-card-header">
+                                <h6><i class="ti ti-book"></i> Accounting</h6>
+                            </div>
+                            <div class="vb-card-body">
+                                <div class="vb-row">
+                                    <span class="vb-label">TCS Payable GL</span>
+                                    <span class="vb-val">@Entry.TCSPayableGLAccountDisplay</span>
+                                </div>
+                                @if (!string.IsNullOrEmpty(Entry.ReportingTag))
+                                {
+                                    <div class="vb-row">
+                                        <span class="vb-label">Reporting Tag</span>
+                                        <span class="vb-val">
+                                            <span class="badge bg-primary-transparent">@Entry.ReportingTag</span>
+                                        </span>
+                                    </div>
+                                }
+                            </div>
+                        </div>
+
+                        <!-- History -->
+                        <div class="vb-card">
+                            <div class="vb-card-header">
+                                <h6><i class="ti ti-history"></i> History</h6>
+                            </div>
+                            <div class="vb-card-body">
+                                <div class="vb-row">
+                                    <span class="vb-label">Created</span>
+                                    <span class="vb-val">@Entry.CreatedAt.ToString("dd MMM yyyy")</span>
+                                </div>
+                                @if (Entry.UpdatedAt.HasValue)
+                                {
+                                    <div class="vb-row">
+                                        <span class="vb-label">Updated</span>
+                                        <span class="vb-val">@Entry.UpdatedAt.Value.ToString("dd MMM yyyy")</span>
+                                    </div>
+                                }
+                            </div>
+                        </div>
+
+                        <!-- Quick Actions -->
+                        <div class="vb-card">
+                            <div class="vb-card-header">
+                                <h6><i class="ti ti-bolt"></i> Quick Actions</h6>
+                            </div>
+                            <div class="vb-card-body d-flex flex-column gap-2">
+                                @if (!Entry.IsLockedForChanges)
+                                {
+                                    <a href="/tcs-config/@Entry.TCSConfigId/edit"
+                                       class="btn btn-outline-primary btn-sm">
+                                        <i class="ti ti-edit me-1"></i> Edit Config
+                                    </a>
+                                }
+                                @if (Entry.ConfigStatus == ConfigStatus.Active)
+                                {
+                                    <button class="btn btn-outline-warning btn-sm" @onclick="OnInactivate">
+                                        <i class="ti ti-player-pause me-1"></i> Inactivate
+                                    </button>
+                                }
+                                @if (Entry.ConfigStatus == ConfigStatus.Inactive)
+                                {
+                                    <button class="btn btn-outline-success btn-sm" @onclick="OnActivate">
+                                        <i class="ti ti-player-play me-1"></i> Activate
+                                    </button>
+                                }
+                                @if (Entry.ConfigStatus != ConfigStatus.Archived)
+                                {
+                                    <button class="btn btn-outline-secondary btn-sm" @onclick="OnArchive">
+                                        <i class="ti ti-archive me-1"></i> Archive
+                                    </button>
+                                }
+                                @if (!Entry.IsLockedForChanges)
+                                {
+                                    <button class="btn btn-outline-danger btn-sm"
+                                            @onclick="() => { showLockModal = true; showLockError = false; }">
+                                        <i class="ti ti-lock me-1"></i> Lock Config
+                                    </button>
+                                }
+                                else
+                                {
+                                    <button class="btn btn-outline-secondary btn-sm" @onclick="OnUnlock">
+                                        <i class="ti ti-lock-open me-1"></i> Unlock Config
+                                    </button>
+                                }
+                            </div>
+                        </div>
+
+                    </aside>
+                    <!-- ════════ END SIDEBAR ════════ -->
+                    <!-- ════════ MAIN CONTENT ════════ -->
+                    <div class="vb-main">
+
+                        <!-- Applicability & Scope -->
+                        <div class="vb-card">
+                            <div class="vb-card-header">
+                                <h6><i class="ti ti-users"></i> Applicability &amp; Scope</h6>
+                            </div>
+                            <div class="vb-card-body">
+                                <div style="display:grid;grid-template-columns: repeat(auto-fit, minmax(328px, 1fr));gap:0 32px;">
+                                    <div class="vb-row">
+                                        <span class="vb-label">Transaction Context</span>
+                                        <span class="vb-val">@TCSConfigHelper.GetContextLabel(Entry.TransactionContext)</span>
+                                    </div>
+                                    <div class="vb-row">
+                                        <span class="vb-label">Collection Trigger</span>
+                                        <span class="vb-val">@TCSConfigHelper.GetTriggerLabel(Entry.CollectionTrigger)</span>
+                                    </div>
+                                    <div class="vb-row">
+                                        <span class="vb-label">Customer Type</span>
+                                        <span class="vb-val">@Entry.ResidentialStatusApplicability</span>
+                                    </div>
+                                    <div class="vb-row">
+                                        <span class="vb-label">PAN Availability Rule</span>
+                                        <span class="vb-val">@TCSConfigHelper.GetPanRuleLabel(Entry.PanAvailabilityRule)</span>
+                                    </div>
+                                    <div class="vb-row">
+                                        <span class="vb-label">Collection Base</span>
+                                        <span class="vb-val">@Entry.DeductionBaseMode</span>
+                                    </div>
+                                    <div class="vb-row">
+                                        <span class="vb-label">Rate Source</span>
+                                        <span class="vb-val">@TCSConfigHelper.GetRateSourceLabel(Entry.RateResolutionMode)</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Threshold & Rate -->
+                        <div class="vb-card">
+                            <div class="vb-card-header">
+                                <h6><i class="ti ti-percentage"></i> Threshold &amp; Rate Details</h6>
+                            </div>
+                            <div class="vb-card-body">
+                                <div style="display:grid;grid-template-columns: repeat(auto-fit, minmax(328px, 1fr));gap:0 32px;">
+                                    <div class="vb-row">
+                                        <span class="vb-label">Threshold Mode</span>
+                                        <span class="vb-val">@TCSConfigHelper.GetThresholdLabel(Entry.ThresholdMode)</span>
+                                    </div>
+                                    @if (Entry.ThresholdAmount.HasValue)
+                                    {
+                                        <div class="vb-row">
+                                            <span class="vb-label">Threshold Amount</span>
+                                            <span class="vb-val fw-bold">₹@Entry.ThresholdAmount.Value.ToString("N0")</span>
+                                        </div>
+                                    }
+                                    @if (Entry.FixedRatePercent.HasValue)
+                                    {
+                                        <div class="vb-row">
+                                            <span class="vb-label">Fixed TCS Rate</span>
+                                            <span class="vb-val fw-bold text-success">
+                                                @Entry.FixedRatePercent.Value.ToString("G")%
+                                            </span>
+                                        </div>
+                                    }
+                                    @if (Entry.AlternateRatePercentIfPanMissing.HasValue)
+                                    {
+                                        <div class="vb-row">
+                                            <span class="vb-label">Rate (No PAN)</span>
+                                            <span class="vb-val fw-bold text-danger">
+                                                @Entry.AlternateRatePercentIfPanMissing.Value.ToString("G")%
+                                            </span>
+                                        </div>
+                                    }
+                                    <div class="vb-row">
+                                        <span class="vb-label">Exclude GST from Base</span>
+                                        <span class="vb-val">
+                                            <span class="badge badge-green">Yes</span>
+                                        </span>
+                                    </div>
+                                </div>
+
+                                <!-- Rate summary table — same as VendorBill TDS section -->
+                                @if (Entry.FixedRatePercent.HasValue || Entry.AlternateRatePercentIfPanMissing.HasValue)
+                                {
+                                    <div style="margin-top:16px;">
+                                        <table class="vb-table">
+                                            <thead class="bg-light">
+                                                <tr>
+                                                    <th>Rate Scenario</th>
+                                                    <th>Applicability</th>
+                                                    <th class="text-end">Rate %</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                @if (Entry.FixedRatePercent.HasValue)
+                                                {
+                                                    <tr>
+                                                        <td><span class="badge badge-green">Standard TCS Rate</span></td>
+                                                        <td class="text-muted" style="font-size:12px;">PAN available / standard</td>
+                                                        <td class="text-end fw-bold text-success">
+                                                            @Entry.FixedRatePercent.Value.ToString("G")%
+                                                        </td>
+                                                    </tr>
+                                                }
+                                                @if (Entry.AlternateRatePercentIfPanMissing.HasValue)
+                                                {
+                                                    <tr>
+                                                        <td><span class="badge badge-red">PAN Missing Rate</span></td>
+                                                        <td class="text-muted" style="font-size:12px;">When customer PAN is absent</td>
+                                                        <td class="text-end fw-bold text-danger">
+                                                            @Entry.AlternateRatePercentIfPanMissing.Value.ToString("G")%
+                                                        </td>
+                                                    </tr>
+                                                }
+                                                @if (Entry.ThresholdAmount.HasValue)
+                                                {
+                                                    <tr style="background:#f8f9fa;">
+                                                        <td colspan="2" class="text-muted" style="font-size:12px;">
+                                                            Threshold — @TCSConfigHelper.GetThresholdLabel(Entry.ThresholdMode)
+                                                        </td>
+                                                        <td class="text-end fw-bold">
+                                                            ₹@Entry.ThresholdAmount.Value.ToString("N0")
+                                                        </td>
+                                                    </tr>
+                                                }
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                }
+                            </div>
+                        </div>
+
+                        <!-- Workflow History -->
+                        <div class="vb-card">
+                            <div class="vb-card-header">
+                                <h6><i class="ti ti-git-branch"></i> Config Timeline</h6>
+                            </div>
+                            <div class="vb-card-body">
+                                <div class="vb-timeline">
+
+                                    <div class="vb-tl-item">
+                                        <div class="vb-tl-dot"><i class="ti ti-plus"></i></div>
+                                        <div class="vb-tl-content">
+                                            <div class="vb-tl-title">Created</div>
+                                            <div class="vb-tl-meta">
+                                                @Entry.CreatedAt.ToString("dd MMM yyyy")
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    @if (Entry.UpdatedAt.HasValue)
+                                    {
+                                        <div class="vb-tl-item">
+                                            <div class="vb-tl-dot"><i class="ti ti-pencil"></i></div>
+                                            <div class="vb-tl-content">
+                                                <div class="vb-tl-title">Last Updated</div>
+                                                <div class="vb-tl-meta">
+                                                    @Entry.UpdatedAt.Value.ToString("dd MMM yyyy")
+                                                </div>
+                                            </div>
+                                        </div>
+                                    }
+
+                                    @if (Entry.ConfigStatus == ConfigStatus.Active)
+                                    {
+                                        <div class="vb-tl-item">
+                                            <div class="vb-tl-dot"
+                                                 style="background: #16a34ac2;
+                    border-color: #16a34ac2;
+                    color: white;">
+                                                <i class="ti ti-check"></i>
+                                            </div>
+                                            <div class="vb-tl-content">
+                                                <div class="vb-tl-title">Active</div>
+                                                <div class="vb-tl-meta">Evaluated during sales / receipt posting</div>
+                                            </div>
+                                        </div>
+                                    }
+
+                                    @if (Entry.ConfigStatus == ConfigStatus.Inactive)
+                                    {
+                                        <div class="vb-tl-item">
+                                            <div class="vb-tl-dot"
+                                                 style="background:color-mix(in srgb, var(--primary) 12%, white);border-color:#6b7280;color:#6b7280;">
+                                                <i class="ti ti-player-pause"></i>
+                                            </div>
+                                            <div class="vb-tl-content">
+                                                <div class="vb-tl-title">Inactive</div>
+                                                <div class="vb-tl-meta">Not applied at collection time</div>
+                                            </div>
+                                        </div>
+                                    }
+
+                                    @if (Entry.ConfigStatus == ConfigStatus.Archived)
+                                    {
+                                        <div class="vb-tl-item">
+                                            <div class="vb-tl-dot"
+                                                 style="background:color-mix(in srgb, var(--primary) 12%, white);border-color:var(--orange);color:var(--orange-d);">
+                                                <i class="ti ti-archive"></i>
+                                            </div>
+                                            <div class="vb-tl-content">
+                                                <div class="vb-tl-title">Archived</div>
+                                                <div class="vb-tl-meta">Historical record only</div>
+                                            </div>
+                                        </div>
+                                    }
+
+                                    @if (Entry.IsLockedForChanges)
+                                    {
+                                        <div class="vb-tl-item">
+                                            <div class="vb-tl-dot"
+                                                 style="background:#fee2e2;border-color:#dc2626;color:#dc2626;">
+                                                <i class="ti ti-lock"></i>
+                                            </div>
+                                            <div class="vb-tl-content">
+                                                <div class="vb-tl-title">Locked</div>
+                                                <div class="vb-tl-meta">No further edits permitted</div>
+                                                @if (!string.IsNullOrEmpty(Entry.LockReason))
+                                                {
+                                                    <div class="text-danger" style="font-size:12px;margin-top:2px;">
+                                                        @Entry.LockReason
+                                                    </div>
+                                                }
+                                            </div>
+                                        </div>
+                                    }
+
+                                    @if (Entry.IsExpired)
+                                    {
+                                        <div class="vb-tl-item">
+                                            <div class="vb-tl-dot"
+                                                 style="background:#fee2e2;border-color:#dc2626;color:#dc2626;">
+                                                <i class="ti ti-x"></i>
+                                            </div>
+                                            <div class="vb-tl-content">
+                                                <div class="vb-tl-title">Expired</div>
+                                                <div class="vb-tl-meta">
+                                                    Expired on @Entry.EffectiveTo!.Value.ToString("dd MMM yyyy")
+                                                </div>
+                                            </div>
+                                        </div>
+                                    }
+
+                                </div>
+                            </div>
+                        </div>
+
+                    </div>
+                    <!-- ════════ END MAIN ════════ -->
+
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+<!-- Lock Modal -->
+@if (showLockModal)
+{
+    <div class="modal fade show d-block" style="background:rgba(0,0,0,.4);" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered modal-sm">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title text-danger">
+                        <i class="ti ti-lock me-2"></i>Lock TCS Config
+                    </h5>
+                    <button class="btn-close" style="position: relative;
+        width: 9px;
+        height: 9px;
+        right: 26px;"
+                            @onclick="() => { showLockModal = false; showLockError = false; lockReason = string.Empty; }">
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <p class="text-muted small mb-3">
+                        Locking prevents any further edits. Only Controller / CFO can unlock.
+                    </p>
+                    <label class="form-label">Lock Reason <span class="text-danger">*</span></label>
+                    <textarea class="form-control @(showLockError ? "is-invalid" : "")"
+                              rows="3" @bind="lockReason"
+                              placeholder="Reason for locking this config..."></textarea>
+                    @if (showLockError)
+                    {
+                        <div class="invalid-feedback d-block">Lock reason is required.</div>
+                    }
+                </div>
+                <div class="modal-footer gap-2">
+                    <button class="btn btn-outline-secondary"
+                            @onclick="() => { showLockModal = false; showLockError = false; lockReason = string.Empty; }">
+                        <i class="ti ti-x"></i>  Cancel
+                    </button>
+                    <button class="btn btn-danger" @onclick="OnLock">
+                        <i class="ti ti-lock me-1"></i> Confirm Lock
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+}

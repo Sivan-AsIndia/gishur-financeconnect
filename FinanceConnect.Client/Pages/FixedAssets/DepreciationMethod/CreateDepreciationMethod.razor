@@ -1,0 +1,310 @@
+@page "/depreciation-methods/create"
+@page "/depreciation-methods/edit/{Id:guid}"
+@inject NavigationManager Nav
+@using FinanceConnect.Client.ViewModels
+@using FinanceConnect.Client.Services
+
+<style>
+    .validation-message { color: #dc3545; font-size: 12px; }
+    .gl-error { color: #dc3545; font-size: 12px; display: block; margin-top: 2px; }
+    .field-invalid { border-color: #dc3545 !important; box-shadow: none !important; }
+</style>
+
+<div class="content flat-form">
+
+    <div class="page-header">
+        <div class="page-title">
+            <h4 class="fw-bold">@(IsEdit ? "Edit Depreciation Method" : "Create Depreciation Method")</h4>
+            <h6>Define calculation rules &amp; conventions</h6>
+        </div>
+        <div class="page-btn">
+            <a href="/depreciation-methods" class="btn btn-outline-secondary">
+                <i class="ti ti-arrow-left"></i> Back
+            </a>
+        </div>
+    </div>
+
+    <EditForm EditContext="_editContext" OnSubmit="Save">
+        <DataAnnotationsValidator />
+
+        <!-- SECTION 1 – CORE IDENTITY -->
+        <div class="card mt-4">
+            <div class="card-body">
+                <h5 class="text-primary mb-4 d-flex align-items-center">
+                    <i class="ti ti-id me-2" style="margin-bottom: 2px;    font-size: 22px;
+"></i> General
+                </h5>
+                <div class="row g-3">
+                    <div class="col-md-3">
+                        <label class="form-label">Method Code <span class="text-danger">*</span></label>
+                        <InputText class="form-control" @bind-Value="Model.MethodCode" placeholder="e.g. SLM-MPR" />
+                        <ValidationMessage For="@(() => Model.MethodCode)" />
+                    </div>
+                    <div class="col-md-5">
+                        <label class="form-label">Method Name <span class="text-danger">*</span></label>
+                        <InputText class="form-control" @bind-Value="Model.MethodName" placeholder="e.g. Straight Line – Monthly Pro-Rata" />
+                        <ValidationMessage For="@(() => Model.MethodName)" />
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">Status <span class="text-danger">*</span></label>
+                        <InputSelect class="form-select" @bind-Value="Model.MethodStatus">
+                            <option value="@DepreciationMethodViewModel.MethodStatusEnum.Active">Active</option>
+                            <option value="@DepreciationMethodViewModel.MethodStatusEnum.Inactive">Inactive</option>
+                            <option value="@DepreciationMethodViewModel.MethodStatusEnum.Archived">Archived</option>
+                        </InputSelect>
+                    </div>
+                    <div class="col-md-12">
+                        <label class="form-label">Description</label>
+                        <InputTextArea class="form-control" rows="2" @bind-Value="Model.Description"
+                                       placeholder="Optional description of this depreciation method..." />
+                    </div>
+                </div>
+
+            </div>
+        </div>
+           <div class="card mt-4">
+            <div class="card-body">
+                <h5 class="text-primary mb-4 d-flex align-items-center">
+                    <i class="ti ti-math-function me-2" style="margin-bottom: 2px;    font-size: 22px;
+"></i> Calculation Rules
+                </h5>
+                <div class="row g-3">
+                    <div class="col-md-3">
+                        <label class="form-label">Method Type <span class="text-danger">*</span></label>
+                        <InputSelect class="form-select" @bind-Value="Model.MethodType">
+                            <option value="">-- Select Method Type --</option>
+                            <option value="@DepreciationMethodViewModel.MethodTypeEnum.StraightLine">Straight Line</option>
+                            <option value="@DepreciationMethodViewModel.MethodTypeEnum.WrittenDownValue">Written Down Value</option>
+                            <option value="@DepreciationMethodViewModel.MethodTypeEnum.DoubleDeclining">Double Declining</option>
+                            <option value="@DepreciationMethodViewModel.MethodTypeEnum.UnitsOfProduction">Units of Production (Future)</option>
+                            <option value="@DepreciationMethodViewModel.MethodTypeEnum.CustomRate">Custom Rate (Future)</option>
+                        </InputSelect>
+                        <ValidationMessage For="@(() => Model.MethodType)" />
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">Time Basis <span class="text-danger">*</span></label>
+                        <InputSelect class="form-select" @bind-Value="Model.TimeBasis">
+                            <option value="@DepreciationMethodViewModel.TimeBasisEnum.Monthly">Monthly</option>
+                            <option value="@DepreciationMethodViewModel.TimeBasisEnum.Daily">Daily (Future)</option>
+                            <option value="@DepreciationMethodViewModel.TimeBasisEnum.Units">Units (Future)</option>
+                        </InputSelect>
+                        <ValidationMessage For="@(() => Model.TimeBasis)" />
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">Depreciation Base <span class="text-danger">*</span></label>
+                        <InputSelect class="form-select" @bind-Value="Model.DepreciationBase">
+                            <option value="">-- Select Base --</option>
+                            <option value="@DepreciationMethodViewModel.DepreciationBaseEnum.CostOnly">Cost Only</option>
+                            <option value="@DepreciationMethodViewModel.DepreciationBaseEnum.CostMinusResidual">Cost Minus Residual</option>
+                            <option value="@DepreciationMethodViewModel.DepreciationBaseEnum.OpeningNBV">Opening NBV (WDV)</option>
+                        </InputSelect>
+                        <ValidationMessage For="@(() => Model.DepreciationBase)" />
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">Input Mode <span class="text-danger">*</span></label>
+                        <InputSelect class="form-select" @bind-Value="Model.InputMode">
+                            <option value="">-- Select Input Mode --</option>
+                            <option value="@DepreciationMethodViewModel.InputModeEnum.LifeBased">Life Based</option>
+                            <option value="@DepreciationMethodViewModel.InputModeEnum.RateBased">Rate Based</option>
+                        </InputSelect>
+                        <ValidationMessage For="@(() => Model.InputMode)" />
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">Residual Handling <span class="text-danger">*</span></label>
+                        <InputSelect class="form-select" @bind-Value="Model.ResidualHandlingMode">
+                            <option value="">-- Select --</option>
+                            <option value="@DepreciationMethodViewModel.ResidualHandlingModeEnum.ApplyResidualAtEndOnly">Apply At End Only</option>
+                            <option value="@DepreciationMethodViewModel.ResidualHandlingModeEnum.NeverDepreciateBelowResidual">Never Below Residual</option>
+                            <option value="@DepreciationMethodViewModel.ResidualHandlingModeEnum.IgnoreResidual">Ignore Residual</option>
+                        </InputSelect>
+                        <ValidationMessage For="@(() => Model.ResidualHandlingMode)" />
+                    </div>
+
+                    @if (Model.InputMode == DepreciationMethodViewModel.InputModeEnum.RateBased)
+                    {
+                        <div class="col-md-3">
+                            <label class="form-label">Default Rate % <span class="text-danger">*</span></label>
+                            <InputNumber class="form-control" @bind-Value="Model.DefaultRatePercent" placeholder="e.g. 15.000" />
+                            <ValidationMessage For="@(() => Model.DefaultRatePercent)" />
+                            @if (!string.IsNullOrEmpty(RateError))
+                            {
+                                <span class="gl-error">@RateError</span>
+                            }
+                        </div>
+                    }
+
+                    <div class="col-md-12">
+                        <div class="d-flex flex-wrap gap-4 mt-2">
+                            <div class="form-check">
+                                <InputCheckbox class="form-check-input" @bind-Value="Model.IsApplicableToTangibles" />
+                                <label class="form-check-label">Applicable to Tangibles</label>
+                            </div>
+                            <div class="form-check">
+                                <InputCheckbox class="form-check-input" @bind-Value="Model.IsApplicableToIntangibles" />
+                                <label class="form-check-label">Applicable to Intangibles</label>
+                            </div>
+                            <div class="form-check">
+                                <InputCheckbox class="form-check-input" @bind-Value="Model.IsDepreciationAllowedInCWIP" />
+                                <label class="form-check-label">Depreciation Allowed in CWIP</label>
+                            </div>
+                            <div class="form-check">
+                                <InputCheckbox class="form-check-input" @bind-Value="Model.AllowResidualOverrideAtAsset" />
+                                <label class="form-check-label">Allow Residual Override at Asset</label>
+                            </div>
+                            <div class="form-check">
+                                <InputCheckbox class="form-check-input" @bind-Value="Model.AllowRateOverrideAtCategory" />
+                                <label class="form-check-label">Allow Rate Override at Category</label>
+                            </div>
+                            <div class="form-check">
+                                <InputCheckbox class="form-check-input" @bind-Value="Model.AllowRateOverrideAtAsset" />
+                                <label class="form-check-label">Allow Rate Override at Asset</label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+
+            </div>
+        </div>
+           <div class="card mt-4">
+            <div class="card-body">
+
+                <h5 class="text-primary mb-4 d-flex align-items-center">
+                    <i class="ti ti-calendar me-2" style="margin-bottom: 2px;    font-size: 22px;
+"></i> Conventions
+                </h5>
+                <div class="row g-3">
+                    <div class="col-md-3">
+                        <label class="form-label">Start Convention <span class="text-danger">*</span></label>
+                        <InputSelect class="form-select" @bind-Value="Model.StartConvention">
+                            <option value="">-- Select --</option>
+                            <option value="@DepreciationMethodViewModel.StartConventionEnum.FromInServiceDate_ProRata">From In-Service Date (Pro-Rata)</option>
+                            <option value="@DepreciationMethodViewModel.StartConventionEnum.NextMonthStart">Next Month Start</option>
+                            <option value="@DepreciationMethodViewModel.StartConventionEnum.FullMonthIfBeforeDayN">Full Month If Before Day N</option>
+                        </InputSelect>
+                        <ValidationMessage For="@(() => Model.StartConvention)" />
+                    </div>
+
+                    @if (Model.StartConvention == DepreciationMethodViewModel.StartConventionEnum.FullMonthIfBeforeDayN)
+                    {
+                        <div class="col-md-2">
+                            <label class="form-label">Cutoff Day <span class="text-danger">*</span></label>
+                            <InputNumber class="form-control" @bind-Value="Model.FullMonthCutoffDay" placeholder="1–28" />
+                            <ValidationMessage For="@(() => Model.FullMonthCutoffDay)" />
+                        </div>
+                    }
+
+                    <div class="col-md-3">
+                        <label class="form-label">End Convention <span class="text-danger">*</span></label>
+                        <InputSelect class="form-select" @bind-Value="Model.EndConvention">
+                            <option value="">-- Select --</option>
+                            <option value="@DepreciationMethodViewModel.EndConventionEnum.StopAtUsefulLifeEnd">Stop at Useful Life End</option>
+                            <option value="@DepreciationMethodViewModel.EndConventionEnum.StopWhenNBVReachesResidual">Stop When NBV Reaches Residual</option>
+                        </InputSelect>
+                        <ValidationMessage For="@(() => Model.EndConvention)" />
+                    </div>
+
+                    <div class="col-md-12">
+                        <div class="d-flex flex-wrap gap-4 mt-2">
+                            <div class="form-check">
+                                <InputCheckbox class="form-check-input" @bind-Value="Model.SkipDepreciationIfDisposedInPeriod" />
+                                <label class="form-check-label">Skip Depreciation If Disposed In Period</label>
+                            </div>
+                            <div class="form-check">
+                                <InputCheckbox class="form-check-input" @bind-Value="Model.AllowCatchUpDepreciation" />
+                                <label class="form-check-label">Allow Catch-Up Depreciation</label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+
+            </div>
+        </div>
+           <div class="card mt-4">
+            <div class="card-body">
+
+                <h5 class="text-primary mb-4 d-flex align-items-center">
+                    <i class="ti ti-adjustments me-2" style="margin-bottom: 2px;    font-size: 22px;
+"></i> Rounding &amp; Precision
+                </h5>
+                <div class="row g-3">
+                    <div class="col-md-3">
+                        <label class="form-label">Rounding Precision (Decimals)</label>
+                        <InputNumber class="form-control" @bind-Value="Model.RoundingPrecisionDecimals" />
+                        <ValidationMessage For="@(() => Model.RoundingPrecisionDecimals)" />
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">Rounding Rule</label>
+                        <InputSelect class="form-select" @bind-Value="Model.RoundingRule">
+                            <option value="@DepreciationMethodViewModel.RoundingRuleEnum.RoundToNearest">Round to Nearest</option>
+                            <option value="@DepreciationMethodViewModel.RoundingRuleEnum.RoundDown">Round Down</option>
+                            <option value="@DepreciationMethodViewModel.RoundingRuleEnum.RoundUp">Round Up</option>
+                        </InputSelect>
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">Rounding At</label>
+                        <InputSelect class="form-select" @bind-Value="Model.RoundingAt">
+                            <option value="@DepreciationMethodViewModel.RoundingAtEnum.PerAssetPerMonth">Per Asset Per Month</option>
+                            <option value="@DepreciationMethodViewModel.RoundingAtEnum.PerRunTotal">Per Run Total</option>
+                        </InputSelect>
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">Min Depreciation Amount</label>
+                        <InputNumber class="form-control" @bind-Value="Model.MinDepreciationAmount" placeholder="Optional" />
+                    </div>
+                </div>
+
+            </div>
+        </div>
+           <div class="card mt-4">
+            <div class="card-body">
+
+
+                <h5 class="text-primary mb-4 d-flex align-items-center">
+                    <i class="ti ti-lock me-2" style="margin-bottom: 2px;    font-size: 22px;
+"></i> Governance &amp; Audit
+                </h5>
+                <div class="row g-3">
+                    <div class="col-md-3">
+                        <div class="form-check mt-4">
+                            <InputCheckbox class="form-check-input" @bind-Value="Model.IsLockedForChanges" />
+                            <label class="form-check-label">Lock for Changes</label>
+                        </div>
+                    </div>
+                    @if (Model.IsLockedForChanges)
+                    {
+                        <div class="col-md-5">
+                            <label class="form-label">Lock Reason <span class="text-danger">*</span></label>
+                            <InputText class="form-control" @bind-Value="Model.LockReason" placeholder="Reason for locking this method" />
+                            @if (!string.IsNullOrEmpty(LockReasonError))
+                            {
+                                <span class="gl-error">@LockReasonError</span>
+                            }
+                        </div>
+                    }
+                    @if (IsEdit)
+                    {
+                        <div class="col-md-2">
+                            <label class="form-label">Used Assets</label>
+                            <input class="form-control" value="@Model.UsedAssetCount" disabled />
+                        </div>
+                        <div class="col-md-2">
+                            <label class="form-label">Used in Posted Runs</label>
+                            <input class="form-control" value="@(Model.UsedInPostedRunsFlag ? "Yes" : "No")" disabled />
+                        </div>
+                    }
+                </div>
+
+            </div>
+        </div>
+
+
+
+        <!-- SUBMIT -->
+        <div class="d-flex justify-content-end gap-3 mt-3 mb-4">
+            <a href="/depreciation-methods" class="btn btn-outline-secondary"><i class="ti ti-x me-1"></i>Cancel</a>
+            <button type="submit" class="btn btn-primary"><i class="ti ti-device-floppy me-1"></i>@(IsEdit ? "Update" : "Save")</button>
+        </div>
+    </EditForm>
+</div>

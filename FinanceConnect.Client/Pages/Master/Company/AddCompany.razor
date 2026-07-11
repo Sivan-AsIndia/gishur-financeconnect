@@ -1,0 +1,828 @@
+﻿@page "/companies/create"
+@page "/companies/{Id:guid}"
+
+<style>
+    .form-select option:checked {
+        color: white;
+        background-color: var(--primary);
+    }
+
+  
+    .validation-message {
+        color: #dc3545;
+        font-size: 12px;
+    }
+</style>
+
+@if (!isInitialized)
+{
+    <div class="page-loading-overlay">
+        <div class="whirly-loader"></div>
+    </div>
+}
+else
+{
+    <div class="content form-wizard">
+        <div class="page-header">
+            <div class="add-item d-flex">
+                <div class="page-title">
+                    <h4 class="fw-bold">@PageTitle</h4>
+                    <h6>@PageSubTitle</h6>
+                </div>
+            </div>
+
+            <div class="d-flex page-btn mt-0 gap-2">
+                @if (IsEdit)
+                {
+                    <button type="button" class="btn btn-primary" @onclick="Save"> <i class="ti ti-device-floppy"></i> @(IsEdit ? "Update" : "Save")</button>
+
+                }
+                <a href="/companies" class="btn btn-outline-secondary">
+                    <i class="ti ti-arrow-left"></i> Back
+                </a>
+            </div>
+        </div>
+
+
+
+
+        <div class="wizard-overlay d-flex mb-4">
+
+            <EditForm EditContext="editContext" OnSubmit="Save" style="width: 100%;">
+
+                <div class="wizard-overlay">
+                    <div class="wizard-modal">
+
+                        <!-- LEFT STEPPER -->
+                        <div class="wizard-steps">
+
+                            <div class="timeline-line"></div>
+                            <div class="timeline-indicator @(IsCurrentStepValid() ? "success" : "error")"
+                                 style="top:@IndicatorToppx"></div>
+
+                            @for (int i = 1; i <= Steps.Count; i++)
+                            {
+                                <div class="wizard-step @StepClass(i)">
+                                    <div class="dot">
+                                        @if (i < CurrentStep)
+                                        {
+                                            <i class="ti ti-check" style="    color: white;
+                            font-size: 22px;"></i>
+                                        }
+                                        else
+                                        {
+                                            <i class="@Steps[i - 1].Icon"></i>
+                                        }
+                                    </div>
+                                    <div class="label">
+                                        <b>@Steps[i - 1].Title</b>
+                                    </div>
+                                </div>
+                            }
+
+                        </div>
+
+                        <!-- RIGHT CONTENT -->
+                        <div class="wizard-content">
+                            @* <small>Step @CurrentStep / @Steps.Count</small> *@
+                            <h2 style="    font-size: 17px;
+            margin-bottom: 10px;">
+                                @Steps[CurrentStep - 1].Title
+                            </h2>
+
+                            @if (CurrentStep == 1)
+                            {
+                                <div id="companyIdentity" class="accordion-collapse collapse show">
+                                    <div class="accordion-body border-top pt-3 p-0">
+                                        <div class="row">
+                                            <div class="col-md-6 mb-3">
+                                                <label class="form-label">Company Code <span class="text-danger ms-1">*</span></label>
+                                                <InputText class="@($"form-control text-uppercase {(ShowFieldError(1, "CompanyCode") || ShowFieldError(1, "CompanyCodeFormat") ? "is-invalid" : "")}")" @bind-Value="Company.CompanyCode"
+                                                           disabled="@IsEdit" placeholder="e.g., ASC001" maxlength="10" @bind-Value:after="OnCompanyCodeInput" />
+                                                @if (ShowFieldError(1, "CompanyCode"))
+                                                {
+                                                    <div class="text-danger small mt-1">Company Code is required</div>
+                                                }
+                                                @if (ShowFieldError(1, "CompanyCodeFormat"))
+                                                {
+                                                    <div class="text-danger small mt-1">Only letters, numbers, underscore (_) and hyphen (-) are allowed</div>
+                                                }
+                                            </div>
+
+                                            <div class="col-md-6 mb-3">
+                                                <label class="form-label">Legal Name <span class="text-danger ms-1">*</span></label>
+                                                <InputText class="@($"form-control {(ShowFieldError(1, "LegalName") ? "is-invalid" : "")}")" @bind-Value="Company.LegalName"
+                                                           placeholder="e.g., Ascending Software Private Limited" maxlength="200" @bind-Value:after="OnCompanyCodeInput" />
+                                                @if (ShowFieldError(1, "LegalName"))
+                                                {
+                                                    <div class="text-danger small mt-1">Legal Name is required</div>
+                                                }
+                                            </div>
+
+                                            <div class="col-md-6 mb-3">
+                                                <label class="form-label">Trade Name</label>
+                                                <InputText class="form-control" @bind-Value="Company.TradeName"
+                                                           placeholder="e.g., AutoSolution ERP" maxlength="150" />
+                                            </div>
+
+                                            <div class="col-md-6 mb-3">
+                                                <label class="form-label">Short Name</label>
+                                                <InputText class="form-control" @bind-Value="Company.ShortName"
+                                                           placeholder="e.g., ASC" maxlength="50" />
+                                            </div>
+
+                                            <div class="col-md-6 mb-3">
+                                                <label class="form-label">Legal Structure <span class="text-danger ms-1">*</span></label>
+                                                <InputSelect class="@($"form-select {(ShowFieldError(1, "LegalStructure") ? "is-invalid" : "")}")" @bind-Value="Company.LegalStructure">
+                                                    <option value="">-- Select Legal Structure --</option>
+                                                    @foreach (var structure in LegalStructures.All)
+                                                    {
+                                                        <option value="@structure">@structure</option>
+                                                    }
+                                                </InputSelect>
+                                                @if (ShowFieldError(1, "LegalStructure"))
+                                                {
+                                                    <div class="text-danger small mt-1">Legal Structure is required</div>
+                                                }
+                                            </div>
+
+                                            @if (Company.LegalStructure == "Other")
+                                            {
+                                                <div class="col-md-6 mb-3">
+                                                    <label class="form-label">Specify Structure <span class="text-danger ms-1">*</span></label>
+                                                    <InputText class="@($"form-control {(ShowFieldError(1, "OtherLegalStructure") ? "is-invalid" : "")}")" @bind-Value="Company.OtherLegalStructure"
+                                                               placeholder="e.g., Co-operative Society" maxlength="100" />
+                                                    @if (ShowFieldError(1, "OtherLegalStructure"))
+                                                    {
+                                                        <div class="text-danger small mt-1">Please specify the legal structure</div>
+                                                    }
+                                                </div>
+                                            }
+
+                                            <div class="col-md-6 mb-3">
+                                                <label class="form-label">Incorporation Date</label>
+                                                @* <InputDate class="form-control @(ShowFieldError(1, "IncorporationDate") ? "is-invalid" : "")" @bind-Value="Company.IncorporationDate"
+                                                           max="@DateTime.Today.ToString("yyyy-MM-dd")" /> *@
+                                                <InputDate class="@($"form-control {(ShowFieldError(1, "IncorporationDate") ? "is-invalid" : "")}")"
+                                                           @bind-Value="Company.IncorporationDate"
+                                                           max="@DateTime.Today.ToString("yyyy-MM-dd")" />
+                                                @if (ShowFieldError(1, "IncorporationDate"))
+                                                {
+                                                    <div class="text-danger small mt-1">@IncorporationDateError</div>
+                                                }
+                                            </div>
+
+                                            <div class="col-md-6 mb-3">
+                                                <label class="form-label">Status <span class="text-danger ms-1">*</span></label>
+                                                <InputSelect class="@($"form-select {(ShowFieldError(1, "Status") ? "is-invalid" : "")}")" @bind-Value="Company.Status">
+                                                    <option value="">-- Select Status --</option>
+                                                    @foreach (var status in CompanyStatus.All)
+                                                    {
+                                                        <option value="@status">@status</option>
+                                                    }
+                                                </InputSelect>
+                                                @if (ShowFieldError(1, "Status"))
+                                                {
+                                                    <div class="text-danger small mt-1">Status is required</div>
+                                                }
+                                            </div>
+
+                                            <div class="col-md-6 mb-3">
+                                                <label class="form-label">Parent Company</label>
+                                                <InputSelect class="form-select" @bind-Value="Company.ParentCompanyId">
+                                                    <option value="">-- None --</option>
+                                                    @foreach (var pc in ParentCompanies)
+                                                    {
+                                                        <option value="@pc.Id">@pc.LegalName (@pc.CompanyCode)</option>
+                                                    }
+                                                </InputSelect>
+                                                <small class="text-muted">For group/consolidation reporting</small>
+                                            </div>
+
+                                            <div class="col-md-6 mb-3">
+                                                <label class="form-label">Default Branch</label>
+                                                <InputSelect class="form-select" @bind-Value="Company.DefaultBranchId">
+                                                    <option value="">-- None --</option>
+                                                    @foreach (var branch in Branches)
+                                                    {
+                                                        <option value="@branch.Id">@branch.BranchName</option>
+                                                    }
+                                                </InputSelect>
+                                                <small class="text-muted">Default selection for reports and entry screens</small>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            }
+
+                            @if (CurrentStep == 2)
+                            {
+                                <div id="registrationCompliance" class="accordion-collapse">
+                                    <div class="accordion-body border-top pt-3 p-0">
+                                        <div class="row">
+                                            <div class="col-md-6 mb-3">
+                                                <label class="form-label">Registration Number / CIN</label>
+                                                <InputText class="form-control" @bind-Value="Company.RegistrationNumber"
+                                                           placeholder="e.g., U72900TN2020PTC123456" maxlength="50"
+                                                           title="As per ROC/Govt certificate" />
+                                                <small class="text-muted">As per ROC/Govt certificate</small>
+                                            </div>
+
+                                            <div class="col-md-6 mb-3">
+                                                <label class="form-label">PAN Number <span class="text-danger ms-1">*</span></label>
+                                                <InputText class="@($"form-control text-uppercase {(ShowFieldError(2, "PANNumber") ? "is-invalid" : "")}")" @bind-Value="Company.PANNumber"
+                                                           placeholder="e.g., AAAAA9999A" maxlength="10" />
+                                                @if (ShowFieldError(2, "PANNumber"))
+                                                {
+                                                    <div class="text-danger small mt-1">@PANError</div>
+                                                }
+                                            </div>
+
+                                            <div class="col-md-6 mb-3">
+                                                <label class="form-label">GSTIN @if (Company.IsGSTRegistered) { <span class="text-danger ms-1">*</span> }</label>
+                                                <InputText class="@($"form-control text-uppercase {(ShowFieldError(2, "GSTIN") ? "is-invalid" : "")}")" @bind-Value="Company.GSTIN"
+                                                           placeholder="e.g., 33AAAAA9999A1Z5" maxlength="15"
+                                                           disabled="@(!Company.IsGSTRegistered)" />
+                                                @if (ShowFieldError(2, "GSTIN"))
+                                                {
+                                                    <div class="text-danger small mt-1">@GSTINError</div>
+                                                }
+                                            </div>
+
+                                            <div class="col-md-6 mb-3">
+                                                <label class="form-label">TAN Number</label>
+                                                <InputText class="form-control text-uppercase" @bind-Value="Company.TANNumber"
+                                                           placeholder="e.g., CHEM12345D" maxlength="10" />
+                                            </div>
+
+                                            <div class="col-md-6 mb-3">
+                                                <label class="form-label">Other Tax Identifier</label>
+                                                <InputText class="form-control" @bind-Value="Company.OtherTaxId"
+                                                           placeholder="e.g., VAT/EIN for non-India" maxlength="50" />
+                                            </div>
+
+                                            <div class="col-md-6 mb-3">
+                                                <label class="form-label">Registration Country <span class="text-danger ms-1">*</span></label>
+                                                <InputSelect class="@($"form-select {(ShowFieldError(2, "RegistrationCountryId") ? "is-invalid" : "")}")" @bind-Value="Company.RegistrationCountryId"
+                                                             @oninput="OnRegistrationCountryChange">
+                                                    <option value="@Guid.Empty">-- Select Country --</option>
+                                                    @foreach (var country in Countries)
+                                                    {
+                                                        <option value="@country.Id">@country.CountryName</option>
+                                                    }
+                                                </InputSelect>
+                                                @if (ShowFieldError(2, "RegistrationCountryId"))
+                                                {
+                                                    <div class="text-danger small mt-1">Registration Country is required</div>
+                                                }
+                                            </div>
+
+                                            <div class="col-md-6 mb-3">
+                                                <label class="form-label">Registration State</label>
+                                                <InputSelect class="form-select" @bind-Value="Company.RegistrationStateProvinceId"
+                                                             disabled="@(!RegistrationStates.Any())" @oninput="OnRegistrationStateChange">
+                                                    <option value="">-- Select State --</option>
+                                                    @foreach (var state in RegistrationStates)
+                                                    {
+                                                        <option value="@state.Id">@state.StateProvinceName</option>
+                                                    }
+                                                </InputSelect>
+                                            </div>
+
+                                            <div class="col-md-6 mb-3">
+                                                <label class="form-label">Registration City <span class="text-danger ms-1">*</span></label>
+                                                <InputSelect class="@($"form-select {(ShowFieldError(2, "RegistrationCityId") ? "is-invalid" : "")}")" @bind-Value="Company.RegistrationCityId"
+                                                             disabled="@(!RegistrationCities.Any())">
+                                                    <option value="@Guid.Empty">-- Select City --</option>
+                                                    @foreach (var city in RegistrationCities)
+                                                    {
+                                                        <option value="@city.Id">@city.CityName</option>
+                                                    }
+                                                </InputSelect>
+                                                @if (ShowFieldError(2, "RegistrationCityId"))
+                                                {
+                                                    <div class="text-danger small mt-1">Registration City is required</div>
+                                                }
+                                                else if (!Company.RegistrationStateProvinceId.HasValue || Company.RegistrationStateProvinceId == Guid.Empty)
+                                                {
+                                                    <div class="text-muted small mt-1">Select a state first</div>
+                                                }
+                                            </div>
+
+                                            <div class="col-md-6 mb-3">
+                                                <div class="form-check mt-4">
+                                                    <InputCheckbox class="form-check-input" @bind-Value="Company.IsGSTRegistered" id="gstRegistered" />
+                                                    <label class="form-check-label" for="gstRegistered">GST Registered</label>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            }
+
+                            @if (CurrentStep == 3)
+                            {
+                                <div id="companyAddress" class="accordion-collapse">
+                                    <div class="accordion-body border-top pt-3 p-0">
+                                        <div class="row">
+                                            <div class="col-md-6 mb-3">
+                                                <label class="form-label">Address Line 1 <span class="text-danger ms-1">*</span></label>
+                                                <InputText class="@($"form-control {(ShowFieldError(3, "AddressLine1") ? "is-invalid" : "")}")" @bind-Value="Company.AddressLine1"
+                                                           placeholder="e.g., 123, Anna Salai" maxlength="200" />
+                                                @if (ShowFieldError(3, "AddressLine1"))
+                                                {
+                                                    <div class="text-danger small mt-1">Address Line 1 is required</div>
+                                                }
+                                            </div>
+
+                                            <div class="col-md-6 mb-3">
+                                                <label class="form-label">Address Line 2</label>
+                                                <InputText class="form-control" @bind-Value="Company.AddressLine2"
+                                                           placeholder="e.g., Teynampet" maxlength="200" />
+                                            </div>
+
+                                            <div class="col-md-6 mb-3">
+                                                <label class="form-label">Country <span class="text-danger ms-1">*</span></label>
+                                                <InputSelect class="@($"form-select {(ShowFieldError(3, "CountryId") ? "is-invalid" : "")}")" @bind-Value="Company.CountryId"
+                                                             @oninput="OnAddressCountryChange">
+                                                    <option value="@Guid.Empty">-- Select Country --</option>
+                                                    @foreach (var country in Countries)
+                                                    {
+                                                        <option value="@country.Id">@country.CountryName</option>
+                                                    }
+                                                </InputSelect>
+                                                @if (ShowFieldError(3, "CountryId"))
+                                                {
+                                                    <div class="text-danger small mt-1">Country is required</div>
+                                                }
+                                            </div>
+
+                                            <div class="col-md-6 mb-3">
+                                                <label class="form-label">State/Province <span class="text-danger ms-1">*</span></label>
+                                                <InputSelect class="@($"form-select {(ShowFieldError(3, "StateProvinceId") ? "is-invalid" : "")}")" @bind-Value="Company.StateProvinceId"
+                                                             disabled="@(Company.CountryId == Guid.Empty)" @oninput="OnAddressStateChange">
+                                                    <option value="">-- Select State --</option>
+                                                    @foreach (var state in AddressStates)
+                                                    {
+                                                        <option value="@state.Id">@state.StateProvinceName</option>
+                                                    }
+                                                </InputSelect>
+                                                @if (ShowFieldError(3, "StateProvinceId"))
+                                                {
+                                                    <div class="text-danger small mt-1">State/Province is required</div>
+                                                }
+                                                else if (Company.CountryId == Guid.Empty)
+                                                {
+                                                    <div class="text-muted small mt-1">Select a country first</div>
+                                                }
+                                            </div>
+
+                                            <div class="col-md-6 mb-3">
+                                                <label class="form-label">City <span class="text-danger ms-1">*</span></label>
+                                                <InputSelect class="@($"form-select {(ShowFieldError(3, "CityId") ? "is-invalid" : "")}")" @bind-Value="Company.CityId"
+                                                             disabled="@(!Company.StateProvinceId.HasValue || Company.StateProvinceId == Guid.Empty)">
+                                                    <option value="@Guid.Empty">-- Select City --</option>
+                                                    @foreach (var city in AddressCities)
+                                                    {
+                                                        <option value="@city.Id">@city.CityName</option>
+                                                    }
+                                                </InputSelect>
+                                                @if (ShowFieldError(3, "CityId"))
+                                                {
+                                                    <div class="text-danger small mt-1">City is required</div>
+                                                }
+                                                else if (!Company.StateProvinceId.HasValue || Company.StateProvinceId == Guid.Empty)
+                                                {
+                                                    <div class="text-muted small mt-1">Select a state first</div>
+                                                }
+                                            </div>
+
+                                            <div class="col-md-6 mb-3">
+                                                <label class="form-label">Postal Code <span class="text-danger ms-1">*</span></label>
+                                                <InputText class="@($"form-control {(ShowFieldError(3, "PostalCode") ? "is-invalid" : "")}")" @bind-Value="Company.PostalCode"
+                                                           placeholder="e.g., 600018" maxlength="20" />
+                                                @if (ShowFieldError(3, "PostalCode"))
+                                                {
+                                                    <div class="text-danger small mt-1">Postal Code is required</div>
+                                                }
+                                            </div>
+
+                                            <div class="col-md-6 mb-3">
+                                                <label class="form-label">Time Zone <span class="text-danger ms-1">*</span></label>
+                                                <InputSelect class="@($"form-select {(ShowFieldError(3, "TimeZoneId") ? "is-invalid" : "")}")" @bind-Value="Company.TimeZoneId">
+                                                    <option value="@Guid.Empty">-- Select Time Zone --</option>
+                                                    @foreach (var tz in TimeZones)
+                                                    {
+                                                        <option value="@tz.Id">@tz.DisplayName</option>
+                                                    }
+                                                </InputSelect>
+                                                @if (ShowFieldError(3, "TimeZoneId"))
+                                                {
+                                                    <div class="text-danger small mt-1">Time Zone is required</div>
+                                                }
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            }
+
+                            @if (CurrentStep == 4)
+                            {
+                                <div id="contactBranding" class="accordion-collapse">
+                                    <div class="accordion-body border-top pt-3 p-0">
+                                        <div class="row">
+                                            <div class="col-md-6 mb-3">
+                                                <label class="form-label">Primary Contact</label>
+                                                <InputText class="form-control" @bind-Value="Company.PrimaryContactName"
+                                                           placeholder="e.g., Rajesh Kumar" maxlength="100" />
+                                            </div>
+
+                                            <div class="col-md-6 mb-3">
+                                                <label class="form-label">Email</label>
+                                                <InputText class="@($"form-control {(ShowFieldError(4, "PrimaryEmail") ? "is-invalid" : "")}")" @bind-Value="Company.PrimaryEmail"
+                                                           placeholder="e.g., contact@company.com" maxlength="150" type="email" />
+                                                @if (ShowFieldError(4, "PrimaryEmail"))
+                                                {
+                                                    <div class="text-danger small mt-1">Invalid email format</div>
+                                                }
+                                            </div>
+
+                                            <div class="col-md-6 mb-3">
+                                                <label class="form-label">Phone</label>
+                                                <InputText class="@($"form-control {(ShowFieldError(4, "PrimaryPhone") ? "is-invalid" : "")}")" @bind-Value="Company.PrimaryPhone"
+                                                       inputmode="tel"
+                                                       pattern="[\+0-9\s\-\(\)]*"
+                                                       title="Digits, +, -, spaces and parentheses only" placeholder="e.g., +91-44-12345678" maxlength="30" />
+                                                @if (ShowFieldError(4, "PrimaryPhone"))
+                                                {
+                                                    <div class="text-danger small mt-1">Only digits, +, -, spaces allowed</div>
+                                                }
+                                            </div>
+
+                                            <div class="col-md-6 mb-3">
+                                                <label class="form-label">Website</label>
+                                                <InputText class="@($"form-control {(ShowFieldError(4, "WebsiteUrl") ? "is-invalid" : "")}")" @bind-Value="Company.WebsiteUrl"
+                                                           placeholder="e.g., https://www.company.com" maxlength="200" />
+                                                @if (ShowFieldError(4, "WebsiteUrl"))
+                                                {
+                                                    <div class="text-danger small mt-1">Invalid URL format (must start with http:// or https://)</div>
+                                                }
+                                            </div>
+
+                                            <div class="col-md-6 mb-3">
+                                                <label class="form-label">Company Logo</label>
+                                                <InputFile class="form-control" OnChange="OnLogoFileSelected" accept=".png,.jpg,.jpeg,.svg" />
+                                                <small class="text-muted">Max 1MB, PNG/JPG/SVG</small>
+                                                @if (!string.IsNullOrEmpty(Company.LogoFileName))
+                                                {
+                                                    <div class="mt-2 d-flex align-items-center gap-2">
+                                                        <i class="ti ti-photo text-success"></i>
+                                                        <span class="small text-success">@Company.LogoFileName</span>
+                                                        <button type="button" class="btn btn-sm btn-outline-danger py-0 px-1" @onclick="RemoveLogo">
+                                                            <i class="ti ti-x"></i>
+                                                        </button>
+                                                    </div>
+                                                }
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            }
+
+                            @if (CurrentStep == 5)
+                            {
+                                <div id="financialSettings" class="accordion-collapse">
+                                    <div class="accordion-body border-top pt-3 p-0">
+                                        <div class="row">
+                                            <div class="col-md-6 mb-3">
+                                                <label class="form-label">Base Currency <span class="text-danger ms-1">*</span></label>
+                                                <InputSelect class="@($"form-select {(ShowFieldError(5, "BaseCurrencyId") ? "is-invalid" : "")}")" @bind-Value="Company.BaseCurrencyId">
+                                                    <option value="@Guid.Empty">-- Select Currency --</option>
+                                                    @foreach (var currency in Currencies)
+                                                    {
+                                                        <option value="@currency.Id">@currency.CurrencyName (@currency.CurrencyCode)</option>
+                                                    }
+                                                </InputSelect>
+                                                @if (ShowFieldError(5, "BaseCurrencyId"))
+                                                {
+                                                    <div class="text-danger small mt-1">Base Currency is required</div>
+                                                }
+                                            </div>
+
+                                            <div class="col-md-6 mb-3">
+                                                <label class="form-label">Reporting Currency</label>
+                                                <InputSelect class="form-select" @bind-Value="Company.ReportingCurrencyId">
+                                                    <option value="">-- Same as Base Currency --</option>
+                                                    @foreach (var currency in Currencies)
+                                                    {
+                                                        <option value="@currency.Id">@currency.CurrencyName (@currency.CurrencyCode)</option>
+                                                    }
+                                                </InputSelect>
+                                                <small class="text-muted">If empty, Base Currency is used</small>
+                                            </div>
+
+                                            <div class="col-md-6 mb-3">
+                                                <label class="form-label">Fiscal Year Start <span class="text-danger ms-1">*</span></label>
+                                                <InputSelect class="@($"form-select {(ShowFieldError(5, "FiscalYearStartMonth") ? "is-invalid" : "")}")" @bind-Value="Company.FiscalYearStartMonth">
+                                                    <option value="0">-- Select Fiscal Year Start --</option>
+                                                    @foreach (var month in FiscalYearMonths.All)
+                                                    {
+                                                        <option value="@month.Value">@month.Name</option>
+                                                    }
+                                                </InputSelect>
+                                                @if (ShowFieldError(5, "FiscalYearStartMonth"))
+                                                {
+                                                    <div class="text-danger small mt-1">Fiscal Year Start Month is required</div>
+                                                }
+                                            </div>
+
+                                            <div class="col-md-6 mb-3">
+                                                <label class="form-label">Books Start Date <span class="text-danger ms-1">*</span></label>
+                                                <InputDate class="@($"form-control {(ShowFieldError(5, "BooksStartDate") ? "is-invalid" : "")}")" @bind-Value="Company.BooksStartDate"
+                                                           max="@DateTime.Today.ToString("yyyy-MM-dd")" />
+                                                @if (ShowFieldError(5, "BooksStartDate"))
+                                                {
+                                                    <div class="text-danger small mt-1">@BooksStartDateError</div>
+                                                }
+                                            </div>
+
+                                            <div class="col-md-6 mb-3">
+                                                <div class="form-check mt-4">
+                                                    <InputCheckbox class="form-check-input" @bind-Value="Company.EnableMultiCurrency" id="multiCurrency" style="width: auto;" />
+                                                    <label class="form-check-label" for="multiCurrency">Enable Multi-Currency</label>
+                                                </div>
+                                            </div>
+
+                                            <div class="col-md-6 mb-3">
+                                                <label class="form-label">Rounding Precision</label>
+                                                <InputSelect class="form-select" @bind-Value="Company.RoundingPrecision">
+                                                    <option value="0">0 - No decimals</option>
+                                                    <option value="1">1 decimal</option>
+                                                    <option value="2">2 decimals (default)</option>
+                                                    <option value="3">3 decimals</option>
+                                                    <option value="4">4 decimals</option>
+                                                </InputSelect>
+                                            </div>
+
+                                            <div class="col-md-6 mb-3">
+                                                <label class="form-label">Rounding Mode <span class="text-danger">*</span></label>
+                                                <InputSelect class="@($"form-select {(ShowFieldError(5, "RoundingMode") ? "is-invalid" : "")}")" @bind-Value="Company.RoundingMode">
+                                                    <option value="">-- Select Rounding Mode --</option>
+                                                    @foreach (var mode in RoundingModes.All)
+                                                    {
+                                                        <option value="@mode">@mode</option>
+                                                    }
+                                                </InputSelect>
+                                                @if (ShowFieldError(5, "RoundingMode"))
+                                                {
+                                                    <div class="invalid-feedback">Rounding Mode is required</div>
+                                                }
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                            }
+
+                            @if (CurrentStep == 6)
+                            {
+                                <div id="systemPostingControls" class="accordion-collapse">
+                                    <div class="accordion-body border-top pt-3 p-0">
+                                        <div class="row">
+                                            <div class="col-md-6 mb-3">
+                                                <label class="form-label">Allow Posting From</label>
+                                                <InputDate class="@($"form-control {(ShowFieldError(6, "PostingDates") ? "is-invalid" : "")}")" @bind-Value="Company.AllowPostingFromDate" />
+                                                <small class="text-muted">Block postings before this date</small>
+                                                @if (ShowFieldError(6, "PostingDates"))
+                                                {
+                                                    <div class="invalid-feedback">'Allow Posting From' must be on or before 'Allow Posting To'</div>
+                                                }
+                                            </div>
+
+                                            <div class="col-md-6 mb-3">
+                                                <label class="form-label">Allow Posting To</label>
+                                                <InputDate class="@($"form-control {(ShowFieldError(6, "PostingDates") ? "is-invalid" : "")}")" @bind-Value="Company.AllowPostingToDate" />
+                                                <small class="text-muted">Soft boundary for postings</small>
+                                            </div>
+
+                                            <div class="col-md-6 mb-3">
+                                                <div class="form-check mt-4">
+                                                    <InputCheckbox class="form-check-input" @bind-Value="Company.LockBackDatedPosting" id="lockBackDated" style="width: auto;" />
+                                                    <label class="form-check-label" for="lockBackDated">Lock Back-Dated Posting</label>
+                                                </div>
+                                                <small class="text-muted">Restrict postings before current month</small>
+                                            </div>
+
+                                            <div class="col-md-6 mb-3">
+                                                <label class="form-label">Backdated Posting Allowed (Days)</label>
+                                                <InputSelect class="form-select" @bind-Value="Company.BackdatedPostingDaysAllowed">
+                                                    <option value="0">0</option>
+                                                    <option value="7">7</option>
+                                                    <option value="15">15</option>
+                                                    <option value="30">30</option>
+                                                    <option value="60">60</option>
+                                                    <option value="90">90</option>
+                                                </InputSelect>
+                                            </div>
+
+                                            <div class="col-md-6 mb-3">
+                                                <label class="form-label">Future Posting Allowed (Days)</label>
+                                                <InputSelect class="form-select" @bind-Value="Company.FuturePostingDaysAllowed">
+                                                    <option value="0">0</option>
+                                                    <option value="7">7</option>
+                                                    <option value="15">15</option>
+                                                    <option value="30">30</option>
+                                                    <option value="60">60</option>
+                                                    <option value="90">90</option>
+                                                </InputSelect>
+                                            </div>
+                                            @* maxlength="1000" *@
+                                            <div class="col-md-12 mb-3">
+                                                <label class="form-label">Notes</label>
+                                            <RichTextEditor @ref="_notesEditor"
+                                                            Value="@Company.Notes"
+                                                            MaxHeight="200" MinHeight="80"
+                                                            placeholder="Additional internal notes..." />
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            }
+
+
+                            <!-- WIZARD FOOTER -->
+                            <div class="d-flex gap-2 wizard-footer mb-4" style="justify-content: end;">
+                            @if(CurrentStep != 1){
+                                <button type="button" class="btn Back" @onclick="Back" disabled="@(CurrentStep == 1)"><i class="ti ti-chevron-left"></i> Previous</button>
+                            }
+                                @if (CurrentStep < Steps.Count)
+                                {
+                                <button type="button" class="btn btn-primary" @onclick="Next">Next <i class="ti ti-chevron-right"></i></button>
+                                }
+                                else
+                                {
+                                    <button type="button" class="btn btn-primary" @onclick="Save"><i class="ti ti-device-floppy"></i> @(IsEdit ? "Update" : "Save")</button>
+
+                                }
+                            </div>
+
+
+                        </div>
+
+                        <aside class="summary p-3 rounded d-none d-xl-flex" style="height: auto;
+                    background: white;
+                        border: none;    display: flex;
+                        padding-left: 32px !important;
+                    padding-top: 42px !important;">
+                            <div class="timeline-line1"></div>
+
+                            <div class="timeline-indicator1"></div>
+                            <div style="padding-left: 15px;
+                    width: 262px;">
+                            <h3 class="text-primary mb-3" style="font-size: 17px;">Live Summary</h3>
+
+                                <div class="row">
+                                    @if (CurrentStep == 1)
+                                    {
+                                        <div class="col-md-12 mb-4"><span>Company Code: </span><b>@Company.CompanyCode</b></div>
+                                        <div class="col-md-12 mb-4"><span>Legal Name: </span><b>@Company.LegalName</b></div>
+                                        <div class="col-md-12 mb-4"><span>Trade Name: </span><b>@Company.TradeName</b></div>
+                                        <div class="col-md-12 mb-4"><span>Short Name: </span><b>@Company.ShortName</b></div>
+                                        <div class="col-md-12 mb-4"><span>Legal Structure: </span><b>@Company.LegalStructure @(Company.LegalStructure == "Other" && !string.IsNullOrWhiteSpace(Company.OtherLegalStructure) ? $"({Company.OtherLegalStructure})" : "")</b></div>
+                                        <div class="col-md-12 mb-4"><span>Incorporation Date: </span><b>@Company.IncorporationDate?.ToString("dd MMM yyyy")</b></div>
+                                        <div class="col-md-12 mb-4"><span>Status: </span><b>@Company.Status</b></div>
+                                        @if (Company.ParentCompanyId.HasValue && Company.ParentCompanyId != Guid.Empty)
+                                        {
+                                            <div class="col-md-12 mb-4"><span>Parent Company: </span><b>@ParentCompanies.FirstOrDefault(c => c.Id == Company.ParentCompanyId)?.LegalName</b></div>
+                                        }
+                                        @if (Company.DefaultBranchId.HasValue && Company.DefaultBranchId != Guid.Empty)
+                                        {
+                                            <div class="col-md-12 mb-4"><span>Default Branch: </span><b>@Branches.FirstOrDefault(b => b.Id == Company.DefaultBranchId)?.BranchName</b></div>
+                                        }
+                                    }
+
+                                    @if (CurrentStep == 2)
+                                    {
+                                        <div class="col-md-12 mb-4"><span>Registration Number: </span><b>@Company.RegistrationNumber</b></div>
+                                        <div class="col-md-12 mb-4"><span>PAN Number: </span><b>@Company.PANNumber</b></div>
+                                        <div class="col-md-12 mb-4"><span>GSTIN: </span><b>@Company.GSTIN</b></div>
+                                        <div class="col-md-12 mb-4"><span>TAN Number: </span><b>@Company.TANNumber</b></div>
+                                        <div class="col-md-12 mb-4"><span>Other Tax Id: </span><b>@Company.OtherTaxId</b></div>
+                                        <div class="col-md-12 mb-4">
+                                            <span>Registration Country: </span>
+                                            <b>
+                                                @Countries.FirstOrDefault(c => c.Id == Company.RegistrationCountryId)?.CountryName
+                                            </b>
+                                        </div>
+                                        <div class="col-md-12 mb-4">
+                                            <span>Registration State: </span>
+                                            <b>
+                                                @RegistrationStates.FirstOrDefault(s => s.Id == Company.RegistrationStateProvinceId)?.StateProvinceName
+                                            </b>
+                                        </div>
+                                        <div class="col-md-12 mb-4">
+                                            <span>Registration City: </span>
+                                            <b>
+                                                @RegistrationCities.FirstOrDefault(c => c.Id == Company.RegistrationCityId)?.CityName
+                                            </b>
+                                        </div>
+                                        <div class="col-md-12 mb-2"><span>GST Registered: </span><b>@Company.IsGSTRegistered</b></div>
+                                    }
+
+                                    @if (CurrentStep == 3)
+                                    {
+                                        <div class="col-md-12 mb-4"><span>Address Line 1: </span><b>@Company.AddressLine1</b></div>
+                                        <div class="col-md-12 mb-4"><span>Address Line 2: </span><b>@Company.AddressLine2</b></div>
+                                        <div class="col-md-12 mb-4">
+                                            <span>Country: </span>
+                                            <b>@Countries.FirstOrDefault(c => c.Id == Company.CountryId)?.CountryName</b>
+                                        </div>
+
+                                        <div class="col-md-12 mb-2">
+                                            <span>State/Province: </span>
+                                            <b>@AddressStates.FirstOrDefault(s => s.Id == Company.StateProvinceId)?.StateProvinceName</b>
+                                        </div>
+                                        <div class="col-md-12 mb-2">
+                                            <span>City: </span>
+                                            <b>
+                                                @AddressCities.FirstOrDefault(c => c.Id == Company.CityId)?.CityName
+                                            </b>
+                                        </div>
+
+                                        <div class="col-md-12 mb-2">
+                                            <span>Postal Code: </span><b>@Company.PostalCode</b>
+                                        </div>
+                                        <div class="col-md-12 mb-2">
+                                            <span>Time Zone: </span>
+                                            <b>@TimeZones.FirstOrDefault(tz => tz.Id == Company.TimeZoneId)?.DisplayName</b>
+                                        </div>
+                                    }
+
+                                    @if (CurrentStep == 4)
+                                    {
+                                        <div class="col-md-12 mb-2"><span>Primary Contact: </span><b>@Company.PrimaryContactName</b></div>
+                                        <div class="col-md-12 mb-2"><span>Email: </span><b>@Company.PrimaryEmail</b></div>
+                                        <div class="col-md-12 mb-2"><span>Phone: </span><b>@Company.PrimaryPhone</b></div>
+                                        <div class="col-md-12 mb-2"><span>Website: </span><b>@Company.WebsiteUrl</b></div>
+                                        <div class="col-md-12 mb-2"><span>Logo: </span><b>@(Company.LogoFileName ?? "None")</b></div>
+                                    }
+
+                                    @if (CurrentStep == 5)
+                                    {
+                                        <div class="col-md-12 mb-2">
+                                            <span>Base Currency: </span>
+                                            <b>
+                                                @Currencies.FirstOrDefault(c => c.Id == Company.BaseCurrencyId)?.CurrencyName
+                                                (@Currencies.FirstOrDefault(c => c.Id == Company.BaseCurrencyId)?.CurrencyCode)
+                                            </b>
+                                        </div>
+
+                                        <div class="col-md-12 mb-2">
+                                            <span>Reporting Currency: </span>
+                                            <b>
+                                                @if (Company.ReportingCurrencyId.HasValue && Company.ReportingCurrencyId != Guid.Empty)
+                                                {
+                                                    @($"{Currencies.FirstOrDefault(c => c.Id == Company.ReportingCurrencyId)?.CurrencyName} ({Currencies.FirstOrDefault(c => c.Id == Company.ReportingCurrencyId)?.CurrencyCode})")
+                                                }
+                                                else
+                                                {
+                                                    <text>Same as Base</text>
+                                                }
+                                            </b>
+                                        </div>
+
+                                        <div class="col-md-12 mb-2">
+                                            <span>Fiscal Year Start: </span>
+                                            <b>
+                                                @FiscalYearMonths.All.FirstOrDefault(m => m.Value == Company.FiscalYearStartMonth).Name
+                                            </b>
+                                        </div>
+
+                                        <div class="col-md-12 mb-2"><span>Books Start Date: </span><b>@Company.BooksStartDate.ToString("dd MMM yyyy")</b></div>
+                                        <div class="col-md-12 mb-2"><span>Enable Multi-Currency: </span><b>@(Company.EnableMultiCurrency ? "Yes" : "No")</b></div>
+                                        <div class="col-md-12 mb-2"><span>Rounding Precision: </span><b>@Company.RoundingPrecision</b></div>
+                                        <div class="col-md-12 mb-2"><span>Rounding Mode: </span><b>@Company.RoundingMode</b></div>
+                                    }
+
+                                    @if (CurrentStep == 6)
+                                    {
+                                        <div class="col-md-12 mb-2"><span>Posting From: </span><b>@Company.AllowPostingFromDate?.ToString("dd MMM yyyy")</b></div>
+                                        <div class="col-md-12 mb-2"><span>Posting To: </span><b>@Company.AllowPostingToDate?.ToString("dd MMM yyyy")</b></div>
+                                        <div class="col-md-12 mb-2"><span>Lock Back-Dated: </span><b>@(Company.LockBackDatedPosting ? "Yes" : "No")</b></div>
+                                        <div class="col-md-12 mb-2"><span>Backdated Days: </span><b>@Company.BackdatedPostingDaysAllowed</b></div>
+                                        <div class="col-md-12 mb-2"><span>Future Days: </span><b>@Company.FuturePostingDaysAllowed</b></div>
+                                        <div class="col-md-12 mb-2"><span>Notes: </span><b>@Company.Notes</b></div>
+                                    }
+                                </div>
+                            </div>
+                        </aside>
+                    </div>
+                </div>
+
+            </EditForm>
+
+        </div>
+
+    </div>
+
+}

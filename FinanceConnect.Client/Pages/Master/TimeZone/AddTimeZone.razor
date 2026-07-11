@@ -1,0 +1,227 @@
+@page "/timezones/create"
+@page "/timezones/{Id:guid}"
+
+<style>
+    .form-select option:checked {
+        color: white;
+        background-color: var(--primary);
+    }
+
+   
+
+    .validation-message {
+        color: #dc3545;
+        font-size: 12px;
+    }
+
+    .form-select.is-invalid {
+        border-color: #dc3545;
+    }
+
+    .field-validation-error {
+        color: #dc3545;
+        font-size: 12px;
+        display: block;
+        margin-top: 4px;
+    }
+</style>
+
+@if (!isInitialized)
+{
+    <div class="page-loading-overlay">
+        <div class="whirly-loader"></div>
+    </div>
+}
+else
+{
+    <div class="content flat-form">
+        <div class="page-header">
+            <div class="add-item d-flex">
+                <div class="page-title">
+                    <h4 class="fw-bold">@PageTitle</h4>
+                    <h6>@PageSubTitle</h6>
+                </div>
+            </div>
+
+            <div class="page-btn mt-0">
+                <a href="/timezones" class="btn btn-outline-secondary">
+                    <i class="ti ti-arrow-left"></i> Back
+                </a>
+            </div>
+        </div>
+
+        <EditForm EditContext="_editContext" OnSubmit="HandleSubmit">
+            <DataAnnotationsValidator />
+
+            <div class="mt-4">
+                <div class="card">
+                    @* <div class="card-header text-white" style="border-bottom: 1px solid #80808036;">
+                        <h5>
+                            <i class="ti @(IsEdit ? "ti-edit" : "ti-plus") me-2"></i>
+                            @(IsEdit ? "Edit Time Zone" : "Add Time Zone")
+                        </h5>
+                    </div> *@
+
+                    <div class="card-body">
+
+                        <!-- ================= COA IDENTITY ================= -->
+                        <h6 class="text-primary mb-3 mt-3">
+                            <i class="ti ti-clock text-primary me-2"></i>  Time Zone Identity
+                        </h6>
+                        <div class="row g-3">
+                            <div class="col-md-4">
+                                <label class="form-label">
+                                    Time Zone ID (IANA) <span class="text-danger ms-1">*</span>
+                                </label>
+
+                                <InputText class="@($"form-control {GetValidationClass(() => TimeZone.TimeZoneKey)}")"
+                                           @bind-Value="TimeZone.TimeZoneKey"
+                                           @bind-Value:after="onKeyChange"
+                                           disabled="@IsEdit"
+                                           placeholder="e.g., Asia/Kolkata, America/New_York"
+                                           maxlength="60" />
+
+                                <ValidationMessage For="@(() => TimeZone.TimeZoneKey)" />
+
+                                <small class="text-muted">
+                                    Must be valid IANA format (e.g., Area/Location)
+                                </small>
+                            </div>
+
+                            <div class="col-md-4">
+                                <label class="form-label">
+                                    Display Name <span class="text-danger ms-1">*</span>
+                                </label>
+
+                                <InputText class="@($"form-control {GetValidationClass(() => TimeZone.DisplayName)}")"
+                                           @bind-Value="TimeZone.DisplayName"
+                                           @bind-Value:after="onDisplayNameChange"
+                                           placeholder="e.g., (UTC+05:30) India Standard Time"
+                                           maxlength="120" />
+
+                                <ValidationMessage For="@(() => TimeZone.DisplayName)" />
+                            </div>
+
+                            <div class="col-md-4">
+                                <label class="form-label">Short Name</label>
+                                <InputText class="form-control" @bind-Value="TimeZone.ShortName"
+                                           @bind-Value:after="onShortNameChange"
+                                           placeholder="e.g., IST, SGT" maxlength="20" />
+                                <small class="text-muted">For compact display</small>
+                            </div>
+                        </div>
+                        <!-- ================= COA IDENTITY ================= -->
+                        <h6 class="text-primary mb-3 mt-3">  <i class="ti ti-flag text-primary me-2"></i> Country Linkage</h6>
+                        <div class="row g-3">
+                            <div class="col-md-4">
+                                <label class="form-label">Associated Country</label>
+                                <InputSelect class="form-select" @bind-Value="TimeZone.CountryId">
+                                    <option value="">--Select Country--</option>
+                                    @foreach (var country in Countries)
+                                    {
+                                        <option value="@country.Id">@country.CountryName (@country.CountryCode)</option>
+                                    }
+                                </InputSelect>
+                                <small class="text-muted">Optional - helps filter time zones by country</small>
+                            </div>
+                        </div>
+                        <!-- =================Address & Postal Rules ================= -->
+                        <h6 class="text-primary mb-3 mt-3"> <i class="ti ti-sun text-primary me-2"></i>Offset & DST Metadata</h6>
+                        <div class="row g-3">
+
+                            <div class="col-md-4">
+                                <label class="form-label">Standard UTC Offset (Minutes)</label>
+                                <InputNumber class="form-control" @bind-Value="TimeZone.StandardUtcOffsetMinutes"
+                                             min="0" placeholder="e.g., 330 for India" />
+                                <small class="text-muted">India = 330, Singapore = 480</small>
+                            </div>
+
+                            <div class="col-md-4">
+                                <label class="form-label">DST Rule Note</label>
+                                <InputText class="form-control" @bind-Value="TimeZone.DSTRuleNote"
+                                           placeholder="e.g., DST varies by year; use IANA rules" maxlength="200" />
+                            </div>
+                            <div class="col-md-4">
+                                <div class="form-check mt-4">
+                                    <InputCheckbox class="form-check-input" @bind-Value="TimeZone.SupportsDST" id="supportsDst" />
+                                    <label class="form-check-label" for="supportsDst">Supports Daylight Saving</label>
+                                </div>
+                                <small class="text-muted ms-4">Informational only</small>
+                            </div>
+                        </div>
+                        <!-- =================Status & Usage Controls ================= -->
+                        <h6 class="text-primary mb-3 mt-3">   <i class="ti ti-layout text-primary me-2"></i> Display & Formatting</h6>
+                        <div class="row g-3">
+
+
+                            <div class="col-md-4">
+                                <label class="form-label">Sort Order</label>
+                                <InputNumber class="form-control" @bind-Value="TimeZone.SortOrder"
+                                             placeholder="e.g., 1" min="0" />
+                                <small class="text-muted">Keep frequently used zones at top</small>
+                            </div>
+
+                            <div class="col-md-4 mt-4">
+                                <div class="form-check mt-4">
+                                    <InputCheckbox class="form-check-input" @bind-Value="TimeZone.IsDefaultRecommended" id="isDefault" />
+                                    <label class="form-check-label" for="isDefault">Recommended Default</label>
+                                </div>
+                                <small class="text-muted ms-4">Highlight in UI</small>
+
+                            </div>
+                        </div>
+
+
+                        <!-- =================Status & Usage Controls ================= -->
+                        <h6 class="text-primary mb-3 mt-3">      <i class="ti ti-settings text-primary me-2"></i> Usage Controls & Status</h6>
+                        <div class="row g-3">
+
+
+                            <div class="col-md-4">
+                                <label class="form-label">Status <span class="text-danger ms-1">*</span></label>
+                                <select class="form-select @(StatusValidationError != null ? "is-invalid" : "")"
+                                        @bind="SelectedTimeZoneStatus"
+                                        @bind:after="OnStatusChanged">
+                                    <option value="">--Select Status--</option>
+                                    @foreach (var status in TimeZoneStatus.All)
+                                    {
+                                        <option value="@status">@status</option>
+                                    }
+                                </select>
+                                @if (StatusValidationError != null)
+                                {
+                                    <span class="field-validation-error">@StatusValidationError</span>
+                                }
+                            </div>
+                            @* maxlength="300" *@
+                            <div class="col-md-4">
+                                <label class="form-label">Notes</label>
+                                <RichTextEditor @ref="_notesEditor"
+                                    Value="@TimeZone.Notes"
+                                    MaxHeight="200" MinHeight="80"
+                                    placeholder="Additional notes..." />
+
+                            </div>
+                        </div>
+
+
+
+                    </div>
+
+                </div>
+
+                <div class="d-flex justify-content-end mb-4">
+                    <button type="button" class="btn btn-outline-secondary me-2" @onclick='() => Nav.NavigateTo("/timezones")'>
+                        <i class="ti ti-x"></i> Cancel
+                    </button>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="ti ti-device-floppy"></i> @(IsEdit ? "Update" : "Save")
+                    </button>
+                </div>
+
+
+            </div>
+        </EditForm>
+    </div>
+
+}

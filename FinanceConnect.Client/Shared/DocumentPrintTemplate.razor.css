@@ -1,0 +1,122 @@
+﻿.dc-wrapper {
+    width: 900px;
+    margin: auto;
+    background: white;
+    padding: 40px;
+    font-family: Segoe UI;
+    color: #2c3e50;
+}
+
+.dc-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+}
+
+.dc-logo img {
+    width: 60px;
+}
+
+.dc-title {
+    font-size: 22px;
+    font-weight: 700;
+    letter-spacing: 1px;
+}
+
+.dc-number {
+    font-weight: 600;
+}
+
+/* COMPANY + META */
+
+.dc-top {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 20px;
+}
+
+.dc-company {
+    width: 60%;
+    font-size: 14px;
+}
+
+.dc-meta {
+    width: 30%;
+    font-size: 14px;
+}
+
+    .dc-meta div {
+        display: flex;
+        justify-content: space-between;
+    }
+
+/* ADDRESS */
+
+.dc-address {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 20px;
+}
+
+    .dc-address h5 {
+        margin-bottom: 5px;
+    }
+
+/* TABLE */
+
+.dc-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+    .dc-table th {
+        background: #356a87;
+        color: white;
+        padding: 10px;
+    }
+
+    .dc-table td {
+        padding: 10px;
+        border-bottom: 1px solid #ddd;
+    }
+
+/* SIGNATURE */
+
+.dc-signature {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 60px;
+}
+
+.dc-sign {
+    text-align: center;
+}
+
+.dc-stamp {
+    width: 70px;
+    margin-bottom: 10px;
+}
+
+.dc-line {
+    width: 200px;
+    border-bottom: 1px solid #bbb;
+    margin-bottom: 5px;
+}
+
+.dc-table th,
+.dc-table td {
+    padding: 10px;
+}
+
+    .dc-table th:nth-child(1),
+    .dc-table td:nth-child(1) {
+        text-align: center;
+    }
+
+    .dc-table th:nth-child(4),
+    .dc-table td:nth-child(4),
+    .dc-table th:nth-child(5),
+    .dc-table td:nth-child(5) {
+        text-align: right;
+    }

@@ -1,0 +1,363 @@
+﻿@page "/document-series/{SeriesId:guid}/view"
+
+@using FinanceConnect.Client.ViewModels
+@using FinanceConnect.Client.Services
+@inject DocumentNumberSeriesService SeriesService
+@inject MasterDataService MasterDataService
+@inject NavigationManager Nav
+
+@if (SelectedSeries != null)
+{
+    <div class="content">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <div>
+                <h4 class="fw-bold mb-1">Document Number Series Details</h4>
+                <p class="text-muted mb-0 small">Manage document numbering sequences and formats</p>
+            </div>
+            <a class="btn btn-outline-secondary" @onclick="GoBack">
+                <i class="ti ti-arrow-left me-1"></i> Back
+            </a>
+        </div>
+        <div class="card">
+
+            <!-- TOP HEADER CARD -->
+            <div class="header-card">
+                <div class="header-inner">
+
+                    <div class="header-left1">
+                        <div class="company-logo">
+                            <span class="logo-initials">
+                                @SelectedSeries?.SeriesCode?.Substring(0, Math.Min(2, SelectedSeries.SeriesCode.Length)).ToUpper()
+                            </span>
+                        </div>
+
+                        <div class="header-meta">
+                            <h2 class="company-title">@SelectedSeries?.SeriesName</h2>
+
+                            <div class="company-subtitle">
+                                <span>@GetCompanyName(SelectedSeries.CompanyId)</span>
+                                <span class="dot">·</span>
+                                <span>@SelectedSeries.AppliesToEntityType</span>
+                                <span class="dot">·</span>
+                                <span>
+                                    @(SelectedSeries.EffectiveFrom?.ToString("dd MMM yyyy") ?? "-")
+                                    →
+                                    @(SelectedSeries.EffectiveTo?.ToString("dd MMM yyyy") ?? "Open")
+                                </span>
+                            </div>
+
+                            <div class="header-tags">
+                                <span class="tag tag-default"
+                                      style="border:1px solid #0081ff;background:#e9f3ff;color:#1420ff;">
+                                    @SelectedSeries.SequenceScopeMode
+                                </span>
+
+                                <span class="tag tag-default"
+                                      style="border:1px solid #c6b500;background:#f7ffdf;color:#b4ac00;">
+                                    @SelectedSeries.ResetFrequency
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="header-right">
+                        @if (SelectedSeries?.IsActive == true)
+                        {
+                            <span class="status-badge status-active">● ACTIVE</span>
+                        }
+                        else
+                        {
+                            <span class="status-badge status-inactive">● INACTIVE</span>
+                        }
+
+                        <div class="created-info">
+                            Created @SelectedSeries?.CreatedAt.ToString("dd MMM yyyy")
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+
+            <!-- SCROLLABLE BODY -->
+            <div class="details-body">
+
+                <!-- SERIES IDENTITY -->
+                <div class="section-block">
+                    <div class="section-header">
+                        <span class="section-icon"
+                              style="background:#fe6dde36;border:1px solid #ff79f2;color:#eb0091;padding: 2px 6px 0px 6px;
+                               border-radius: 5px;">
+                            <i class="ti ti-id"></i>
+                        </span>
+                        <span class="section-title">SERIES IDENTITY</span>
+                        <div class="line"></div>
+                    </div>
+
+                    <div class="section-content">
+                        <div class="fields-grid fields-grid-3">
+
+                            <div class="field-item">
+                                <div class="field-label">SERIES CODE</div>
+                                <div class="field-value fw">@SelectedSeries?.SeriesCode</div>
+                            </div>
+
+                            <div class="field-item">
+                                <div class="field-label">SERIES NAME</div>
+                                <div class="field-value">@SelectedSeries?.SeriesName</div>
+                            </div>
+
+                            <div class="field-item">
+                                <div class="field-label">COMPANY</div>
+                                <div class="field-value">@GetCompanyName(SelectedSeries.CompanyId)</div>
+                            </div>
+
+                            <div class="field-item">
+                                <div class="field-label">APPLIES TO</div>
+                                <div class="field-value">@SelectedSeries?.AppliesToEntityType</div>
+                            </div>
+
+                            <div class="field-item">
+                                <div class="field-label">EFFECTIVE FROM</div>
+                                <div class="field-value">@SelectedSeries?.EffectiveFrom?.ToString("dd MMM yyyy")</div>
+                            </div>
+
+                            <div class="field-item">
+                                <div class="field-label">EFFECTIVE TO</div>
+                                <div class="field-value">
+                                    @(SelectedSeries?.EffectiveTo?.ToString("dd MMM yyyy") ?? "Open")
+                                </div>
+                            </div>
+
+                        </div>
+                    </div>
+                </div>
+
+
+                <!-- SCOPE & RESET POLICY -->
+                <div class="section-block">
+                    <div class="section-header">
+                        <span class="section-icon"
+                              style="background:#dae4ff6e;border:1px solid #3741ff;color:#0037ff;padding: 2px 6px 0px 6px;
+                              border-radius: 5px;">
+                            <i class="ti ti-settings"></i>
+                        </span>
+                        <span class="section-title">SCOPE & RESET POLICY</span>
+                        <div class="line"></div>
+                    </div>
+
+                    <div class="section-content">
+                        <div class="fields-grid fields-grid-3">
+
+                            <div class="field-item">
+                                <div class="field-label">SEQUENCE SCOPE</div>
+                                <div class="field-value">
+                                    <span class="pill pill-info">@SelectedSeries?.SequenceScopeMode</span>
+                                </div>
+                            </div>
+
+                            <div class="field-item">
+                                <div class="field-label">RESET FREQUENCY</div>
+                                <div class="field-value">
+                                    <span class="pill pill-info">@SelectedSeries?.ResetFrequency</span>
+                                </div>
+                            </div>
+
+                            <div class="field-item">
+                                <div class="field-label">FISCAL YEAR MODE</div>
+                                <div class="field-value">
+                                    @(SelectedSeries?.FiscalYearMode?.ToString() ?? "-")
+                                </div>
+                            </div>
+
+                            <div class="field-item">
+                                <div class="field-label">RESERVATION MODE</div>
+                                <div class="field-value">
+                                    <span class="pill pill-warning">@SelectedSeries?.ReservationMode</span>
+                                </div>
+                            </div>
+
+                        </div>
+                    </div>
+                </div>
+
+
+                <!-- FORMAT TEMPLATE -->
+                <div class="section-block">
+                    <div class="section-header">
+                        <span class="section-icon"
+                              style="background:#daffde61;border:1px solid #12e141;color:#00ce3f;padding: 2px 6px 0px 6px;
+                              border-radius: 5px;">
+                            <i class="ti ti-code"></i>
+                        </span>
+                        <span class="section-title">FORMAT TEMPLATE</span>
+                        <div class="line"></div>
+                    </div>
+
+                    <div class="section-content">
+                        <div class="fields-grid fields-grid-3">
+
+                            <div class="field-item field-span-2">
+                                <div class="field-label">PREFIX TEMPLATE</div>
+                                <div class="field-value">
+                                    @(SelectedSeries?.PrefixTemplate ?? "-")
+                                </div>
+                            </div>
+
+                            <div class="field-item">
+                                <div class="field-label">SEQUENCE FORMAT</div>
+                                <div class="field-value fw">
+                                    @SelectedSeries?.SequenceTokenFormat
+                                </div>
+                            </div>
+
+                            <div class="field-item">
+                                <div class="field-label">SEPARATOR</div>
+                                <div class="field-value">
+                                    @(SelectedSeries?.Separator ?? "-")
+                                </div>
+                            </div>
+
+                            <div class="field-item field-span-2">
+                                <div class="field-label">SUFFIX TEMPLATE</div>
+                                <div class="field-value">
+                                    @(SelectedSeries?.SuffixTemplate ?? "-")
+                                </div>
+                            </div>
+
+                        </div>
+                    </div>
+                </div>
+
+
+                <!-- RANGE & ALLOCATION -->
+                <div class="section-block">
+                    <div class="section-header">
+                        <span class="section-icon"
+                              style="background:#6debfe2b;border:1px solid #00a785;color:#008f9c;padding: 2px 6px 0px 6px;
+                             border-radius: 5px;">
+                            <i class="ti ti-adjustments"></i>
+                        </span>
+                        <span class="section-title">RANGE & ALLOCATION POLICY</span>
+                        <div class="line"></div>
+                    </div>
+
+                    <div class="section-content">
+                        <div class="fields-grid fields-grid-3">
+
+                            <div class="field-item">
+                                <div class="field-label">MIN VALUE</div>
+                                <div class="field-value">@SelectedSeries?.MinSequenceValue</div>
+                            </div>
+
+                            <div class="field-item">
+                                <div class="field-label">MAX VALUE</div>
+                                <div class="field-value">
+                                    @(SelectedSeries?.MaxSequenceValue?.ToString() ?? "-")
+                                </div>
+                            </div>
+
+                            <div class="field-item">
+                                <div class="field-label">INCREMENT BY</div>
+                                <div class="field-value">@SelectedSeries?.IncrementBy</div>
+                            </div>
+
+                            <div class="field-item">
+                                <div class="field-label">ALLOW PREVIEW</div>
+                                <div class="field-value">
+                                    @if (SelectedSeries?.AllowNumberPreview == true)
+                                    {
+                                        <span class="pill pill-yes">✓ Yes</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="pill pill-no">✕ No</span>
+                                    }
+                                </div>
+                            </div>
+
+                            <div class="field-item">
+                                <div class="field-label">GAP HANDLING</div>
+                                <div class="field-value">
+                                    <span class="pill pill-warning">
+                                        @SelectedSeries?.GapHandlingPolicy
+                                    </span>
+                                </div>
+                            </div>
+
+                        </div>
+                    </div>
+                </div>
+
+
+                <!-- STATUS & AUDIT -->
+                <div class="section-block">
+                    <div class="section-header">
+                        <span class="section-icon"
+                              style="background:#f8c5051f;border:1px solid #a7b500;color:#c0a700;padding: 2px 6px 0px 6px;
+                              border-radius: 5px;">
+                            <i class="ti ti-history"></i>
+                        </span>
+                        <span class="section-title">STATUS & AUDIT</span>
+                        <div class="line"></div>
+                    </div>
+
+                    <div class="section-content">
+                        <div class="fields-grid fields-grid-3">
+
+                            <div class="field-item">
+                                <div class="field-label">STATUS</div>
+                                <div class="field-value">
+                                    @if (SelectedSeries?.IsActive == true)
+                                    {
+                                        <span class="pill pill-yes">● ACTIVE</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="pill pill-no">● INACTIVE</span>
+                                    }
+                                </div>
+                            </div>
+
+                            <div class="field-item">
+                                <div class="field-label">SYSTEM DEFINED</div>
+                                <div class="field-value">
+                                    @if (SelectedSeries?.IsSystemDefined == true)
+                                    {
+                                        <span class="pill pill-warning">System</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="pill pill-no">User</span>
+                                    }
+                                </div>
+                            </div>
+
+                            <div class="field-item">
+                                <div class="field-label">CREATED</div>
+                                <div class="field-value">
+                                    @SelectedSeries?.CreatedAt.ToString("dd MMM yyyy")
+                                </div>
+                            </div>
+
+                            <div class="field-item">
+                                <div class="field-label">UPDATED</div>
+                                <div class="field-value">
+                                    @(SelectedSeries?.UpdatedAt?.ToString("dd MMM yyyy") ?? "-")
+                                </div>
+                            </div>
+
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </div>
+}
+else
+{
+    <div class="page-loading-overlay">
+        <div class="whirly-loader"></div>
+    </div>
+}
+

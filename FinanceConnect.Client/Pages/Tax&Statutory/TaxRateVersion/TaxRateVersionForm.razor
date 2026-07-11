@@ -1,0 +1,434 @@
+﻿@page "/tax-rate-versions/create"
+@page "/tax-rate-versions/create/{TaxCodeId:guid}"
+@page "/tax-rate-versions/edit/{Id:guid}"
+@using RV = FinanceConnect.Client.ViewModels.TaxRateVersionViewModel
+
+<style>
+    .form-select option:checked { color: white; background-color: var(--primary); }
+    .validation-message { color: #dc3545; font-size: 12px; }
+    .rate-input-box {
+        border: 2px solid var(--bs-primary);
+        border-radius: 8px;
+        padding: 16px;
+        background: #f0f8ff42;
+    }
+    .open-ended-note {
+        font-size: 12px;
+        color: #664d03;
+        background: #fff3cd;
+        border-radius: 6px;
+        padding: 6px 12px;
+    }
+</style>
+
+@if (!isInitialized)
+{
+    <div class="page-loading-overlay"><div class="whirly-loader"></div></div>
+}
+else
+{
+    <div class="content form-wizard">
+        <div class="page-header">
+            <div class="add-item d-flex">
+                <div class="page-title">
+                    <h4 class="fw-bold">@PageTitle</h4>
+                    <h6>@PageSubTitle</h6>
+                </div>
+            </div>
+            <div class="d-flex page-btn mt-0 gap-2">
+                @if (IsEdit)
+                {
+                    <button type="button" class="btn btn-primary" @onclick="Save">
+                        <i class="ti ti-device-floppy"></i> Update
+                    </button>
+                }
+                <a href="/tax-rate-versions" class="btn btn-outline-secondary">
+                    <i class="ti ti-arrow-left"></i> Back
+                </a>
+            </div>
+        </div>
+
+        <div class="wizard-overlay d-flex mb-4">
+            <EditForm EditContext="editContext" OnSubmit="Save" style="width:100%;">
+                <div class="wizard-overlay">
+                    <div class="wizard-modal">
+
+                        <!-- LEFT STEPPER -->
+                        <div class="wizard-steps">
+                            <div class="timeline-line"></div>
+                            <div class="timeline-indicator @(IsCurrentStepValid() ? "success" : "error")"
+                                 style="top:@IndicatorToppx"></div>
+                            @for (int i = 1; i <= Steps.Count; i++)
+                            {
+                                <div class="wizard-step @StepClass(i)">
+                                    <div class="dot" style="padding:10px;">
+                                        @if (i < CurrentStep)
+                                        {
+                                            <i class="ti ti-check" style="color:white;font-size:22px;"></i>
+                                        }
+                                        else
+                                        {
+                                            <i class="@Steps[i - 1].Icon"></i>
+                                        }
+                                    </div>
+                                    <div class="label"><b>@Steps[i - 1].Title</b></div>
+                                </div>
+                            }
+                        </div>
+
+                        <!-- CONTENT -->
+                        <div class="wizard-content" style="padding-left: 61px;">
+                            <h2 style="font-size:17px;margin-bottom:10px;">@Steps[CurrentStep - 1].Title</h2>
+
+                            @* ── Step 1: Tax Code & Effective Dates ── *@
+                            @if (CurrentStep == 1)
+                            {
+                                <div class="accordion-body border-top pt-3 p-0">
+                                    <div class="row">
+
+                                        <div class="col-md-6 mb-3">
+                                            <label class="form-label">Tax Code <span class="text-danger">*</span></label>
+                                            <select class="@($"form-select {(ShowFieldError(1, "TaxCodeId") ? "is-invalid" : "")}")"
+                                                    @onchange="OnTaxCodeSelected" disabled="@IsEdit">
+                                                <option value="">-- Select Tax Code --</option>
+                                                @foreach (var tc in TaxCodeList)
+                                                {
+                                                    <option value="@tc.Value"
+                                                            selected="@(Model.TaxCodeId.ToString() == tc.Value)">
+                                                        @tc.Text
+                                                    </option>
+                                                }
+                                            </select>
+                                            @if (ShowFieldError(1, "TaxCodeId"))
+                                            {
+                                                <div class="text-danger small mt-1">Tax Code is required</div>
+                                            }
+                                        </div>
+
+                                        <div class="col-md-6 mb-3">
+                                            <label class="form-label">Version Number</label>
+                                            <input type="text" class="form-control" value="@Model.VersionNumber" disabled />
+                                            <small class="text-muted">Auto-assigned per Tax Code</small>
+                                        </div>
+
+                                        <div class="col-md-6 mb-3">
+                                            <label class="form-label">Effective From <span class="text-danger">*</span></label>
+                                            <InputDate class="@($"form-control {(ShowFieldError(1, "EffectiveFrom") ? "is-invalid" : "")}")"
+                                                       @bind-Value="Model.EffectiveFrom" />
+                                            @if (ShowFieldError(1, "EffectiveFrom"))
+                                            {
+                                                <div class="text-danger small mt-1">Effective From is required</div>
+                                            }
+                                        </div>
+
+                                        <div class="col-md-6 mb-3">
+                                            <label class="form-label">Effective To</label>
+                                            <InputDate class="form-control" @bind-Value="Model.EffectiveTo" />
+                                            <small class="text-muted">Leave blank for open-ended (until further notice)</small>
+                                        </div>
+
+                                        @if (Model.EffectiveTo == null)
+                                        {
+                                            <div class="col-md-12 mb-2">
+                                                <div class="open-ended-note">
+                                                    <i class="ti ti-alert-triangle me-1"></i>
+                                                    <strong>Open-ended:</strong> This version will apply indefinitely.
+                                                    Only one open-ended version is allowed per Tax Code at a time.
+                                                </div>
+                                            </div>
+                                        }
+
+                                    </div>
+                                </div>
+                            }
+
+                            @* ── Step 2: Rate Definition ── *@
+                            @if (CurrentStep == 2)
+                            {
+                                <div class="accordion-body border-top pt-3 p-0">
+                                    <div class="row">
+
+                                        <div class="col-md-6 mb-3">
+                                            <label class="form-label">Rate Type <span class="text-danger">*</span></label>
+                                            <InputSelect class="form-select" @bind-Value="Model.Type">
+                                                <option value="@RV.RateType.Percentage">Percentage</option>
+                                                <option value="@RV.RateType.FixedAmount">Fixed Amount</option>
+                                                <option value="@RV.RateType.SlabBased">Slab Based (future)</option>
+                                            </InputSelect>
+                                        </div>
+
+                                        <div class="col-md-6 mb-3">
+                                            <label class="form-label">Rate Basis</label>
+                                            <InputSelect class="form-select" @bind-Value="Model.Basis">
+                                                <option value="@RV.RateBasis.OnTaxableValue">On Taxable Value</option>
+                                                <option value="@RV.RateBasis.OnGrossValue">On Gross Value</option>
+                                                <option value="@RV.RateBasis.OnNetValue">On Net Value</option>
+                                            </InputSelect>
+                                        </div>
+
+                                        @if (Model.Type == RV.RateType.Percentage)
+                                        {
+                                            <div class="col-md-6 mb-3">
+                                                <label class="form-label">Rate % <span class="text-danger">*</span></label>
+                                                <div class="input-group">
+                                                    <InputNumber class="@($"form-control {(ShowFieldError(2, "RatePercent") ? "is-invalid" : "")}")"
+                                                                 @bind-Value="Model.RatePercent"
+                                                                 placeholder="e.g. 18" />
+                                                    <span class="input-group-text">%</span>
+                                                </div>
+                                                @if (ShowFieldError(2, "RatePercent"))
+                                                {
+                                                    <div class="text-danger small mt-1">Rate % is required and must be 0–100</div>
+                                                }
+                                            </div>
+                                        }
+
+                                        @if (Model.Type == RV.RateType.FixedAmount)
+                                        {
+                                            <div class="col-md-6 mb-3">
+                                                <label class="form-label">Fixed Amount <span class="text-danger">*</span></label>
+                                                <div class="input-group">
+                                                    <span class="input-group-text">₹</span>
+                                                    <InputNumber class="@($"form-control {(ShowFieldError(2, "FixedAmount") ? "is-invalid" : "")}")"
+                                                                 @bind-Value="Model.FixedAmount"
+                                                                 placeholder="0.00" />
+                                                </div>
+                                                @if (ShowFieldError(2, "FixedAmount"))
+                                                {
+                                                    <div class="text-danger small mt-1">Fixed Amount is required</div>
+                                                }
+                                            </div>
+                                        }
+
+                                        <div class="col-md-6 mb-3">
+                                            <label class="form-label">Min Tax Amount</label>
+                                            <div class="input-group">
+                                                <span class="input-group-text">₹</span>
+                                                <InputNumber class="form-control" @bind-Value="Model.MinimumTaxAmount" placeholder="Optional" />
+                                            </div>
+                                        </div>
+
+                                        <div class="col-md-6 mb-3">
+                                            <label class="form-label">Max Tax Amount</label>
+                                            <div class="input-group">
+                                                <span class="input-group-text">₹</span>
+                                                <InputNumber class="form-control" @bind-Value="Model.MaximumTaxAmount" placeholder="Optional" />
+                                            </div>
+                                        </div>
+
+                                        <!-- Threshold section -->
+                                        <div class="col-md-6 mb-3">
+                                            <div class="form-check mt-4">
+                                                <InputCheckbox class="form-check-input" @bind-Value="Model.HasThreshold"
+                                                               id="hasThreshold" style="width:auto;" />
+                                                <label class="form-check-label" for="hasThreshold">Apply Threshold</label>
+                                            </div>
+                                            <small class="text-muted">Tax applies only if amount exceeds threshold</small>
+                                        </div>
+
+                                        @if (Model.HasThreshold)
+                                        {
+                                            <div class="col-md-6 mb-3">
+                                                <label class="form-label">Threshold Amount <span class="text-danger">*</span></label>
+                                                <div class="input-group">
+                                                    <span class="input-group-text">₹</span>
+                                                    <InputNumber class="form-control" @bind-Value="Model.ThresholdAmount" placeholder="e.g. 5000000" />
+                                                </div>
+                                            </div>
+                                        }
+
+                                    </div>
+                                </div>
+                            }
+
+                            @* ── Step 3: Special Rules & Legal ── *@
+                            @if (CurrentStep == 3)
+                            {
+                                <div class="accordion-body border-top pt-3 p-0">
+                                    <div class="row">
+
+                                        <div class="col-12 mb-2">
+                                            <p class="text-muted small fw-semibold mb-1">SPECIAL RULES</p>
+                                        </div>
+
+                                        <div class="col-md-6 mb-3">
+                                            <div class="form-check">
+                                                <InputCheckbox class="form-check-input" @bind-Value="Model.PanRequiredForStandardRate"
+                                                               id="panReq" style="width:auto;" />
+                                                <label class="form-check-label" for="panReq">PAN Required for Standard Rate (TDS)</label>
+                                            </div>
+                                        </div>
+
+                                        @if (Model.PanRequiredForStandardRate)
+                                        {
+                                            <div class="col-md-6 mb-3">
+                                                <label class="form-label">Alternate Rate % if PAN Missing <span class="text-danger">*</span></label>
+                                                <div class="input-group">
+                                                    <InputNumber class="form-control" @bind-Value="Model.AlternateRatePercentIfPanMissing"
+                                                                 placeholder="e.g. 20" />
+                                                    <span class="input-group-text">%</span>
+                                                </div>
+                                                <small class="text-muted">Typically 20% as per IT Act</small>
+                                            </div>
+                                        }
+
+                                        <div class="col-md-6 mb-3">
+                                            <div class="form-check">
+                                                <InputCheckbox class="form-check-input" @bind-Value="Model.IsReverseChargeRate"
+                                                               id="rcm" style="width:auto;" />
+                                                <label class="form-check-label" for="rcm">Reverse Charge Rate (GST RCM)</label>
+                                            </div>
+                                        </div>
+
+                                        <div class="col-md-6 mb-3">
+                                            <label class="form-label">ITC Eligibility Override</label>
+                                            <InputSelect class="form-select" @bind-Value="Model.ITCOverride">
+                                                <option value="@RV.ITCRateOverride.InheritFromTaxCode">Inherit from Tax Code</option>
+                                                <option value="@RV.ITCRateOverride.Eligible">Eligible</option>
+                                                <option value="@RV.ITCRateOverride.Ineligible">Ineligible</option>
+                                                <option value="@RV.ITCRateOverride.Provisional">Provisional</option>
+                                            </InputSelect>
+                                        </div>
+
+                                        <div class="col-12 mb-2 mt-2">
+                                            <hr />
+                                            <p class="text-muted small fw-semibold mb-1">LEGAL / EVIDENCE</p>
+                                        </div>
+
+                                        <div class="col-md-6 mb-3">
+                                            <label class="form-label">Rate Source <span class="text-danger">*</span></label>
+                                            <InputSelect class="@($"form-select {(ShowFieldError(3, "SourceType") ? "is-invalid" : "")}")"
+                                                         @bind-Value="Model.SourceType">
+                                                <option value="@RV.RateSourceType.GovernmentNotification">Government Notification</option>
+                                                <option value="@RV.RateSourceType.InternalPolicy">Internal Policy</option>
+                                                <option value="@RV.RateSourceType.Migration">Migration</option>
+                                                <option value="@RV.RateSourceType.Correction">Correction</option>
+                                            </InputSelect>
+                                        </div>
+
+                                        <div class="col-md-6 mb-3">
+                                            <label class="form-label">Legal Reference Number</label>
+                                            <InputText class="form-control" @bind-Value="Model.LegalReferenceNumber"
+                                                       placeholder="e.g. CBIC Notif 2023-45" />
+                                        </div>
+
+                                        <div class="col-md-6 mb-3">
+                                            <label class="form-label">Legal Reference Date</label>
+                                            <InputDate class="form-control" @bind-Value="Model.LegalReferenceDate" />
+                                        </div>
+
+                                        <div class="col-md-12 mb-3">
+                                            <label class="form-label">Notes</label>
+                                            <InputTextArea class="form-control" @bind-Value="Model.Notes"
+                                                           rows="3"
+                                                           placeholder="Context, history, or explanation for this rate..." />
+                                        </div>
+
+                                    </div>
+                                </div>
+                            }
+
+                            @* ── Step 4: Review ── *@
+                            @if (CurrentStep == 4)
+                            {
+                                <div class="accordion-body border-top pt-3 p-0">
+                                    <div class="row">
+                                        <div class="col-md-12 mb-3">
+                                            <div class="card bg-light border-0">
+                                                <div class="card-body">
+                                                    <h6 class="text-primary mb-3">Rate Version Summary</h6>
+                                                    <div class="row">
+                                                        <div class="col-md-6">
+                                                            <p class="mb-1"><span class="text-muted">Tax Code:</span> <strong>@Model.TaxCodeSnapshot</strong></p>
+                                                            <p class="mb-1"><span class="text-muted">Version:</span> <strong>V@Model.VersionNumber</strong></p>
+                                                            <p class="mb-1"><span class="text-muted">Effective From:</span> <strong>@Model.EffectiveFrom.ToString("dd MMM yyyy")</strong></p>
+                                                            <p class="mb-1"><span class="text-muted">Effective To:</span>
+                                                                <strong>@(Model.EffectiveTo.HasValue ? Model.EffectiveTo.Value.ToString("dd MMM yyyy") : "Open-ended")</strong>
+                                                            </p>
+                                                        </div>
+                                                        <div class="col-md-6">
+                                                            <p class="mb-1"><span class="text-muted">Rate Type:</span> <strong>@Model.Type</strong></p>
+                                                            @if (Model.Type == RV.RateType.Percentage)
+                                                            {
+                                                                <p class="mb-1"><span class="text-muted">Rate:</span> <strong>@Model.RatePercent%</strong></p>
+                                                            }
+                                                            else
+                                                            {
+                                                                <p class="mb-1"><span class="text-muted">Fixed Amount:</span> <strong>₹@Model.FixedAmount</strong></p>
+                                                            }
+                                                            <p class="mb-1"><span class="text-muted">Source:</span> <strong>@Model.SourceType</strong></p>
+                                                            @if (!string.IsNullOrWhiteSpace(Model.LegalReferenceNumber))
+                                                            {
+                                                                <p class="mb-1"><span class="text-muted">Legal Ref:</span> <strong>@Model.LegalReferenceNumber</strong></p>
+                                                            }
+                                                        </div>
+                                                    </div>
+                                                    <hr />
+                                                    <p class="mb-0 text-muted small">
+                                                        <i class="ti ti-info-circle me-1"></i>
+                                                        This will be saved as <strong>Draft</strong>. Submit for approval to activate.
+                                                    </p>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            }
+
+                            <!-- WIZARD FOOTER -->
+                            <div class="d-flex gap-2 wizard-footer mb-4" style="justify-content:end;">
+                                @if (CurrentStep != 1)
+                                {
+                                    <button type="button" class="btn btn-outline-secondary" @onclick="Back">
+                                        <i class="ti ti-chevron-left"></i> Previous
+                                    </button>
+                                }
+                                @if (CurrentStep < Steps.Count)
+                                {
+                                    <button type="button" class="btn btn-primary" @onclick="Next">
+                                        Next <i class="ti ti-chevron-right"></i>
+                                    </button>
+                                }
+                                else
+                                {
+                                    <button type="button" class="btn btn-primary" @onclick="Save">
+                                        <i class="ti ti-device-floppy"></i> @(IsEdit ? "Update" : "Save Draft")
+                                    </button>
+                                }
+                            </div>
+
+                        </div>
+
+                        <!-- LIVE SUMMARY SIDEBAR -->
+                        <aside class="summary p-3 rounded d-none d-xl-flex"
+                               style="height:auto;background:white;border:none;padding-left:32px !important;padding-top:42px !important;">
+                            <div class="timeline-line1"></div>
+                            <div class="timeline-indicator1"></div>
+                            <div style="padding-left:15px;width:262px;">
+                                <h3 class="text-primary mb-3" style="font-size:17px;">Live Summary</h3>
+                                <div class="row">
+                                    <div class="col-md-12 mb-3"><span>Tax Code: </span><b>@(string.IsNullOrEmpty(Model.TaxCodeSnapshot) ? "—" : Model.TaxCodeSnapshot)</b></div>
+                                    <div class="col-md-12 mb-3"><span>Version: </span><b>V@Model.VersionNumber</b></div>
+                                    @if (CurrentStep >= 1)
+                                    {
+                                        <div class="col-md-12 mb-3"><span>From: </span><b>@Model.EffectiveFrom.ToString("dd MMM yyyy")</b></div>
+                                        <div class="col-md-12 mb-3"><span>To: </span><b>@(Model.EffectiveTo.HasValue ? Model.EffectiveTo.Value.ToString("dd MMM yyyy") : "Open")</b></div>
+                                    }
+                                    @if (CurrentStep >= 2 && Model.RatePercent.HasValue)
+                                    {
+                                        <div class="col-md-12 mb-3"><span>Rate: </span><b class="text-primary">@Model.RatePercent.Value.ToString("G")%</b></div>
+                                    }
+                                    @if (CurrentStep >= 3)
+                                    {
+                                        <div class="col-md-12 mb-3"><span>Source: </span><b>@Model.SourceType</b></div>
+                                    }
+                                </div>
+                            </div>
+                        </aside>
+
+                    </div>
+                </div>
+            </EditForm>
+        </div>
+    </div>
+}

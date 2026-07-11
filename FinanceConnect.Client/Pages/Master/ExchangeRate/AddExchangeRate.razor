@@ -1,0 +1,523 @@
+﻿@page "/exchange-rates/create"
+@page "/exchange-rates/{Id:guid}"
+@using FinanceConnect.Client.Services
+@using FinanceConnect.Client.ViewModels
+
+<style>
+    .form-select option:checked {
+        color: white;
+        background-color: var(--primary);
+    }
+
+
+    .validation-message {
+        color: #dc3545;
+        font-size: 12px;
+    }
+
+    .form-select.is-invalid {
+        border-color: #dc3545;
+    }
+
+    .field-validation-error {
+        color: #dc3545;
+        font-size: 12px;
+        display: block;
+        margin-top: 4px;
+    }
+
+</style>
+
+@if (!isInitialized)
+{
+    <div class="page-loading-overlay">
+        <div class="whirly-loader"></div>
+    </div>
+}
+else
+{
+    <div class="content Accordion-form">
+        <div class="page-header">
+            <div class="add-item d-flex">
+                <div class="page-title">
+                    <h4 class="fw-bold">@PageTitle</h4>
+                    <h6>@PageSubTitle</h6>
+                </div>
+            </div>
+
+            <div class="page-btn mt-0">
+                <a href="/exchange-rates" class="btn btn-outline-secondary">
+                    <i class="ti ti-arrow-left"></i> Back
+                </a>
+            </div>
+        </div>
+
+        <EditForm EditContext="_editContext" OnSubmit="HandleSubmit">
+            <DataAnnotationsValidator />
+
+            <div class="add-product" style="background:#f4f7fb; padding:24px 14px;">
+                <div class="tl-accordion">
+
+                    <!--  LEFT PANEL -->
+                    <div class="tl-left-panel">
+
+                        <div class="tl-label @(ShowIdentity ? "active accent-orange" : "")"
+                             @onclick="@(() => ToggleAccordion("rateIdentity"))">
+                            <div class="tl-label-icon ico-orange"><i class="ti ti-arrows-exchange"></i></div>
+                            <div class="tl-label-text">
+                                <div class="tl-label-title">Rate Identity</div>
+                                <div class="tl-label-sub">Currency pair and rate date</div>
+                            </div>
+                            <span class="tl-label-chevron @(ShowIdentity ? "open" : "")">
+                                <i data-feather="chevron-right"></i>
+                            </span>
+                        </div>
+
+                        <div class="tl-label @(ShowRateValue ? "active accent-blue" : "")"
+                             @onclick="@(() => ToggleAccordion("rateValue"))">
+                            <div class="tl-label-icon ico-blue"><i class="ti ti-calculator"></i></div>
+                            <div class="tl-label-text">
+                                <div class="tl-label-title">Rate Value & Precision</div>
+                                <div class="tl-label-sub">Exchange rate and calculations</div>
+                            </div>
+                            <span class="tl-label-chevron @(ShowRateValue ? "open" : "")">
+                                <i data-feather="chevron-right"></i>
+                            </span>
+                        </div>
+
+                        <div class="tl-label @(ShowSource ? "active accent-purple" : "")"
+                             @onclick="@(() => ToggleAccordion("rateSource"))">
+                            <div class="tl-label-icon ico-purple"><i class="ti ti-file-search"></i></div>
+                            <div class="tl-label-text">
+                                <div class="tl-label-title">Rate Source & Evidence</div>
+                                <div class="tl-label-sub">Source information and documentation</div>
+                            </div>
+                            <span class="tl-label-chevron @(ShowSource ? "open" : "")">
+                                <i data-feather="chevron-right"></i>
+                            </span>
+                        </div>
+
+                        <div class="tl-label @(ShowStatus ? "active accent-teal" : "")"
+                             @onclick="@(() => ToggleAccordion("statusGovernance"))">
+                            <div class="tl-label-icon ico-teal"><i class="ti ti-settings"></i></div>
+                            <div class="tl-label-text">
+                                <div class="tl-label-title">Status & Governance</div>
+                                <div class="tl-label-sub">Rate status and audit information</div>
+                            </div>
+                            <span class="tl-label-chevron @(ShowStatus ? "open" : "")">
+                                <i data-feather="chevron-right"></i>
+                            </span>
+                        </div>
+
+                    </div>
+
+
+                    <!--  RIGHT PANEL -->
+                    <div class="tl-right-area">
+
+                        <!--  RATE IDENTITY  -->
+                        <div class="tl-card-row @(ShowIdentity ? "row-active" : "")">
+                            <div class="tl-dot-col">
+                                <div class="tl-dot" @onclick="@(() => ToggleAccordion("rateIdentity"))"></div>
+                            </div>
+                            <div class="tl-card-col">
+                                <div class="tl-card @(ShowIdentity ? "card-active border-orange" : "")">
+
+                                    <div class="tl-card-header" @onclick="@(() => ToggleAccordion("rateIdentity"))">
+                                        <div class="tl-card-header-title">
+                                            <span class="tl-card-step step-orange">01</span>
+                                            Rate Identity
+                                        </div>
+                                        <span class="tl-card-toggle @(ShowIdentity ? "toggle-open" : "")">
+                                            <i data-feather="chevron-down"></i>
+                                        </span>
+                                    </div>
+
+                                    <div class="tl-collapse @(ShowIdentity ? "tl-open" : "")">
+                                        <div class="tl-card-body">
+                                            <div class="tl-card-body-inner @(IdentityTouched ? "touched" : "")">
+                                                <div class="row">
+
+                                                    <!-- Base Currency -->
+                                                    <div class="col-md-3 mb-3">
+                                                        <label class="form-label">Base Currency <span class="text-danger">*</span></label>
+                                                        <select class="form-select @(BaseCurrencyValidationError != null ? "is-invalid" : "")"
+                                                                @bind="SelectedBaseCurrencyId"
+                                                                @bind:after="OnBaseCurrencyChanged"
+                                                                disabled="@(IsEdit && !CanEdit)">
+                                                            <option value="">--Select Base Currency--</option>
+                                                            @foreach (var currency in Currencies)
+                                                            {
+                                                                <option value="@currency.Id">@currency.CurrencyCode - @currency.CurrencyName</option>
+                                                            }
+                                                        </select>
+                                                        @if (BaseCurrencyValidationError != null)
+                                                        {
+                                                            <span class="field-validation-error">@BaseCurrencyValidationError</span>
+                                                        }
+                                                        else
+                                                        {
+                                                            <small class="text-muted">1 unit of this currency</small>
+                                                        }
+                                                    </div>
+
+                                                    <!-- Quote Currency -->
+                                                    <div class="col-md-3 mb-3">
+                                                        <label class="form-label">Quote Currency <span class="text-danger">*</span></label>
+                                                        <select class="form-select @(QuoteCurrencyValidationError != null ? "is-invalid" : "")"
+                                                                @bind="SelectedQuoteCurrencyId"
+                                                                @bind:after="OnQuoteCurrencyChanged"
+                                                                disabled="@(IsEdit && !CanEdit)">
+                                                            <option value="">--Select Quote Currency--</option>
+                                                            @foreach (var currency in Currencies)
+                                                            {
+                                                                <option value="@currency.Id">@currency.CurrencyCode - @currency.CurrencyName</option>
+                                                            }
+                                                        </select>
+                                                        @if (QuoteCurrencyValidationError != null)
+                                                        {
+                                                            <span class="field-validation-error">@QuoteCurrencyValidationError</span>
+                                                        }
+                                                    </div>
+
+                                                    <!-- Rate Date -->
+                                                    <div class="col-md-3 mb-3">
+                                                        <label class="form-label">Rate Date <span class="text-danger">*</span></label>
+                                                        <InputDate class="form-control"
+                                                                   @bind-Value="ExchangeRate.RateDate"
+                                                                   disabled="@(IsEdit && !CanEdit)"
+                                                                   @oninput="TouchIdentity" />
+                                                        <ValidationMessage For="@(() => ExchangeRate.RateDate)" />
+                                                    </div>
+
+                                                    <!-- Rate Type -->
+                                                    <div class="col-md-3 mb-3">
+                                                        <label class="form-label">Rate Type <span class="text-danger">*</span></label>
+                                                        <select class="form-select @(RateTypeValidationError != null ? "is-invalid" : "")"
+                                                                @bind="SelectedRateTypeValue"
+                                                                @bind:after="OnRateTypeChanged"
+                                                                disabled="@(IsEdit && !CanEdit)">
+                                                            <option value="">--Select Rate Type--</option>
+                                                            @foreach (var type in RateTypes.All)
+                                                            {
+                                                                <option value="@type">@RateTypes.GetDisplayName(type)</option>
+                                                            }
+                                                        </select>
+                                                        @if (RateTypeValidationError != null)
+                                                        {
+                                                            <span class="field-validation-error">@RateTypeValidationError</span>
+                                                        }
+                                                    </div>
+
+                                                    <!-- Company -->
+                                                    <div class="col-md-4 mb-3">
+                                                        <label class="form-label">Company (Optional)</label>
+                                                        <InputSelect class="form-select"
+                                                                     @bind-Value="SelectedCompanyId"
+                                                                     disabled="@(IsEdit && !CanEdit)"
+                                                                     @oninput="TouchIdentity">
+                                                            <option value="">--Select Company--</option>
+                                                            @foreach (var company in Companies)
+                                                            {
+                                                                <option value="@company.Id">@company.CompanyCode - @company.LegalName</option>
+                                                            }
+                                                        </InputSelect>
+                                                        <small class="text-muted">Leave empty for tenant-wide rate</small>
+                                                    </div>
+
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- RATE VALUE & PRECISION -->
+                        <div class="tl-card-row @(ShowRateValue ? "row-active" : "")">
+                            <div class="tl-dot-col">
+                                <div class="tl-dot" @onclick="@(() => ToggleAccordion("rateValue"))"></div>
+                            </div>
+                            <div class="tl-card-col">
+                                <div class="tl-card @(ShowRateValue ? "card-active border-blue" : "")">
+
+                                    <div class="tl-card-header" @onclick="@(() => ToggleAccordion("rateValue"))">
+                                        <div class="tl-card-header-title">
+                                            <span class="tl-card-step step-blue">02</span>
+                                            Rate Value & Precision
+                                        </div>
+                                        <span class="tl-card-toggle @(ShowRateValue ? "toggle-open" : "")">
+                                            <i data-feather="chevron-down"></i>
+                                        </span>
+                                    </div>
+
+                                    <div class="tl-collapse @(ShowRateValue ? "tl-open" : "")">
+                                        <div class="tl-card-body">
+                                            <div class="tl-card-body-inner @(AddressTouched ? "touched" : "")">
+                                                <div class="row">
+
+                                                    <div class="col-md-4 mb-3">
+                                                        <label class="form-label">Exchange Rate <span class="text-danger">*</span></label>
+                                                        <input type="number"
+                                                               class="form-control @(RateValidationError != null ? "is-invalid" : "")"
+                                                               @bind="ExchangeRate.Rate"
+                                                               @bind:event="oninput"
+                                                               @bind:after="OnRateChanged"
+                                                               step="0.00000001"
+                                                               placeholder="e.g., 83.25000000" />
+                                                        @if (RateValidationError != null)
+                                                        {
+                                                            <span class="field-validation-error">@RateValidationError</span>
+                                                        }
+                                                        else
+                                                        {
+                                                            <small class="text-muted">Up to 8 decimal places</small>
+                                                        }
+                                                    </div>
+
+                                                    <div class="col-md-4 mb-3">
+                                                        <label class="form-label">Inverse Rate</label>
+                                                        <input type="text" class="form-control bg-light"
+                                                               value="@ExchangeRate.InverseRate.ToString("N8")" readonly />
+                                                        <small class="text-muted">Auto-calculated (1 / Rate)</small>
+                                                    </div>
+
+                                                    <div class="col-md-4 mb-3">
+                                                        <label class="form-label">Version</label>
+                                                        <input type="text" class="form-control bg-light"
+                                                               value="@ExchangeRate.VersionNo" readonly />
+                                                        <small class="text-muted">System-controlled</small>
+                                                    </div>
+
+                                                    <!-- Preview -->
+                                                    <div class="col-12 mb-3">
+                                                        <div class="rate-preview">
+                                                            <div class="row align-items-center">
+                                                                <div class="col-md-6">
+                                                                    <div class="d-flex align-items-center">
+                                                                        <span class="badge bg-primary me-2">@GetCurrencyCode(ExchangeRate.BaseCurrencyId)</span>
+                                                                        <i class="ti ti-arrow-right mx-2 text-muted"></i>
+                                                                        <span class="badge bg-success">@GetCurrencyCode(ExchangeRate.QuoteCurrencyId)</span>
+                                                                    </div>
+                                                                    <div class="mt-2">
+                                                                        1 @GetCurrencyCode(ExchangeRate.BaseCurrencyId)
+                                                                        =
+                                                                        @ExchangeRate.Rate.ToString("N4")
+                                                                        @GetCurrencyCode(ExchangeRate.QuoteCurrencyId)
+                                                                    </div>
+                                                                </div>
+                                                                <div class="col-md-6 text-md-end">
+                                                                    <small class="text-muted">Inverse:</small>
+                                                                    <div>
+                                                                        1 @GetCurrencyCode(ExchangeRate.QuoteCurrencyId)
+                                                                        =
+                                                                        @ExchangeRate.InverseRate.ToString("N4")
+                                                                        @GetCurrencyCode(ExchangeRate.BaseCurrencyId)
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+
+                                                    @if (ExchangeRate.IsTriangulated)
+                                                    {
+                                                        <div class="col-md-4 mb-3">
+                                                            <label class="form-label">Triangulated</label>
+                                                            <div class="form-check">
+                                                                <input class="form-check-input" type="checkbox" checked disabled />
+                                                                <label class="form-check-label">Yes (derived rate)</label>
+                                                            </div>
+                                                        </div>
+
+                                                        <div class="col-md-4 mb-3">
+                                                            <label class="form-label">Intermediate Currency</label>
+                                                            <input type="text" class="form-control bg-light"
+                                                                   value="@(ExchangeRate.TriangulationCurrencyCode ?? "-")" readonly />
+                                                        </div>
+                                                    }
+
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- RATE SOURCE  -->
+                        <div class="tl-card-row @(ShowSource ? "row-active" : "")">
+                            <div class="tl-dot-col">
+                                <div class="tl-dot" @onclick="@(() => ToggleAccordion("rateSource"))"></div>
+                            </div>
+                            <div class="tl-card-col">
+                                <div class="tl-card @(ShowSource ? "card-active border-purple" : "")">
+
+                                    <div class="tl-card-header" @onclick="@(() => ToggleAccordion("rateSource"))">
+                                        <div class="tl-card-header-title">
+                                            <span class="tl-card-step step-purple">03</span>
+                                            Rate Source & Evidence
+                                        </div>
+                                        <span class="tl-card-toggle @(ShowSource ? "toggle-open" : "")">
+                                            <i data-feather="chevron-down"></i>
+                                        </span>
+                                    </div>
+
+                                    <div class="tl-collapse @(ShowSource ? "tl-open" : "")">
+                                        <div class="tl-card-body">
+                                            <div class="tl-card-body-inner @(ContactTouched ? "touched" : "")">
+                                                <div class="row">
+
+                                                    <div class="col-md-3 mb-3">
+                                                        <label class="form-label">Source Type <span class="text-danger">*</span></label>
+                                                        <select class="form-select @(SourceTypeValidationError != null ? "is-invalid" : "")"
+                                                                @bind="SelectedSourceType"
+                                                                @bind:after="OnSourceTypeChanged">
+                                                            <option value="">--Select Source Type--</option>
+                                                            @foreach (var type in SourceTypes.All)
+                                                            {
+                                                                <option value="@type">@SourceTypes.GetDisplayName(type)</option>
+                                                            }
+                                                        </select>
+                                                        @if (SourceTypeValidationError != null)
+                                                        {
+                                                            <span class="field-validation-error">@SourceTypeValidationError</span>
+                                                        }
+                                                    </div>
+
+                                                    <div class="col-md-5 mb-3">
+                                                        <label class="form-label">Source Name</label>
+                                                        <InputText class="form-control"
+                                                                   @bind-Value="ExchangeRate.SourceName"
+                                                                   maxlength="150"
+                                                                   @oninput="TouchContact" />
+                                                    </div>
+
+                                                    <div class="col-md-4 mb-3">
+                                                        <label class="form-label">Evidence Document</label>
+                                                        <div class="input-group">
+                                                            <input type="file"
+                                                                   class="form-control"
+                                                                   accept=".pdf,.png,.jpg,.jpeg"
+                                                                   @oninput="TouchContact" />
+                                                            <span class="input-group-text"><i class="ti ti-upload"></i></span>
+                                                        </div>
+                                                        <small class="text-muted">PDF, PNG, JPG (max 5MB)</small>
+                                                    </div>
+                                                    @* maxlength="500" *@
+                                                    <div class="col-12 mb-3">
+                                                        <label class="form-label">Notes</label>
+                                                        <RichTextEditor @ref="_notesEditor"
+                                                            Value="@ExchangeRate.Notes"
+                                                            MaxHeight="200" MinHeight="80"
+                                                            placeholder="Additional notes..." />
+                                                    </div>
+
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- STATUS & GOVERNANCE  -->
+                        <div class="tl-card-row @(ShowStatus ? "row-active" : "")">
+                            <div class="tl-dot-col">
+                                <div class="tl-dot" @onclick="@(() => ToggleAccordion("statusGovernance"))"></div>
+                            </div>
+                            <div class="tl-card-col">
+                                <div class="tl-card @(ShowStatus ? "card-active border-teal" : "")">
+
+                                    <div class="tl-card-header" @onclick="@(() => ToggleAccordion("statusGovernance"))">
+                                        <div class="tl-card-header-title">
+                                            <span class="tl-card-step step-teal">04</span>
+                                            Status & Governance
+                                        </div>
+                                        <span class="tl-card-toggle @(ShowStatus ? "toggle-open" : "")">
+                                            <i data-feather="chevron-down"></i>
+                                        </span>
+                                    </div>
+
+                                    <div class="tl-collapse @(ShowStatus ? "tl-open" : "")">
+                                        <div class="tl-card-body">
+                                            <div class="tl-card-body-inner @(FinanceTouched ? "touched" : "")">
+                                                <div class="row">
+
+                                                    <div class="col-md-3 mb-3">
+                                                        <label class="form-label">Status <span class="text-danger">*</span></label>
+                                                        <select class="form-select @(StatusValidationError != null ? "is-invalid" : "")"
+                                                                @bind="SelectedExchangeRateStatus"
+                                                                @bind:after="OnStatusChanged">
+                                                            <option value="">--Select Status--</option>
+                                                            @foreach (var status in ExchangeRateStatus.All)
+                                                            {
+                                                                <option value="@status">@status</option>
+                                                            }
+                                                        </select>
+                                                        @if (StatusValidationError != null)
+                                                        {
+                                                            <span class="field-validation-error">@StatusValidationError</span>
+                                                        }
+                                                    </div>
+
+                                                    @if (IsEdit)
+                                                    {
+                                                        <div class="col-md-3 mb-3">
+                                                            <label class="form-label">Created At</label>
+                                                            <input type="text" class="form-control bg-light"
+                                                                   value="@ExchangeRate.CreatedAt.ToString("dd MMM yyyy HH:mm")" readonly />
+                                                        </div>
+
+                                                        <div class="col-md-3 mb-3">
+                                                            <label class="form-label">Created By</label>
+                                                            <input type="text" class="form-control bg-light"
+                                                                   value="@(ExchangeRate.CreatedBy ?? "-")" readonly />
+                                                        </div>
+
+                                                        @if (ExchangeRate.UpdatedAt.HasValue)
+                                                        {
+                                                            <div class="col-md-3 mb-3">
+                                                                <label class="form-label">Last Updated</label>
+                                                                <input type="text" class="form-control bg-light"
+                                                                       value="@ExchangeRate.UpdatedAt?.ToString("dd MMM yyyy HH:mm")" readonly />
+                                                            </div>
+                                                        }
+                                                    }
+
+                                                </div>
+
+                                                @if (IsEdit && !CanEdit)
+                                                {
+                                                    <div class="alert alert-warning mt-3">
+                                                        <i class="ti ti-alert-triangle me-2"></i>
+                                                        <strong>Read-only:</strong>
+                                                        This exchange rate has been used in posted transactions and cannot be modified.
+                                                        Create a new version using "Create Correction".
+                                                    </div>
+                                                }
+
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                </div>
+                            </div>
+                        </div>
+
+                    </div>
+                </div>
+                <!-- Actions -->
+                <div class="text-end mt-4 mb-4">
+                    <a href="/exchange-rates" class="btn btn-outline-secondary me-2"><i class="ti ti-x"></i> Cancel</a>
+                    <button type="submit" class="btn btn-primary" disabled="@(IsEdit && !CanEdit)">
+                        <i class="ti ti-device-floppy"></i> @(IsEdit ? "Update" : "Save")
+                    </button>
+                </div>
+            </div>
+
+        </EditForm>
+    </div>
+}

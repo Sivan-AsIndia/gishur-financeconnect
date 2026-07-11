@@ -1,0 +1,284 @@
+@page "/revenue-recognitions/{Id:guid}/view"
+@using FinanceConnect.Client.ViewModels
+@using static FinanceConnect.Client.ViewModels.RevenueRecognitionViewModel
+
+@if (!isInitialized)
+{
+    <div class="page-loading-overlay"><div class="whirly-loader"></div></div>
+}
+else if (Item == null)
+{
+    <div class="vb-root"><div class="content">
+        <div class="alert alert-danger"><i class="ti ti-alert-circle me-2"></i>Revenue recognition record not found. <a href="/revenue-recognitions" class="alert-link ms-2">Return to list</a></div>
+    </div></div>
+}
+else
+{
+    <div class="vb-root"><div class="content">
+
+        <!-- ═══ HEADER ═══ -->
+        <div class="vb-header-card">
+            <div class="vb-cover"><div class="vb-cover-orb vb-orb-1"></div><div class="vb-cover-orb vb-orb-2"></div><div class="vb-cover-orb vb-orb-3"></div></div>
+            <div class="vb-header-body">
+                <div class="vb-avatar">@(Item.RecognitionCode?.Substring(0, Math.Min(2, Item.RecognitionCode?.Length ?? 0)).ToUpper() ?? "RR")</div>
+                <div class="vb-header-meta">
+                    <div>
+                        <p class="vb-bill-number">@(Item.RecognitionCode ?? "–") – @Item.RecognitionName</p>
+                        <p class="vb-bill-sub">@Item.RecognitionMethod · @Item.RecognitionBasis · @(Item.CustomerNameSnapshot ?? "No Customer")</p>
+                        <div class="vb-badges">
+                            <span class="badge @GetStatusBadge(Item.RecognitionStatus)">@Item.RecognitionStatus</span>
+                            <span class="badge @GetMethodBadge(Item.RecognitionMethod)">@Item.RecognitionMethod</span>
+                            @if (Item.IsLocked) { <span class="badge badge-red">🔒 Locked</span> }
+                            @if (Item.MilestoneTriggerRequired) { <span class="badge bg-warning-transparent">Milestone Required</span> }
+                            @if (Item.ManualApprovalRequiredFlag) { <span class="badge bg-info-transparent">Manual Approval</span> }
+                        </div>
+                    </div>
+                    <div class="vb-header-actions">
+                        @if (!Item.IsLocked && Item.RecognitionStatus != RecognitionStatusEnum.Closed && Item.RecognitionStatus != RecognitionStatusEnum.FullyRecognized)
+                        {
+                            <a href="/revenue-recognitions/@Item.RevenueRecognitionId" class="btn btn-primary"><i class="ti ti-pencil me-1"></i> Edit</a>
+                        }
+                        <a href="/revenue-recognitions" class="btn btn-outline-secondary"><i class="ti ti-arrow-left me-1"></i> Back</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ═══ SUMMARY TILES ═══ -->
+        <div class="vb-summary-grid mb-4 mt-2" style="background:transparent;border:none;box-shadow:none;">
+            <div class="vb-tile"><div class="vb-tile-label">Source Revenue</div><div class="vb-tile-value primary">@Item.SourceGrossRevenueAmount.ToString("N2")</div></div>
+            <div class="vb-tile"><div class="vb-tile-label">Recognized To Date</div><div class="vb-tile-value primary">@Item.RecognizedAmountToDate.ToString("N2")</div></div>
+            <div class="vb-tile"><div class="vb-tile-label">Remaining Balance</div><div class="vb-tile-value @(Item.RemainingRecognitionAmount > 0 ? "text-warning" : "text-success")">@Item.RemainingRecognitionAmount.ToString("N2")</div></div>
+            <div class="vb-tile"><div class="vb-tile-label">Current Period</div><div class="vb-tile-value">@Item.CurrentPeriodRecognitionAmount.ToString("N2")</div></div>
+            <div class="vb-tile"><div class="vb-tile-label">Completion %</div><div class="vb-tile-value">@Item.RecognitionCompletionPercent.ToString("N1")%</div></div>
+            <div class="vb-tile"><div class="vb-tile-label">Deferred Link</div><div class="vb-tile-value">@(Item.DeferredRevenueId.HasValue ? "Linked" : "None")</div></div>
+        </div>
+
+        <!-- ═══ TWO-COLUMN BODY ═══ -->
+        <div class="ac-layout mb-5">
+
+            <!-- ══ LEFT SIDEBAR ══ -->
+            <div class="ac-left">
+
+                <!-- Source Revenue Context -->
+                <div class="vb-card">
+                    <div class="vb-card-header"><h6><i class="ti ti-receipt me-1"></i> Source Revenue</h6></div>
+                    <div class="vb-card-body">
+                        <div class="vb-row"><span class="vb-label">Revenue Code</span><span class="vb-val">@(Item.RevenueCodeSnapshot ?? "–")</span></div>
+                        <div class="vb-row"><span class="vb-label">Revenue Name</span><span class="vb-val">@(Item.RevenueNameSnapshot ?? "–")</span></div>
+                        <div class="vb-row"><span class="vb-label">Customer</span><span class="vb-val">@(Item.CustomerNameSnapshot ?? "–")</span></div>
+                        <div class="vb-row"><span class="vb-label">Source Doc Type</span><span class="vb-val">@Item.SourceDocumentTypeSnapshot</span></div>
+                        <div class="vb-row"><span class="vb-label">Source Doc No</span><span class="vb-val">@(Item.SourceDocumentNumberSnapshot ?? "–")</span></div>
+                        <div class="vb-row"><span class="vb-label">Revenue Type</span><span class="vb-val">@Item.RevenueTypeSnapshot</span></div>
+                        <div class="vb-row"><span class="vb-label">Revenue Nature</span><span class="vb-val">@Item.RevenueNatureSnapshot</span></div>
+                        <div class="vb-row"><span class="vb-label">Source Amount</span><span class="vb-val fw-bold">@Item.SourceGrossRevenueAmount.ToString("N2")</span></div>
+                        <div class="vb-row"><span class="vb-label">Currency</span><span class="vb-val">@GetCurrencyCode(Item.CurrencyId)</span></div>
+                    </div>
+                </div>
+
+                <!-- Recognition Method & Basis -->
+                <div class="vb-card">
+                    <div class="vb-card-header"><h6><i class="ti ti-settings me-1"></i> Method & Basis</h6></div>
+                    <div class="vb-card-body">
+                        <div class="vb-row"><span class="vb-label">Method</span><span class="vb-val"><span class="badge @GetMethodBadge(Item.RecognitionMethod)">@Item.RecognitionMethod</span></span></div>
+                        <div class="vb-row"><span class="vb-label">Basis</span><span class="vb-val">@Item.RecognitionBasis</span></div>
+                        <div class="vb-row"><span class="vb-label">Start Date</span><span class="vb-val">@(Item.RecognitionStartDate?.ToString("dd MMM yyyy") ?? "–")</span></div>
+                        <div class="vb-row"><span class="vb-label">End Date</span><span class="vb-val">@(Item.RecognitionEndDate?.ToString("dd MMM yyyy") ?? "–")</span></div>
+                        <div class="vb-row"><span class="vb-label">Frequency</span><span class="vb-val">@(Item.RecognitionFrequency?.ToString() ?? "–")</span></div>
+                        <div class="vb-row"><span class="vb-label">Template</span><span class="vb-val">@(Item.ScheduleTemplateCode ?? "–")</span></div>
+                        <div class="vb-row"><span class="vb-label">Milestone Req</span><span class="vb-val">@BoolBadge(Item.MilestoneTriggerRequired)</span></div>
+                        <div class="vb-row"><span class="vb-label">Manual Approval</span><span class="vb-val">@BoolBadge(Item.ManualApprovalRequiredFlag)</span></div>
+                        <div class="vb-row"><span class="vb-label">Schedule Generated</span><span class="vb-val">@BoolBadge(Item.IsScheduleGenerated)</span></div>
+                        @if (Item.DeferredRevenueId.HasValue)
+                        {
+                            <div class="vb-row"><span class="vb-label">Deferred Revenue Ref</span><span class="vb-val">@(Item.DeferredRevenueReference ?? "Linked")</span></div>
+                        }
+                    </div>
+                </div>
+
+                <!-- Status & Controls -->
+                <div class="vb-card">
+                    <div class="vb-card-header"><h6><i class="ti ti-toggle-right me-1"></i> Status & Controls</h6></div>
+                    <div class="vb-card-body">
+                        <div class="vb-row"><span class="vb-label">Status</span><span class="vb-val"><span class="badge @GetStatusBadge(Item.RecognitionStatus)">@Item.RecognitionStatus</span></span></div>
+                        <div class="vb-row"><span class="vb-label">Locked</span><span class="vb-val">@BoolBadge(Item.IsLocked)</span></div>
+                        <div class="vb-row"><span class="vb-label">Attachment Count</span><span class="vb-val">@Item.AttachmentCount</span></div>
+                        @if (!string.IsNullOrWhiteSpace(Item.CancellationReason))
+                        {
+                            <div class="vb-row"><span class="vb-label">Cancellation Reason</span><span class="vb-val text-danger">@Item.CancellationReason</span></div>
+                        }
+                    </div>
+                </div>
+
+            </div>
+            <!-- ══ END LEFT ══ -->
+
+            <!-- ══ RIGHT MAIN ══ -->
+            <div class="ac-right">
+
+                <!-- Amounts & Balances -->
+                <div class="vb-card">
+                    <div class="vb-card-header"><h6><i class="ti ti-currency-dollar me-1"></i> Amounts & Balances</h6></div>
+                    <div class="vb-card-body">
+                        <div class="ac-2col">
+                            <div class="vb-row"><span class="vb-label">Total Recognizable</span><span class="vb-val fw-bold">@Item.TotalRecognizableAmount.ToString("N2")</span></div>
+                            <div class="vb-row"><span class="vb-label">Recognized To Date</span><span class="vb-val">@Item.RecognizedAmountToDate.ToString("N2")</span></div>
+                            <div class="vb-row"><span class="vb-label">Current Period</span><span class="vb-val">@Item.CurrentPeriodRecognitionAmount.ToString("N2")</span></div>
+                            <div class="vb-row"><span class="vb-label">Remaining</span><span class="vb-val @(Item.RemainingRecognitionAmount > 0 ? "text-warning" : "text-success")">@Item.RemainingRecognitionAmount.ToString("N2")</span></div>
+                            <div class="vb-row"><span class="vb-label">Completion %</span><span class="vb-val">@Item.RecognitionCompletionPercent.ToString("N2")%</span></div>
+                            <div class="vb-row"><span class="vb-label">Adjustment</span><span class="vb-val">@(Item.AdjustmentAmount?.ToString("N2") ?? "–")</span></div>
+                            <div class="vb-row"><span class="vb-label">Rounding Diff</span><span class="vb-val">@(Item.RoundingDifferenceAmount?.ToString("N2") ?? "–")</span></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Period & Accounting Impact -->
+                <div class="vb-card">
+                    <div class="vb-card-header"><h6><i class="ti ti-calendar-stats me-1"></i> Period & Accounting Impact</h6></div>
+                    <div class="vb-card-body">
+                        <div class="ac-2col">
+                            <div class="vb-row"><span class="vb-label">Fiscal Year</span><span class="vb-val">@GetFiscalYearName(Item.FiscalYearId)</span></div>
+                            <div class="vb-row"><span class="vb-label">Posting Date</span><span class="vb-val">@(Item.RecognitionPostingDate?.ToString("dd MMM yyyy") ?? "–")</span></div>
+                            <div class="vb-row"><span class="vb-label">Last Run Date</span><span class="vb-val">@(Item.LastRecognitionRunDate?.ToString("dd MMM yyyy HH:mm") ?? "–")</span></div>
+                            <div class="vb-row"><span class="vb-label">Next Due Date</span><span class="vb-val">@(Item.NextRecognitionDueDate?.ToString("dd MMM yyyy") ?? "–")</span></div>
+                            <div class="vb-row"><span class="vb-label">Accounting Period</span><span class="vb-val">@(Item.CurrentAccountingPeriodReference ?? "–")</span></div>
+                            <div class="vb-row"><span class="vb-label">Recognized Periods</span><span class="vb-val">@Item.RecognizedPeriodsCount</span></div>
+                            <div class="vb-row"><span class="vb-label">Pending Periods</span><span class="vb-val">@Item.PendingPeriodsCount</span></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Workflow & Governance -->
+                <div class="vb-card">
+                    <div class="vb-card-header"><h6><i class="ti ti-users me-1"></i> Workflow & Governance</h6></div>
+                    <div class="vb-card-body">
+                        <div class="ac-2col">
+                            <div class="vb-row"><span class="vb-label">Prepared By</span><span class="vb-val">@(Item.PreparedByUserId ?? "–")</span></div>
+                            <div class="vb-row"><span class="vb-label">Prepared On</span><span class="vb-val">@(Item.PreparedOn?.ToString("dd MMM yyyy") ?? "–")</span></div>
+                            <div class="vb-row"><span class="vb-label">Reviewed By</span><span class="vb-val">@(Item.ReviewedByUserId ?? "–")</span></div>
+                            <div class="vb-row"><span class="vb-label">Reviewed On</span><span class="vb-val">@(Item.ReviewedOn?.ToString("dd MMM yyyy") ?? "–")</span></div>
+                            <div class="vb-row"><span class="vb-label">Approved By</span><span class="vb-val">@(Item.ApprovedByUserId ?? "–")</span></div>
+                            <div class="vb-row"><span class="vb-label">Approved On</span><span class="vb-val">@(Item.ApprovedOn?.ToString("dd MMM yyyy") ?? "–")</span></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Notes & Assumptions -->
+                @if (!string.IsNullOrWhiteSpace(Item.RecognitionAssumptionText) || !string.IsNullOrWhiteSpace(Item.Notes) || !string.IsNullOrWhiteSpace(Item.Description))
+                {
+                    <div class="vb-card">
+                        <div class="vb-card-header"><h6><i class="ti ti-notes me-1"></i> Notes & Assumptions</h6></div>
+                        <div class="vb-card-body">
+                            @if (!string.IsNullOrWhiteSpace(Item.Description))
+                            {
+                                <div class="vb-row" style="flex-direction:column;gap:4px;"><span class="vb-label">Description</span><span class="vb-val" style="font-style:italic;color:var(--gray-600);">@Item.Description</span></div>
+                            }
+                            @if (!string.IsNullOrWhiteSpace(Item.RecognitionAssumptionText))
+                            {
+                                <div class="vb-row" style="flex-direction:column;gap:4px;"><span class="vb-label">Recognition Assumptions</span><span class="vb-val" style="font-style:italic;color:var(--gray-600);">@Item.RecognitionAssumptionText</span></div>
+                            }
+                            @if (!string.IsNullOrWhiteSpace(Item.Notes))
+                            {
+                                <div class="vb-row" style="flex-direction:column;gap:4px;"><span class="vb-label">Notes</span><span class="vb-val" style="font-style:italic;color:var(--gray-600);">@Item.Notes</span></div>
+                            }
+                        </div>
+                    </div>
+                }
+
+                <!-- Audit Trail -->
+                <div class="vb-card">
+                    <div class="vb-card-header"><h6><i class="ti ti-history me-1"></i> Audit Trail</h6></div>
+                    <div class="vb-card-body">
+                        <div class="ac-2col">
+                            <div class="vb-row"><span class="vb-label">Locked On</span><span class="vb-val">@(Item.LockedOn?.ToString("dd MMM yyyy HH:mm") ?? "–")</span></div>
+                            <div class="vb-row"><span class="vb-label">Locked By</span><span class="vb-val">@(Item.LockedBy ?? "–")</span></div>
+                            <div class="vb-row"><span class="vb-label">Created At</span><span class="vb-val">@Item.CreatedAt.ToString("dd MMM yyyy HH:mm")</span></div>
+                            <div class="vb-row"><span class="vb-label">Updated At</span><span class="vb-val">@(Item.UpdatedAt?.ToString("dd MMM yyyy HH:mm") ?? "–")</span></div>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+            <!-- ══ END RIGHT ══ -->
+
+        </div>
+
+        <!-- ═══ FULL-WIDTH: Recognition Schedule Lines ═══ -->
+        @if (Item.ScheduleLines.Any())
+        {
+            <div class="vb-card mb-5">
+                <div class="vb-card-header"><h6><i class="ti ti-list-details me-1"></i> Recognition Schedule (@Item.ScheduleLines.Count lines)</h6></div>
+                <div class="vb-card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-sm table-bordered align-middle mb-0">
+                            <thead class="table-light">
+                                <tr>
+                                    <th style="width:50px">#</th>
+                                    <th>Date</th>
+                                    <th class="text-end">Scheduled</th>
+                                    <th class="text-end">Recognized</th>
+                                    <th class="text-end">Remaining</th>
+                                    <th>Status</th>
+                                    <th>Approval</th>
+                                    <th>Milestone / Trigger</th>
+                                    <th>Recognized On</th>
+                                    <th>Notes</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var line in Item.ScheduleLines.OrderBy(l => l.LineNumber))
+                                {
+                                    <tr>
+                                        <td class="text-center">@line.LineNumber</td>
+                                        <td>@line.ScheduleDate?.ToString("dd MMM yyyy")</td>
+                                        <td class="text-end">@line.ScheduledAmount.ToString("N2")</td>
+                                        <td class="text-end">@line.RecognizedAmount.ToString("N2")</td>
+                                        <td class="text-end @(line.RemainingAmount > 0 ? "text-warning" : "")">@line.RemainingAmount.ToString("N2")</td>
+                                        <td><span class="badge @GetLineStatusBadge(line.RecognitionLineStatus)">@line.RecognitionLineStatus</span></td>
+                                        <td><span class="badge @GetApprovalBadge(line.ManualApprovalStatus)">@line.ManualApprovalStatus</span></td>
+                                        <td class="small">
+                                            @(line.MilestoneReference ?? "–")
+                                            @if (!string.IsNullOrWhiteSpace(line.TriggerEventReference))
+                                            {
+                                                <div class="text-muted" style="font-size:11px;">@line.TriggerEventReference</div>
+                                            }
+                                        </td>
+                                        <td class="small">
+                                            @(line.RecognizedOn?.ToString("dd MMM yyyy") ?? "–")
+                                            @if (!string.IsNullOrWhiteSpace(line.RecognizedBy))
+                                            {
+                                                <div class="text-muted" style="font-size:11px;">by @line.RecognizedBy</div>
+                                            }
+                                        </td>
+                                        <td class="small">@(line.RecognitionLineNotes ?? "–")</td>
+                                    </tr>
+                                }
+                            </tbody>
+                            <tfoot class="table-light fw-bold">
+                                <tr>
+                                    <td colspan="2" class="text-end">Totals</td>
+                                    <td class="text-end">@Item.ScheduleLines.Sum(l => l.ScheduledAmount).ToString("N2")</td>
+                                    <td class="text-end">@Item.ScheduleLines.Sum(l => l.RecognizedAmount).ToString("N2")</td>
+                                    <td class="text-end">@Item.ScheduleLines.Sum(l => l.RemainingAmount).ToString("N2")</td>
+                                    <td colspan="5"></td>
+                                </tr>
+                            </tfoot>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        }
+
+    </div></div>
+}
+
+<style>
+    .ac-layout { display: grid; grid-template-columns: 300px 1fr; gap: 16px; align-items: start; }
+    .ac-left, .ac-right { display: flex; flex-direction: column; gap: 16px; }
+    .ac-2col {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(283px, 1fr));
+        gap: 0 32px;
+    }
+    @@media (max-width: 900px) { .ac-layout { grid-template-columns: 1fr; } .ac-2col { grid-template-columns: 1fr; } }
+</style>

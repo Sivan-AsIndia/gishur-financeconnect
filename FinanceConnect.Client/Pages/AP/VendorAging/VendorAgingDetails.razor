@@ -1,0 +1,555 @@
+@page "/vendor-aging/{Id:guid}"
+@using FinanceConnect.Client.ViewModels
+@using FinanceConnect.Client.Services
+
+<PageTitle>Vendor Aging Details - FinanceConnect</PageTitle>
+
+@if (!isInitialized)
+{
+    <div class="page-loading-overlay">
+        <div class="whirly-loader"></div>
+    </div>
+}
+else if (AgingSnapshot == null)
+{
+    <div class="container view-screen py-4">
+        <div class="alert alert-warning">
+            <i class="ti ti-alert-triangle me-2"></i>
+            Vendor aging snapshot not found.
+        </div>
+        <a href="/vendor-aging" class="btn btn-outline-secondary">
+            <i class="ti ti-arrow-left me-1"></i> Back
+        </a>
+    </div>
+}
+else
+{
+    <div class="content view-screen py-4">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <div>
+                <h4 class="fw-bold mb-1">Vendor Aging Details</h4>
+                <p class="text-muted mb-0 small">
+                    View outstanding invoices and aging summary
+                </p>
+            </div>
+            <a class="btn btn-outline-secondary" @onclick="GoBack">
+                <i class="ti ti-arrow-left me-1"></i> Back
+            </a>
+        </div>
+        <div class="row g-4">
+
+            <!-- HEADER PANEL -->
+            <div class="col-lg-12">
+                <div class="profile-list-card">
+
+                    <!-- LEFT -->
+                    <div class="profile-left">
+                        <div class="avatar letter-avatar bg-primary">
+                            <i class="ti ti-chart-bar text-white" style="font-size: 24px;"></i>
+                        </div>
+                    </div>
+
+                    <!-- CENTER -->
+                    <div class="profile-center">
+                        <div class="top-row">
+                            <h5>Vendor Aging - @AgingSnapshot.AsOfDate.ToString("dd-MMM-yyyy")</h5>
+                            <span class="badge @GetStatusBadgeClass(AgingSnapshot.RunStatus) ms-2">
+                                @VendorAgingRunStatuses.GetDisplayName(AgingSnapshot.RunStatus)
+                            </span>
+                            <span class="badge @GetRunTypeBadgeClass(AgingSnapshot.RunType) ms-2">
+                                @VendorAgingRunTypes.GetDisplayName(AgingSnapshot.RunType)
+                            </span>
+                        </div>
+
+                        <div class="sub-text">
+                            <span style="display: flex; gap: 4px; margin-top: 7px;">
+                                <i class="ti ti-building"></i> @AgingSnapshot.CompanyName
+                            </span>
+                            <span style="display: flex; gap: 4px; margin-top: 7px;">
+                                <i class="ti ti-git-branch"></i> @(AgingSnapshot.BranchName ?? "All Branches")
+                                <span class="ms-3"><i class="ti ti-currency-dollar"></i> @(AgingSnapshot.CurrencyCode ?? "INR")</span>
+                                @if (AgingSnapshot.IncludeOpenCredits)
+                                {
+                                    <span class="ms-3 badge bg-info-transparent text-info">Credits Included</span>
+                                }
+                            </span>
+                        </div>
+                    </div>
+
+                    <!-- RIGHT -->
+                    @* <div class="profile-right">
+                        <button class="btn btn-secondary btn-sm" @onclick="GoBack">
+                            <i class="ti ti-arrow-left"></i> Back
+                        </button>
+                    </div> *@
+
+                </div>
+            </div>
+
+            <!-- LEFT PANEL : SNAPSHOT DETAILS & VENDOR LIST -->
+            <div class="col-lg-8">
+
+                <div class="profile-card">
+
+          
+
+                    <!-- Bucket Summary - 8 Buckets -->
+                    <div class="card mb-3">
+                        <h5 class="card-header">
+                            <i class="ti ti-chart-bar me-2"></i>Aging Bucket Summary (8 Buckets)
+                        </h5>
+                        <div class="card-body p-3">
+                            <div class="row text-center g-2">
+                                <div class="col-xl-3 col-lg-3 col-md-4 col-sm-6">
+                                    <div class="p-2 bg-success bg-opacity-10 rounded cursor-pointer @(selectedBucket == VendorAgingBucketCodes.CurrentNotDue ? "border border-success border-2" : "")"
+                                         @onclick='() => FilterByBucket(VendorAgingBucketCodes.CurrentNotDue)' 
+                                         title="Click to filter by Current (Not Due) bucket">
+                                        <small class="text-muted d-block">Current</small>
+                                        <span class="fw-bold text-success">@(AgingSnapshot.CurrencyCode ?? "₹") @BucketSummaryViewModel.CurrentNotDueAmount.ToString("N0")</span>
+                                        <small class="d-block text-muted">@BucketSummaryViewModel.CurrentNotDueCount bills</small>
+                                    </div>
+                                </div>
+                                <div class="col-xl-3 col-lg-3 col-md-4 col-sm-6">
+                                    <div class="p-2 bg-info bg-opacity-10 rounded cursor-pointer @(selectedBucket == VendorAgingBucketCodes.Days0To30 ? "border border-info border-2" : "")"
+                                         @onclick='() => FilterByBucket(VendorAgingBucketCodes.Days0To30)' 
+                                         title="Click to filter by 0-30 Days bucket">
+                                        <small class="text-muted d-block">0-30 Days</small>
+                                        <span class="fw-bold text-info">@(AgingSnapshot.CurrencyCode ?? "₹") @BucketSummaryViewModel.Days0To30Amount.ToString("N0")</span>
+                                        <small class="d-block text-muted">@BucketSummaryViewModel.Days0To30Count bills</small>
+                                    </div>
+                                </div>
+                                <div class="col-xl-3 col-lg-3 col-md-4 col-sm-6">
+                                    <div class="p-2 bg-warning bg-opacity-10 rounded cursor-pointer @(selectedBucket == VendorAgingBucketCodes.Days31To60 ? "border border-warning border-2" : "")"
+                                         @onclick='() => FilterByBucket(VendorAgingBucketCodes.Days31To60)' 
+                                         title="Click to filter by 31-60 Days bucket">
+                                        <small class="text-muted d-block">31-60 Days</small>
+                                        <span class="fw-bold text-warning">@(AgingSnapshot.CurrencyCode ?? "₹") @BucketSummaryViewModel.Days31To60Amount.ToString("N0")</span>
+                                        <small class="d-block text-muted">@BucketSummaryViewModel.Days31To60Count bills</small>
+                                    </div>
+                                </div>
+                                <div class="col-xl-3 col-lg-3 col-md-4 col-sm-6">
+                                    <div class="p-2 rounded cursor-pointer @(selectedBucket == VendorAgingBucketCodes.Days61To90 ? "border border-2" : "")"
+                                         style="background-color: rgba(255, 165, 0, 0.15); @(selectedBucket == VendorAgingBucketCodes.Days61To90 ? "border-color: #e67300;" : "")"
+                                         @onclick='() => FilterByBucket(VendorAgingBucketCodes.Days61To90)' 
+                                         title="Click to filter by 61-90 Days bucket">
+                                        <small class="text-muted d-block">61-90 Days</small>
+                                        <span class="fw-bold" style="color: #e67300;">@(AgingSnapshot.CurrencyCode ?? "₹") @BucketSummaryViewModel.Days61To90Amount.ToString("N0")</span>
+                                        <small class="d-block text-muted">@BucketSummaryViewModel.Days61To90Count bills</small>
+                                    </div>
+                                </div>
+                                <div class="col-xl-3 col-lg-3 col-md-4 col-sm-6">
+                                    <div class="p-2 rounded cursor-pointer @(selectedBucket == VendorAgingBucketCodes.Days91To120 ? "border border-2" : "")"
+                                         style="background-color: rgba(255, 99, 71, 0.15); @(selectedBucket == VendorAgingBucketCodes.Days91To120 ? "border-color: #ff6347;" : "")"
+                                         @onclick='() => FilterByBucket(VendorAgingBucketCodes.Days91To120)' 
+                                         title="Click to filter by 91-120 Days bucket">
+                                        <small class="text-muted d-block">91-120 Days</small>
+                                        <span class="fw-bold" style="color: #ff6347;">@(AgingSnapshot.CurrencyCode ?? "₹") @BucketSummaryViewModel.Days91To120Amount.ToString("N0")</span>
+                                        <small class="d-block text-muted">@BucketSummaryViewModel.Days91To120Count bills</small>
+                                    </div>
+                                </div>
+                                <div class="col-xl-3 col-lg-3 col-md-4 col-sm-6">
+                                    <div class="p-2 rounded cursor-pointer @(selectedBucket == VendorAgingBucketCodes.Days121To180 ? "border border-danger border-2" : "")"
+                                         style="background-color: rgba(220, 53, 69, 0.15);"
+                                         @onclick='() => FilterByBucket(VendorAgingBucketCodes.Days121To180)' 
+                                         title="Click to filter by 121-180 Days bucket">
+                                        <small class="text-muted d-block">121-180 Days</small>
+                                        <span class="fw-bold text-danger">@(AgingSnapshot.CurrencyCode ?? "₹") @BucketSummaryViewModel.Days121To180Amount.ToString("N0")</span>
+                                        <small class="d-block text-muted">@BucketSummaryViewModel.Days121To180Count bills</small>
+                                    </div>
+                                </div>
+                                <div class="col-xl-3 col-lg-3 col-md-4 col-sm-6">
+                                    <div class="p-2 rounded cursor-pointer @(selectedBucket == VendorAgingBucketCodes.Days181To365 ? "border border-2" : "")"
+                                         style="background-color: rgba(139, 0, 0, 0.15); @(selectedBucket == VendorAgingBucketCodes.Days181To365 ? "border-color: #8b0000;" : "")"
+                                         @onclick='() => FilterByBucket(VendorAgingBucketCodes.Days181To365)' 
+                                         title="Click to filter by 181-365 Days bucket">
+                                        <small class="text-muted d-block">181-365 Days</small>
+                                        <span class="fw-bold" style="color: #8b0000;">@(AgingSnapshot.CurrencyCode ?? "₹") @BucketSummaryViewModel.Days181To365Amount.ToString("N0")</span>
+                                        <small class="d-block text-muted">@BucketSummaryViewModel.Days181To365Count bills</small>
+                                    </div>
+                                </div>
+                                <div class="col-xl-3 col-lg-3 col-md-4 col-sm-6">
+                                    <div class="p-2 rounded cursor-pointer @(selectedBucket == VendorAgingBucketCodes.Days366Plus ? "border border-2" : "")"
+                                         style="background-color: rgba(75, 0, 130, 0.15); @(selectedBucket == VendorAgingBucketCodes.Days366Plus ? "border-color: #4b0082;" : "")"
+                                         @onclick='() => FilterByBucket(VendorAgingBucketCodes.Days366Plus)' 
+                                         title="Click to filter by 365+ Days bucket">
+                                        <small class="text-muted d-block">365+ Days</small>
+                                        <span class="fw-bold" style="color: #4b0082;">@(AgingSnapshot.CurrencyCode ?? "₹") @BucketSummaryViewModel.Days366PlusAmount.ToString("N0")</span>
+                                        <small class="d-block text-muted">@BucketSummaryViewModel.Days366PlusCount bills</small>
+                                    </div>
+                                </div>
+                            </div>
+                            @if (!string.IsNullOrEmpty(selectedBucket))
+                            {
+                                <div class="text-center mt-2">
+                                    <button class="btn btn-sm btn-outline-secondary" @onclick="ClearBucketFilter">
+                                        <i class="ti ti-x me-1"></i>Clear Filter
+                                    </button>
+                                </div>
+                            }
+                        </div>
+                    </div>
+
+                    <!-- Vendor List -->
+                    
+                    <div class="card mb-3">
+                        <h5 class="card-header">
+                            <i class="ti ti-users me-2"></i>Vendor Summary (@FilteredVendorRows.Count vendors)
+                        </h5>
+
+                        <div class="card-header py-2 d-flex justify-content-between align-items-center flex-wrap gap-2 mb-2">
+                            <div class="search-input" style="max-width: 250px;">
+                                <span class="btn-searchset" style="    position: absolute;
+        left: 24px;
+        top: 13px;
+    "><i class="ti ti-search fs-14"></i></span>
+                                <input type="search" class="form-control form-control-sm" 
+                                       placeholder="Search vendors..."
+                                       title="Search by vendor code or name"
+                                       @oninput="OnVendorSearch" style="padding-left: 30px;" />
+                            </div>
+                            <div class="form-check">
+                                <input type="checkbox" class="form-check-input" id="overdueOnly" 
+                                       @bind="showOverdueOnly" @bind:after="ApplyVendorFilters"
+                                       title="Show only vendors with overdue amounts" />
+                                <label class="form-check-label small" for="overdueOnly">Overdue Only</label>
+                            </div>
+                        </div>
+                        <div class="card-body p-0">
+                            <div class="table-responsive">
+                                <table class="table table-sm table-hover mb-0">
+                                    <thead class="table-light">
+                                        <tr>
+                                            <th style="min-width:180px">Vendor</th>
+                                            <th class="text-end" style="min-width:100px">Outstanding</th>
+                                            <th class="text-end d-none d-md-table-cell" style="min-width:90px">Credits</th>
+                                            <th class="text-end" style="min-width:100px">Net Payable</th>
+                                            <th class="text-center d-none d-lg-table-cell" style="min-width:80px">Status</th>
+                                            <th class="text-center" style="min-width:60px">Bills</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        @if (FilteredVendorRows.Any())
+                                        {
+                                            @foreach (var row in FilteredVendorRows)
+                                            {
+                                                <tr class="@(SelectedVendorRow?.VendorId == row.VendorId ? "table-active" : "") cursor-pointer"
+                                                    @onclick="() => SelectVendor(row)"
+                                                    title="Click to view bill details for @row.VendorNameSnapshot">
+                                                    <td>
+                                                        <div class="fw-medium text-truncate" style="max-width:180px;" title="@row.VendorNameSnapshot">
+                                                            @TruncateName(row.VendorNameSnapshot, 25)
+                                                        </div>
+                                                        <small class="text-muted">@row.VendorCodeSnapshot</small>
+                                                    </td>
+                                                    <td class="text-end fw-medium">@row.TotalOutstandingAmount.ToString("N0")</td>
+                                                    <td class="text-end d-none d-md-table-cell text-info">@row.OpenCreditAmount.ToString("N0")</td>
+                                                    <td class="text-end fw-bold @(row.NetPayableAmount > 0 ? "text-primary" : "text-success")">
+                                                        @row.NetPayableAmount.ToString("N0")
+                                                    </td>
+                                                    <td class="text-center d-none d-lg-table-cell">
+                                                        <span class="badge @GetReconciliationBadgeClass(row.ReconciliationStatus)" 
+                                                              title="@VendorAgingReconciliationStatuses.GetDisplayName(row.ReconciliationStatus)">
+                                                            @(row.ReconciliationStatus == VendorAgingReconciliationStatuses.Matched ? "✓" : "!")
+                                                        </span>
+                                                    </td>
+                                                    <td class="text-center">
+                                                        <span class="badge bg-secondary-transparent text-secondary">@row.OpenDocumentCount</span>
+                                                    </td>
+                                                </tr>
+                                            }
+                                        }
+                                        else
+                                        {
+                                            <tr>
+                                                <td colspan="6" class="text-center py-3 text-muted">
+                                                    No vendors found matching the criteria.
+                                                </td>
+                                            </tr>
+                                        }
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Vendor Diagnostics Panel -->
+                    @if (SelectedVendorRow != null)
+                    {
+                        <div class="card mb-3 mt-4 border-info">
+                            <div class="card-header py-2 bg-info-transparent text-info">
+                                <i class="ti ti-stethoscope me-2"></i> Vendor Diagnostics - @SelectedVendorRow.VendorNameSnapshot
+                            </div>
+                            <div class="card-body py-2">
+                                <div class="row">
+                                    @if (SelectedVendorRow.OldestDueDate.HasValue)
+                                    {
+                                        <div class="col-md-4 mb-2">
+                                            <small class="text-muted">Oldest Due Date</small>
+                                            <div class="fw-medium">@SelectedVendorRow.OldestDueDate.Value.ToString("dd-MMM-yyyy")</div>
+                                        </div>
+                                    }
+                                    @if (SelectedVendorRow.LatestBillDate.HasValue)
+                                    {
+                                        <div class="col-md-4 mb-2">
+                                            <small class="text-muted">Latest Bill Date</small>
+                                            <div class="fw-medium">@SelectedVendorRow.LatestBillDate.Value.ToString("dd-MMM-yyyy")</div>
+                                        </div>
+                                    }
+                                    @if (SelectedVendorRow.LatestPaymentDate.HasValue)
+                                    {
+                                        <div class="col-md-4 mb-2">
+                                            <small class="text-muted">Latest Payment Date</small>
+                                            <div class="fw-medium">@SelectedVendorRow.LatestPaymentDate.Value.ToString("dd-MMM-yyyy")</div>
+                                        </div>
+                                    }
+                                    <div class="col-md-4 mb-2">
+                                        <small class="text-muted">Overdue Total</small>
+                                        <div class="fw-medium @(SelectedVendorRow.OverdueTotalAmount > 0 ? "text-danger" : "text-success")">
+                                            @(AgingSnapshot.CurrencyCode ?? "₹") @SelectedVendorRow.OverdueTotalAmount.ToString("N2")
+                                        </div>
+                                    </div>
+                                    @if (SelectedVendorRow.CreditBalanceExcessAmount != 0)
+                                    {
+                                        <div class="col-md-4 mb-2">
+                                            <small class="text-muted">Credit Balance Excess</small>
+                                            <div class="fw-medium text-info">@(AgingSnapshot.CurrencyCode ?? "₹") @SelectedVendorRow.CreditBalanceExcessAmount.ToString("N2")</div>
+                                        </div>
+                                    }
+                                    @if (SelectedVendorRow.ReconciliationDifferenceAmount != 0)
+                                    {
+                                        <div class="col-md-4 mb-2">
+                                            <small class="text-muted">Reconciliation Difference</small>
+                                            <div class="fw-medium text-warning">@(AgingSnapshot.CurrencyCode ?? "₹") @SelectedVendorRow.ReconciliationDifferenceAmount.ToString("N2")</div>
+                                        </div>
+                                    }
+                                </div>
+                            </div>
+                        </div>
+                    }
+
+                    <!-- Bill Details (drilldown) -->
+                    @if (SelectedVendorRow != null && VendorBillRows.Any())
+                    {
+                        <h5 class="mb-3 mt-4">
+                            <i class="ti ti-file-invoice me-2"></i>Bill Details - @SelectedVendorRow.VendorNameSnapshot
+                        </h5>
+
+                        <div class="card">
+                            <div class="card-body p-0">
+                                <div class="table-responsive">
+                                    <table class="table table-sm table-hover mb-0">
+                                        <thead class="table-light">
+                                            <tr>
+                                                <th style="min-width:130px">Bill Number</th>
+                                                <th style="min-width:90px">Bill Date</th>
+                                                <th style="min-width:90px">Due Date</th>
+                                                <th class="text-end" style="min-width:100px">Outstanding</th>
+                                                <th class="text-center" style="min-width:80px">Overdue</th>
+                                                <th class="text-center" style="min-width:90px">Bucket</th>
+                                                <th class="d-none d-lg-table-cell" style="min-width:100px">Last Payment</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            @foreach (var bill in VendorBillRows)
+                                            {
+                                                <tr>
+                                                    <td class="fw-medium">
+                                                        @bill.BillNumberSnapshot
+                                                        <br />
+                                                        <small class="text-muted">@VendorAgingSourceDocumentTypes.GetDisplayName(bill.SourceDocumentType)</small>
+                                                    </td>
+                                                    <td>@bill.BillDateSnapshot.ToString("dd-MMM-yy")</td>
+                                                    <td>@bill.DueDateSnapshot.ToString("dd-MMM-yy")</td>
+                                                    <td class="text-end fw-medium">@bill.OutstandingAmount.ToString("N2")</td>
+                                                    <td class="text-center">
+                                                        <span class="badge @GetOverdueBadgeClass(bill.OverdueDays)">
+                                                            @bill.OverdueDays days
+                                                        </span>
+                                                    </td>
+                                                    <td class="text-center">
+                                                        <span class="badge @GetBucketBadgeClass(bill.BucketCode)">
+                                                            @VendorAgingBucketCodes.GetDisplayName(bill.BucketCode)
+                                                        </span>
+                                                    </td>
+                                                    <td class="d-none d-lg-table-cell">
+                                                        @if (bill.LastPaymentDateSnapshot.HasValue)
+                                                        {
+                                                            @bill.LastPaymentDateSnapshot.Value.ToString("dd-MMM-yy")
+                                                        }
+                                                        else
+                                                        {
+                                                            <span class="text-muted">-</span>
+                                                        }
+                                                    </td>
+                                                </tr>
+                                            }
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    }
+
+                </div>
+            </div>
+
+            <!-- RIGHT PANEL : SNAPSHOT INFO -->
+            <div class="col-lg-4">
+
+                <div class="profile-card">
+
+                    <!-- Snapshot Totals -->
+                    <div class="card mb-3">
+                        <div class="card-header py-2">
+                            <i class="ti ti-calculator me-2"></i> Snapshot Totals
+                        </div>
+                        <div class="card-body py-3">
+                            <div class="d-flex justify-content-between mb-2">
+                                <span class="text-muted">Total Outstanding</span>
+                                <span class="fw-bold">@(AgingSnapshot.CurrencyCode ?? "₹") @AgingSnapshot.TotalOutstandingAmount.ToString("N2")</span>
+                            </div>
+                            <div class="d-flex justify-content-between mb-2">
+                                <span class="text-muted">Open Credits</span>
+                                <span class="fw-medium text-info">- @(AgingSnapshot.CurrencyCode ?? "₹") @BucketSummaryViewModel.OpenCreditsAmount.ToString("N2")</span>
+                            </div>
+                            <hr class="my-2" />
+                            <div class="d-flex justify-content-between mb-2">
+                                <span class="text-muted fw-bold">Net Payable</span>
+                                <span class="fw-bold text-primary">@(AgingSnapshot.CurrencyCode ?? "₹") @BucketSummaryViewModel.NetPayableAmount.ToString("N2")</span>
+                            </div>
+                            <hr class="my-2" />
+                            <div class="d-flex justify-content-between mb-2">
+                                <span class="text-muted">Vendors</span>
+                                <span class="fw-medium">@AgingSnapshot.RecordCountVendors</span>
+                            </div>
+                            <div class="d-flex justify-content-between mb-2">
+                                <span class="text-muted">Bills</span>
+                                <span class="fw-medium">@AgingSnapshot.RecordCountBills</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Snapshot Info -->
+                    <div class="card mb-3">
+                        <div class="card-header py-2">
+                            <i class="ti ti-info-circle me-2"></i> Snapshot Information
+                        </div>
+                        <div class="card-body py-2">
+                            <div class="row">
+                                <div class="col-6 mb-2">
+                                    <small class="text-muted">As Of Date</small>
+                                    <div class="fw-medium">@AgingSnapshot.AsOfDate.ToString("dd-MMM-yyyy")</div>
+                                </div>
+                                <div class="col-6 mb-2">
+                                    <small class="text-muted">Run Type</small>
+                                    <div><span class="badge @GetRunTypeBadgeClass(AgingSnapshot.RunType)">@VendorAgingRunTypes.GetDisplayName(AgingSnapshot.RunType)</span></div>
+                                </div>
+                                <div class="col-6 mb-2">
+                                    <small class="text-muted">Status</small>
+                                    <div><span class="badge @GetStatusBadgeClass(AgingSnapshot.RunStatus)">@VendorAgingRunStatuses.GetDisplayName(AgingSnapshot.RunStatus)</span></div>
+                                </div>
+                                <div class="col-6 mb-2">
+                                    <small class="text-muted">Include Credits</small>
+                                    <div class="fw-medium">@(AgingSnapshot.IncludeOpenCredits ? "Yes" : "No")</div>
+                                </div>
+                                <div class="col-12 mb-2">
+                                    <small class="text-muted">Generated On</small>
+                                    <div class="fw-medium">@AgingSnapshot.GeneratedAt.ToString("dd-MMM-yyyy HH:mm:ss")</div>
+                                </div>
+                                <div class="col-12 mb-2">
+                                    <small class="text-muted">Generated By</small>
+                                    <div>@(AgingSnapshot.GeneratedByUserName ?? "System")</div>
+                                </div>
+                                <div class="col-12 mb-2">
+                                    <small class="text-muted">Run ID</small>
+                                    <div><code class="small">@AgingSnapshot.AgingRunId.ToString().Substring(0, 8)...</code></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Company/Branch Info -->
+                    <div class="card mb-3">
+                        <div class="card-header py-2">
+                            <i class="ti ti-building me-2"></i> Scope
+                        </div>
+                        <div class="card-body py-2">
+                            <div class="mb-2">
+                                <small class="text-muted">Company</small>
+                                <div class="fw-medium">@AgingSnapshot.CompanyName</div>
+                            </div>
+                            <div class="mb-2">
+                                <small class="text-muted">Branch</small>
+                                <div>@(AgingSnapshot.BranchName ?? "All Branches")</div>
+                            </div>
+                            <div class="mb-2">
+                                <small class="text-muted">Currency</small>
+                                <div>@(AgingSnapshot.CurrencyCode ?? "INR") - @(AgingSnapshot.CurrencyName ?? "Indian Rupee")</div>
+                            </div>
+                            @if (!string.IsNullOrEmpty(AgingSnapshot.BaseCurrencyCode))
+                            {
+                                <div class="mb-2">
+                                    <small class="text-muted">Base Currency</small>
+                                    <div class="fw-medium">@AgingSnapshot.BaseCurrencyCode</div>
+                                </div>
+                            }
+                            @if (AgingSnapshot.ExchangeRateSnapshot.HasValue && AgingSnapshot.ExchangeRateSnapshot.Value != 1)
+                            {
+                                <div class="mb-2">
+                                    <small class="text-muted">Exchange Rate (Snapshot)</small>
+                                    <div class="fw-medium">@AgingSnapshot.ExchangeRateSnapshot.Value.ToString("N4")</div>
+                                </div>
+                            }
+                        </div>
+                    </div>
+
+                    <!-- Bucket Policy -->
+                    <div class="card">
+                        <div class="card-header py-2">
+                            <i class="ti ti-list-details me-2"></i> Bucket Definition (AP)
+                        </div>
+                        <div class="card-body py-2">
+                            <div class="small">
+                                <div class="d-flex justify-content-between mb-1">
+                                    <span class="text-success">Current</span>
+                                    <span>Not yet due</span>
+                                </div>
+                                <div class="d-flex justify-content-between mb-1">
+                                    <span class="text-info">0-30 Days</span>
+                                    <span>0 to 30 days overdue</span>
+                                </div>
+                                <div class="d-flex justify-content-between mb-1">
+                                    <span class="text-warning">31-60 Days</span>
+                                    <span>31 to 60 days overdue</span>
+                                </div>
+                                <div class="d-flex justify-content-between mb-1">
+                                    <span style="color: #e67300;">61-90 Days</span>
+                                    <span>61 to 90 days overdue</span>
+                                </div>
+                                <div class="d-flex justify-content-between mb-1">
+                                    <span style="color: #ff6347;">91-120 Days</span>
+                                    <span>91 to 120 days overdue</span>
+                                </div>
+                                <div class="d-flex justify-content-between mb-1">
+                                    <span class="text-danger">121-180 Days</span>
+                                    <span>121 to 180 days overdue</span>
+                                </div>
+                                <div class="d-flex justify-content-between mb-1">
+                                    <span style="color: #8b0000;">181-365 Days</span>
+                                    <span>181 to 365 days overdue</span>
+                                </div>
+                                <div class="d-flex justify-content-between">
+                                    <span style="color: #4b0082;">365+ Days</span>
+                                    <span>> 365 days overdue</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+
+        </div>
+
+    </div>
+}
