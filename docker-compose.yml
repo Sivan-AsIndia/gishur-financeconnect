@@ -1,14 +1,17 @@
 # ============================================================
-# docker-compose.yml - GishurFinanceConnect v5.0.0
+# docker-compose.yml - GishurFinanceConnect v10.0.9
 # ============================================================
-# Usage: docker compose up -d
-# Access: https://localhost:5002
+# Usage:  docker compose pull && docker compose up -d
+# Access: https://localhost:5002   (self-signed cert)
+#         http://localhost:5001
 # ============================================================
 
 services:
-  # ── Web API ────────────────────────────────────────────────
+  # ── Web API (.NET 9) ───────────────────────────────────────
+  # NOTE: the service name MUST stay "api" — nginx.conf inside the
+  # client image reverse-proxies to http://api:8080
   api:
-    image: sivan67906/gishurfinance-api:v5.0.0
+    image: sivan67906/gishurfinance-api:${VERSION:-v10.0.9}
     container_name: GishurFinanceConnect-api
     restart: unless-stopped
     environment:
@@ -16,6 +19,13 @@ services:
       - ASPNETCORE_URLS=http://+:8080
       - ConnectionStrings__AuthDb=Data Source=/app/data/FinanceConnectDB.db
       - ClientSettings__BaseUrl=https://localhost:5002
+      # ── Optional: SMTP for password-reset / notification email ──
+      # - EmailSettings__SmtpHost=smtp.gmail.com
+      # - EmailSettings__SmtpPort=587
+      # - EmailSettings__SmtpUsername=${SMTP_USER}
+      # - EmailSettings__SmtpPassword=${SMTP_PASS}
+      # - EmailSettings__SenderEmail=${SMTP_FROM}
+      # - EmailSettings__SenderName=Gishur Finance
     volumes:
       - finance-db-data:/app/data
     networks:
@@ -27,21 +37,27 @@ services:
       retries: 5
       start_period: 20s
 
-  # ── Blazor WASM Client (nginx) ────────────────────────────
+  # ── Blazor WASM Client (nginx + reverse proxy) ─────────────
   client:
-    image: sivan67906/gishurfinance-client:v5.0.0
+    image: sivan67906/gishurfinance-client:${VERSION:-v10.0.9}
     container_name: GishurFinanceConnect
     restart: unless-stopped
     ports:
-      - "5002:443"
-      - "5001:80"
+      - "5002:443"   # HTTPS (self-signed)
+      - "5001:80"    # HTTP
     depends_on:
       api:
         condition: service_healthy
     networks:
       - gishur-network
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "--no-check-certificate", "https://localhost:443/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
 
-# ── Persistent storage for SQLite database ───────────────────
+# ── Persistent storage for the SQLite database ───────────────
 volumes:
   finance-db-data:
     driver: local
